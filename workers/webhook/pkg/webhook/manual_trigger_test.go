@@ -37,36 +37,112 @@ func TestManualSlackTrigger(t *testing.T) {
 	}
 
 	testCases := []struct {
-		name  string
-		query string
-		text  string
+		name    string
+		query   string
+		text    string
+		summary *workertypes.EventSummary
 	}{
 		{
-			name:  "Search Query",
-			query: "baseline_status:newly",
-			text:  "Manual Test: Search update for 'baseline_status:newly'",
-		},
-		{
-			name:  "Feature Query",
-			query: "id:\"anchor-positioning\"",
-			text:  "Manual Test: Feature update for 'Anchor Positioning'",
+			name:  "Complete Golden Payload (All Sections)",
+			query: "group:css",
+			text:  "Manual Test: Golden Payload",
+			summary: &workertypes.EventSummary{
+				SchemaVersion: "v1",
+				Text:          "Golden payload test summary",
+				Truncated:     false,
+				Highlights: []workertypes.SummaryHighlight{
+					{
+						Type:           workertypes.SummaryHighlightTypeChanged,
+						FeatureName:    "Anchor Positioning",
+						FeatureID:      "anchor-positioning",
+						Docs:           nil,
+						NameChange:     nil,
+						Moved:          nil,
+						Split:          nil,
+						BaselineChange: nil,
+						BrowserChanges: map[workertypes.BrowserName]*workertypes.Change[workertypes.BrowserValue]{
+							workertypes.BrowserChrome: {
+								From: workertypes.BrowserValue{Status: workertypes.BrowserStatusUnavailable, Version: nil, Date: nil},
+								To:   workertypes.BrowserValue{Status: workertypes.BrowserStatusAvailable, Version: new("110"), Date: nil},
+							},
+							workertypes.BrowserChromeAndroid:  nil,
+							workertypes.BrowserEdge:           nil,
+							workertypes.BrowserFirefox:        nil,
+							workertypes.BrowserFirefoxAndroid: nil,
+							workertypes.BrowserSafari:         nil,
+							workertypes.BrowserSafariIos:      nil,
+						},
+					},
+					{
+						Type:           workertypes.SummaryHighlightTypeMoved,
+						FeatureName:    "New Cool Name",
+						FeatureID:      "new-cool-name",
+						Docs:           nil,
+						BaselineChange: nil,
+						BrowserChanges: nil,
+						NameChange:     nil,
+						Split:          nil,
+						Moved: &workertypes.Change[workertypes.FeatureRef]{
+							From: workertypes.FeatureRef{ID: "old-name", Name: "Old Name", QueryMatch: workertypes.QueryMatchNoMatch},
+							To:   workertypes.FeatureRef{ID: "new-cool-name", Name: "New Cool Name", QueryMatch: workertypes.QueryMatchNoMatch},
+						},
+					},
+					{
+						Type:        workertypes.SummaryHighlightTypeAdded,
+						FeatureID:   "newly-added",
+						FeatureName: "Newly Added Feature",
+					},
+					{
+						Type:        workertypes.SummaryHighlightTypeRemoved,
+						FeatureID:   "removed-feature",
+						FeatureName: "Removed Feature",
+					},
+					{
+						Type:        workertypes.SummaryHighlightTypeDeleted,
+						FeatureID:   "deleted-feature",
+						FeatureName: "Deleted Feature",
+					},
+					{
+						Type:        workertypes.SummaryHighlightTypeSplit,
+						FeatureID:   "split-feature",
+						FeatureName: "Split Feature Host",
+						Split: &workertypes.SplitChange{
+							From: workertypes.FeatureRef{ID: "split-feature", Name: "Split Feature Host", QueryMatch: workertypes.QueryMatchNoMatch},
+							To: []workertypes.FeatureRef{
+								{ID: "split-sub-1", Name: "Sub Feature 1", QueryMatch: workertypes.QueryMatchMatch},
+								{ID: "split-sub-2", Name: "Sub Feature 2", QueryMatch: workertypes.QueryMatchNoMatch},
+							},
+						},
+					},
+					{
+						Type:        workertypes.SummaryHighlightTypeChanged,
+						FeatureID:   "baseline-shift",
+						FeatureName: "Feature Moving to Widely Available",
+						BaselineChange: &workertypes.Change[workertypes.BaselineValue]{
+							From: workertypes.BaselineValue{Status: workertypes.BaselineStatusNewly, LowDate: nil, HighDate: nil},
+							To:   workertypes.BaselineValue{Status: workertypes.BaselineStatusWidely, LowDate: nil, HighDate: nil},
+						},
+					},
+				},
+				Categories: workertypes.SummaryCategories{
+					QueryChanged:    2,
+					Added:           1,
+					Removed:         1,
+					Deleted:         1,
+					Moved:           1,
+					Split:           1,
+					Updated:         0,
+					UpdatedImpl:     1,
+					UpdatedRename:   0,
+					UpdatedBaseline: 1,
+				},
+			},
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			summary := workertypes.EventSummary{
-				SchemaVersion: "v1",
-				Text:          tc.text,
-				Categories:    workertypes.SummaryCategories{Added: 1},
-				Highlights: []workertypes.SummaryHighlight{
-					{
-						Type:        workertypes.SummaryHighlightTypeAdded,
-						FeatureID:   "anchor-positioning",
-						FeatureName: "Anchor Positioning",
-					},
-				},
-			}
+			summary := *tc.summary
 			summaryRaw, _ := json.Marshal(summary)
 
 			job := workertypes.IncomingWebhookDeliveryJob{
@@ -88,14 +164,12 @@ func TestManualSlackTrigger(t *testing.T) {
 				WebhookEventID: "manual-webhook-event-id",
 			}
 
-			mgr := &slackManager{
-				frontendBaseURL: "http://localhost:5555",
-				httpClient:      &http.Client{},
-				stateManager:    &noopStateManager{}, // Don't try to write to Spanner
-				job:             job,
+			mgr, err := newSlackSender("http://localhost:5555", &http.Client{}, job)
+			if err != nil {
+				t.Fatalf("Failed to create sender: %v", err)
 			}
 
-			err := mgr.Send(context.Background())
+			err = mgr.Send(context.Background())
 			if err != nil {
 				t.Errorf("Failed to send Slack message for %s: %v", tc.name, err)
 			} else {
@@ -103,13 +177,4 @@ func TestManualSlackTrigger(t *testing.T) {
 			}
 		})
 	}
-}
-
-type noopStateManager struct{}
-
-func (n *noopStateManager) RecordSuccess(ctx context.Context, channelID string, sentAt time.Time, webhookEventID string) error {
-	return nil
-}
-func (n *noopStateManager) RecordFailure(ctx context.Context, channelID string, err error, failedAt time.Time, isPermanent bool, webhookEventID string) error {
-	return nil
 }
