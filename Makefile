@@ -260,11 +260,17 @@ shell-lint:
 	shellcheck util/*.sh
 	shellcheck util/deployment/*
 
-lint-fix: node-install
+# Format all tracked and untracked Go files (skips ignored/generated files).
+go-format: go-install-tools
+	git ls-files --cached --others --exclude-standard '*.go' | xargs -r -I {} go tool golines -w --max-len=120 {}
+
+
+lint-fix: node-install go-format
 	npm run lint-fix -w frontend
 	terraform fmt -recursive .
 	npx prettier . --write
 	npx stylelint "frontend/src/**/*.css" --fix
+	go list -f '{{.Dir}}/...' -m | xargs -t golangci-lint run --fix
 
 style-lint:
 	npx stylelint "frontend/src/**/*.css"
