@@ -61,9 +61,9 @@ const saveButtonLocator = (page: Page) =>
 const shareButtonLocator = (page: Page) =>
   controlsLocator(page).getByLabel('Copy', {exact: true});
 const bookmarkEmptyIconLocator = (page: Page) =>
-  page.getByRole('button', {name: 'Bookmark', exact: true});
+  controlsLocator(page).getByRole('button', {name: 'Bookmark', exact: true});
 const bookmarkFilledIconLocator = (page: Page) =>
-  page.getByRole('button', {name: 'Unbookmark', exact: true});
+  controlsLocator(page).getByRole('button', {name: 'Unbookmark', exact: true});
 const editIconLocator = (page: Page) =>
   controlsLocator(page).getByRole('button', {name: 'Edit'});
 const deleteIconLocator = (page: Page) =>

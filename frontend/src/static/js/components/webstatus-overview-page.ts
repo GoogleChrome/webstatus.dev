@@ -18,18 +18,23 @@ import {consume} from '@lit/context';
 import {Task, TaskStatus} from '@lit/task';
 import {LitElement, type TemplateResult, html, PropertyValueMap} from 'lit';
 import {customElement, state, property} from 'lit/decorators.js';
+import {type components} from 'webstatus.dev-backend';
 
 import {
   getPageSize,
   getPaginationStart,
   getSortSpec,
   getWPTMetricView,
+  getLegacySearchID,
+  getSearchQuery,
+  updatePageUrl,
 } from '../utils/urls.js';
 import {
   type APIClient,
+  type FeatureSortOrderType,
+  FeatureWPTMetricViewType,
   isFeatureSortOrderType,
   isWPTMetricViewType,
-  type SuccessResponsePageableData,
 } from '../api/client.js';
 import {apiClientContext} from '../contexts/api-client-context.js';
 import './webstatus-overview-content.js';
@@ -53,10 +58,7 @@ export class OverviewPage extends LitElement {
   apiClient?: APIClient;
 
   @state()
-  taskTracker: TaskTracker<
-    SuccessResponsePageableData<'/v1/features'>,
-    ApiError
-  > = {
+  taskTracker: TaskTracker<components['schemas']['FeaturePage'], ApiError> = {
     status: TaskStatus.INITIAL, // Initial state
     error: undefined,
     data: undefined,
@@ -82,7 +84,7 @@ export class OverviewPage extends LitElement {
       args: () =>
         [this.apiClient, this.location, this.appBookmarkInfo] as const,
       task: async ([apiClient, routerLocation, appBookmarkInfo]): Promise<
-        SuccessResponsePageableData<'/v1/features'>
+        components['schemas']['FeaturePage']
       > => {
         this.taskTracker = {
           status: TaskStatus.INITIAL,
@@ -99,7 +101,8 @@ export class OverviewPage extends LitElement {
           data: page,
         };
       },
-      onError: async (error: {} | null | undefined) => {
+      // eslint-disable-next-line @typescript-eslint/no-restricted-types
+      onError: async (error: unknown) => {
         if (error instanceof ApiError) {
           this.taskTracker = {
             status: TaskStatus.ERROR,
@@ -130,6 +133,38 @@ export class OverviewPage extends LitElement {
     );
   }
 
+  #upgradeLegacyUrl(): boolean {
+    if (!this.appBookmarkInfo || !this.location) return false;
+
+    const legacyId = getLegacySearchID(this.location);
+    const globalSearches = this.appBookmarkInfo.globalSavedSearches || [];
+
+    if (legacyId !== '') {
+      const isGlobal = globalSearches.some(s => s.id === legacyId);
+      const newQ = isGlobal ? `hotlist:${legacyId}` : `saved:${legacyId}`;
+      updatePageUrl(window.location.pathname, this.location, {q: newQ});
+      return true;
+    }
+
+    const currentQuery = getSearchQuery(this.location);
+    const matchGlobal = globalSearches.find(
+      s => s.query.trim() !== '' && s.query === currentQuery,
+    );
+
+    if (
+      matchGlobal &&
+      !currentQuery.startsWith('hotlist:') &&
+      !currentQuery.startsWith('saved:')
+    ) {
+      updatePageUrl(window.location.pathname, this.location, {
+        q: `hotlist:${matchGlobal.id}`,
+      });
+      return true;
+    }
+
+    return false;
+  }
+
   protected willUpdate(changedProperties: PropertyValueMap<this>): void {
     if (
       changedProperties.has('apiClient') ||
@@ -138,6 +173,15 @@ export class OverviewPage extends LitElement {
       if (this.apiClient === undefined) {
         return;
       }
+
+      if (
+        !savedSearchHelpers.isBusyLoadingSavedSearchInfo(this.appBookmarkInfo)
+      ) {
+        if (this.#upgradeLegacyUrl()) {
+          return; // Wait for the URL change to trigger the next update
+        }
+      }
+
       const incomingCurrentSavedSearch =
         savedSearchHelpers.getCurrentSavedSearch(this.appBookmarkInfo);
       const userSavedSearch =
@@ -162,10 +206,14 @@ export class OverviewPage extends LitElement {
     apiClient: APIClient | undefined,
     routerLocation: {search: string},
     appBookmarkInfo?: AppBookmarkInfo,
-  ): Promise<SuccessResponsePageableData<'/v1/features'>> {
-    if (!apiClient)
+  ): Promise<components['schemas']['FeaturePage']> {
+    if (typeof apiClient !== 'object')
       return Promise.reject(new Error('APIClient is not initialized.'));
-    const sort = getSortSpec(routerLocation);
+    let sortSpec: FeatureSortOrderType | undefined = undefined;
+    const sortSpecRaw = getSortSpec(routerLocation);
+    if (isFeatureSortOrderType(sortSpecRaw)) {
+      sortSpec = sortSpecRaw;
+    }
     let searchQuery: string = '';
     const query = savedSearchHelpers.getCurrentQuery(appBookmarkInfo);
     if (query) {
@@ -173,14 +221,27 @@ export class OverviewPage extends LitElement {
     }
     const offset = getPaginationStart(routerLocation);
     const pageSize = getPageSize(routerLocation);
-    const wptMetricView = getWPTMetricView(routerLocation);
-    return apiClient.getFeatures(
+
+    let wptMetricView: FeatureWPTMetricViewType | undefined = undefined;
+    const wptMetricViewRaw = getWPTMetricView(routerLocation);
+    if (isWPTMetricViewType(wptMetricViewRaw)) {
+      wptMetricView = wptMetricViewRaw;
+    }
+
+    const resp = await apiClient.getFeatures(
       searchQuery,
-      isFeatureSortOrderType(sort) ? sort : undefined,
-      isWPTMetricViewType(wptMetricView) ? wptMetricView : undefined,
+      sortSpec,
+      wptMetricView,
       offset,
       pageSize,
     );
+    return {
+      metadata: {
+        total: resp.metadata.total || 0,
+        next_page_token: resp.metadata.next_page_token,
+      },
+      data: resp.data,
+    };
   }
 
   render(): TemplateResult {

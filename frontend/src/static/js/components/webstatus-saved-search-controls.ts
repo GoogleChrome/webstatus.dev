@@ -28,7 +28,11 @@ import {
 import {WebstatusSavedSearchEditor} from './webstatus-saved-search-editor.js';
 
 import './webstatus-saved-search-editor.js';
-import {formatOverviewPageUrl, getOrigin} from '../utils/urls.js';
+import {
+  QueryStringOverrides,
+  formatOverviewPageUrl,
+  getOrigin,
+} from '../utils/urls.js';
 import {ifDefined} from 'lit/directives/if-defined.js';
 import {Task, TaskStatus} from '@lit/task';
 import {ApiError} from '../api/errors.js';
@@ -61,8 +65,8 @@ export class WebstatusSavedSearchControls extends LitElement {
   // Members that are used for testing with sinon.
   _getOrigin: () => string = getOrigin;
   _formatOverviewPageUrl: (
-    location: {search: string},
-    overrides: {search_id?: string},
+    location?: {search: string},
+    overrides?: QueryStringOverrides,
   ) => string = formatOverviewPageUrl;
 
   static styles = css`
@@ -203,7 +207,7 @@ export class WebstatusSavedSearchControls extends LitElement {
     savedSearch: UserSavedSearch,
   ): TemplateResult {
     const isOwner = savedSearch.permissions?.role === BookmarkOwnerRole;
-    const shareableUrl = `${this._getOrigin()}${this._formatOverviewPageUrl(this.location, {search_id: savedSearch.id})}`;
+    const shareableUrl = `${this._getOrigin()}${this._formatOverviewPageUrl(this.location, {q: `saved:${savedSearch.id}`})}`;
     return html`
       <sl-copy-button
         value="${shareableUrl}"

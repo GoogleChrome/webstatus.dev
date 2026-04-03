@@ -61,6 +61,11 @@ var (
 	// was valid but empty (e.g., an empty array or object). This allows callers to distinguish
 	// between a missing value and an explicitly empty one.
 	ErrEmptyJSONValue = errors.New("JSON value is empty")
+
+	ErrSavedSearchNotFound         = errors.New("saved search not found")
+	ErrHotlistNotFound             = errors.New("hotlist not found")
+	ErrSavedSearchCycleDetected    = errors.New("saved search cycle detected")
+	ErrSavedSearchMaxDepthExceeded = errors.New("saved search max depth exceeded")
 )
 
 type UserProfile struct {

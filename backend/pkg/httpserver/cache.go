@@ -151,6 +151,10 @@ type operationResponseCaches struct {
 		backend.ListAggregatedBaselineStatusCountsRequestObject,
 		backend.ListAggregatedBaselineStatusCounts200JSONResponse,
 	]
+	listGlobalSavedSearchesCache operationResponseCache[
+		backend.ListGlobalSavedSearchesRequestObject,
+		backend.ListGlobalSavedSearches200JSONResponse,
+	]
 }
 
 // initOperationResponseCaches initializes and configures each
@@ -206,6 +210,12 @@ func initOperationResponseCaches(dataCacher RawBytesDataCacher,
 			backend.ListAggregatedBaselineStatusCountsRequestObject,
 			backend.ListAggregatedBaselineStatusCounts200JSONResponse,
 		]{cacher: dataCacher, operationID: "listAggregatedBaselineStatusCounts",
+			overrideCacheOptions: routeCacheOptions.AggregatedFeatureStatsOptions},
+
+		listGlobalSavedSearchesCache: operationResponseCache[
+			backend.ListGlobalSavedSearchesRequestObject,
+			backend.ListGlobalSavedSearches200JSONResponse,
+		]{cacher: dataCacher, operationID: "listGlobalSavedSearches",
 			overrideCacheOptions: routeCacheOptions.AggregatedFeatureStatsOptions},
 	}
 }

@@ -112,10 +112,20 @@ export async function waitForOverviewPageLoad(page: Page) {
     .waitFor({state: 'hidden', timeout: 15000});
 }
 
+export async function waitForSidebarLoaded(page: Page) {
+  const sidebar = page.locator('webstatus-sidebar');
+  // Wait for sidebar to be attached
+  await expect(sidebar).toBeAttached({timeout: 10000});
+  // Wait for the absence of sl-skeleton inside the sidebar
+  const skeleton = sidebar.locator('sl-skeleton');
+  await expect(skeleton).toHaveCount(0, {timeout: 10000});
+}
+
 export async function gotoOverviewPageUrl(page: Page, url: string) {
   await page.goto(url);
 
   await waitForOverviewPageLoad(page);
+  await waitForSidebarLoaded(page);
 }
 
 export async function getOverviewPageFeatureCount(page: Page): Promise<number> {
@@ -191,6 +201,7 @@ export async function loginAsUser(
   // Clicking the log in button will create a popup that we need to capture.
   const popupPromise = page.waitForEvent('popup');
   await page.goto('http://localhost:5555/');
+  await waitForSidebarLoaded(page);
   await page.getByText('Log in').click();
   const popup = await popupPromise;
 

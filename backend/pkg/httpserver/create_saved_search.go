@@ -144,6 +144,27 @@ func (s *Server) CreateSavedSearch(ctx context.Context, request backend.CreateSa
 		}, nil
 	}
 
+	err := s.wptMetricsStorer.ValidateQueryReferences(ctx, request.Body.Query, nil)
+	if err != nil {
+		if errors.Is(err, backendtypes.ErrSavedSearchNotFound) ||
+			errors.Is(err, backendtypes.ErrSavedSearchCycleDetected) ||
+			errors.Is(err, backendtypes.ErrSavedSearchMaxDepthExceeded) ||
+			errors.Is(err, errQueryDoesNotMatchGrammar) {
+			return backend.CreateSavedSearch400JSONResponse{
+				Code:    http.StatusBadRequest,
+				Message: err.Error(),
+				Errors:  nil,
+			}, nil
+		}
+
+		// Also handle the "consist entirely of a single saved search" error string if it's not a named error
+		return backend.CreateSavedSearch400JSONResponse{
+			Code:    http.StatusBadRequest,
+			Message: err.Error(),
+			Errors:  nil,
+		}, nil
+	}
+
 	output, err := s.wptMetricsStorer.CreateUserSavedSearch(ctx, user.ID, *request.Body)
 	if err != nil {
 		if errors.Is(err, backendtypes.ErrUserMaxSavedSearches) {

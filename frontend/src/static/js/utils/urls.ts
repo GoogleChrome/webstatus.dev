@@ -43,7 +43,7 @@ export function getWPTMetricView(location: {search: string}): string {
   return getQueryParam(location.search, 'wpt_metric_view');
 }
 
-export function getSearchID(location: {search: string}): string {
+export function getLegacySearchID(location: {search: string}): string {
   return getQueryParam(location.search, 'search_id');
 }
 
@@ -84,7 +84,6 @@ export type QueryStringOverrides = {
   wpt_metric_view?: string;
   dateRange?: DateRange;
   column_options?: string[];
-  search_id?: string;
   edit_saved_search?: boolean;
 };
 
@@ -154,12 +153,6 @@ function getContextualQueryStringParams(
     // format endDate as yyyy-mm-dd
     const endDate = dateRange.end.toISOString().split('T')[0];
     searchParams.set('endDate', endDate);
-  }
-
-  const searchID =
-    'search_id' in overrides ? overrides.search_id : getSearchID(location);
-  if (searchID) {
-    searchParams.set('search_id', searchID);
   }
 
   const editBookmark =

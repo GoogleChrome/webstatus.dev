@@ -207,7 +207,8 @@ func TestSlackSender_Send_Golden(t *testing.T) {
 			UpdatedImpl:     0,
 			UpdatedRename:   0,
 		},
-		Truncated: false,
+		Truncated:   false,
+		QueryErrors: nil,
 		Highlights: []workertypes.SummaryHighlight{
 			{
 				Type:        workertypes.SummaryHighlightTypeChanged,
@@ -583,6 +584,7 @@ func TestSlackPayloadBuilder_VisitV1_Filter(t *testing.T) {
 			SchemaVersion: "v1",
 			Text:          "",
 			Truncated:     false,
+			QueryErrors:   nil,
 			Highlights:    nil,
 			Categories: workertypes.SummaryCategories{
 				QueryChanged:    0,
@@ -597,6 +599,7 @@ func TestSlackPayloadBuilder_VisitV1_Filter(t *testing.T) {
 				UpdatedBaseline: 0,
 			},
 		},
+		queryErrors:               nil,
 		baselineNewlyChanges:      nil,
 		baselineWidelyChanges:     nil,
 		baselineRegressionChanges: nil,
@@ -626,8 +629,9 @@ func TestSlackPayloadBuilder_VisitV1_Filter(t *testing.T) {
 			UpdatedRename:   0,
 			UpdatedBaseline: 0,
 		},
-		Text:      "Test summary",
-		Truncated: false,
+		Text:        "Test summary",
+		Truncated:   false,
+		QueryErrors: nil,
 		Highlights: []workertypes.SummaryHighlight{
 			{
 				Type:        workertypes.SummaryHighlightTypeChanged,

@@ -20,6 +20,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/backendtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/searchtypes"
@@ -38,7 +39,7 @@ func (s *Server) ListFeatures(
 		return cachedResponse, nil
 	}
 
-	var node *searchtypes.SearchNode
+	var decodedQuery *string
 	if req.Params.Q != nil {
 		// Try to decode the url.
 		decodedStr, err := url.QueryUnescape(*req.Params.Q)
@@ -50,17 +51,22 @@ func (s *Server) ListFeatures(
 				Message: "query string cannot be decoded",
 			}, nil
 		}
+		decodedQuery = &decodedStr
+	}
 
+	var node *searchtypes.SearchNode
+	if decodedQuery != nil {
 		parser := searchtypes.FeaturesSearchQueryParser{}
-		node, err = parser.Parse(decodedStr)
+		parsedNode, err := parser.Parse(*decodedQuery)
 		if err != nil {
-			slog.WarnContext(ctx, "unable to parse query string", "query", decodedStr, "error", err)
+			slog.WarnContext(ctx, "unable to parse query string", "query", *decodedQuery, "error", err)
 
 			return backend.ListFeatures400JSONResponse{
 				Code:    http.StatusBadRequest,
 				Message: "query string does not match expected grammar",
 			}, nil
 		}
+		node = parsedNode
 	}
 	featurePage, err := s.wptMetricsStorer.FeaturesSearch(
 		ctx,
@@ -79,6 +85,27 @@ func (s *Server) ListFeatures(
 			return backend.ListFeatures400JSONResponse{
 				Code:    400,
 				Message: "invalid page token",
+			}, nil
+		}
+
+		if errors.Is(err, backendtypes.ErrSavedSearchNotFound) ||
+			errors.Is(err, backendtypes.ErrHotlistNotFound) ||
+			errors.Is(err, backendtypes.ErrSavedSearchCycleDetected) ||
+			errors.Is(err, backendtypes.ErrSavedSearchMaxDepthExceeded) {
+			slog.WarnContext(ctx, "invalid saved search query", "error", err)
+
+			return backend.ListFeatures400JSONResponse{
+				Code:    400,
+				Message: err.Error(),
+			}, nil
+		}
+
+		if strings.Contains(err.Error(), "query cannot consist entirely of a single") {
+			slog.WarnContext(ctx, "invalid saved search query", "error", err)
+
+			return backend.ListFeatures400JSONResponse{
+				Code:    400,
+				Message: err.Error(),
 			}, nil
 		}
 

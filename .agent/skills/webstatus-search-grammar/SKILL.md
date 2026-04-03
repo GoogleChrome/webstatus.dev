@@ -26,7 +26,7 @@ For a technical breakdown of the ANTLR grammar, search node transformation, and 
    - Add the new term to the `search_criteria` rule in the grammar file (e.g., add `| discouraged_term`).
    - Define the new rule: `discouraged_term: 'is' ':' 'discouraged';`.
 2. **Regenerate Parser**:
-   - Run `make antlr-gen`. This will update the files in `lib/gen/featuresearch/parser/`.
+   - Run `make antlr-gen`. This will update the files in `lib/gen/featuresearch/parser/`. Note: If you do not have the `devcontainer` open or do not have the right Java dependency versions, **ask the user** to run this step for you.
 3. **Update Visitor (`lib/gcpspanner/searchtypes/`)**:
    - Add a new `SearchIdentifier` for your term in `searchtypes.go` (e.g., `IdentifierIsDiscouraged`).
    - In **[FeaturesSearchVisitor.go](../../lib/gcpspanner/searchtypes/features_search_visitor.go)**, implement the `VisitDiscouraged_termContext` method. This visitor is the **source-of-truth** for how grammar terms are translated into Spanner SQL.
@@ -46,3 +46,9 @@ When you add a new search grammar term or modify parsing:
 
 - Trigger the "Updating the Knowledge Base" prompt in `GEMINI.md` to ensure I am aware of the changes.
 - Ensure that `docs/ARCHITECTURE.md` is updated if there are broader system impacts.
+
+## Error Handling & Query Validation
+
+- **Query Execution Errors:** When translating search logic into Spanner SQL or exploring `saved:` references via `expandSavedSearches`, unexpected edge cases (e.g. `backendtypes.ErrSavedSearchNotFound`, or cyclic references) MUST NOT crash the request and MUST NOT return `500 Internal Server Error`.
+- **400 Bad Request Mapping:** Endpoint handlers (e.g., `get_features.go`, `create_saved_search.go`) MUST explicitly catch these semantic validation errors and map them to HTTP `400 Bad Request` JSON responses. The frontend relies on these 400s to render in-app warning banners for invalid subsets of an otherwise valid query string.
+- **Reference Validation:** Always ensure that `ValidateQueryReferences` (or equivalent dry-run query validators) intercepts invalid cycles or missing queries before a database mutation is committed.

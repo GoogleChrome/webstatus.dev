@@ -86,73 +86,129 @@ func (b *FeatureSearchFilterBuilder) Build(node *searchtypes.SearchNode) *Featur
 }
 
 func (b *FeatureSearchFilterBuilder) traverseAndGenerateFilters(node *searchtypes.SearchNode) []string {
-	var filters []string
-
 	switch {
-	case node.IsKeyword(): // Handle AND/OR keyword
-		childFilters := make([]string, 0, len(node.Children)) // Collect child filters first
-		for _, child := range node.Children {
-			childFilters = append(childFilters, b.traverseAndGenerateFilters(child)...)
-		}
-
-		// Join child filters using the current node's operator
-		if len(childFilters) > 0 {
-			joiner := " AND "
-			if node.Keyword == searchtypes.KeywordOR {
-				joiner = " OR "
-			}
-			filterString := strings.Join(childFilters, joiner)
-
-			if strings.TrimSpace(filterString) != "" {
-				filters = append(filters, filterString)
-			}
-
-		}
-
+	case node.IsKeyword():
+		return b.handleKeywordNode(node)
 	case node.Keyword == searchtypes.KeywordParens:
-		// Handle parenthesized sub-expressions.
-		childFilters := make([]string, 0, len(node.Children))
-		for _, child := range node.Children {
-			childFilters = append(childFilters, b.traverseAndGenerateFilters(child)...)
-		}
-
-		// Join without spaces because if there are multiple terms, they will
-		// currently fall under a parent keyword node (AND/OR), which
-		// takes care of adding the necessary spaces.
-		filter := strings.Join(childFilters, "")
-
-		filter = "(" + filter + ")"
-
-		filters = append(filters, filter)
-
+		return b.handleParensNode(node)
 	case node.Term != nil && (node.Keyword == searchtypes.KeywordNone):
-		var filter string
-		switch node.Term.Identifier {
-		case searchtypes.IdentifierAvailableDate:
-			// Currently not a terminal identifier.
+		return b.handleTermNode(node)
+	default:
+		return nil
+	}
+}
+
+func (b *FeatureSearchFilterBuilder) handleKeywordNode(node *searchtypes.SearchNode) []string {
+	var filters []string
+	var hotlistIDs []string
+	var otherChildren []*searchtypes.SearchNode
+
+	for _, child := range node.Children {
+		// Check if it is a direct hotlist term
+		if child.Term != nil && child.Term.Identifier == searchtypes.IdentifierHotlist {
+			hotlistIDs = append(hotlistIDs, child.Term.Value)
+		} else {
+			otherChildren = append(otherChildren, child)
+		}
+	}
+
+	childFilters := make([]string, 0, len(otherChildren)+1)
+	for _, child := range otherChildren {
+		childFilters = append(childFilters, b.traverseAndGenerateFilters(child)...)
+	}
+
+	if len(hotlistIDs) == 1 {
+		paramName := b.addParamGetName(hotlistIDs[0])
+		query := "wf.FeatureKey IN (SELECT FeatureKey FROM SavedSearchFeatureSortOrder WHERE SavedSearchID = @%s)"
+		childFilters = append(childFilters, fmt.Sprintf(query, paramName))
+	} else if len(hotlistIDs) > 1 {
+		paramName := b.addParamGetName(hotlistIDs)
+		switch node.Keyword {
+		case searchtypes.KeywordOR:
+			query := "wf.FeatureKey IN (SELECT FeatureKey FROM SavedSearchFeatureSortOrder WHERE SavedSearchID IN UNNEST(@%s))"
+			childFilters = append(childFilters, fmt.Sprintf(query, paramName))
+		case searchtypes.KeywordAND:
+			query := "wf.FeatureKey IN (SELECT FeatureKey FROM SavedSearchFeatureSortOrder " +
+				"WHERE SavedSearchID IN UNNEST(@%s) GROUP BY FeatureKey HAVING COUNT(DISTINCT SavedSearchID) = %d)"
+			childFilters = append(childFilters, fmt.Sprintf(query, paramName, len(hotlistIDs)))
+		case searchtypes.KeywordRoot, searchtypes.KeywordParens, searchtypes.KeywordNone:
+			// Should not happen as handleKeywordNode is only called for AND/OR keywords.
 			break
-		case searchtypes.IdentifierAvailableOn:
-			filter = b.availabilityFilter(node.Term.Value, node.Term.Operator)
-		case searchtypes.IdentifierName:
-			filter = b.featureNameFilter(node.Term.Value, node.Term.Operator)
-		case searchtypes.IdentifierDescription:
-			filter = b.featureDescriptionFilter(node.Term.Value, node.Term.Operator)
-		case searchtypes.IdentifierGroup:
-			filter = b.groupFilter(node.Term.Value, node.Term.Operator)
-		case searchtypes.IdentifierSnapshot:
-			filter = b.snapshotFilter(node.Term.Value, node.Term.Operator)
-		case searchtypes.IdentifierID:
-			filter = b.idFilter(node.Term.Value, node.Term.Operator)
-		case searchtypes.IdentifierBaselineStatus:
-			filter = b.baselineStatusFilter(node.Term.Value, node.Term.Operator)
-		case searchtypes.IdentifierBaselineDate:
-			filter = b.baselineDateFilter(node.Term.Value, node.Term.Operator)
-		case searchtypes.IdentifierAvailableBrowserDate:
-			filter = b.handleIdentifierAvailableBrowserDateTerm(node)
+		default:
+			break
 		}
-		if filter != "" {
-			filters = append(filters, filter)
+	}
+
+	// Join child filters using the current node's operator
+	if len(childFilters) > 0 {
+		joiner := " AND "
+		if node.Keyword == searchtypes.KeywordOR {
+			joiner = " OR "
 		}
+		filterString := strings.Join(childFilters, joiner)
+
+		if strings.TrimSpace(filterString) != "" {
+			filters = append(filters, filterString)
+		}
+
+	}
+
+	return filters
+}
+
+func (b *FeatureSearchFilterBuilder) handleParensNode(node *searchtypes.SearchNode) []string {
+	var filters []string
+	// Handle parenthesized sub-expressions.
+	childFilters := make([]string, 0, len(node.Children))
+	for _, child := range node.Children {
+		childFilters = append(childFilters, b.traverseAndGenerateFilters(child)...)
+	}
+
+	filter := strings.Join(childFilters, "")
+
+	if strings.TrimSpace(filter) != "" {
+		filter = "(" + filter + ")"
+		filters = append(filters, filter)
+	}
+
+	return filters
+}
+
+func (b *FeatureSearchFilterBuilder) handleTermNode(node *searchtypes.SearchNode) []string {
+	var filters []string
+	var filter string
+	switch node.Term.Identifier {
+	case searchtypes.IdentifierSavedSearch:
+		// Handled upstream by ValidateQueryReferences and recursive expansion.
+		break
+	case searchtypes.IdentifierHotlist:
+		paramName := b.addParamGetName(node.Term.Value)
+		query := "wf.FeatureKey IN (SELECT FeatureKey FROM SavedSearchFeatureSortOrder WHERE SavedSearchID = @%s)"
+		filter = fmt.Sprintf(query, paramName)
+	case searchtypes.IdentifierAvailableDate:
+		// Currently not a terminal identifier.
+		break
+	case searchtypes.IdentifierAvailableOn:
+		filter = b.availabilityFilter(node.Term.Value, node.Term.Operator)
+	case searchtypes.IdentifierName:
+		filter = b.featureNameFilter(node.Term.Value, node.Term.Operator)
+	case searchtypes.IdentifierDescription:
+		filter = b.featureDescriptionFilter(node.Term.Value, node.Term.Operator)
+	case searchtypes.IdentifierGroup:
+		filter = b.groupFilter(node.Term.Value, node.Term.Operator)
+	case searchtypes.IdentifierSnapshot:
+		filter = b.snapshotFilter(node.Term.Value, node.Term.Operator)
+	case searchtypes.IdentifierID:
+		filter = b.idFilter(node.Term.Value, node.Term.Operator)
+	case searchtypes.IdentifierBaselineStatus:
+		filter = b.baselineStatusFilter(node.Term.Value, node.Term.Operator)
+	case searchtypes.IdentifierBaselineDate:
+		filter = b.baselineDateFilter(node.Term.Value, node.Term.Operator)
+	case searchtypes.IdentifierAvailableBrowserDate:
+		filter = b.handleIdentifierAvailableBrowserDateTerm(node)
+	}
+	if filter != "" {
+		filters = append(filters, filter)
 	}
 
 	return filters
@@ -457,6 +513,7 @@ func (q FeatureSearchQueryBuilder) Build(
 
 	var stableBrowserImplDetails, expBrowserImplDetails *SortByBrowserImplDetails
 	var browserFeatureSupportDetails *SortByBrowserFeatureSupportDetails
+	var searchIDOrderDetails *SortBySearchIDOrderDetails
 
 	switch sort.SortTarget() {
 	case StableImplSort:
@@ -470,6 +527,10 @@ func (q FeatureSearchQueryBuilder) Build(
 	case BrowserFeatureSupportSort:
 		browserFeatureSupportDetails = &SortByBrowserFeatureSupportDetails{
 			BrowserName: sort.BrowserTarget(),
+		}
+	case SearchIDOrderSort:
+		searchIDOrderDetails = &SortBySearchIDOrderDetails{
+			SearchID: sort.SearchIDTarget(),
 		}
 	case ChromiumUsageSort, IDSort, NameSort, StatusSort, DeveloperSignalUpvotesSort:
 		break // do nothing.
@@ -488,6 +549,7 @@ func (q FeatureSearchQueryBuilder) Build(
 		SortByStableBrowserImpl:     stableBrowserImplDetails,
 		SortByExpBrowserImpl:        expBrowserImplDetails,
 		SortByBrowserFeatureSupport: browserFeatureSupportDetails,
+		SortBySearchIDOrder:         searchIDOrderDetails,
 	}
 
 	if q.offsetCursor != nil {
@@ -515,6 +577,15 @@ type Sortable struct {
 	sortTarget     FeaturesSearchSortTarget
 	ascendingOrder bool
 	browserTarget  *string
+	searchIDTarget *string
+}
+
+func (s Sortable) SearchIDTarget() string {
+	if s.searchIDTarget == nil {
+		return ""
+	}
+
+	return *s.searchIDTarget
 }
 
 func (s Sortable) BrowserTarget() string {
@@ -563,7 +634,8 @@ func (f FeatureSearchColumn) ToFilterColumn() string {
 		featureSearchStatusColumn,
 		featureSearchChromiumUsageColumn,
 		featureSearchBrowserFeatureSupportDateColumn,
-		featureSearchUpvotesColumn:
+		featureSearchUpvotesColumn,
+		featureSearchSearchIDOrderColumn:
 		return string(f)
 	}
 
@@ -583,6 +655,7 @@ const (
 	ChromiumUsageSort          FeaturesSearchSortTarget = "chromium_usage"
 	BrowserFeatureSupportSort  FeaturesSearchSortTarget = "browser_feature_support"
 	DeveloperSignalUpvotesSort FeaturesSearchSortTarget = "developer_signal_upvotes"
+	SearchIDOrderSort          FeaturesSearchSortTarget = "search_id_order"
 )
 
 const (
@@ -596,6 +669,7 @@ const (
 	featureSearchChromiumUsageColumn             FeatureSearchColumn = "chromium_usage_metrics.ChromiumUsage"
 	featureSearchBrowserFeatureSupportDateColumn FeatureSearchColumn = "sort_browser_feature_support_calcs.SortDate"
 	featureSearchUpvotesColumn                   FeatureSearchColumn = "lfds.Upvotes"
+	featureSearchSearchIDOrderColumn             FeatureSearchColumn = "sort_search_id_order_calcs.PositionIndex"
 )
 
 const (
@@ -612,6 +686,7 @@ func NewFeatureNameSort(isAscending bool) Sortable {
 		ascendingOrder: isAscending,
 		sortTarget:     NameSort,
 		browserTarget:  nil,
+		searchIDTarget: nil,
 	}
 }
 
@@ -628,6 +703,7 @@ func NewBaselineStatusSort(isAscending bool) Sortable {
 		ascendingOrder: isAscending,
 		sortTarget:     StatusSort,
 		browserTarget:  nil,
+		searchIDTarget: nil,
 	}
 }
 
@@ -655,6 +731,7 @@ func NewBrowserImplSort(isAscending bool, browserName string, isStable bool) Sor
 			},
 		),
 		browserTarget:  &browserName,
+		searchIDTarget: nil,
 		ascendingOrder: isAscending,
 		sortTarget:     sortTarget,
 	}
@@ -671,6 +748,7 @@ func NewChromiumUsageSort(isAscending bool) Sortable {
 		ascendingOrder: isAscending,
 		sortTarget:     ChromiumUsageSort,
 		browserTarget:  nil,
+		searchIDTarget: nil,
 	}
 }
 
@@ -692,6 +770,7 @@ func NewBrowserFeatureSupportSort(isAscending bool, browserName string) Sortable
 			},
 		),
 		browserTarget:  &browserName,
+		searchIDTarget: nil,
 		ascendingOrder: isAscending,
 		sortTarget:     sortTarget,
 	}
@@ -708,5 +787,21 @@ func NewDeveloperSignalUpvotesSort(isAscending bool) Sortable {
 		ascendingOrder: isAscending,
 		sortTarget:     DeveloperSignalUpvotesSort,
 		browserTarget:  nil,
+		searchIDTarget: nil,
+	}
+}
+
+// NewSearchIDOrderSort creates a Sortable for Search ID order.
+func NewSearchIDOrderSort(isAscending bool, searchID string) Sortable {
+	return Sortable{
+		clause: buildFullClause(
+			[]string{
+				buildSortableOrderClause(isAscending, featureSearchSearchIDOrderColumn),
+			},
+		),
+		ascendingOrder: isAscending,
+		sortTarget:     SearchIDOrderSort,
+		browserTarget:  nil,
+		searchIDTarget: &searchID,
 	}
 }

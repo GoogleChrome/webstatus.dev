@@ -335,6 +335,32 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BasicErrorModel'
+  /v1/global-saved-searches:
+    get:
+      summary: List global saved searches
+      operationId: listGlobalSavedSearches
+      parameters:
+        - $ref: '#/components/parameters/paginationTokenParam'
+        - $ref: '#/components/parameters/paginationSizeParam'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GlobalSavedSearchPage'
+        '400':
+          description: Bad Input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '500':
+          description: Internal Service Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
   /v1/stats/features/browsers/{browser}/feature_counts:
     parameters:
       - $ref: '#/components/parameters/browserPathParam'
@@ -2107,6 +2133,35 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/SavedSearchResponse'
+    GlobalSavedSearch:
+      description: A system global saved search with its UI display order.
+      allOf:
+        - $ref: '#/components/schemas/SavedSearch'
+        - type: object
+          properties:
+            id:
+              description: Unique string identifier for the saved search.
+              type: string
+            display_order:
+              description: The UI sorting order for displaying in the sidebar.
+              type: integer
+              format: int64
+            created_at:
+              type: string
+              format: date-time
+            updated_at:
+              type: string
+              format: date-time
+    GlobalSavedSearchPage:
+      description: A page of global saved searches.
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/PageMetadata'
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/GlobalSavedSearch'
     VendorPosition:
       type: object
       description: >

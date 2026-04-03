@@ -22,12 +22,10 @@ import {
   AppBookmarkInfo,
   UserSavedSearchesInternalError,
   UserSavedSearchesUnknownError,
-  CurrentSavedSearch,
   SavedSearchScope,
 } from '../app-bookmark-info-context.js';
 import {TaskStatus} from '@lit/task';
 import {expect} from '@open-wc/testing';
-import sinon from 'sinon';
 
 describe('app-bookmark-info-context', () => {
   describe('savedSearchHelpers', () => {
@@ -43,7 +41,7 @@ describe('app-bookmark-info-context', () => {
             data: {query: 'test', name: 'Test Bookmark', id: '123'},
             error: undefined,
           },
-          currentLocation: {search: '?search_id=123'},
+          currentLocation: {search: '?q=saved:123'},
         };
         expect(savedSearchHelpers.getCurrentSavedSearch(info)).to.deep.equal({
           scope: SavedSearchScope.UserSavedSearch,
@@ -53,57 +51,6 @@ describe('app-bookmark-info-context', () => {
             id: '123',
           },
         });
-      });
-
-      it('should return the currentGlobalSavedSearch if userSavedSearchTask is not complete', () => {
-        const expectedData: CurrentSavedSearch = {
-          scope: SavedSearchScope.GlobalSavedSearch,
-          value: {
-            query: 'global',
-            name: 'Global Bookmark',
-          },
-        };
-        // Pending state
-        const pendingInfo: AppBookmarkInfo = {
-          currentGlobalSavedSearch: {
-            query: 'global',
-            name: 'Global Bookmark',
-          },
-          userSavedSearchTask: {
-            status: TaskStatus.PENDING,
-            data: undefined,
-            error: undefined,
-          },
-        };
-        expect(
-          savedSearchHelpers.getCurrentSavedSearch(pendingInfo),
-        ).to.deep.equal(expectedData);
-        // Initial state
-        const initialInfo: AppBookmarkInfo = {
-          currentGlobalSavedSearch: {
-            query: 'global',
-            name: 'Global Bookmark',
-          },
-          userSavedSearchTask: {
-            status: TaskStatus.INITIAL,
-            data: undefined,
-            error: undefined,
-          },
-        };
-        expect(
-          savedSearchHelpers.getCurrentSavedSearch(initialInfo),
-        ).to.deep.equal(expectedData);
-        // Undefined state
-        const undefinedInfo: AppBookmarkInfo = {
-          currentGlobalSavedSearch: {
-            query: 'global',
-            name: 'Global Bookmark',
-          },
-          userSavedSearchTask: undefined,
-        };
-        expect(
-          savedSearchHelpers.getCurrentSavedSearch(undefinedInfo),
-        ).to.deep.equal(expectedData);
       });
 
       it('should return undefined if no bookmark is found', () => {
@@ -118,7 +65,7 @@ describe('app-bookmark-info-context', () => {
             data: {query: 'test', name: 'Test Bookmark', id: '123'},
             error: undefined,
           },
-          currentLocation: {search: '?search_id=123'},
+          currentLocation: {search: '?q=saved:123'},
         };
         expect(savedSearchHelpers.getCurrentSavedSearch(info)).to.deep.equal({
           scope: SavedSearchScope.UserSavedSearch,
@@ -133,7 +80,7 @@ describe('app-bookmark-info-context', () => {
             data: [{query: 'test', name: 'Test Bookmark', id: '123'}],
             error: undefined,
           },
-          currentLocation: {search: '?search_id=123'},
+          currentLocation: {search: '?q=saved:123'},
         };
         expect(savedSearchHelpers.getCurrentSavedSearch(info)).to.deep.equal({
           scope: SavedSearchScope.UserSavedSearch,
@@ -161,57 +108,6 @@ describe('app-bookmark-info-context', () => {
           },
         };
         expect(savedSearchHelpers.getCurrentSavedSearch(info)).to.be.undefined;
-      });
-
-      it('should return the currentGlobalSavedSearch if userSavedSearchesTask is not complete', () => {
-        const expectedData: CurrentSavedSearch = {
-          scope: SavedSearchScope.GlobalSavedSearch,
-          value: {
-            query: 'global',
-            name: 'Global Bookmark',
-          },
-        };
-        // Pending state
-        const pendingInfo: AppBookmarkInfo = {
-          currentGlobalSavedSearch: {
-            query: 'global',
-            name: 'Global Bookmark',
-          },
-          userSavedSearchesTask: {
-            status: TaskStatus.PENDING,
-            data: undefined,
-            error: undefined,
-          },
-        };
-        expect(
-          savedSearchHelpers.getCurrentSavedSearch(pendingInfo),
-        ).to.deep.equal(expectedData);
-        // Initial state
-        const initialInfo: AppBookmarkInfo = {
-          currentGlobalSavedSearch: {
-            query: 'global',
-            name: 'Global Bookmark',
-          },
-          userSavedSearchesTask: {
-            status: TaskStatus.INITIAL,
-            data: undefined,
-            error: undefined,
-          },
-        };
-        expect(
-          savedSearchHelpers.getCurrentSavedSearch(initialInfo),
-        ).to.deep.equal(expectedData);
-        // Undefined state
-        const undefinedInfo: AppBookmarkInfo = {
-          currentGlobalSavedSearch: {
-            query: 'global',
-            name: 'Global Bookmark',
-          },
-          userSavedSearchesTask: undefined,
-        };
-        expect(
-          savedSearchHelpers.getCurrentSavedSearch(undefinedInfo),
-        ).to.deep.equal(expectedData);
       });
     });
 
@@ -262,55 +158,24 @@ describe('app-bookmark-info-context', () => {
         );
       });
 
-      it('should return the query from the userSavedSearchTask if available and complete', () => {
+      it('should return the expanded query if it is a saved search', () => {
         const info: AppBookmarkInfo = {
           userSavedSearchTask: {
             status: TaskStatus.COMPLETE,
             data: {query: 'test', name: 'Test Bookmark', id: '123'},
             error: undefined,
           },
-          currentLocation: {search: '?search_id=123'},
+          currentLocation: {search: '?q=saved:123'},
         };
-        const isBusyStub = sinon.stub(
-          savedSearchHelpers,
-          'isBusyLoadingSavedSearchInfo',
-        );
-        isBusyStub.returns(false);
-        const getCurrentBookmarkStub = sinon.stub(
-          savedSearchHelpers,
-          'getCurrentSavedSearch',
-        );
-        getCurrentBookmarkStub.returns({
-          scope: SavedSearchScope.UserSavedSearch,
-          value: {
-            query: 'test',
-            name: 'Test Bookmark',
-            id: '123',
-          },
-        });
         expect(savedSearchHelpers.getCurrentQuery(info)).to.equal('test');
-        getCurrentBookmarkStub.restore();
-        isBusyStub.restore();
       });
 
-      it('should return the query from the currentGlobalSavedSearch if available', () => {
+      it('should return the raw query for hotlist references', () => {
         const info: AppBookmarkInfo = {
-          currentGlobalSavedSearch: {
-            query: 'global',
-            name: 'Global Bookmark',
-          },
-          userSavedSearchTask: {
-            status: TaskStatus.COMPLETE,
-            data: undefined,
-            error: undefined,
-          },
-          userSavedSearchesTask: {
-            status: TaskStatus.COMPLETE,
-            data: undefined,
-            error: undefined,
-          },
+          globalSavedSearches: [{id: 'css', query: 'expanded-css', name: 'CSS'}],
+          currentLocation: {search: '?q=hotlist:css'},
         };
-        expect(savedSearchHelpers.getCurrentQuery(info)).to.equal('global');
+        expect(savedSearchHelpers.getCurrentQuery(info)).to.equal('hotlist:css');
       });
 
       it('should return an empty string if no query is found', () => {
@@ -331,35 +196,6 @@ describe('app-bookmark-info-context', () => {
     });
 
     describe('isBusyLoadingSavedSearchInfo', () => {
-      it('should return true if userSavedSearchTask is pending/initial/undefined', () => {
-        const pendingInfo: AppBookmarkInfo = {
-          userSavedSearchTask: {
-            status: TaskStatus.PENDING,
-            data: undefined,
-            error: undefined,
-          },
-        };
-        expect(
-          savedSearchHelpers.isBusyLoadingSavedSearchInfo(pendingInfo),
-        ).to.equal(true);
-        const initialInfo: AppBookmarkInfo = {
-          userSavedSearchTask: {
-            status: TaskStatus.INITIAL,
-            data: undefined,
-            error: undefined,
-          },
-        };
-        expect(
-          savedSearchHelpers.isBusyLoadingSavedSearchInfo(initialInfo),
-        ).to.equal(true);
-        const undefinedInfo: AppBookmarkInfo = {
-          userSavedSearchTask: undefined,
-        };
-        expect(
-          savedSearchHelpers.isBusyLoadingSavedSearchInfo(undefinedInfo),
-        ).to.equal(true);
-      });
-
       it('should return false if userSavedSearchTask is complete and locations match', () => {
         const info: AppBookmarkInfo = {
           userSavedSearchTask: {

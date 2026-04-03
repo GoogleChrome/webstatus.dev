@@ -19,6 +19,7 @@ import {
   loginAsUser,
   BASE_URL,
   expectDualThemeScreenshot,
+  waitForSidebarLoaded,
   resetUserData,
 } from './utils';
 
@@ -37,6 +38,7 @@ test.describe('Notification Channels Page', () => {
     await resetUserData();
     await loginAsUser(page, 'test user 1');
     await page.goto(`${BASE_URL}/settings/notification-channels`);
+    await waitForSidebarLoaded(page);
   });
 
   test.afterAll(async () => {
