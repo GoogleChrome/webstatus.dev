@@ -19,3 +19,17 @@
 
 - **DO** look for existing mappers in [`lib/gcpspanner/`](../../../lib/gcpspanner/) (e.g. `webFeatureSpannerMapper`) before creating new ones.
 - **DO** translate business keys to internal IDs inside the `gcpspanner` client so that adapters/workflows remain unaware of internal DB IDs.
+
+## Sorting & Order Strategies
+
+When implementing integer-based explicit ordering columns, choose an approach based on the growth pattern of the data:
+
+- **Chronological / Infinite Growth Lists (e.g. Years, Global Baselines)**
+  - Use `ORDER BY Column DESC` (Highest is Top).
+  - Start seeding at high values (e.g. 10,000) and step downwards.
+  - **Why**: This prevents integer exhaustion at `0`. When new, more recent items launch, they naturally increment (e.g., 11,000) and take the top spot securely.
+  
+- **Curated / Bounded Lists (e.g. Top Issues, Fixed Categorizations)**
+  - Use `ORDER BY Column ASC` (Lowest is Top).
+  - Start at `10` and increment by `10`s (10, 20, 30).
+  - **Why**: If you need to reorder or inject an item between two priorities without shifting the entire list, you can safely use intermediate values (e.g., `15`).

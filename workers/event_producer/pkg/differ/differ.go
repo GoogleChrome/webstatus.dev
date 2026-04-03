@@ -16,8 +16,10 @@ package differ
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/backendtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/workertypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/workertypes/comparables"
 	"github.com/google/uuid"
@@ -47,22 +49,23 @@ func (d *FeatureDiffer[D]) Run(ctx context.Context, searchID string, query strin
 	previousStateBytes []byte) (*DiffResult, error) {
 	workflow := d.workflowFactory()
 	// 1. Load Context
-	snapshot, id, signature, isEmpty, err := d.stateAdapter.Load(previousStateBytes)
+	snapshot, id, signature, queryErrors, isEmpty, err := d.stateAdapter.Load(previousStateBytes)
 	if err != nil {
 		return nil, fmt.Errorf("%w: failed to load previous state: %w", ErrFatal, err)
 	}
 	prevCtx := previousContext{
-		Signature: signature,
-		Snapshot:  snapshot,
-		IsEmpty:   isEmpty,
-		ID:        id,
+		Signature:   signature,
+		Snapshot:    snapshot,
+		QueryErrors: queryErrors,
+		IsEmpty:     isEmpty,
+		ID:          id,
 	}
 
 	// 2. Plan
 	plan := d.determinePlan(query, prevCtx)
 
 	// 3. Execute Fetch
-	data, err := d.executePlan(ctx, plan)
+	data, queryErrors, err := d.executePlan(ctx, plan)
 	if err != nil {
 		return nil, fmt.Errorf("%w: failed to fetch data: %w", ErrTransient, err)
 	}
@@ -73,7 +76,12 @@ func (d *FeatureDiffer[D]) Run(ctx context.Context, searchID string, query strin
 	// it returns nil to signal "Skip Diffing".
 	// toSnapshot() guarantees a non-nil map (empty map) for valid empty results,
 	// so nil strictly means "Data Not Available".
-	if !plan.IsColdStart && data.TargetSnapshot != nil {
+	if len(queryErrors) > 0 {
+		workflow.SetQueryErrors(queryErrors)
+		if !plan.IsColdStart {
+			data.NewSnapshot = data.OldSnapshot
+		}
+	} else if !plan.IsColdStart && data.TargetSnapshot != nil {
 		workflow.CalculateDiff(data.OldSnapshot, data.TargetSnapshot)
 	}
 
@@ -97,7 +105,9 @@ func (d *FeatureDiffer[D]) Run(ctx context.Context, searchID string, query strin
 	// - plan.QueryChanged: The query signature changed. We must persist the new StateBytes
 	//   linked to the new query so future runs compare against the correct context,
 	//   even if the feature list data happens to be identical.
-	shouldWrite := workflow.HasChanges() || plan.IsColdStart || plan.QueryChanged
+	// - queryErrorsChanged: The query broke or was fixed, we need to notify the user.
+	queryErrorsChanged := !stringSlicesEqual(prevCtx.QueryErrors, queryErrors)
+	shouldWrite := workflow.HasChanges() || plan.IsColdStart || plan.QueryChanged || queryErrorsChanged
 	if !shouldWrite {
 		return nil, ErrNoChangesDetected
 	}
@@ -114,7 +124,15 @@ func (d *FeatureDiffer[D]) Run(ctx context.Context, searchID string, query strin
 		return nil, fmt.Errorf("%w, failed to serialize diff: %w", ErrFatal, err)
 	}
 
-	newStateBytes, err := d.stateAdapter.Serialize(newStateID, searchID, eventID, query, t, data.NewSnapshot)
+	newStateBytes, err := d.stateAdapter.Serialize(
+		newStateID,
+		searchID,
+		eventID,
+		query,
+		queryErrors,
+		t,
+		data.NewSnapshot,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("%w: failed to serialize new state: %w", ErrFatal, err)
 	}
@@ -149,10 +167,11 @@ func (d *FeatureDiffer[D]) determineReasons(plan executionPlan, workflow StateCo
 // --- Internal Helper: Context Loading ---
 
 type previousContext struct {
-	Signature string
-	Snapshot  map[string]comparables.Feature
-	IsEmpty   bool
-	ID        string
+	Signature   string
+	Snapshot    map[string]comparables.Feature
+	QueryErrors []string
+	IsEmpty     bool
+	ID          string
 }
 
 // --- Internal Helper: Planning ---
@@ -194,7 +213,7 @@ type executionData struct {
 	NewSnapshot    map[string]comparables.Feature
 }
 
-func (d *FeatureDiffer[D]) executePlan(ctx context.Context, plan executionPlan) (executionData, error) {
+func (d *FeatureDiffer[D]) executePlan(ctx context.Context, plan executionPlan) (executionData, []string, error) {
 	data := executionData{
 		OldSnapshot:    nil,
 		TargetSnapshot: nil,
@@ -202,13 +221,21 @@ func (d *FeatureDiffer[D]) executePlan(ctx context.Context, plan executionPlan) 
 	}
 
 	newLive, err := d.client.FetchFeatures(ctx, plan.CurrentQuery)
+	var queryErrors []string
 	if err != nil {
-		return data, err
+		if errors.Is(err, backendtypes.ErrSavedSearchNotFound) ||
+			errors.Is(err, backendtypes.ErrSavedSearchCycleDetected) ||
+			errors.Is(err, backendtypes.ErrSavedSearchMaxDepthExceeded) {
+			queryErrors = append(queryErrors, err.Error())
+			newLive = nil
+		} else {
+			return data, nil, err
+		}
 	}
 	data.NewSnapshot = comparables.NewFeatureMapFromBackendFeatures(newLive)
 
 	if plan.IsColdStart {
-		return data, nil
+		return data, queryErrors, nil
 	}
 
 	if plan.QueryChanged {
@@ -221,11 +248,24 @@ func (d *FeatureDiffer[D]) executePlan(ctx context.Context, plan executionPlan) 
 			return executionData{
 				NewSnapshot:    data.NewSnapshot,
 				TargetSnapshot: nil,
-				OldSnapshot:    nil}, nil
+				OldSnapshot:    nil}, queryErrors, nil
 		}
 	} else {
 		data.TargetSnapshot = data.NewSnapshot
 	}
 
-	return data, nil
+	return data, queryErrors, nil
+}
+
+func stringSlicesEqual(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+
+	return true
 }

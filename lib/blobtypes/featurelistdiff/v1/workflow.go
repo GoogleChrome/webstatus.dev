@@ -16,6 +16,7 @@ package v1
 
 import (
 	"context"
+	"strings"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/backendtypes"
 )
@@ -58,6 +59,38 @@ func (w *FeatureDiffWorkflow) HasDataChanges() bool {
 
 func (w *FeatureDiffWorkflow) SetQueryChanged(changed bool) {
 	w.diff.QueryChanged = changed
+}
+
+func (w *FeatureDiffWorkflow) SetQueryErrors(errors []string) {
+	qErrors := make([]QueryError, 0, len(errors))
+	for _, e := range errors {
+		code := inferErrorCode(e)
+		qErrors = append(qErrors, QueryError{Code: code, Message: e})
+	}
+	w.diff.QueryErrors = qErrors
+}
+
+func inferErrorCode(msg string) QueryErrorCode {
+	if strings.Contains(msg, backendtypes.ErrHotlistNotFound.Error()) {
+		return ErrorCodeHotlistNotFound
+	}
+	if strings.Contains(msg, backendtypes.ErrSavedSearchNotFound.Error()) {
+		return ErrorCodeSavedSearchNotFound
+	}
+	if strings.Contains(msg, backendtypes.ErrSavedSearchCycleDetected.Error()) {
+		return ErrorCodeSavedSearchCycleDetected
+	}
+	if strings.Contains(msg, backendtypes.ErrSavedSearchMaxDepthExceeded.Error()) {
+		return ErrorCodeSavedSearchMaxDepthExceeded
+	}
+	if strings.Contains(msg, backendtypes.ErrQueryConsistsEntirelyOfSavedSearch.Error()) {
+		return ErrorCodeQueryGrammar
+	}
+	if strings.Contains(msg, "query string cannot be parsed correctly") {
+		return ErrorCodeQueryGrammar
+	}
+
+	return ""
 }
 
 func (w *FeatureDiffWorkflow) GenerateJSONSummary() ([]byte, error) {

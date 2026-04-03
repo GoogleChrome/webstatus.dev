@@ -148,6 +148,14 @@ func (v *FeaturesSearchVisitor) createIDNode(idNode antlr.TerminalNode) *SearchN
 	return v.createSimpleNode(idNode, IdentifierID, OperatorEq)
 }
 
+func (v *FeaturesSearchVisitor) createSavedNode(savedNode antlr.TerminalNode) *SearchNode {
+	return v.createSimpleNode(savedNode, IdentifierSavedSearch, OperatorEq)
+}
+
+func (v *FeaturesSearchVisitor) createHotlistNode(hotlistNode antlr.TerminalNode) *SearchNode {
+	return v.createSimpleNode(hotlistNode, IdentifierHotlist, OperatorEq)
+}
+
 func (v *FeaturesSearchVisitor) createSnapshotNode(snapshotNode antlr.TerminalNode) *SearchNode {
 	return v.createSimpleNode(snapshotNode, IdentifierSnapshot, OperatorEq)
 }
@@ -500,6 +508,16 @@ func (v *FeaturesSearchVisitor) VisitCombined_search_criteria(ctx *parser.Combin
 // nolint: revive // Method signature is generated.
 func (v *FeaturesSearchVisitor) VisitId_term(ctx *parser.Id_termContext) any {
 	return v.createIDNode(ctx.ANY_VALUE())
+}
+
+// nolint: revive // Method signature is generated.
+func (v *FeaturesSearchVisitor) VisitSaved_term(ctx *parser.Saved_termContext) any {
+	return v.createSavedNode(ctx.ANY_VALUE())
+}
+
+// nolint: revive // Method signature is generated.
+func (v *FeaturesSearchVisitor) VisitHotlist_term(ctx *parser.Hotlist_termContext) any {
+	return v.createHotlistNode(ctx.ANY_VALUE())
 }
 
 // nolint: revive // Method signature is generated.

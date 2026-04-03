@@ -28,10 +28,7 @@ import {
 import {WebstatusBookmarksService} from '../webstatus-bookmarks-service.js';
 import {fixture, expect, waitUntil} from '@open-wc/testing';
 import '../webstatus-bookmarks-service.js';
-import {
-  DEFAULT_GLOBAL_SAVED_SEARCHES,
-  UserSavedSearch,
-} from '../../utils/constants.js';
+import {GlobalSavedSearch, UserSavedSearch} from '../../utils/constants.js';
 import {APIClient} from '../../api/client.js';
 import {SinonStubbedInstance} from 'sinon';
 import {TaskStatus} from '@lit/task';
@@ -55,12 +52,10 @@ class TestBookmarkConsumer extends LitElement {
 
 describe('webstatus-bookmarks-service', () => {
   let toastStub: SinonStubbedInstance<Toast>;
-  let getSearchIDStub: sinon.SinonStub;
   let updatePageUrlStub: sinon.SinonStub;
   let getLocationStub: sinon.SinonStub;
   beforeEach(() => {
     toastStub = sinon.stub(Toast.prototype);
-    getSearchIDStub = sinon.stub();
     updatePageUrlStub = sinon.stub();
     getLocationStub = sinon.stub();
   });
@@ -73,9 +68,7 @@ describe('webstatus-bookmarks-service', () => {
       </webstatus-bookmarks-service>`,
     );
     expect(component).to.exist;
-    expect(component!.appBookmarkInfo.globalSavedSearches).to.deep.equal(
-      DEFAULT_GLOBAL_SAVED_SEARCHES,
-    );
+    expect(component!.appBookmarkInfo.globalSavedSearches).to.deep.equal([]);
     expect(component!.appBookmarkInfo.currentGlobalSavedSearch).to.deep.equal(
       undefined,
     );
@@ -95,9 +88,7 @@ describe('webstatus-bookmarks-service', () => {
     );
     expect(el).to.exist;
     expect(consumer).to.exist;
-    expect(consumer!.appBookmarkInfo!.globalSavedSearches).to.deep.equal(
-      DEFAULT_GLOBAL_SAVED_SEARCHES,
-    );
+    expect(consumer!.appBookmarkInfo!.globalSavedSearches).to.deep.equal([]);
     expect(consumer!.appBookmarkInfo!.currentGlobalSavedSearch).to.deep.equal(
       undefined,
     );
@@ -170,6 +161,55 @@ describe('webstatus-bookmarks-service', () => {
       query: 'test_query_1',
     });
   });
+
+  describe('loadingGlobalSavedSearchesTask', () => {
+    let apiClientStub: SinonStubbedInstance<APIClient>;
+
+    beforeEach(async () => {
+      apiClientStub = sinon.createStubInstance(APIClient);
+    });
+
+    it('should complete successfully with global bookmark data', async () => {
+      const mockGlobalBookmarks: GlobalSavedSearch[] = [
+        {
+          id: 'test-alias',
+          display_order: 10,
+          query: 'test_global',
+          name: 'Global Test Bookmark',
+          description: 'Global Test Description',
+          created_at: '2023-08-13',
+          updated_at: '2023-08-13',
+        },
+      ];
+      apiClientStub.getGlobalSavedSearches.resolves({
+        metadata: {total: 100},
+        data: Object.assign([], mockGlobalBookmarks),
+      });
+      const service = await fixture<WebstatusBookmarksService>(
+        html`<webstatus-bookmarks-service
+          .apiClient=${apiClientStub}
+          .userContext=${null}
+          .getLocation=${() => {
+            return {
+              search: '?q=test_global',
+              href: '?q=test_global',
+              pathname: '',
+            };
+          }}
+        ></webstatus-bookmarks-service>`,
+      );
+      await waitUntil(
+        () => (service.appBookmarkInfo.globalSavedSearches?.length ?? 0) > 0,
+      );
+      expect(service.appBookmarkInfo.globalSavedSearches).to.deep.equal(
+        mockGlobalBookmarks,
+      );
+      expect(service.appBookmarkInfo.currentGlobalSavedSearch).to.deep.equal(
+        mockGlobalBookmarks[0],
+      );
+    });
+  });
+
   describe('loadingUserSavedBookmarkByIDTask', () => {
     let apiClientStub: SinonStubbedInstance<APIClient>;
 
@@ -178,17 +218,15 @@ describe('webstatus-bookmarks-service', () => {
     });
 
     it('should handle NotFoundError', async () => {
-      apiClientStub = sinon.stub(new APIClient(''));
       apiClientStub.getSavedSearchByID.rejects(new NotFoundError(''));
       const service = await fixture<WebstatusBookmarksService>(
         html`<webstatus-bookmarks-service
           .apiClient=${apiClientStub}
-          .getSearchID=${() => 'test'}
           .userContext=${null}
           .getLocation=${() => {
             return {
-              search: '?search_id=test',
-              href: '?search_id=test',
+              search: '?q=saved:test',
+              href: '?q=saved:test',
               pathname: '',
             };
           }}
@@ -217,12 +255,11 @@ describe('webstatus-bookmarks-service', () => {
       const service = await fixture<WebstatusBookmarksService>(
         html`<webstatus-bookmarks-service
           .apiClient=${apiClientStub}
-          .getSearchID=${() => 'test'}
           .userContext=${null}
           .getLocation=${() => {
             return {
-              search: '?search_id=test',
-              href: '?search_id=test',
+              search: '?q=saved:test',
+              href: '?q=saved:test',
               pathname: '',
             };
           }}
@@ -250,12 +287,11 @@ describe('webstatus-bookmarks-service', () => {
       const service = await fixture<WebstatusBookmarksService>(
         html`<webstatus-bookmarks-service
           .apiClient=${apiClientStub}
-          .getSearchID=${() => 'test'}
           .userContext=${null}
           .getLocation=${() => {
             return {
-              search: '?search_id=test',
-              href: '?search_id=test',
+              search: '?q=saved:test',
+              href: '?q=saved:test',
               pathname: '',
             };
           }}
@@ -281,12 +317,11 @@ describe('webstatus-bookmarks-service', () => {
       const service = await fixture<WebstatusBookmarksService>(
         html`<webstatus-bookmarks-service
           .apiClient=${apiClientStub}
-          .getSearchID=${() => 'test'}
           .userContext=${null}
           .getLocation=${() => {
             return {
-              search: '?search_id=test',
-              href: '?search_id=test',
+              search: '?q=saved:test',
+              href: '?q=saved:test',
               pathname: '',
             };
           }}
@@ -316,12 +351,11 @@ describe('webstatus-bookmarks-service', () => {
       const service = await fixture<WebstatusBookmarksService>(
         html`<webstatus-bookmarks-service
           .apiClient=${apiClientStub}
-          .getSearchID=${() => 'test'}
           .userContext=${null}
           .getLocation=${() => {
             return {
-              search: '?search_id=test',
-              href: '?search_id=test',
+              search: '?q=saved:test',
+              href: '?q=saved:test',
               pathname: '',
             };
           }}
@@ -340,7 +374,7 @@ describe('webstatus-bookmarks-service', () => {
       );
     });
 
-    it('should complete successfully with saved searches data and update page url when "q" is the same as the saved search\'s query', async () => {
+    it('should complete successfully with saved searches data and keep page url when "q" is different from the saved search\'s query', async () => {
       const mockSavedSearch = {
         id: '123',
         query: 'foo',
@@ -349,20 +383,16 @@ describe('webstatus-bookmarks-service', () => {
         created_at: '2023-08-13',
         updated_at: '2023-08-13',
       };
-      // First call is for the current search ID, second call is for the previous search ID
-      getSearchIDStub.onCall(0).returns('test');
-      getSearchIDStub.onCall(1).returns('');
       apiClientStub.getSavedSearchByID.resolves(mockSavedSearch);
       const mockLocation = {
-        search: '?search_id=test&q=foo',
-        href: '?search_id=test&q=foo',
+        search: '?q=saved:test',
+        href: '?q=saved:test',
         pathname: '',
       };
       getLocationStub.returns(mockLocation);
       const service = await fixture<WebstatusBookmarksService>(
         html`<webstatus-bookmarks-service
           .apiClient=${apiClientStub}
-          .getSearchID=${getSearchIDStub}
           .updatePageUrl=${updatePageUrlStub}
           .getLocation=${getLocationStub}
           .userContext=${null}
@@ -383,7 +413,7 @@ describe('webstatus-bookmarks-service', () => {
         mockSavedSearch,
       );
       expect(getLocationStub.callCount).to.eq(1);
-      expect(updatePageUrlStub).to.have.been.calledOnce;
+      expect(updatePageUrlStub).to.not.have.been.called;
     });
 
     it('should use the cache for duplicate runs', async () => {
@@ -395,16 +425,14 @@ describe('webstatus-bookmarks-service', () => {
         updated_at: '',
       });
       getLocationStub.returns({
-        search: '?search_id=test',
-        href: '?search_id=test',
+        search: '?q=saved:test',
+        href: '?q=saved:test',
         pathname: '',
       });
-      getSearchIDStub.returns('test');
 
       const service = await fixture<WebstatusBookmarksService>(
         html`<webstatus-bookmarks-service
           .apiClient=${apiClientStub}
-          .getSearchID=${getSearchIDStub}
           .getLocation=${getLocationStub}
           .userContext=${null}
         ></webstatus-bookmarks-service>`,
@@ -617,6 +645,7 @@ describe('webstatus-bookmarks-service', () => {
         ],
         error: undefined,
       },
+      globalSavedSearchesTask: undefined,
     });
   });
 
@@ -691,7 +720,7 @@ describe('webstatus-bookmarks-service', () => {
       expect(updatePageUrlStub).to.have.been.calledOnceWithExactly(
         mockLocation.pathname,
         mockLocation,
-        {search_id: mockNewSavedSearch.id, q: undefined},
+        {q: `saved:${mockNewSavedSearch.id}`},
       );
     });
 
@@ -718,7 +747,7 @@ describe('webstatus-bookmarks-service', () => {
       expect(updatePageUrlStub).to.have.been.calledOnceWithExactly(
         mockLocation.pathname,
         mockLocation,
-        {search_id: mockNewSavedSearch.id, q: undefined},
+        {q: `saved:${mockNewSavedSearch.id}`},
       );
     });
 
@@ -814,11 +843,10 @@ describe('webstatus-bookmarks-service', () => {
       );
       // Check current search update (should be cleared)
       expect(service.appBookmarkInfo.userSavedSearchTask?.data).to.be.undefined;
-      // Check URL update
       expect(updatePageUrlStub).to.have.been.calledOnceWithExactly(
         mockLocation.pathname,
         mockLocation,
-        {search_id: ''},
+        {q: ''},
       );
     });
 
@@ -848,11 +876,10 @@ describe('webstatus-bookmarks-service', () => {
       expect(service.appBookmarkInfo.userSavedSearchTask?.data).to.deep.equal(
         mockSavedSearch2,
       );
-      // Check URL update (still called to clear potential search_id)
       expect(updatePageUrlStub).to.have.been.calledOnceWithExactly(
         mockLocation.pathname,
         mockLocation,
-        {search_id: ''},
+        {q: ''},
       );
     });
     it('saved-search-bookmarked event should add search and update URL (like saved)', () => {
@@ -879,7 +906,7 @@ describe('webstatus-bookmarks-service', () => {
       expect(updatePageUrlStub).to.have.been.calledOnceWithExactly(
         mockLocation.pathname,
         mockLocation,
-        {search_id: mockNewSavedSearch.id, q: undefined},
+        {q: `saved:${mockNewSavedSearch.id}`},
       );
     });
     it('saved-search-unbookmarked event should not clear current search if unbookmarking a different search', () => {
@@ -912,7 +939,7 @@ describe('webstatus-bookmarks-service', () => {
       expect(updatePageUrlStub).to.have.been.calledOnceWithExactly(
         mockLocation.pathname,
         mockLocation,
-        {search_id: ''},
+        {q: ''},
       );
     });
   });

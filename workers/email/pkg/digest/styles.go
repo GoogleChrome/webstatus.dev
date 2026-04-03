@@ -23,7 +23,8 @@ const styleSnippets = `{{- define "font_family_main" -}}font-family: SF Pro, sys
 {{- define "color_bg_success" -}}background: #E6F4EA;{{- end -}}
 {{- define "color_bg_info" -}}background: #E8F0FE;{{- end -}}
 {{- define "color_bg_neutral" -}}background: #E4E4E7;{{- end -}}
-{{- define "color_bg_light_neutral" -}}background: #F4F4F5;{{- end -}}`
+{{- define "color_bg_light_neutral" -}}background: #F4F4F5;{{- end -}}
+{{- define "color_bg_warning" -}}background: #FEF3C7;{{- end -}}`
 
 const layoutStyles = `{{- define "style_body_wrapper" -}}max-width: 600px; margin: 0 auto; padding: 20px;{{- end -}}
 {{- define "style_subject_header" -}}{{- template "style_text_normal" -}}; margin-top: 0; margin-bottom: 0; padding-bottom: 8px; font-weight: 700; font-size: 18px;{{- end -}}

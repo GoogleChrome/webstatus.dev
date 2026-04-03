@@ -106,6 +106,7 @@ type StateMetadata struct {
 	GeneratedAt    time.Time `json:"generatedAt"`
 	SearchID       string    `json:"searchId"`
 	QuerySignature string    `json:"querySignature"`
+	QueryErrors    []string  `json:"queryErrors,omitempty"`
 	EventID        string    `json:"eventId,omitempty"`
 }
 

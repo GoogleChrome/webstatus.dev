@@ -217,7 +217,7 @@ describe('BaseChartsPage', () => {
     );
   });
 
-  it('should use updateUrl if valid start and end dates are provided', async () => {
+  it('should not update URL if both valid start and end dates are provided', async () => {
     location.search = '?startDate=2022-06-15&endDate=2023-06-15';
     const newStartDate = new Date(2022, 5, 15);
     const newEndDate = new Date(2023, 5, 15);
@@ -235,13 +235,7 @@ describe('BaseChartsPage', () => {
 
     expect(el.startDate).to.deep.equal(newStartDate);
     expect(el.endDate).to.deep.equal(newEndDate);
-    expect(updatePageUrlStub).to.have.been.calledWith(
-      location.pathname,
-      location,
-      {
-        dateRange: {start: newStartDate, end: newEndDate},
-      },
-    );
+    expect(updatePageUrlStub).to.not.be.called;
   });
 
   it('should handle date range change event and update URL', async () => {

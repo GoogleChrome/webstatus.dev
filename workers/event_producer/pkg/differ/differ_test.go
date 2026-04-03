@@ -61,11 +61,12 @@ type testDiff struct {
 
 type mockStateAdapter struct {
 	loadReturns struct {
-		snapshot  map[string]comparables.Feature
-		id        string
-		signature string
-		isEmpty   bool
-		err       error
+		snapshot    map[string]comparables.Feature
+		id          string
+		signature   string
+		queryErrors []string
+		isEmpty     bool
+		err         error
 	}
 	serializeCalledWith struct {
 		id        string
@@ -81,11 +82,12 @@ type mockStateAdapter struct {
 	}
 }
 
-func (m *mockStateAdapter) Load(_ []byte) (map[string]comparables.Feature, string, string, bool, error) {
-	return m.loadReturns.snapshot, m.loadReturns.id, m.loadReturns.signature, m.loadReturns.isEmpty, m.loadReturns.err
+func (m *mockStateAdapter) Load(_ []byte) (map[string]comparables.Feature, string, string, []string, bool, error) {
+	return m.loadReturns.snapshot, m.loadReturns.id, m.loadReturns.signature,
+		m.loadReturns.queryErrors, m.loadReturns.isEmpty, m.loadReturns.err
 }
 
-func (m *mockStateAdapter) Serialize(id, searchID, eventID, query string,
+func (m *mockStateAdapter) Serialize(id, searchID, eventID, query string, _ []string,
 	timestamp time.Time, snapshot map[string]comparables.Feature) ([]byte, error) {
 	m.serializeCalledWith.id = id
 	m.serializeCalledWith.searchID = searchID
@@ -146,11 +148,28 @@ func (m *mockWorkflow[D]) ReconcileHistory(_ context.Context, _, _ map[string]co
 
 	return nil
 }
-func (m *mockWorkflow[D]) HasRemovedFeatures() bool { return m.hasRemovedFeaturesResult }
-func (m *mockWorkflow[D]) HasChanges() bool         { return m.hasChangesResult }
-func (m *mockWorkflow[D]) HasDataChanges() bool     { return m.hasDataChangesResult }
-func (m *mockWorkflow[D]) SetQueryChanged(val bool) { m.setQueryChangedCalled = val }
-func (m *mockWorkflow[D]) GetDiff() *D              { return m.getDiffResult }
+func (m *mockWorkflow[D]) HasRemovedFeatures() bool {
+	return m.hasRemovedFeaturesResult
+}
+
+func (m *mockWorkflow[D]) HasChanges() bool {
+	return m.hasChangesResult
+}
+
+func (m *mockWorkflow[D]) HasDataChanges() bool {
+	return m.hasDataChangesResult
+}
+
+func (m *mockWorkflow[D]) SetQueryChanged(val bool) {
+	m.setQueryChangedCalled = val
+}
+
+func (m *mockWorkflow[D]) SetQueryErrors(_ []string) {
+}
+
+func (m *mockWorkflow[D]) GetDiff() *D {
+	return m.getDiffResult
+}
 func (m *mockWorkflow[D]) GenerateJSONSummary() ([]byte, error) {
 	return m.summaryResult, m.summaryError
 }

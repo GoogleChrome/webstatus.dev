@@ -170,6 +170,7 @@ describe('webstatus-overview-content', () => {
           query: 'test_query_1',
           description: 'test description1',
         },
+        currentLocation: {search: '?q=test_query_1'},
       };
       document.body.appendChild(container);
       await element.updateComplete;
@@ -206,6 +207,7 @@ describe('webstatus-overview-content', () => {
           name: 'Test Bookmark 1',
           query: 'test_query_1',
         },
+        currentLocation: {search: '?q=test_query_1'},
       };
       document.body.appendChild(container);
       await element.updateComplete;
@@ -223,7 +225,7 @@ describe('webstatus-overview-content', () => {
 
   describe('updated lifecycle hook', () => {
     it('opens edit dialog and updates URL if edit_saved_search param is present', async () => {
-      element.location = {search: 'test'};
+      element.location = {search: '?q=test_query_1'};
       element.appBookmarkInfo = {
         globalSavedSearches: [
           {
@@ -242,6 +244,7 @@ describe('webstatus-overview-content', () => {
           query: 'test_query_1',
           description: 'test description1',
         },
+        currentLocation: {search: '?q=test_query_1'},
       };
       element.savedSearch = {...mockSavedSearchOwner};
       getEditSavedSearchStub.returns(true); // Simulate finding the param
@@ -261,7 +264,7 @@ describe('webstatus-overview-content', () => {
       expect(updatePageUrlStub).to.have.been.calledOnceWith(
         '',
         element.location,
-        {edit_saved_search: undefined},
+        {edit_saved_search: false},
       );
     });
 
