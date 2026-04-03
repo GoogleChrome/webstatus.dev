@@ -2174,11 +2174,15 @@ func TestGetNotificationChannel(t *testing.T) {
 				expectedChannelID: channelID,
 				expectedUserID:    userID,
 				result: &gcpspanner.NotificationChannel{
-					ID:            channelID,
-					UserID:        userID,
-					Name:          "My Email",
-					Type:          "email",
-					EmailConfig:   &gcpspanner.EmailConfig{Address: "test@example.com", IsVerified: false, VerificationToken: nil},
+					ID:     channelID,
+					UserID: userID,
+					Name:   "My Email",
+					Type:   "email",
+					EmailConfig: &gcpspanner.EmailConfig{
+						Address:           "test@example.com",
+						IsVerified:        false,
+						VerificationToken: nil,
+					},
 					WebhookConfig: nil,
 					CreatedAt:     now,
 					UpdatedAt:     now,
@@ -2419,11 +2423,15 @@ func TestUpdateNotificationChannel(t *testing.T) {
 			},
 			cfg: nil, // Should not be called
 			expectedGetResult: &gcpspanner.NotificationChannel{
-				ID:            channelID,
-				UserID:        userID,
-				Name:          "Old Name",
-				Type:          gcpspanner.NotificationChannelTypeEmail,
-				EmailConfig:   &gcpspanner.EmailConfig{Address: "test@example.com", IsVerified: false, VerificationToken: nil},
+				ID:     channelID,
+				UserID: userID,
+				Name:   "Old Name",
+				Type:   gcpspanner.NotificationChannelTypeEmail,
+				EmailConfig: &gcpspanner.EmailConfig{
+					Address:           "test@example.com",
+					IsVerified:        false,
+					VerificationToken: nil,
+				},
 				WebhookConfig: nil,
 				CreatedAt:     now,
 				UpdatedAt:     now,
@@ -3580,7 +3588,12 @@ func TestUpdateUserSavedSearch(t *testing.T) {
 			}
 
 			backend := NewBackend(mock)
-			resp, err := backend.UpdateUserSavedSearch(context.Background(), testSavedSearchID, testUserID, tc.updateRequest)
+			resp, err := backend.UpdateUserSavedSearch(
+				context.Background(),
+				testSavedSearchID,
+				testUserID,
+				tc.updateRequest,
+			)
 			if !errors.Is(err, tc.expectedError) {
 				t.Error("unexpected error")
 			}
@@ -4050,10 +4063,12 @@ func TestCreateSavedSearchSubscription(t *testing.T) {
 						ID:            subID,
 						ChannelID:     channelID,
 						SavedSearchID: savedSearchID,
-						Triggers:      []gcpspanner.SubscriptionTrigger{gcpspanner.SubscriptionTriggerBrowserImplementationAnyComplete},
-						Frequency:     gcpspanner.SavedSearchSnapshotTypeImmediate,
-						CreatedAt:     now,
-						UpdatedAt:     now,
+						Triggers: []gcpspanner.SubscriptionTrigger{
+							gcpspanner.SubscriptionTriggerBrowserImplementationAnyComplete,
+						},
+						Frequency: gcpspanner.SavedSearchSnapshotTypeImmediate,
+						CreatedAt: now,
+						UpdatedAt: now,
 					},
 					SavedSearchName: "Feature name",
 				},
@@ -4090,8 +4105,10 @@ func TestCreateSavedSearchSubscription(t *testing.T) {
 					UserID:        userID,
 					ChannelID:     channelID,
 					SavedSearchID: savedSearchID,
-					Triggers:      []gcpspanner.SubscriptionTrigger{gcpspanner.SubscriptionTriggerBrowserImplementationAnyComplete},
-					Frequency:     gcpspanner.SavedSearchSnapshotTypeImmediate,
+					Triggers: []gcpspanner.SubscriptionTrigger{
+						gcpspanner.SubscriptionTriggerBrowserImplementationAnyComplete,
+					},
+					Frequency: gcpspanner.SavedSearchSnapshotTypeImmediate,
 				},
 				result:        nil,
 				returnedError: gcpspanner.ErrMissingRequiredRole,
@@ -4114,8 +4131,10 @@ func TestCreateSavedSearchSubscription(t *testing.T) {
 					UserID:        userID,
 					ChannelID:     channelID,
 					SavedSearchID: savedSearchID,
-					Triggers:      []gcpspanner.SubscriptionTrigger{gcpspanner.SubscriptionTriggerBrowserImplementationAnyComplete},
-					Frequency:     gcpspanner.SavedSearchSnapshotTypeImmediate,
+					Triggers: []gcpspanner.SubscriptionTrigger{
+						gcpspanner.SubscriptionTriggerBrowserImplementationAnyComplete,
+					},
+					Frequency: gcpspanner.SavedSearchSnapshotTypeImmediate,
 				},
 				result:        nil,
 				returnedError: errTest,
@@ -4176,10 +4195,12 @@ func TestListSavedSearchSubscriptions(t *testing.T) {
 							ID:            "sub1",
 							ChannelID:     "chan1",
 							SavedSearchID: "search1",
-							Triggers:      []gcpspanner.SubscriptionTrigger{gcpspanner.SubscriptionTriggerBrowserImplementationAnyComplete},
-							Frequency:     gcpspanner.SavedSearchSnapshotTypeImmediate,
-							CreatedAt:     now,
-							UpdatedAt:     now,
+							Triggers: []gcpspanner.SubscriptionTrigger{
+								gcpspanner.SubscriptionTriggerBrowserImplementationAnyComplete,
+							},
+							Frequency: gcpspanner.SavedSearchSnapshotTypeImmediate,
+							CreatedAt: now,
+							UpdatedAt: now,
 						},
 						SavedSearchName: "Feature name",
 					},
@@ -4272,10 +4293,12 @@ func TestGetSavedSearchSubscription(t *testing.T) {
 						ID:            subID,
 						ChannelID:     "chan1",
 						SavedSearchID: "search1",
-						Triggers:      []gcpspanner.SubscriptionTrigger{gcpspanner.SubscriptionTriggerBrowserImplementationAnyComplete},
-						Frequency:     gcpspanner.SavedSearchSnapshotTypeImmediate,
-						CreatedAt:     now,
-						UpdatedAt:     now,
+						Triggers: []gcpspanner.SubscriptionTrigger{
+							gcpspanner.SubscriptionTriggerBrowserImplementationAnyComplete,
+						},
+						Frequency: gcpspanner.SavedSearchSnapshotTypeImmediate,
+						CreatedAt: now,
+						UpdatedAt: now,
 					},
 					SavedSearchName: "Feature name",
 				},

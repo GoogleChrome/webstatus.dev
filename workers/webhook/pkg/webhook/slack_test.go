@@ -215,7 +215,11 @@ func TestSlackSender_Send_Golden(t *testing.T) {
 				FeatureID:   "container-queries",
 				Docs: &workertypes.Docs{
 					MDNDocs: []workertypes.DocLink{
-						{URL: "https://developer.mozilla.org/docs/Web/CSS/CSS_Container_Queries", Title: nil, Slug: nil},
+						{
+							URL:   "https://developer.mozilla.org/docs/Web/CSS/CSS_Container_Queries",
+							Title: nil,
+							Slug:  nil,
+						},
 					},
 				},
 				NameChange:     nil,
@@ -243,8 +247,16 @@ func TestSlackSender_Send_Golden(t *testing.T) {
 				Moved:          nil,
 				Split:          nil,
 				BaselineChange: &workertypes.Change[workertypes.BaselineValue]{
-					From: workertypes.BaselineValue{Status: workertypes.BaselineStatusLimited, LowDate: nil, HighDate: nil},
-					To:   workertypes.BaselineValue{Status: workertypes.BaselineStatusNewly, LowDate: &newlyDate, HighDate: nil},
+					From: workertypes.BaselineValue{
+						Status:   workertypes.BaselineStatusLimited,
+						LowDate:  nil,
+						HighDate: nil,
+					},
+					To: workertypes.BaselineValue{
+						Status:   workertypes.BaselineStatusNewly,
+						LowDate:  &newlyDate,
+						HighDate: nil,
+					},
 				},
 			},
 			{
@@ -267,8 +279,16 @@ func TestSlackSender_Send_Golden(t *testing.T) {
 				},
 				BrowserChanges: map[workertypes.BrowserName]*workertypes.Change[workertypes.BrowserValue]{
 					workertypes.BrowserChrome: {
-						From: workertypes.BrowserValue{Status: workertypes.BrowserStatusAvailable, Version: new("120"), Date: nil},
-						To:   workertypes.BrowserValue{Status: workertypes.BrowserStatusUnavailable, Version: nil, Date: nil},
+						From: workertypes.BrowserValue{
+							Status:  workertypes.BrowserStatusAvailable,
+							Version: new("120"),
+							Date:    nil,
+						},
+						To: workertypes.BrowserValue{
+							Status:  workertypes.BrowserStatusUnavailable,
+							Version: nil,
+							Date:    nil,
+						},
 					},
 					workertypes.BrowserChromeAndroid:  nil,
 					workertypes.BrowserEdge:           nil,
@@ -289,8 +309,16 @@ func TestSlackSender_Send_Golden(t *testing.T) {
 				Split:          nil,
 				BrowserChanges: map[workertypes.BrowserName]*workertypes.Change[workertypes.BrowserValue]{
 					workertypes.BrowserSafariIos: {
-						From: workertypes.BrowserValue{Status: workertypes.BrowserStatusUnavailable, Version: nil, Date: nil},
-						To:   workertypes.BrowserValue{Status: workertypes.BrowserStatusAvailable, Version: new("17.2"), Date: nil},
+						From: workertypes.BrowserValue{
+							Status:  workertypes.BrowserStatusUnavailable,
+							Version: nil,
+							Date:    nil,
+						},
+						To: workertypes.BrowserValue{
+							Status:  workertypes.BrowserStatusAvailable,
+							Version: new("17.2"),
+							Date:    nil,
+						},
 					},
 					workertypes.BrowserChrome:         nil,
 					workertypes.BrowserChromeAndroid:  nil,
@@ -311,8 +339,16 @@ func TestSlackSender_Send_Golden(t *testing.T) {
 				Split:          nil,
 				BrowserChanges: map[workertypes.BrowserName]*workertypes.Change[workertypes.BrowserValue]{
 					workertypes.BrowserChrome: {
-						From: workertypes.BrowserValue{Status: workertypes.BrowserStatusUnavailable, Version: nil, Date: nil},
-						To:   workertypes.BrowserValue{Status: workertypes.BrowserStatusAvailable, Version: nil, Date: &newlyDate},
+						From: workertypes.BrowserValue{
+							Status:  workertypes.BrowserStatusUnavailable,
+							Version: nil,
+							Date:    nil,
+						},
+						To: workertypes.BrowserValue{
+							Status:  workertypes.BrowserStatusAvailable,
+							Version: nil,
+							Date:    &newlyDate,
+						},
 					},
 					workertypes.BrowserChromeAndroid:  nil,
 					workertypes.BrowserEdge:           nil,
@@ -413,13 +449,29 @@ func TestSlackSender_Send_Golden(t *testing.T) {
 				Moved:       nil,
 				Split:       nil,
 				BaselineChange: &workertypes.Change[workertypes.BaselineValue]{
-					From: workertypes.BaselineValue{Status: workertypes.BaselineStatusNewly, LowDate: &newlyDate, HighDate: nil},
-					To:   workertypes.BaselineValue{Status: workertypes.BaselineStatusLimited, LowDate: nil, HighDate: nil},
+					From: workertypes.BaselineValue{
+						Status:   workertypes.BaselineStatusNewly,
+						LowDate:  &newlyDate,
+						HighDate: nil,
+					},
+					To: workertypes.BaselineValue{
+						Status:   workertypes.BaselineStatusLimited,
+						LowDate:  nil,
+						HighDate: nil,
+					},
 				},
 				BrowserChanges: map[workertypes.BrowserName]*workertypes.Change[workertypes.BrowserValue]{
 					workertypes.BrowserChrome: {
-						From: workertypes.BrowserValue{Status: workertypes.BrowserStatusAvailable, Version: new("110"), Date: nil},
-						To:   workertypes.BrowserValue{Status: workertypes.BrowserStatusUnavailable, Version: nil, Date: nil},
+						From: workertypes.BrowserValue{
+							Status:  workertypes.BrowserStatusAvailable,
+							Version: new("110"),
+							Date:    nil,
+						},
+						To: workertypes.BrowserValue{
+							Status:  workertypes.BrowserStatusUnavailable,
+							Version: nil,
+							Date:    nil,
+						},
 					},
 					workertypes.BrowserChromeAndroid:  nil,
 					workertypes.BrowserEdge:           nil,
@@ -584,8 +636,16 @@ func TestSlackPayloadBuilder_VisitV1_Filter(t *testing.T) {
 				Docs:        nil,
 				BrowserChanges: map[workertypes.BrowserName]*workertypes.Change[workertypes.BrowserValue]{
 					workertypes.BrowserChrome: {
-						From: workertypes.BrowserValue{Status: workertypes.BrowserStatusUnavailable, Version: nil, Date: nil},
-						To:   workertypes.BrowserValue{Status: workertypes.BrowserStatusAvailable, Version: nil, Date: nil},
+						From: workertypes.BrowserValue{
+							Status:  workertypes.BrowserStatusUnavailable,
+							Version: nil,
+							Date:    nil,
+						},
+						To: workertypes.BrowserValue{
+							Status:  workertypes.BrowserStatusAvailable,
+							Version: nil,
+							Date:    nil,
+						},
 					},
 					workertypes.BrowserChromeAndroid:  nil,
 					workertypes.BrowserEdge:           nil,

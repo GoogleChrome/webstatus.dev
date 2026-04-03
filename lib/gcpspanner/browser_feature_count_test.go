@@ -48,11 +48,23 @@ func loadDataForListBrowserFeatureCountMetric(ctx context.Context, t *testing.T,
 		{BrowserName: "firefox", BrowserVersion: "82", ReleaseDate: time.Date(2024, 2, 20, 0, 0, 0, 0, time.UTC)},
 
 		// Chrome Android releases
-		{BrowserName: "chrome_android", BrowserVersion: "100", ReleaseDate: time.Date(2023, 12, 7, 0, 0, 0, 0, time.UTC)},
-		{BrowserName: "chrome_android", BrowserVersion: "101", ReleaseDate: time.Date(2024, 1, 8, 0, 0, 0, 0, time.UTC)},
+		{
+			BrowserName:    "chrome_android",
+			BrowserVersion: "100",
+			ReleaseDate:    time.Date(2023, 12, 7, 0, 0, 0, 0, time.UTC),
+		},
+		{
+			BrowserName:    "chrome_android",
+			BrowserVersion: "101",
+			ReleaseDate:    time.Date(2024, 1, 8, 0, 0, 0, 0, time.UTC),
+		},
 
 		// Firefox Android releases
-		{BrowserName: "firefox_android", BrowserVersion: "80", ReleaseDate: time.Date(2023, 11, 17, 0, 0, 0, 0, time.UTC)},
+		{
+			BrowserName:    "firefox_android",
+			BrowserVersion: "80",
+			ReleaseDate:    time.Date(2023, 11, 17, 0, 0, 0, 0, time.UTC),
+		},
 	}
 	for _, release := range browserReleases {
 		err := client.InsertBrowserRelease(ctx, release)

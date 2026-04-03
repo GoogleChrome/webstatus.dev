@@ -64,12 +64,15 @@ func TestGetSystemManagedSavedSearchByFeatureID(t *testing.T) {
 			return err
 		}
 
-		systemManagedSearchMutation, err := spanner.InsertStruct(systemManagedSavedSearchesTable, &SystemManagedSavedSearch{
-			FeatureID:     featureID,
-			SavedSearchID: savedSearchID,
-			CreatedAt:     spanner.CommitTimestamp,
-			UpdatedAt:     spanner.CommitTimestamp,
-		})
+		systemManagedSearchMutation, err := spanner.InsertStruct(
+			systemManagedSavedSearchesTable,
+			&SystemManagedSavedSearch{
+				FeatureID:     featureID,
+				SavedSearchID: savedSearchID,
+				CreatedAt:     spanner.CommitTimestamp,
+				UpdatedAt:     spanner.CommitTimestamp,
+			},
+		)
 		if err != nil {
 			return err
 		}

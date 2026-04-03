@@ -387,7 +387,11 @@ func TestEventProducer_PublishEvent(t *testing.T) {
 			}
 
 			if mock.publishEventCalled != tc.expectCall {
-				t.Errorf("PublishSavedSearchNotificationEvent called = %v, expected %v", mock.publishEventCalled, tc.expectCall)
+				t.Errorf(
+					"PublishSavedSearchNotificationEvent called = %v, expected %v",
+					mock.publishEventCalled,
+					tc.expectCall,
+				)
 			}
 
 			if tc.expectCall && tc.expectedReq != nil {

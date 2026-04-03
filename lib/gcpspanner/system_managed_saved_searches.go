@@ -119,7 +119,9 @@ func (c *Client) UpsertSystemManagedSavedSearch(
 	ctx context.Context,
 	systemManagedSearch SystemManagedSavedSearch,
 ) error {
-	return newEntityWriter[systemManagedSavedSearchMapper, SystemManagedSavedSearch, SystemManagedSavedSearch, string](c).
+	return newEntityWriter[systemManagedSavedSearchMapper, SystemManagedSavedSearch, SystemManagedSavedSearch, string](
+		c,
+	).
 		upsert(ctx, systemManagedSearch)
 }
 

@@ -54,7 +54,12 @@ func TestGetFeatureMetadata(t *testing.T) {
 				},
 				err: nil,
 			},
-			request: httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/v1/features/key1/feature-metadata", nil),
+			request: httptest.NewRequestWithContext(
+				t.Context(),
+				http.MethodGet,
+				"/v1/features/key1/feature-metadata",
+				nil,
+			),
 			expectedGetCalls: []*ExpectedGetCall{
 				{
 					Key:   `getFeatureMetadata-{"feature_id":"key1"}`,
@@ -83,7 +88,12 @@ func TestGetFeatureMetadata(t *testing.T) {
 				result:            nil,
 				err:               nil,
 			},
-			request: httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/v1/features/key1/feature-metadata", nil),
+			request: httptest.NewRequestWithContext(
+				t.Context(),
+				http.MethodGet,
+				"/v1/features/key1/feature-metadata",
+				nil,
+			),
 			expectedGetCalls: []*ExpectedGetCall{
 				{
 					Key: `getFeatureMetadata-{"feature_id":"key1"}`,
@@ -112,7 +122,10 @@ func TestGetFeatureMetadata(t *testing.T) {
 				t:                         t,
 			}
 			mockCacher := NewMockRawBytesDataCacher(t, tc.expectedCacheCalls, tc.expectedGetCalls)
-			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: mockMetadataStorer, userGitHubClientFactory: nil,
+			myServer := Server{
+				wptMetricsStorer:        mockStorer,
+				metadataStorer:          mockMetadataStorer,
+				userGitHubClientFactory: nil,
 				operationResponseCaches: initOperationResponseCaches(mockCacher, getTestRouteCacheOptions()),
 				baseURL:                 getTestBaseURL(t),
 				eventPublisher:          nil,

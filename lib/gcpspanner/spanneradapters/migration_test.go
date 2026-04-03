@@ -160,7 +160,11 @@ func TestMigrator_Migrate(t *testing.T) {
 			}
 
 			if tc.logShouldContain != "" && !strings.Contains(logBuf.String(), tc.logShouldContain) {
-				t.Errorf("log output does not contain expected string '%s'. got: %s", tc.logShouldContain, logBuf.String())
+				t.Errorf(
+					"log output does not contain expected string '%s'. got: %s",
+					tc.logShouldContain,
+					logBuf.String(),
+				)
 			}
 		})
 	}

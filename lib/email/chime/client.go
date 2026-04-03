@@ -323,7 +323,13 @@ func classifyChimeOutcome(ctx context.Context, externalID string, responseBody N
 }
 
 func isUserCausedDeliveryFailure(reason string) bool {
-	userKeywords := []string{"invalid_mailbox", "no such user", "invalid_domain", "domain not found", "unroutable address"}
+	userKeywords := []string{
+		"invalid_mailbox",
+		"no such user",
+		"invalid_domain",
+		"domain not found",
+		"unroutable address",
+	}
 	lowerReason := strings.ToLower(reason)
 	for _, kw := range userKeywords {
 		if strings.Contains(lowerReason, kw) {

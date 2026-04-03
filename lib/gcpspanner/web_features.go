@@ -347,7 +347,12 @@ func (m webFeatureSpannerMapper) moveSystemManagedSavedSearch(
 	systemManagedSearch, err := c.GetSystemManagedSavedSearchByFeatureID(ctx, sourceID)
 	if err != nil {
 		if errors.Is(err, ErrQueryReturnedNoResults) {
-			slog.WarnContext(ctx, "system managed saved search not found during redirect, skipping", "sourceID", sourceID)
+			slog.WarnContext(
+				ctx,
+				"system managed saved search not found during redirect, skipping",
+				"sourceID",
+				sourceID,
+			)
 
 			return nil // Not an error, just nothing to do.
 		}

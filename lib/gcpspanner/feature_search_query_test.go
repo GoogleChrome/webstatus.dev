@@ -510,8 +510,10 @@ WHERE BrowserName = @param0) AND (fbs.Status = @param1 OR (wf.Name_Lowercase LIK
 			},
 		},
 		{
-			inputTestTree:   repeatedSimpleTermQuery,
-			expectedClauses: []string{`(wf.FeatureKey_Lowercase = @param0) OR (wf.FeatureKey_Lowercase = @param1) OR (wf.FeatureKey_Lowercase = @param2) OR (wf.FeatureKey_Lowercase = @param3)`},
+			inputTestTree: repeatedSimpleTermQuery,
+			expectedClauses: []string{
+				`(wf.FeatureKey_Lowercase = @param0) OR (wf.FeatureKey_Lowercase = @param1) OR (wf.FeatureKey_Lowercase = @param2) OR (wf.FeatureKey_Lowercase = @param3)`,
+			},
 			expectedParams: map[string]any{
 				"param0": "html",
 				"param1": "css",

@@ -588,8 +588,11 @@ func (s *Backend) CreateNotificationChannel(ctx context.Context,
 	return s.GetNotificationChannel(ctx, userID, *id)
 }
 
-func (s *Backend) UpdateNotificationChannel(ctx context.Context,
-	userID, channelID string, req backend.UpdateNotificationChannelRequest) (*backend.NotificationChannelResponse, error) {
+func (s *Backend) UpdateNotificationChannel(
+	ctx context.Context,
+	userID, channelID string,
+	req backend.UpdateNotificationChannelRequest,
+) (*backend.NotificationChannelResponse, error) {
 	// Defensive check: Fetch existing channel to ensure we aren't updating an email channel.
 	existing, err := s.client.GetNotificationChannel(ctx, channelID, userID)
 	if err != nil {

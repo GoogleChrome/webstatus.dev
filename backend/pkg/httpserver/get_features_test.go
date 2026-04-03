@@ -337,13 +337,16 @@ func TestListFeatures(t *testing.T) {
 		}
 }`,
 			),
-			request: httptest.NewRequestWithContext(t.Context(),
+			request: httptest.NewRequestWithContext(
+				t.Context(),
 				http.MethodGet,
-				fmt.Sprintf("/v1/features?page_token=%s&page_size=50&q=%s&sort=name_desc&wpt_metric_view=subtest_counts",
+				fmt.Sprintf(
+					"/v1/features?page_token=%s&page_size=50&q=%s&sort=name_desc&wpt_metric_view=subtest_counts",
 					*inputPageToken,
 					url.QueryEscape("available_on:chrome AND name:grid"),
 				),
-				nil),
+				nil,
+			),
 		},
 		{
 			name:       "Success Case - include optional params - cached",
@@ -403,13 +406,16 @@ func TestListFeatures(t *testing.T) {
 	}
 }`,
 			),
-			request: httptest.NewRequestWithContext(t.Context(),
+			request: httptest.NewRequestWithContext(
+				t.Context(),
 				http.MethodGet,
-				fmt.Sprintf("/v1/features?page_token=%s&page_size=50&q=%s&sort=name_desc&wpt_metric_view=subtest_counts",
+				fmt.Sprintf(
+					"/v1/features?page_token=%s&page_size=50&q=%s&sort=name_desc&wpt_metric_view=subtest_counts",
 					*inputPageToken,
 					url.QueryEscape("available_on:chrome AND name:grid"),
 				),
-				nil),
+				nil,
+			),
 		},
 		{
 			name: "500 case",
@@ -495,7 +501,12 @@ func TestListFeatures(t *testing.T) {
 			expectedResponse: testJSONResponse(400,
 				`{"code":400,"message":"query string cannot be decoded"}`,
 			),
-			request: httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/v1/features?q="+url.QueryEscape("%"), nil),
+			request: httptest.NewRequestWithContext(
+				t.Context(),
+				http.MethodGet,
+				"/v1/features?q="+url.QueryEscape("%"),
+				nil,
+			),
 		},
 		{
 			name: "400 case - invalid page token",
@@ -529,7 +540,12 @@ func TestListFeatures(t *testing.T) {
 			expectedResponse: testJSONResponse(400,
 				`{"code":400,"message":"invalid page token"}`,
 			),
-			request: httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/v1/features?page_token="+*badPageToken, nil),
+			request: httptest.NewRequestWithContext(
+				t.Context(),
+				http.MethodGet,
+				"/v1/features?page_token="+*badPageToken,
+				nil,
+			),
 		},
 	}
 	for _, tc := range testCases {
