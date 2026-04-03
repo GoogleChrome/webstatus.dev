@@ -86,7 +86,7 @@ type Client struct {
 	featureSearchQuery  FeatureSearchBaseQuery
 	missingOneImplQuery MissingOneImplementationQuery
 	searchCfg           searchConfig
-	notificationCfg     notificationConfig
+	notificationLimits  notificationLimits
 	batchWriter
 	batchSize    int
 	batchWriters int
@@ -148,8 +148,8 @@ type searchConfig struct {
 	maxSubscriptionsPerUser uint32
 }
 
-// notificationConfig holds the application configuation for notifications.
-type notificationConfig struct {
+// notificationLimits holds the application configuation for notifications.
+type notificationLimits struct {
 	// Max number of consecutive failures per channel.
 	maxConsecutiveFailuresPerChannel uint32
 	// Max number of notification channels per user.
@@ -239,7 +239,7 @@ func NewSpannerClient(projectID string, instanceID string, name string) (*Client
 			maxBookmarksPerUser:     defaultMaxBookmarksPerUser,
 			maxSubscriptionsPerUser: defaultMaxSubscriptionsPerUser,
 		},
-		notificationConfig{
+		notificationLimits{
 			maxConsecutiveFailuresPerChannel: defaultMaxConsecutiveFailuresPerChannel,
 			maxChannelsPerUser:               defaultMaxChannelsPerUser,
 		},
