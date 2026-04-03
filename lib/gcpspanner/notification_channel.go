@@ -302,7 +302,7 @@ func (c *Client) CreateNotificationChannel(
 		if err != nil {
 			return err
 		}
-		if count >= int64(c.notificationCfg.maxChannelsPerUser) {
+		if count >= int64(c.notificationLimits.maxChannelsPerUser) {
 			return ErrOwnerNotificationChannelLimitExceeded
 		}
 
