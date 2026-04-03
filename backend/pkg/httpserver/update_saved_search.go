@@ -107,6 +107,29 @@ func (s *Server) UpdateSavedSearch(
 			Errors:  validationErr.fieldErrorMap,
 		}, nil
 	}
+
+	if request.Body.Query != nil {
+		err := s.wptMetricsStorer.ValidateQueryReferences(ctx, *request.Body.Query, &request.SearchId)
+		if err != nil {
+			if errors.Is(err, backendtypes.ErrSavedSearchNotFound) ||
+				errors.Is(err, backendtypes.ErrSavedSearchCycleDetected) ||
+				errors.Is(err, backendtypes.ErrSavedSearchMaxDepthExceeded) {
+				return backend.UpdateSavedSearch400JSONResponse{
+					Code:    http.StatusBadRequest,
+					Message: err.Error(),
+					Errors:  nil,
+				}, nil
+			}
+
+			// Also handle the "consist entirely of a single saved search" error string if it's not a named error
+			return backend.UpdateSavedSearch400JSONResponse{
+				Code:    http.StatusBadRequest,
+				Message: err.Error(),
+				Errors:  nil,
+			}, nil
+		}
+	}
+
 	output, err := s.wptMetricsStorer.UpdateUserSavedSearch(ctx, request.SearchId, user.ID, request.Body)
 	if err != nil {
 		if errors.Is(err, backendtypes.ErrUserNotAuthorizedForAction) {

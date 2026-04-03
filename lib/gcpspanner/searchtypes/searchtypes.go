@@ -103,4 +103,6 @@ const (
 	IdentifierGroup                SearchIdentifier = "group"
 	IdentifierSnapshot             SearchIdentifier = "snapshot"
 	IdentifierID                   SearchIdentifier = "id"
+	IdentifierSavedSearch          SearchIdentifier = "saved"
+	IdentifierHotlist              SearchIdentifier = "hotlist"
 )

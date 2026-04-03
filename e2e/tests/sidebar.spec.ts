@@ -15,7 +15,7 @@
  */
 
 import {test} from '@playwright/test';
-import {loginAsUser, expectDualThemeScreenshot} from './utils';
+import {loginAsUser, expectDualThemeScreenshot, waitForSidebarLoaded} from './utils';
 
 test.beforeEach(async () => {});
 
@@ -24,6 +24,7 @@ test('matches the screenshot', async ({page}) => {
 
   // The sidebar menu should be shown by default.
   const sidebar = page.locator('webstatus-sidebar');
+  await waitForSidebarLoaded(page);
   await expectDualThemeScreenshot(page, sidebar, 'sidebar');
 });
 
@@ -33,5 +34,6 @@ test('matches the screenshot for an authenticated user', async ({page}) => {
 
   // The sidebar menu should be shown by default.
   const sidebar = page.locator('webstatus-sidebar');
+  await waitForSidebarLoaded(page);
   await expectDualThemeScreenshot(page, sidebar, 'sidebar-authenticated');
 });

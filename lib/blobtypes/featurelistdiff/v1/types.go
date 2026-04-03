@@ -97,8 +97,24 @@ type DiffMetadata struct {
 	PreviousStateID string `json:"previousStateId,omitempty"`
 }
 
+type QueryErrorCode string
+
+const (
+	ErrorCodeSavedSearchNotFound         QueryErrorCode = "SAVED_SEARCH_NOT_FOUND"
+	ErrorCodeHotlistNotFound             QueryErrorCode = "HOTLIST_NOT_FOUND"
+	ErrorCodeSavedSearchCycleDetected    QueryErrorCode = "SAVED_SEARCH_CYCLE_DETECTED"
+	ErrorCodeSavedSearchMaxDepthExceeded QueryErrorCode = "SAVED_SEARCH_MAX_DEPTH_EXCEEDED"
+	ErrorCodeQueryGrammar                QueryErrorCode = "QUERY_GRAMMAR_INVALID"
+)
+
+type QueryError struct {
+	Code    QueryErrorCode `json:"code,omitempty"`
+	Message string         `json:"message"`
+}
+
 type FeatureDiff struct {
 	QueryChanged bool              `json:"queryChanged,omitempty"`
+	QueryErrors  []QueryError      `json:"queryErrors,omitempty"`
 	Added        []FeatureAdded    `json:"added,omitempty"`
 	Removed      []FeatureRemoved  `json:"removed,omitempty"`
 	Deleted      []FeatureDeleted  `json:"deleted,omitempty"`

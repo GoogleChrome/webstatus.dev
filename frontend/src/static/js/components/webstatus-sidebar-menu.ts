@@ -25,11 +25,7 @@ import {
 } from 'lit';
 import {customElement, state} from 'lit/decorators.js';
 import {SlTree, SlTreeItem} from '@shoelace-style/shoelace';
-import {
-  formatOverviewPageUrl,
-  getSearchID,
-  getSearchQuery,
-} from '../utils/urls.js';
+import {formatOverviewPageUrl} from '../utils/urls.js';
 import {
   AppLocation,
   getCurrentLocation,
@@ -61,15 +57,6 @@ enum NavigationItemKey {
   STATISTICS = 'statistics-item',
   SUBSCRIPTIONS = 'subscriptions-item',
   NOTIFICATION_CHANNELS = 'notification-channels-item',
-}
-
-const NAVIGATION_ITEM_KEYS = new Set<string>(Object.values(NavigationItemKey));
-/**
- * Type guard to safely validate if a value is a valid NavigationItemKey.
- * This ensures that menu selection logic remains type-safe without unsafe casts.
- */
-function isNavigationItemKey(value: string): value is NavigationItemKey {
-  return NAVIGATION_ITEM_KEYS.has(value);
 }
 
 interface NavigationItem {
@@ -204,8 +191,7 @@ export class WebstatusSidebarMenu extends LitElement {
   }
 
   getNavTree(): SlTree | undefined {
-    const tree = this.shadowRoot?.querySelector('sl-tree');
-    return tree instanceof SlTree ? tree : undefined;
+    return this.shadowRoot!.querySelector<SlTree>('sl-tree') ?? undefined;
   }
 
   private highlightNavigationItem(tree: SlTree | undefined) {
@@ -220,8 +206,10 @@ export class WebstatusSidebarMenu extends LitElement {
     );
 
     if (matchingNavItem) {
-      const itemToSelect = tree.querySelector(`#${matchingNavItem.id}`);
-      if (itemToSelect instanceof SlTreeItem) {
+      const itemToSelect = tree.querySelector<SlTreeItem>(
+        `#${matchingNavItem.id}`,
+      );
+      if (itemToSelect) {
         itemToSelect.selected = true;
       }
     }
@@ -246,10 +234,10 @@ export class WebstatusSidebarMenu extends LitElement {
       if (selectedItems.length <= 0) {
         return;
       }
-      const selectedItemId = selectedItems[0].id;
-      const navigationItem = isNavigationItemKey(selectedItemId)
-        ? navigationMap[selectedItemId]
-        : undefined;
+      const selectedItem = selectedItems[0];
+      const navigationItem = Object.values(navigationMap).find(
+        item => item.id === selectedItem.id,
+      );
       if (!navigationItem) {
         return;
       }
@@ -279,31 +267,15 @@ export class WebstatusSidebarMenu extends LitElement {
     const currentLocation = this.getLocation();
     const currentURL = new URL(currentLocation.href);
 
-    let savedSearchUrl;
-    if (savedSearch.override_num_param) {
-      savedSearchUrl = formatOverviewPageUrl(currentURL, {
-        q: savedSearch.query,
-        start: 0,
-        num: savedSearch.override_num_param,
-        // If the user is on a saved search and clicks on a global saved search,
-        // we should clear the search id parameter.
-        search_id: '',
-      });
-    } else {
-      savedSearchUrl = formatOverviewPageUrl(currentURL, {
-        q: savedSearch.query,
-        start: 0,
-        // If the user is on a saved search and clicks on a global saved search,
-        // we should clear the search id parameter.
-        search_id: '',
-      });
-    }
+    const savedSearchUrl = formatOverviewPageUrl(currentURL, {
+      start: 0,
+      q: `hotlist:${savedSearch.id}`,
+    });
     // The saved search should only be active when the path is the FEATURES path
-    // and the query is set to the active query.
+    // and the query is exactly the hotlist term.
     const isQueryActive =
       currentURL.pathname === navigationMap[NavigationItemKey.FEATURES].path &&
-      getSearchQuery(currentLocation) === this.activeQuery &&
-      savedSearch.query === this.activeQuery;
+      this.activeQuery === `hotlist:${savedSearch.id}`;
     const icon = this.getSavedSearchIcon(isQueryActive);
 
     return html`
@@ -325,29 +297,21 @@ export class WebstatusSidebarMenu extends LitElement {
     let savedSearchEditUrl;
     const savedSearchUrl = formatOverviewPageUrl(currentURL, {
       start: 0,
-      search_id: savedSearch.id,
-      // If the user is on a saved search and clicks on a global saved search,
-      // we should clear the q parameter.
-      q: '',
+      q: `saved:${savedSearch.id}`,
     });
     if (savedSearch.permissions?.role === BookmarkOwnerRole) {
       savedSearchEditUrl = formatOverviewPageUrl(currentURL, {
         start: 0,
-        search_id: savedSearch.id,
         edit_saved_search: true,
-        // If the user is on a saved search and clicks on a global saved search,
-        // we should clear the q parameter.
-        q: '',
+        q: `saved:${savedSearch.id}`,
       });
     }
 
     // The savedSearch should only be active when the path is the FEATURES path,
-    // the search ID is set to the active search ID and the query is set to the active query.
+    // and the query is exactly the saved term.
     const isQueryActive =
       currentURL.pathname === navigationMap[NavigationItemKey.FEATURES].path &&
-      (getSearchQuery(currentLocation) === this.activeQuery ||
-        savedSearch.id === getSearchID(currentLocation)) &&
-      savedSearch.query === this.activeQuery;
+      this.activeQuery === `saved:${savedSearch.id}`;
     const icon = this.getSavedSearchIcon(isQueryActive);
 
     return html`
@@ -455,10 +419,26 @@ export class WebstatusSidebarMenu extends LitElement {
             href="${navigationMap[NavigationItemKey.FEATURES].path}"
             >Features</a
           >
-          ${this.appBookmarkInfo?.globalSavedSearches?.map(
-            (savedSearch, index) =>
-              this.renderGlobalSavedSearch(savedSearch, index),
-          )}
+          ${this.appBookmarkInfo?.globalSavedSearchesTask?.status ===
+            TaskStatus.INITIAL ||
+          this.appBookmarkInfo?.globalSavedSearchesTask?.status ===
+            TaskStatus.PENDING
+            ? html`
+                <sl-tree-item
+                  ><sl-skeleton effect="sheen"></sl-skeleton
+                ></sl-tree-item>
+                <sl-tree-item
+                  ><sl-skeleton effect="sheen"></sl-skeleton
+                ></sl-tree-item>
+              `
+            : nothing}
+          ${this.appBookmarkInfo?.globalSavedSearchesTask?.status ===
+          TaskStatus.COMPLETE
+            ? html`${this.appBookmarkInfo?.globalSavedSearches?.map(
+                (savedSearch, index) =>
+                  this.renderGlobalSavedSearch(savedSearch, index),
+              )}`
+            : nothing}
         </sl-tree-item>
         <!-- commented out rather than merely hidden, to avoid breaking sl-tree
         <sl-tree-item id="{NavigationItemKey.STATISTICS}">

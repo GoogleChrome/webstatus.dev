@@ -203,6 +203,21 @@ type mockListSavedSearchSubscriptionsConfig struct {
 	returnedError   error
 }
 
+type mockGetSystemGlobalSavedSearchConfig struct {
+	results map[string]*gcpspanner.SystemGlobalSavedSearchWithSortOption
+	errs    map[string]error
+}
+
+type mockGetSavedSearchConfig struct {
+	results map[string]*gcpspanner.SavedSearch
+	errs    map[string]error
+}
+
+type mockGetReferencingSavedSearchIDsConfig struct {
+	results map[string][]string
+	errs    map[string]error
+}
+
 type mockBackendSpannerClient struct {
 	t                                    *testing.T
 	aggregationData                      []gcpspanner.WPTRunAggregationMetricWithTime
@@ -232,6 +247,9 @@ type mockBackendSpannerClient struct {
 	mockUpdateSavedSearchSubscriptionCfg *mockUpdateSavedSearchSubscriptionConfig
 	mockDeleteSavedSearchSubscriptionCfg *mockDeleteSavedSearchSubscriptionConfig
 	mockListSavedSearchSubscriptionsCfg  *mockListSavedSearchSubscriptionsConfig
+	mockGetSystemGlobalSavedSearchCfg    *mockGetSystemGlobalSavedSearchConfig
+	mockGetSavedSearchCfg                *mockGetSavedSearchConfig
+	mockGetReferencingSavedSearchIDsCfg  *mockGetReferencingSavedSearchIDsConfig
 	pageToken                            *string
 	err                                  error
 
@@ -252,6 +270,62 @@ func (c mockBackendSpannerClient) SyncUserProfileInfo(
 	}
 
 	return c.mockSyncUserProfileInfoCfg.returnedError
+}
+
+func (c mockBackendSpannerClient) GetSystemGlobalSavedSearch(
+	_ context.Context,
+	id string,
+) (*gcpspanner.SystemGlobalSavedSearchWithSortOption, error) {
+	if c.mockGetSystemGlobalSavedSearchCfg != nil {
+		if err, ok := c.mockGetSystemGlobalSavedSearchCfg.errs[id]; ok {
+			return nil, err
+		}
+		if res, ok := c.mockGetSystemGlobalSavedSearchCfg.results[id]; ok {
+			return res, nil
+		}
+	}
+
+	return nil, gcpspanner.ErrQueryReturnedNoResults
+}
+
+func (c mockBackendSpannerClient) ListSystemGlobalSavedSearches(
+	_ context.Context,
+	_ int,
+	_ *string,
+) ([]gcpspanner.SystemGlobalSavedSearch, int64, *string, error) {
+	return nil, 0, nil, nil
+}
+
+func (c mockBackendSpannerClient) GetSavedSearch(
+	_ context.Context,
+	id string,
+) (*gcpspanner.SavedSearch, error) {
+	if c.mockGetSavedSearchCfg != nil {
+		if err, ok := c.mockGetSavedSearchCfg.errs[id]; ok {
+			return nil, err
+		}
+		if res, ok := c.mockGetSavedSearchCfg.results[id]; ok {
+			return res, nil
+		}
+	}
+
+	return nil, gcpspanner.ErrQueryReturnedNoResults
+}
+
+func (c mockBackendSpannerClient) GetReferencingSavedSearchIDs(
+	_ context.Context,
+	id string,
+) ([]string, error) {
+	if c.mockGetReferencingSavedSearchIDsCfg != nil {
+		if err, ok := c.mockGetReferencingSavedSearchIDsCfg.errs[id]; ok {
+			return nil, err
+		}
+		if res, ok := c.mockGetReferencingSavedSearchIDsCfg.results[id]; ok {
+			return res, nil
+		}
+	}
+
+	return nil, nil
 }
 
 // GetMovedWebFeatureDetailsByOriginalFeatureKey implements BackendSpannerClient.
@@ -4826,4 +4900,238 @@ func newTestUpdateNotificationChannelRequestConfig(
 	}
 
 	return &c
+}
+
+// nolint:exhaustruct // Tests and mocks purposefully have uninitialized fields.
+func TestValidateQueryReferences(t *testing.T) {
+	testCases := []struct {
+		name                string
+		query               string
+		updateID            *string
+		systemSearches      map[string]*gcpspanner.SystemGlobalSavedSearchWithSortOption
+		userSearches        map[string]*gcpspanner.SavedSearch
+		referencingSearches map[string][]string
+		expectedError       error
+	}{
+		{
+			name:  "valid simple query",
+			query: "name:\"flexbox\"",
+		},
+		{
+			name:  "valid saved search reference",
+			query: "(saved:search1) name:\"flexbox\"",
+			userSearches: map[string]*gcpspanner.SavedSearch{
+				"search1": {Query: "name:\"flexbox\""},
+			},
+		},
+		{
+			name:  "valid hotlist reference",
+			query: "(hotlist:search1) name:\"flexbox\"",
+			systemSearches: map[string]*gcpspanner.SystemGlobalSavedSearchWithSortOption{
+				"search1": {SystemGlobalSavedSearch: gcpspanner.SystemGlobalSavedSearch{Query: "name:\"flexbox\""}},
+			},
+		},
+		{
+			name:          "invalid saved search - missing",
+			query:         "(saved:missing) name:\"flexbox\"",
+			expectedError: backendtypes.ErrSavedSearchNotFound,
+		},
+		{
+			name:          "invalid hotlist - missing",
+			query:         "(hotlist:missing) name:\"flexbox\"",
+			expectedError: backendtypes.ErrHotlistNotFound,
+		},
+		{
+			name:  "invalid depth - 3 levels",
+			query: "(saved:search1) name:\"flexbox\"",
+			userSearches: map[string]*gcpspanner.SavedSearch{
+				"search1": {Query: "saved:search2"},
+				"search2": {Query: "saved:search3"},
+				"search3": {Query: "name:\"flexbox\""},
+			},
+			expectedError: backendtypes.ErrSavedSearchMaxDepthExceeded,
+		},
+		{
+			name:  "valid depth - 2 levels",
+			query: "(saved:search1) name:\"flexbox\"",
+			userSearches: map[string]*gcpspanner.SavedSearch{
+				"search1": {Query: "saved:search2"},
+				"search2": {Query: "name:\"flexbox\""},
+			},
+		},
+		{
+			name:  "cycle detection - direct",
+			query: "(saved:search1) name:\"flexbox\"",
+			userSearches: map[string]*gcpspanner.SavedSearch{
+				"search1": {Query: "saved:search1"},
+			},
+			expectedError: backendtypes.ErrSavedSearchCycleDetected,
+		},
+		{
+			name:  "cycle detection - indirect",
+			query: "(saved:search1) name:\"flexbox\"",
+			userSearches: map[string]*gcpspanner.SavedSearch{
+				"search1": {Query: "saved:search2"},
+				"search2": {Query: "saved:search1"},
+			},
+			expectedError: backendtypes.ErrSavedSearchCycleDetected,
+		},
+		{
+			name:     "transitive depth violation during update",
+			query:    "(saved:child) name:\"flexbox\"",
+			updateID: new("parent"),
+			userSearches: map[string]*gcpspanner.SavedSearch{
+				"child":      {Query: "saved:grandchild"},
+				"grandchild": {Query: "name:\"flexbox\""},
+			},
+			referencingSearches: map[string][]string{
+				"parent": {"ancestor"},
+			},
+			// ancestor -> parent -> child -> grandchild (depth 3)
+			expectedError: backendtypes.ErrSavedSearchMaxDepthExceeded,
+		},
+		{
+			name:  "entirely single saved search",
+			query: "saved:search1",
+			expectedError: errors.New("query cannot consist entirely of a single saved search or hotlist, " +
+				"please subscribe to the existing search directly"),
+		},
+		{
+			name:  "entirely single hotlist",
+			query: "hotlist:search1",
+			expectedError: errors.New("query cannot consist entirely of a single saved search or hotlist, " +
+				"please subscribe to the existing search directly"),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mock := mockBackendSpannerClient{
+				t: t,
+				mockGetSystemGlobalSavedSearchCfg: &mockGetSystemGlobalSavedSearchConfig{
+					results: tc.systemSearches,
+				},
+				mockGetSavedSearchCfg: &mockGetSavedSearchConfig{
+					results: tc.userSearches,
+				},
+				mockGetReferencingSavedSearchIDsCfg: &mockGetReferencingSavedSearchIDsConfig{
+					results: tc.referencingSearches,
+				},
+			}
+			backend := NewBackend(mock)
+			err := backend.ValidateQueryReferences(context.Background(), tc.query, tc.updateID)
+			if tc.expectedError != nil {
+				if err == nil || err.Error() != tc.expectedError.Error() {
+					t.Errorf("expected error %v, got %v", tc.expectedError, err)
+				}
+			} else if err != nil {
+				t.Errorf("unexpected error %v", err)
+			}
+		})
+	}
+}
+
+func TestExpandSavedSearches_Success(t *testing.T) {
+	testCases := []struct {
+		name           string
+		id             string
+		globalSearches map[string]*gcpspanner.SystemGlobalSavedSearchWithSortOption
+		expectedNode   *searchtypes.SearchNode
+	}{
+		{
+			name: "empty query returns special node",
+			id:   "all",
+			globalSearches: map[string]*gcpspanner.SystemGlobalSavedSearchWithSortOption{
+				"all": {SystemGlobalSavedSearch: gcpspanner.SystemGlobalSavedSearch{ID: "all", Query: ""}},
+			},
+			expectedNode: &searchtypes.SearchNode{
+				Keyword:  searchtypes.KeywordNone,
+				Children: nil,
+				Term:     nil,
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			//nolint: exhaustruct
+			mock := mockBackendSpannerClient{
+				t: t,
+				mockGetSystemGlobalSavedSearchCfg: &mockGetSystemGlobalSavedSearchConfig{
+					results: tc.globalSearches,
+				},
+			}
+			backend := NewBackend(mock)
+			node := &searchtypes.SearchNode{
+				Keyword: searchtypes.KeywordNone,
+				Term: &searchtypes.SearchTerm{
+					Identifier: searchtypes.IdentifierHotlist,
+					Operator:   searchtypes.OperatorNone,
+					Value:      tc.id,
+				},
+				Children: nil,
+			}
+
+			expanded, _, err := backend.expandSavedSearches(context.Background(), node, 0, map[string]struct{}{})
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if !reflect.DeepEqual(expanded, tc.expectedNode) {
+				t.Errorf("expected node %+v, got %+v", tc.expectedNode, expanded)
+			}
+		})
+	}
+}
+
+func TestExpandSavedSearches_Error(t *testing.T) {
+	testCases := []struct {
+		name           string
+		id             string
+		globalSearches map[string]*gcpspanner.SystemGlobalSavedSearchWithSortOption
+		expectedError  error
+	}{
+		{
+			name: "max depth exceeded",
+			id:   "h1",
+			globalSearches: map[string]*gcpspanner.SystemGlobalSavedSearchWithSortOption{
+				"h1": {SystemGlobalSavedSearch: gcpspanner.SystemGlobalSavedSearch{ID: "h1", Query: "hotlist:h2"}},
+				"h2": {SystemGlobalSavedSearch: gcpspanner.SystemGlobalSavedSearch{ID: "h2", Query: "hotlist:h3"}},
+				"h3": {SystemGlobalSavedSearch: gcpspanner.SystemGlobalSavedSearch{ID: "h3", Query: "feat1"}},
+			},
+			expectedError: backendtypes.ErrSavedSearchMaxDepthExceeded,
+		},
+		{
+			name:           "hotlist not found",
+			id:             "nonexistent",
+			globalSearches: map[string]*gcpspanner.SystemGlobalSavedSearchWithSortOption{},
+			expectedError:  backendtypes.ErrHotlistNotFound,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			//nolint: exhaustruct
+			mock := mockBackendSpannerClient{
+				t: t,
+				mockGetSystemGlobalSavedSearchCfg: &mockGetSystemGlobalSavedSearchConfig{
+					results: tc.globalSearches,
+				},
+			}
+			backend := NewBackend(mock)
+			node := &searchtypes.SearchNode{
+				Keyword: searchtypes.KeywordNone,
+				Term: &searchtypes.SearchTerm{
+					Identifier: searchtypes.IdentifierHotlist,
+					Operator:   searchtypes.OperatorNone,
+					Value:      tc.id,
+				},
+				Children: nil,
+			}
+
+			_, _, err := backend.expandSavedSearches(context.Background(), node, 0, map[string]struct{}{})
+			if !errors.Is(err, tc.expectedError) {
+				t.Errorf("expected error %v, got %v", tc.expectedError, err)
+			}
+		})
+	}
 }

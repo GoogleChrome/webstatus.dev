@@ -1592,6 +1592,42 @@ func TestParseQuery(t *testing.T) {
 				},
 			},
 		},
+		{
+			InputQuery: "saved:my-saved-query",
+			ExpectedTree: &SearchNode{
+				Keyword: KeywordRoot,
+				Term:    nil,
+				Children: []*SearchNode{
+					{
+						Children: nil,
+						Term: &SearchTerm{
+							Identifier: IdentifierSavedSearch,
+							Value:      "my-saved-query",
+							Operator:   OperatorEq,
+						},
+						Keyword: KeywordNone,
+					},
+				},
+			},
+		},
+		{
+			InputQuery: "hotlist:my-hotlist",
+			ExpectedTree: &SearchNode{
+				Keyword: KeywordRoot,
+				Term:    nil,
+				Children: []*SearchNode{
+					{
+						Children: nil,
+						Term: &SearchTerm{
+							Identifier: IdentifierHotlist,
+							Value:      "my-hotlist",
+							Operator:   OperatorEq,
+						},
+						Keyword: KeywordNone,
+					},
+				},
+			},
+		},
 	}
 
 	for _, testCase := range testCases {

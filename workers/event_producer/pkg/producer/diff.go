@@ -43,15 +43,15 @@ type migratorFunc func(bytes []byte) ([]byte, error)
 
 // stateConverter is a generic function type that defines how to convert a
 // versioned state snapshot of type S into the canonical diffing format.
-type stateConverter[S any] func(state *S) (map[string]comparables.Feature, string)
+type stateConverter[S any] func(state *S) (map[string]comparables.Feature, string, []string)
 
 // stateSerializerFunc defines how to create a versioned state snapshot `S`
 // from the canonical feature map and serialize it into raw bytes.
-type stateSerializerFunc[S any] func(id, searchID, eventID, query string,
+type stateSerializerFunc[S any] func(id, searchID, eventID, query string, queryErrors []string,
 	snapshot map[string]comparables.Feature, timestamp time.Time) ([]byte, error)
 
 // v1StateSerializerFunc implements StateSerializerFunc for v1.FeatureListSnapshot.
-func v1StateSerializerFunc(id, searchID, eventID, query string,
+func v1StateSerializerFunc(id, searchID, eventID, query string, queryErrors []string,
 	snapshot map[string]comparables.Feature, timestamp time.Time) ([]byte, error) {
 	// Convert the canonical comparables.Feature map back to v1.Feature map
 	// This is the inverse of convertV1SnapshotToComparable logic.
@@ -65,6 +65,7 @@ func v1StateSerializerFunc(id, searchID, eventID, query string,
 			GeneratedAt:    timestamp,
 			SearchID:       searchID,
 			QuerySignature: query,
+			QueryErrors:    queryErrors,
 			ID:             id,
 			EventID:        eventID,
 		},
@@ -103,33 +104,33 @@ type snapshot interface {
 
 // Load implements the differ.StateAdapter interface.
 func (a *genericStateAdapter[S]) Load(bytes []byte) (
-	map[string]comparables.Feature, string, string, bool, error,
+	map[string]comparables.Feature, string, string, []string, bool, error,
 ) {
 	if len(bytes) == 0 {
-		return nil, "", "", true, nil
+		return nil, "", "", nil, true, nil
 	}
 	migratedBytes, err := a.migrator(bytes)
 	if err != nil {
-		return nil, "", "", false, err
+		return nil, "", "", nil, false, err
 	}
 
 	// 1. Unmarshal into the generic type S.
 	// We declare a variable of type S, and Go's generics ensure it's the correct concrete struct.
 	var snapshot S
 	if err := json.Unmarshal(migratedBytes, &snapshot); err != nil {
-		return nil, "", "", false, errors.Join(err, ErrInvalidFormat)
+		return nil, "", "", nil, false, errors.Join(err, ErrInvalidFormat)
 	}
 
 	// 2. Use the injected converter function to perform the translation.
-	compMap, signature := a.converter(&snapshot)
+	compMap, signature, queryErrors := a.converter(&snapshot)
 
 	// 3. Return the canonical data.
-	return compMap, snapshot.ID(), signature, false, nil
+	return compMap, snapshot.ID(), signature, queryErrors, false, nil
 }
 
 func (a *genericStateAdapter[S]) Serialize(id, searchID, eventID, query string,
-	timestamp time.Time, snapshot map[string]comparables.Feature) ([]byte, error) {
-	return a.serializer(id, searchID, eventID, query, snapshot, timestamp)
+	queryErrors []string, timestamp time.Time, snapshot map[string]comparables.Feature) ([]byte, error) {
+	return a.serializer(id, searchID, eventID, query, queryErrors, snapshot, timestamp)
 }
 
 // V1DiffSerializer is a concrete implementation for serializing V1 diffs.
@@ -162,13 +163,15 @@ func (s *V1DiffSerializer) Serialize(
 }
 
 // convertV1SnapshotToComparable matches the StateConverter[featurelistv1.FeatureListSnapshot] signature.
-func convertV1SnapshotToComparable(state *featurelistv1.FeatureListSnapshot) (map[string]comparables.Feature, string) {
+func convertV1SnapshotToComparable(
+	state *featurelistv1.FeatureListSnapshot,
+) (map[string]comparables.Feature, string, []string) {
 	comparableMap := make(map[string]comparables.Feature, len(state.Data.Features))
 	for id, v1Feature := range state.Data.Features {
 		comparableMap[id] = convertV1FeatureToComparable(v1Feature)
 	}
 
-	return comparableMap, state.Metadata.QuerySignature
+	return comparableMap, state.Metadata.QuerySignature, state.Metadata.QueryErrors
 }
 
 func NewDiffer(client FeatureFetcher) *differ.FeatureDiffer[featurelistdiffv1.FeatureDiff] {

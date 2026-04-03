@@ -95,6 +95,7 @@ type EventSummary struct {
 	Text          string             `json:"text"`
 	Categories    SummaryCategories  `json:"categories,omitzero"`
 	Truncated     bool               `json:"truncated"`
+	QueryErrors   []v1.QueryError    `json:"queryErrors,omitempty"`
 	Highlights    []SummaryHighlight `json:"highlights"`
 }
 
@@ -263,6 +264,7 @@ func (g FeatureDiffV1SummaryGenerator) GenerateJSONSummary(
 
 	s.Categories, s.Text = g.calculateCategoriesAndText(d)
 	s.Highlights, s.Truncated = g.generateHighlights(d)
+	s.QueryErrors = d.QueryErrors
 
 	b, err := json.Marshal(s)
 	if err != nil {

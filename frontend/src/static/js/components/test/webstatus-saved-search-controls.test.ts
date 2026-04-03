@@ -119,9 +119,10 @@ describe('WebstatusSavedSearchControls', () => {
       .stub(element, '_formatOverviewPageUrl')
       .callsFake((location, params) => {
         const url = new URL('http://localhost:8080/features');
-        url.search = location!.search;
-        if (params?.search_id) {
-          url.searchParams.set('search_id', params.search_id);
+        if (params?.q) {
+          url.searchParams.set('q', params.q);
+        } else {
+          url.search = location!.search;
         }
         return url.pathname + url.search;
       });
@@ -206,10 +207,10 @@ describe('WebstatusSavedSearchControls', () => {
 
     it('configures share button correctly', () => {
       const copyButton = element.shadowRoot!.querySelector('sl-copy-button');
-      const expectedUrl = `http://localhost:8080/features?q=feature%3Acss&search_id=${mockSavedSearchViewerNotBookmarked.id}`;
+      const expectedUrl = `http://localhost:8080/features?q=saved%3A${mockSavedSearchViewerNotBookmarked.id}`;
       expect(copyButton).to.have.attribute('value', expectedUrl);
       expect(formatOverviewPageUrlStub).to.have.been.calledWith(mockLocation, {
-        search_id: mockSavedSearchViewerNotBookmarked.id,
+        q: `saved:${mockSavedSearchViewerNotBookmarked.id}`,
       });
     });
 
@@ -470,10 +471,10 @@ describe('WebstatusSavedSearchControls', () => {
 
     it('configures share button correctly for owner', () => {
       const copyButton = element.shadowRoot!.querySelector('sl-copy-button');
-      const expectedUrl = `http://localhost:8080/features?q=feature%3Acss&search_id=${mockSavedSearchOwner.id}`;
+      const expectedUrl = `http://localhost:8080/features?q=saved%3A${mockSavedSearchOwner.id}`;
       expect(copyButton).to.have.attribute('value', expectedUrl);
       expect(formatOverviewPageUrlStub).to.have.been.calledWith(mockLocation, {
-        search_id: mockSavedSearchOwner.id,
+        q: `saved:${mockSavedSearchOwner.id}`,
       });
     });
 

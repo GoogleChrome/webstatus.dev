@@ -53,6 +53,7 @@ import {
   formatOverviewPageUrl,
   getEditSavedSearch,
   getOrigin,
+  QueryStringOverrides,
   updatePageUrl,
 } from '../utils/urls.js';
 import {
@@ -191,8 +192,8 @@ export class WebstatusOverviewContent extends LitElement {
     overrides: {edit_saved_search?: boolean},
   ) => void = updatePageUrl;
   _formatOverviewPageUrl: (
-    location: {search: string},
-    overrides: {search_id?: string},
+    location?: {search: string},
+    overrides?: QueryStringOverrides,
   ) => string = formatOverviewPageUrl;
 
   protected async updated(
@@ -208,7 +209,7 @@ export class WebstatusOverviewContent extends LitElement {
         this.savedSearch,
         this.savedSearch.query,
       );
-      this._updatePageUrl('', this.location, {edit_saved_search: undefined});
+      this._updatePageUrl('', this.location, {edit_saved_search: false});
     }
   }
 

@@ -18,13 +18,14 @@ import {createContext} from '@lit/context';
 import {GlobalSavedSearch, UserSavedSearch} from '../utils/constants.js';
 import {TaskTracker} from '../utils/task-tracker.js';
 import {TaskStatus} from '@lit/task';
-import {getSearchID, getSearchQuery} from '../utils/urls.js';
+import {getSearchQuery} from '../utils/urls.js';
 
 export interface AppBookmarkInfo {
   globalSavedSearches?: GlobalSavedSearch[];
   currentGlobalSavedSearch?: GlobalSavedSearch;
   userSavedSearchTask?: TaskTracker<UserSavedSearch, SavedSearchError>;
   userSavedSearchesTask?: TaskTracker<UserSavedSearch[], SavedSearchError>;
+  globalSavedSearchesTask?: TaskTracker<GlobalSavedSearch[], Error>;
   currentLocation?: {search: string};
 }
 
@@ -47,89 +48,77 @@ export const savedSearchHelpers = {
    * @param {AppBookmarkInfo?} info  - The AppBookmarkInfo object.
    */
   getCurrentSavedSearch(info?: AppBookmarkInfo): CurrentSavedSearch {
-    const searchID = getSearchID(info?.currentLocation ?? {search: ''});
-    if (
-      // There's a chance that the context has not been updated so we should check the search ID in the location.
-      searchID &&
-      info?.userSavedSearchesTask?.status === TaskStatus.COMPLETE &&
-      info?.userSavedSearchesTask.data
-    ) {
-      const userSavedSearch = info.userSavedSearchesTask.data?.find(
-        item => item.id === searchID,
-      );
-      if (userSavedSearch !== undefined) {
-        return {
-          scope: SavedSearchScope.UserSavedSearch,
-          value: userSavedSearch,
-        };
+    const q = getSearchQuery(info?.currentLocation ?? {search: ''});
+    const trimmed = q.trim();
+
+    // Check Global Saved Searches
+    if (trimmed.startsWith('hotlist:')) {
+      const parts = trimmed.split(':');
+      if (parts.length === 2 && info?.globalSavedSearches) {
+        let raw = parts[1];
+        if (raw.startsWith('"') && raw.endsWith('"')) raw = raw.slice(1, -1);
+        const globalMatch = info.globalSavedSearches.find(s => s.id === raw);
+        if (globalMatch)
+          return {
+            scope: SavedSearchScope.GlobalSavedSearch,
+            value: globalMatch,
+          };
       }
     }
-    if (
-      // There's a chance that the context has not been updated so we should check the search ID in the location.
-      searchID &&
-      info?.userSavedSearchTask?.status === TaskStatus.COMPLETE &&
-      info?.userSavedSearchTask.data
-    ) {
-      return {
-        scope: SavedSearchScope.UserSavedSearch,
-        value: info.userSavedSearchTask.data,
-      };
+
+    // Check User Saved Searches
+    if (trimmed.startsWith('saved:')) {
+      const parts = trimmed.split(':');
+      if (parts.length === 2) {
+        let raw = parts[1];
+        if (raw.startsWith('"') && raw.endsWith('"')) raw = raw.slice(1, -1);
+
+        if (
+          info?.userSavedSearchesTask?.status === TaskStatus.COMPLETE &&
+          info?.userSavedSearchesTask.data
+        ) {
+          const userMatch = info.userSavedSearchesTask.data.find(
+            s => s.id === raw,
+          );
+          if (userMatch)
+            return {scope: SavedSearchScope.UserSavedSearch, value: userMatch};
+        }
+        if (
+          info?.userSavedSearchTask?.status === TaskStatus.COMPLETE &&
+          info?.userSavedSearchTask.data
+        ) {
+          if (info.userSavedSearchTask.data.id === raw) {
+            return {
+              scope: SavedSearchScope.UserSavedSearch,
+              value: info.userSavedSearchTask.data,
+            };
+          }
+        }
+      }
     }
 
-    if (info?.currentGlobalSavedSearch) {
-      return {
-        scope: SavedSearchScope.GlobalSavedSearch,
-        value: info.currentGlobalSavedSearch,
-      };
+    // Fallback for legacy exact query string match
+    const currentGlobal = info?.currentGlobalSavedSearch;
+    if (currentGlobal && currentGlobal.query === q) {
+      return {scope: SavedSearchScope.GlobalSavedSearch, value: currentGlobal};
     }
 
     return undefined;
   },
 
-  /**
-   * Returns the current query based on the provided AppBookmarkInfo.
-   *
-   * This function determines the active query string by considering both global
-   * and user saved searches, as well as the current location's search parameters.
-   *
-   * - If a user saved search is active (indicated by a matching `search_id` in
-   *   the location), its query is used unless the location's `q` parameter is
-   *   different, which indicates the user is editing the query.
-   * - If a global saved search is active, its query is used.
-   * - If no saved search is active, the query from the location's `q` parameter is used.
-   * - If the saved search information is still loading, the query from the location's `q` parameter is used.
-   *
-   * @param {AppBookmarkInfo?} info - The AppBookmarkInfo object.
-   * @returns {string} The current query string.
-   */
   getCurrentQuery: (info?: AppBookmarkInfo): string => {
     const currentLocation = info?.currentLocation ?? {search: ''};
     const q = getSearchQuery(currentLocation);
-    if (savedSearchHelpers.isBusyLoadingSavedSearchInfo(info)) {
-      return q;
+    const trimmed = q.trim();
+    if (trimmed.startsWith('saved:')) {
+      const search = savedSearchHelpers.getCurrentSavedSearch(info);
+      if (search) {
+        return search.value.query;
+      }
     }
-    const savedSearch = savedSearchHelpers.getCurrentSavedSearch(info);
-    // User saved searches can be edited. And those have IDs
-    if (savedSearch?.scope === SavedSearchScope.UserSavedSearch) {
-      // If there's a saved search, prioritize its query unless q is different.
-      // If they are different, this could mean we are trying to edit.
-      return q !== savedSearch.value.query && q !== ''
-        ? q
-        : savedSearch.value.query;
-    } else if (savedSearch?.scope === SavedSearchScope.GlobalSavedSearch) {
-      // If there's a global saved search, use its query.
-      return savedSearch.value.query;
-    }
-
     return q;
   },
 
-  /**
-   * Checks if the bookmark information is currently being loaded.
-   *
-   * @param {AppBookmarkInfo?} info - The AppBookmarkInfo object.
-   * @returns {boolean} True if the bookmark info is loading or the location has changed, false otherwise.
-   */
   isBusyLoadingSavedSearchInfo: (info?: AppBookmarkInfo): boolean => {
     return (
       info?.userSavedSearchTask === undefined ||
@@ -183,7 +172,8 @@ export class SavedSearchUnknownError extends Error {
    * @param {string} id - The ID of the saved search that caused the error.
    * @param {unknown} err - The unknown error.
    */
-  constructor(id: string, err: {} | null | undefined) {
+  // eslint-disable-next-line @typescript-eslint/no-restricted-types
+  constructor(id: string, err: unknown) {
     super(
       `Unknown error fetching saved search ID ${id}. Check console for details.`,
     );
@@ -212,7 +202,8 @@ export class UserSavedSearchesUnknownError extends Error {
    * Creates a new UserSavedSearchesUnknownError.
    * @param {unknown} err - The unknown error.
    */
-  constructor(err: {} | null | undefined) {
+  // eslint-disable-next-line @typescript-eslint/no-restricted-types
+  constructor(err: unknown) {
     super(
       'Unknown error fetching list of saved searches for user. Check console for details.',
     );

@@ -19,6 +19,7 @@ import {
   BASE_URL,
   expect404PageButtons,
   goTo404Page,
+  waitForSidebarLoaded,
   expectDualThemeScreenshot,
 } from './utils';
 
@@ -69,6 +70,7 @@ test('shows similar features and all buttons when results exist', async ({
   const pageContainer = page.locator('.page-container');
 
   // Snapshot
+  await waitForSidebarLoaded(page);
   await expectDualThemeScreenshot(
     page,
     pageContainer,
@@ -123,5 +125,6 @@ test('should allow navigation from 404 page', async ({page}) => {
 test('matches the screenshot 404 not found page', async ({page}) => {
   await page.goto(`${BASE_URL}/bad_url`);
   const pageContainer = page.locator('.page-container');
+  await waitForSidebarLoaded(page);
   await expectDualThemeScreenshot(page, pageContainer, 'not-found-error-page');
 });

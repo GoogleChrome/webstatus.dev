@@ -54,6 +54,7 @@ func (m *mockReconcileClient) GetFeature(
 	return nil, backendtypes.ErrEntityDoesNotExist
 }
 
+// nolint:exhaustruct // Tests use uninitialized fields.
 func TestReconcileHistory(t *testing.T) {
 	tests := []struct {
 		name         string
