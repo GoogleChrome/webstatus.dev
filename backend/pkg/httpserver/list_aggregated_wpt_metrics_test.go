@@ -304,8 +304,13 @@ func TestListAggregatedWPTMetrics(t *testing.T) {
 				eventPublisher:          nil,
 				baseURL:                 getTestBaseURL(t)}
 			assertTestServerRequest(t, &myServer, tc.request, tc.expectedResponse)
-			assertMocksExpectations(t, tc.expectedCallCount, mockStorer.callCountListMetricsOverTimeWithAggregatedTotals,
-				"ListMetricsOverTimeWithAggregatedTotals", mockCacher)
+			assertMocksExpectations(
+				t,
+				tc.expectedCallCount,
+				mockStorer.callCountListMetricsOverTimeWithAggregatedTotals,
+				"ListMetricsOverTimeWithAggregatedTotals",
+				mockCacher,
+			)
 		})
 	}
 }

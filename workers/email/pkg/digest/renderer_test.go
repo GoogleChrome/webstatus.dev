@@ -58,7 +58,11 @@ func TestRenderDigest_Golden(t *testing.T) {
 				FeatureID:   "container-queries",
 				Docs: &workertypes.Docs{
 					MDNDocs: []workertypes.DocLink{
-						{URL: "https://developer.mozilla.org/docs/Web/CSS/CSS_Container_Queries", Title: nil, Slug: nil},
+						{
+							URL:   "https://developer.mozilla.org/docs/Web/CSS/CSS_Container_Queries",
+							Title: nil,
+							Slug:  nil,
+						},
 						{URL: "https://developer.mozilla.org/docs/Web/CSS/container-queries", Title: nil, Slug: nil},
 					},
 				},

@@ -46,21 +46,6 @@ var (
 	errQueryDoesNotMatchGrammar = errors.New("query does not match grammar")
 )
 
-type fieldValidationErrors struct {
-	fieldErrorMap map[string]string
-}
-
-func (f *fieldValidationErrors) addFieldError(field string, err error) {
-	if f.fieldErrorMap == nil {
-		f.fieldErrorMap = make(map[string]string)
-	}
-	f.fieldErrorMap[field] = err.Error()
-}
-
-func (f fieldValidationErrors) hasErrors() bool {
-	return len(f.fieldErrorMap) > 0
-}
-
 // validateSavedSearchName checks the validity of the saved search name.
 // It expects a pointer to handle potential nil values during updates.
 func validateSavedSearchName(name *string, fieldErrors *fieldValidationErrors) {

@@ -42,7 +42,8 @@ func (s *Server) GetNotificationChannel(
 
 	channel, err := s.wptMetricsStorer.GetNotificationChannel(ctx, userCheckResult.User.ID, req.ChannelId)
 	if err != nil {
-		if errors.Is(err, backendtypes.ErrEntityDoesNotExist) || errors.Is(err, backendtypes.ErrUserNotAuthorizedForAction) {
+		if errors.Is(err, backendtypes.ErrEntityDoesNotExist) ||
+			errors.Is(err, backendtypes.ErrUserNotAuthorizedForAction) {
 			return backend.GetNotificationChannel404JSONResponse{
 				Code:    http.StatusNotFound,
 				Message: "Notification channel not found or not owned by user",

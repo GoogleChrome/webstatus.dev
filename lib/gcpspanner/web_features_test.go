@@ -192,7 +192,11 @@ func TestUpsertWebFeature(t *testing.T) {
 		var systemManagedSearch *SystemManagedSavedSearch
 		_, err = spannerClient.ReadWriteTransaction(ctx, func(
 			ctx context.Context, txn *spanner.ReadWriteTransaction) error {
-			systemManagedSearch, err = spannerClient.getSystemManagedSavedSearchByFeatureIDAndTransaction(ctx, txn, *featureID)
+			systemManagedSearch, err = spannerClient.getSystemManagedSavedSearchByFeatureIDAndTransaction(
+				ctx,
+				txn,
+				*featureID,
+			)
 
 			return err
 		})

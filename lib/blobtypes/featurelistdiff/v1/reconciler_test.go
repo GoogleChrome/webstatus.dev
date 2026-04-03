@@ -147,8 +147,20 @@ func TestReconcileHistory(t *testing.T) {
 						FromID:   "monolith",
 						FromName: "Monolith Feature",
 						To: []FeatureAdded{
-							{ID: "part-1", Name: "Part 1", Reason: ReasonNewMatch, Docs: nil, QueryMatch: QueryMatchMatch},
-							{ID: "part-2", Name: "Part 2", Reason: ReasonNewMatch, Docs: nil, QueryMatch: QueryMatchMatch},
+							{
+								ID:         "part-1",
+								Name:       "Part 1",
+								Reason:     ReasonNewMatch,
+								Docs:       nil,
+								QueryMatch: QueryMatchMatch,
+							},
+							{
+								ID:         "part-2",
+								Name:       "Part 2",
+								Reason:     ReasonNewMatch,
+								Docs:       nil,
+								QueryMatch: QueryMatchMatch,
+							},
 						},
 					},
 				},
@@ -481,7 +493,13 @@ func TestReconcileHistory(t *testing.T) {
 				Removed: []FeatureRemoved{{ID: "old-id", Name: "Old Name", Reason: ReasonUnmatched, Diff: nil}},
 				Added: []FeatureAdded{
 					{ID: "new-id", Name: "New Name", Reason: ReasonNewMatch, Docs: nil, QueryMatch: QueryMatchMatch},
-					{ID: "extra-id", Name: "Extra Feature", Reason: ReasonNewMatch, Docs: nil, QueryMatch: QueryMatchMatch},
+					{
+						ID:         "extra-id",
+						Name:       "Extra Feature",
+						Reason:     ReasonNewMatch,
+						Docs:       nil,
+						QueryMatch: QueryMatchMatch,
+					},
 				},
 				QueryChanged: false,
 				Modified:     nil,
@@ -503,12 +521,24 @@ func TestReconcileHistory(t *testing.T) {
 			expectedDiff: &FeatureDiff{
 				Removed: nil,
 				Added: []FeatureAdded{
-					{ID: "extra-id", Name: "Extra Feature", Reason: ReasonNewMatch, Docs: nil, QueryMatch: QueryMatchMatch},
+					{
+						ID:         "extra-id",
+						Name:       "Extra Feature",
+						Reason:     ReasonNewMatch,
+						Docs:       nil,
+						QueryMatch: QueryMatchMatch,
+					},
 				},
 				QueryChanged: false,
 				Modified:     nil,
 				Moves: []FeatureMoved{
-					{FromID: "old-id", FromName: "Old Name", ToID: "new-id", ToName: "New Name", QueryMatch: QueryMatchMatch},
+					{
+						FromID:     "old-id",
+						FromName:   "Old Name",
+						ToID:       "new-id",
+						ToName:     "New Name",
+						QueryMatch: QueryMatchMatch,
+					},
 				},
 				Splits:  nil,
 				Deleted: nil,

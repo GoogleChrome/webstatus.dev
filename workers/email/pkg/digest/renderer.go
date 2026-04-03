@@ -319,7 +319,12 @@ func (g *templateDataGenerator) routeHighlightToCategory(highlight workertypes.S
 func (g *templateDataGenerator) processChangedData(highlight workertypes.SummaryHighlight) {
 	// Consolidate browser changes into their own list
 	if len(highlight.BrowserChanges) > 0 {
-		grouped := groupBrowserChanges(highlight.BrowserChanges, highlight.FeatureName, highlight.FeatureID, highlight.Type)
+		grouped := groupBrowserChanges(
+			highlight.BrowserChanges,
+			highlight.FeatureName,
+			highlight.FeatureID,
+			highlight.Type,
+		)
 		g.data.AllBrowserChanges = append(g.data.AllBrowserChanges, grouped...)
 	}
 

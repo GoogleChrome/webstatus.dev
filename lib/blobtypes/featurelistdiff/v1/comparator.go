@@ -415,7 +415,8 @@ func compareBrowserState(
 		isChanged = true
 	}
 	// Check Date
-	if !isChanged && oldB.Value.Date.IsSet && !pointersEqualFn(oldB.Value.Date.Value, newB.Value.Date.Value, timeEqual) {
+	if !isChanged && oldB.Value.Date.IsSet &&
+		!pointersEqualFn(oldB.Value.Date.Value, newB.Value.Date.Value, timeEqual) {
 		isChanged = true
 	}
 

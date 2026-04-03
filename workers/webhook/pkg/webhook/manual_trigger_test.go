@@ -62,8 +62,16 @@ func TestManualSlackTrigger(t *testing.T) {
 						BaselineChange: nil,
 						BrowserChanges: map[workertypes.BrowserName]*workertypes.Change[workertypes.BrowserValue]{
 							workertypes.BrowserChrome: {
-								From: workertypes.BrowserValue{Status: workertypes.BrowserStatusUnavailable, Version: nil, Date: nil},
-								To:   workertypes.BrowserValue{Status: workertypes.BrowserStatusAvailable, Version: new("110"), Date: nil},
+								From: workertypes.BrowserValue{
+									Status:  workertypes.BrowserStatusUnavailable,
+									Version: nil,
+									Date:    nil,
+								},
+								To: workertypes.BrowserValue{
+									Status:  workertypes.BrowserStatusAvailable,
+									Version: new("110"),
+									Date:    nil,
+								},
 							},
 							workertypes.BrowserChromeAndroid:  nil,
 							workertypes.BrowserEdge:           nil,
@@ -83,8 +91,16 @@ func TestManualSlackTrigger(t *testing.T) {
 						NameChange:     nil,
 						Split:          nil,
 						Moved: &workertypes.Change[workertypes.FeatureRef]{
-							From: workertypes.FeatureRef{ID: "old-name", Name: "Old Name", QueryMatch: workertypes.QueryMatchNoMatch},
-							To:   workertypes.FeatureRef{ID: "new-cool-name", Name: "New Cool Name", QueryMatch: workertypes.QueryMatchNoMatch},
+							From: workertypes.FeatureRef{
+								ID:         "old-name",
+								Name:       "Old Name",
+								QueryMatch: workertypes.QueryMatchNoMatch,
+							},
+							To: workertypes.FeatureRef{
+								ID:         "new-cool-name",
+								Name:       "New Cool Name",
+								QueryMatch: workertypes.QueryMatchNoMatch,
+							},
 						},
 					},
 					{
@@ -107,7 +123,11 @@ func TestManualSlackTrigger(t *testing.T) {
 						FeatureID:   "split-feature",
 						FeatureName: "Split Feature Host",
 						Split: &workertypes.SplitChange{
-							From: workertypes.FeatureRef{ID: "split-feature", Name: "Split Feature Host", QueryMatch: workertypes.QueryMatchNoMatch},
+							From: workertypes.FeatureRef{
+								ID:         "split-feature",
+								Name:       "Split Feature Host",
+								QueryMatch: workertypes.QueryMatchNoMatch,
+							},
 							To: []workertypes.FeatureRef{
 								{ID: "split-sub-1", Name: "Sub Feature 1", QueryMatch: workertypes.QueryMatchMatch},
 								{ID: "split-sub-2", Name: "Sub Feature 2", QueryMatch: workertypes.QueryMatchNoMatch},
@@ -119,8 +139,16 @@ func TestManualSlackTrigger(t *testing.T) {
 						FeatureID:   "baseline-shift",
 						FeatureName: "Feature Moving to Widely Available",
 						BaselineChange: &workertypes.Change[workertypes.BaselineValue]{
-							From: workertypes.BaselineValue{Status: workertypes.BaselineStatusNewly, LowDate: nil, HighDate: nil},
-							To:   workertypes.BaselineValue{Status: workertypes.BaselineStatusWidely, LowDate: nil, HighDate: nil},
+							From: workertypes.BaselineValue{
+								Status:   workertypes.BaselineStatusNewly,
+								LowDate:  nil,
+								HighDate: nil,
+							},
+							To: workertypes.BaselineValue{
+								Status:   workertypes.BaselineStatusWidely,
+								LowDate:  nil,
+								HighDate: nil,
+							},
 						},
 					},
 				},

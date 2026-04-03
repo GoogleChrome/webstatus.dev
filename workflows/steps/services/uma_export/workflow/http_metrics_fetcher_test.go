@@ -137,7 +137,11 @@ func TestHTTPMetricsFetcher_Fetch(t *testing.T) {
 
 				// Assert that the request URL is correct
 				if !strings.HasPrefix(mockTokenGen.lastURL, umaQueryServer) {
-					t.Errorf("Fetch() used incorrect URL prefix, got = %v, want prefix %v", mockTokenGen.lastURL, umaQueryServer)
+					t.Errorf(
+						"Fetch() used incorrect URL prefix, got = %v, want prefix %v",
+						mockTokenGen.lastURL,
+						umaQueryServer,
+					)
 				}
 
 				if mockTokenGen.lastURL != tc.expectedURL {

@@ -149,7 +149,7 @@ func (c *Client) RecordNotificationChannelFailure(
 		}
 		state.UpdatedAt = timestamp
 		state.IsDisabledBySystem = state.ConsecutiveFailures >= int64(
-			c.notificationCfg.maxConsecutiveFailuresPerChannel)
+			c.notificationLimits.maxConsecutiveFailuresPerChannel)
 
 		// Update NotificationChannelStates
 		_, err = newEntityWriter[notificationChannelStateMapper](c).upsertWithTransaction(ctx,

@@ -79,7 +79,14 @@ func (w WPTRunProcessor) ProcessRun(
 	run shared.TestRun) error {
 
 	if !strings.HasSuffix(run.ResultsURL, "summary_v2.json.gz") {
-		slog.WarnContext(ctx, "can only process v2 summary runs. skipping...", "runID", run.ID, "resultsURL", run.ResultsURL)
+		slog.WarnContext(
+			ctx,
+			"can only process v2 summary runs. skipping...",
+			"runID",
+			run.ID,
+			"resultsURL",
+			run.ResultsURL,
+		)
 
 		return nil
 	}

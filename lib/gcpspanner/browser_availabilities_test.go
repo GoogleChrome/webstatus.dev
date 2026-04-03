@@ -72,7 +72,8 @@ func setupRequiredTablesForBrowserFeatureAvailability(
 // Helper method to get all the Availabilities in a stable order.
 func (c *Client) ReadAllAvailabilities(ctx context.Context, _ *testing.T) ([]BrowserFeatureAvailability, error) {
 	stmt := spanner.NewStatement(
-		"SELECT BrowserName, BrowserVersion FROM BrowserFeatureAvailabilities ORDER BY BrowserVersion ASC, BrowserName ASC")
+		"SELECT BrowserName, BrowserVersion FROM BrowserFeatureAvailabilities ORDER BY BrowserVersion ASC, BrowserName ASC",
+	)
 	iter := c.Single().Query(ctx, stmt)
 	defer iter.Stop()
 

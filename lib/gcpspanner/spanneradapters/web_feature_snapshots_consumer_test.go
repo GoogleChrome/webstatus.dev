@@ -133,8 +133,14 @@ func TestInsertWebFeatureSnapshots(t *testing.T) {
 			},
 			mockUpsertWebFeatureSnapshotCfg: mockUpsertWebFeatureSnapshotConfig{
 				expectedInputs: map[string]gcpspanner.WebFeatureSnapshot{
-					"featureID1": {WebFeatureID: "featureID1", SnapshotIDs: []string{"uuid1", "uuid2"}}, // Multiple snapshots
-					"featureID2": {WebFeatureID: "featureID2", SnapshotIDs: []string{"uuid1"}},          // Single snapshot
+					"featureID1": {
+						WebFeatureID: "featureID1",
+						SnapshotIDs:  []string{"uuid1", "uuid2"},
+					}, // Multiple snapshots
+					"featureID2": {
+						WebFeatureID: "featureID2",
+						SnapshotIDs:  []string{"uuid1"},
+					}, // Single snapshot
 				},
 				outputs: map[string]error{
 					"featureID1": nil,
@@ -210,10 +216,19 @@ func TestInsertWebFeatureSnapshots(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			mockClient := newMockWebFeatureSnapshotsClient(t, tc.mockUpsertSnapshotCfg, tc.mockUpsertWebFeatureSnapshotCfg)
+			mockClient := newMockWebFeatureSnapshotsClient(
+				t,
+				tc.mockUpsertSnapshotCfg,
+				tc.mockUpsertWebFeatureSnapshotCfg,
+			)
 			consumer := NewWebFeatureSnapshotsConsumer(mockClient)
 
-			err := consumer.InsertWebFeatureSnapshots(context.TODO(), tc.featureKeyToID, tc.featureData, tc.snapshotData)
+			err := consumer.InsertWebFeatureSnapshots(
+				context.TODO(),
+				tc.featureKeyToID,
+				tc.featureData,
+				tc.snapshotData,
+			)
 
 			if !errors.Is(err, tc.expectedError) {
 				t.Errorf("unexpected error: got %v, want %v", err, tc.expectedError)

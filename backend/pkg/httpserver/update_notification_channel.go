@@ -44,7 +44,8 @@ func validateUpdateNotificationChannel(request *backend.UpdateNotificationChanne
 				continue
 			}
 
-			if cfg, err := request.Config.AsWebhookConfig(); err == nil && cfg.Type == backend.WebhookConfigTypeWebhook {
+			if cfg, err := request.Config.AsWebhookConfig(); err == nil &&
+				cfg.Type == backend.WebhookConfigTypeWebhook {
 				if err := httputils.ValidateSlackWebhookURL(cfg.Url); err != nil {
 					fieldErrors.addFieldError("config.url", err)
 				}

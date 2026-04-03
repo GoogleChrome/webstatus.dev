@@ -238,7 +238,10 @@ func TestConversionFunctions(t *testing.T) {
 				Chrome: generic.OptionallySet[comparables.BrowserState]{
 					IsSet: true,
 					Value: comparables.BrowserState{
-						Status:  generic.OptionallySet[backend.BrowserImplementationStatus]{Value: backend.Available, IsSet: true},
+						Status: generic.OptionallySet[backend.BrowserImplementationStatus]{
+							Value: backend.Available,
+							IsSet: true,
+						},
 						Version: generic.OptionallySet[*string]{Value: &versionStr, IsSet: true},
 						Date:    generic.OptionallySet[*time.Time]{Value: &now, IsSet: true},
 					},
@@ -248,7 +251,10 @@ func TestConversionFunctions(t *testing.T) {
 				Firefox: generic.OptionallySet[comparables.BrowserState]{
 					IsSet: true,
 					Value: comparables.BrowserState{
-						Status:  generic.OptionallySet[backend.BrowserImplementationStatus]{Value: backend.Unavailable, IsSet: true},
+						Status: generic.OptionallySet[backend.BrowserImplementationStatus]{
+							Value: backend.Unavailable,
+							IsSet: true,
+						},
 						Version: generic.UnsetOpt[*string](),
 						Date:    generic.UnsetOpt[*time.Time](),
 					},
