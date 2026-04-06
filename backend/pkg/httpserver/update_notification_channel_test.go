@@ -69,7 +69,7 @@ func TestUpdateNotificationChannel_Restrictions(t *testing.T) {
 				Name: "Old Webhook",
 				Type: backend.NotificationChannelResponseTypeWebhook,
 				Config: newTestNotificationChannelConfig(t, backend.WebhookConfig{
-					Type: backend.WebhookConfigTypeWebhook,
+					Type: backend.Webhook,
 					Url:  "https://hooks.slack.com/services/old",
 				}),
 				Status:    backend.NotificationChannelStatusEnabled,
@@ -91,7 +91,7 @@ func TestUpdateNotificationChannel_Restrictions(t *testing.T) {
 					Name: "Updated Webhook",
 					Type: backend.NotificationChannelResponseTypeWebhook,
 					Config: newTestNotificationChannelConfig(t, backend.WebhookConfig{
-						Type: backend.WebhookConfigTypeWebhook,
+						Type: backend.Webhook,
 						Url:  "https://hooks.slack.com/services/old",
 					}),
 					Status:    backend.NotificationChannelStatusEnabled,

@@ -561,7 +561,7 @@ func (s *Backend) CreateNotificationChannel(ctx context.Context,
 	var channelType gcpspanner.NotificationChannelType
 	var spannerWebhookConfig *gcpspanner.WebhookConfig
 
-	if cfg, err := req.Config.AsWebhookConfig(); err == nil && cfg.Type == backend.WebhookConfigTypeWebhook {
+	if cfg, err := req.Config.AsWebhookConfig(); err == nil && cfg.Type == backend.Webhook {
 		channelType = gcpspanner.NotificationChannelTypeWebhook
 		spannerWebhookConfig = s.toSpannerWebhookConfig(&cfg)
 	} else {
@@ -635,7 +635,8 @@ func (s *Backend) UpdateNotificationChannel(
 			updateReq.Name.Value = *req.Name
 		case backend.UpdateNotificationChannelRequestMaskConfig:
 			// We need to know the type to know which config to set.
-			if cfg, err := req.Config.AsWebhookConfig(); err == nil && cfg.Type == backend.WebhookConfigTypeWebhook {
+			if cfg, err := req.Config.AsWebhookConfig(); err == nil &&
+				cfg.Type == backend.Webhook {
 				updateReq.Type.IsSet = true
 				updateReq.Type.Value = gcpspanner.NotificationChannelTypeWebhook
 				updateReq.WebhookConfig.IsSet = true
@@ -701,7 +702,7 @@ func toBackendNotificationChannel(channel *gcpspanner.NotificationChannel) *back
 	case gcpspanner.NotificationChannelTypeWebhook:
 		if channel.WebhookConfig != nil {
 			bytes, _ := json.Marshal(backend.WebhookConfig{
-				Type: backend.WebhookConfigTypeWebhook,
+				Type: backend.Webhook,
 				Url:  channel.WebhookConfig.URL,
 			})
 			// UnmarshalJSON() is confusingly named - it just makes a copy of 'bytes' to store in config.
