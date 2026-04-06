@@ -44,14 +44,28 @@ func validateUpdateNotificationChannel(request *backend.UpdateNotificationChanne
 				continue
 			}
 
-			if cfg, err := request.Config.AsWebhookConfig(); err == nil &&
-				cfg.Type == backend.Webhook {
+			var channelType string
+			if cfg, err := request.Config.AsWebhookConfig(); err == nil && cfg.Type == backend.Webhook {
+				channelType = string(cfg.Type)
+			} else if cfg, err := request.Config.AsRSSConfig(); err == nil && cfg.Type == backend.RSSConfigTypeRss {
+				channelType = string(cfg.Type)
+			}
+
+			switch backend.NotificationChannelResponseType(channelType) {
+			case backend.NotificationChannelResponseTypeWebhook:
+				cfg, _ := request.Config.AsWebhookConfig()
 				if err := httputils.ValidateSlackWebhookURL(cfg.Url); err != nil {
 					fieldErrors.addFieldError("config.url", err)
 				}
-			} else {
-				fieldErrors.addFieldError("config", errors.New("invalid config: only webhook updates are supported"))
+			case backend.NotificationChannelResponseTypeRss:
+				// Valid! RSS channels currently have no configuration fields to validate.
+			case backend.NotificationChannelResponseTypeEmail:
+				fallthrough
+			default:
+				fieldErrors.addFieldError("config",
+					errors.New("invalid config: only webhook or rss updates are supported"))
 			}
+
 		}
 	}
 

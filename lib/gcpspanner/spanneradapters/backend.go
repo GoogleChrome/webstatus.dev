@@ -19,6 +19,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"math/big"
 	"slices"
@@ -204,8 +205,13 @@ func (s *Backend) ListSavedSearchNotificationEvents(
 	for _, e := range notifEvents {
 		var summaryBytes []byte
 		if e.Summary.Valid {
-			summaryBytes, _ = json.Marshal(e.Summary.Value)
+			var err error
+			summaryBytes, err = json.Marshal(e.Summary.Value)
+			if err != nil {
+				return nil, nil, fmt.Errorf("failed to marshal summary for event %s: %w", e.ID, err)
+			}
 		}
+
 		events = append(events, backendtypes.SavedSearchNotificationEvent{
 			ID:            e.ID,
 			SavedSearchID: e.SavedSearchID,
@@ -614,6 +620,8 @@ func (s *Backend) CreateNotificationChannel(ctx context.Context,
 	if cfg, err := req.Config.AsWebhookConfig(); err == nil && cfg.Type == backend.Webhook {
 		channelType = gcpspanner.NotificationChannelTypeWebhook
 		spannerWebhookConfig = s.toSpannerWebhookConfig(&cfg)
+	} else if cfg, err := req.Config.AsRSSConfig(); err == nil && cfg.Type == backend.RSSConfigTypeRss {
+		channelType = gcpspanner.NotificationChannelTypeRSS
 	} else {
 		return nil, errors.New("invalid notification channel request: missing or invalid config")
 	}
@@ -693,9 +701,14 @@ func (s *Backend) UpdateNotificationChannel(
 				updateReq.WebhookConfig.Value = &gcpspanner.WebhookConfig{
 					URL: cfg.Url,
 				}
+			} else if cfg, err := req.Config.AsRSSConfig(); err == nil &&
+				cfg.Type == backend.RSSConfigTypeRss {
+				updateReq.Type.IsSet = true
+				updateReq.Type.Value = gcpspanner.NotificationChannelTypeRSS
 			} else {
 				return nil, errors.New("invalid notification channel update: unsupported config type")
 			}
+
 		}
 	}
 
@@ -724,6 +737,8 @@ func getChannelSortKey(channel gcpspanner.NotificationChannel) string {
 		if channel.WebhookConfig != nil {
 			return channel.WebhookConfig.URL
 		}
+	case gcpspanner.NotificationChannelTypeRSS:
+		// RSS channels don't have a specific configuration field to use as a sort key.
 	}
 
 	return "" // Default sort key if type is unknown or has no specific key.
@@ -733,7 +748,6 @@ func getChannelSortKey(channel gcpspanner.NotificationChannel) string {
 // notification channel to backend notification channel.
 func toBackendNotificationChannel(channel *gcpspanner.NotificationChannel) *backend.NotificationChannelResponse {
 	if channel == nil {
-
 		return nil
 	}
 
@@ -742,22 +756,23 @@ func toBackendNotificationChannel(channel *gcpspanner.NotificationChannel) *back
 	switch channel.Type {
 	case gcpspanner.NotificationChannelTypeEmail:
 		if channel.EmailConfig != nil {
-			bytes, _ := json.Marshal(backend.EmailConfig{
+			_ = config.FromEmailConfig(backend.EmailConfig{
 				Type:    backend.EmailConfigTypeEmail,
 				Address: openapi_types.Email(channel.EmailConfig.Address),
 			})
-			// UnmarshalJSON() is confusingly named - it just makes a copy of 'bytes' to store in config.
-			_ = config.UnmarshalJSON(bytes)
 		}
 	case gcpspanner.NotificationChannelTypeWebhook:
 		if channel.WebhookConfig != nil {
-			bytes, _ := json.Marshal(backend.WebhookConfig{
+			_ = config.FromWebhookConfig(backend.WebhookConfig{
 				Type: backend.Webhook,
 				Url:  channel.WebhookConfig.URL,
 			})
-			// UnmarshalJSON() is confusingly named - it just makes a copy of 'bytes' to store in config.
-			_ = config.UnmarshalJSON(bytes)
 		}
+	case gcpspanner.NotificationChannelTypeRSS:
+		_ = config.FromRSSConfig(backend.RSSConfig{
+			Type: backend.RSSConfigTypeRss,
+		})
+
 	}
 
 	return &backend.NotificationChannelResponse{
