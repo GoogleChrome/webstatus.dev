@@ -129,6 +129,7 @@ type WPTMetricsStorer interface {
 		pageSize int,
 		pageToken *string,
 	) (*backend.UserSavedSearchPage, error)
+	GetSavedSearchPublic(ctx context.Context, savedSearchID string) (*backend.SavedSearchResponse, error)
 	UpdateUserSavedSearch(
 		ctx context.Context,
 		savedSearchID string,
@@ -162,10 +163,20 @@ type WPTMetricsStorer interface {
 	DeleteSavedSearchSubscription(ctx context.Context, userID, subscriptionID string) error
 	GetSavedSearchSubscription(ctx context.Context,
 		userID, subscriptionID string) (*backend.SubscriptionResponse, error)
+	GetSavedSearchSubscriptionPublic(ctx context.Context, subscriptionID string) (*backend.SubscriptionResponse, error)
 	ListSavedSearchSubscriptions(ctx context.Context,
 		userID string, pageSize int, pageToken *string) (*backend.SubscriptionPage, error)
-	UpdateSavedSearchSubscription(ctx context.Context, userID, subscriptionID string,
-		req backend.UpdateSubscriptionRequest) (*backend.SubscriptionResponse, error)
+	ListSavedSearchNotificationEvents(
+		ctx context.Context,
+		savedSearchID string,
+		snapshotType string,
+		limit int,
+	) ([]backendtypes.SavedSearchNotificationEvent, error)
+	UpdateSavedSearchSubscription(
+		ctx context.Context,
+		userID, subscriptionID string,
+		req backend.UpdateSubscriptionRequest,
+	) (*backend.SubscriptionResponse, error)
 }
 
 type Server struct {

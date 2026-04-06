@@ -373,6 +373,15 @@ func (c *Client) GetSavedSearchSubscription(
 	return ret, err
 }
 
+// GetSavedSearchSubscriptionPublic retrieves a subscription without checking ownership.
+func (c *Client) GetSavedSearchSubscriptionPublic(
+	ctx context.Context, subscriptionID string) (*SavedSearchSubscriptionView, error) {
+	r := newEntityReader[savedSearchSubscriptionViewMapper,
+		SavedSearchSubscriptionView, string](c)
+
+	return r.readRowByKey(ctx, subscriptionID)
+}
+
 // UpdateSavedSearchSubscription updates a subscription if it belongs to the specified user.
 func (c *Client) UpdateSavedSearchSubscription(
 	ctx context.Context, req UpdateSavedSearchSubscriptionRequest) error {

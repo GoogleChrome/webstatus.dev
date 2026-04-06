@@ -196,6 +196,26 @@ type mockDeleteSavedSearchSubscriptionConfig struct {
 	returnedError          error
 }
 
+type mockGetSavedSearchConfig struct {
+	expectedID    string
+	result        *gcpspanner.SavedSearch
+	returnedError error
+}
+
+type mockGetSavedSearchSubscriptionPublicConfig struct {
+	expectedSubscriptionID string
+	result                 *gcpspanner.SavedSearchSubscriptionView
+	returnedError          error
+}
+
+type mockListSavedSearchNotificationEventsConfig struct {
+	expectedSavedSearchID string
+	expectedSnapshotType  string
+	expectedLimit         int
+	result                []gcpspanner.SavedSearchNotificationEvent
+	returnedError         error
+}
+
 type mockListSavedSearchSubscriptionsConfig struct {
 	expectedRequest gcpspanner.ListSavedSearchSubscriptionsRequest
 	result          []gcpspanner.SavedSearchSubscriptionView
@@ -204,36 +224,39 @@ type mockListSavedSearchSubscriptionsConfig struct {
 }
 
 type mockBackendSpannerClient struct {
-	t                                    *testing.T
-	aggregationData                      []gcpspanner.WPTRunAggregationMetricWithTime
-	featureData                          []gcpspanner.WPTRunFeatureMetricWithTime
-	chromeDailyUsageData                 []gcpspanner.ChromeDailyUsageStatWithDate
-	mockFeaturesSearchCfg                mockFeaturesSearchConfig
-	mockGetFeatureCfg                    mockGetFeatureConfig
-	mockGetIDByFeaturesIDCfg             mockGetIDByFeaturesIDConfig
-	mockListBrowserFeatureCountMetricCfg mockListBrowserFeatureCountMetricConfig
-	mockListMissingOneImplCountsCfg      mockListMissingOneImplCountsConfig
-	mockListMissingOneImplFeaturesCfg    mockListMissingOneImplFeaturesConfig
-	mockListBaselineStatusCountsCfg      mockListBaselineStatusCountsConfig
-	mockGetNotificationChannelCfg        *mockGetNotificationChannelConfig
-	mockDeleteNotificationChannelCfg     *mockDeleteNotificationChannelConfig
-	mockListNotificationChannelsCfg      *mockListNotificationChannelsConfig
-	mockCreateNotificationChannelCfg     *mockCreateNotificationChannelConfig
-	mockUpdateNotificationChannelCfg     *mockUpdateNotificationChannelConfig
-	mockCreateNewUserSavedSearchCfg      *mockCreateNewUserSavedSearchConfig
-	mockGetUserSavedSearchCfg            *mockGetUserSavedSearchConfig
-	mockDeleteUserSavedSearchCfg         *mockDeleteUserSavedSearchConfig
-	mockListUserSavedSearchesCfg         *mockListUserSavedSearchesConfig
-	mockUpdateUserSavedSearchCfg         *mockUpdateUserSavedSearchConfig
-	mockAddUserSearchBookmarkCfg         *mockAddUserSearchBookmarkConfig
-	mockDeleteUserSearchBookmarkCfg      *mockDeleteUserSearchBookmarkConfig
-	mockCreateSavedSearchSubscriptionCfg *mockCreateSavedSearchSubscriptionConfig
-	mockGetSavedSearchSubscriptionCfg    *mockGetSavedSearchSubscriptionConfig
-	mockUpdateSavedSearchSubscriptionCfg *mockUpdateSavedSearchSubscriptionConfig
-	mockDeleteSavedSearchSubscriptionCfg *mockDeleteSavedSearchSubscriptionConfig
-	mockListSavedSearchSubscriptionsCfg  *mockListSavedSearchSubscriptionsConfig
-	pageToken                            *string
-	err                                  error
+	t                                        *testing.T
+	aggregationData                          []gcpspanner.WPTRunAggregationMetricWithTime
+	featureData                              []gcpspanner.WPTRunFeatureMetricWithTime
+	chromeDailyUsageData                     []gcpspanner.ChromeDailyUsageStatWithDate
+	mockFeaturesSearchCfg                    mockFeaturesSearchConfig
+	mockGetFeatureCfg                        mockGetFeatureConfig
+	mockGetIDByFeaturesIDCfg                 mockGetIDByFeaturesIDConfig
+	mockListBrowserFeatureCountMetricCfg     mockListBrowserFeatureCountMetricConfig
+	mockListMissingOneImplCountsCfg          mockListMissingOneImplCountsConfig
+	mockListMissingOneImplFeaturesCfg        mockListMissingOneImplFeaturesConfig
+	mockListBaselineStatusCountsCfg          mockListBaselineStatusCountsConfig
+	mockGetSavedSearchCfg                    mockGetSavedSearchConfig
+	mockGetNotificationChannelCfg            *mockGetNotificationChannelConfig
+	mockDeleteNotificationChannelCfg         *mockDeleteNotificationChannelConfig
+	mockListNotificationChannelsCfg          *mockListNotificationChannelsConfig
+	mockCreateNotificationChannelCfg         *mockCreateNotificationChannelConfig
+	mockUpdateNotificationChannelCfg         *mockUpdateNotificationChannelConfig
+	mockCreateNewUserSavedSearchCfg          *mockCreateNewUserSavedSearchConfig
+	mockGetUserSavedSearchCfg                *mockGetUserSavedSearchConfig
+	mockDeleteUserSavedSearchCfg             *mockDeleteUserSavedSearchConfig
+	mockListUserSavedSearchesCfg             *mockListUserSavedSearchesConfig
+	mockUpdateUserSavedSearchCfg             *mockUpdateUserSavedSearchConfig
+	mockAddUserSearchBookmarkCfg             *mockAddUserSearchBookmarkConfig
+	mockDeleteUserSearchBookmarkCfg          *mockDeleteUserSearchBookmarkConfig
+	mockCreateSavedSearchSubscriptionCfg     *mockCreateSavedSearchSubscriptionConfig
+	mockGetSavedSearchSubscriptionCfg        *mockGetSavedSearchSubscriptionConfig
+	mockGetSavedSearchSubscriptionPublicCfg  *mockGetSavedSearchSubscriptionPublicConfig
+	mockListSavedSearchNotificationEventsCfg *mockListSavedSearchNotificationEventsConfig
+	mockUpdateSavedSearchSubscriptionCfg     *mockUpdateSavedSearchSubscriptionConfig
+	mockDeleteSavedSearchSubscriptionCfg     *mockDeleteSavedSearchSubscriptionConfig
+	mockListSavedSearchSubscriptionsCfg      *mockListSavedSearchSubscriptionsConfig
+	pageToken                                *string
+	err                                      error
 
 	mockGetMovedWebFeatureDetailsByOriginalFeatureKeyCfg *mockGetMovedWebFeatureDetailsByOriginalFeatureKeyConfig
 	mockGetSplitWebFeatureByOriginalFeatureKeyCfg        *mockGetSplitWebFeatureByOriginalFeatureKeyConfig
@@ -564,6 +587,14 @@ func (c mockBackendSpannerClient) ListBaselineStatusCounts(
 	return c.mockListBaselineStatusCountsCfg.result, c.mockListBaselineStatusCountsCfg.returnedError
 }
 
+func (c mockBackendSpannerClient) GetSavedSearch(_ context.Context, id string) (*gcpspanner.SavedSearch, error) {
+	if id != c.mockGetSavedSearchCfg.expectedID {
+		c.t.Errorf("unexpected ID. want %s, got %s", c.mockGetSavedSearchCfg.expectedID, id)
+	}
+
+	return c.mockGetSavedSearchCfg.result, c.mockGetSavedSearchCfg.returnedError
+}
+
 func (c mockBackendSpannerClient) GetUserSavedSearch(
 	_ context.Context, id string, authenticatedUserID *string) (
 	*gcpspanner.UserSavedSearch, error) {
@@ -626,6 +657,32 @@ func (c mockBackendSpannerClient) GetSavedSearchSubscription(
 	}
 
 	return c.mockGetSavedSearchSubscriptionCfg.result, c.mockGetSavedSearchSubscriptionCfg.returnedError
+}
+
+// GetSavedSearchSubscriptionPublic implements BackendSpannerClient.
+func (c mockBackendSpannerClient) GetSavedSearchSubscriptionPublic(
+	_ context.Context,
+	subscriptionID string) (*gcpspanner.SavedSearchSubscriptionView, error) {
+	if subscriptionID != c.mockGetSavedSearchSubscriptionPublicCfg.expectedSubscriptionID {
+		c.t.Error("unexpected input to mock")
+	}
+
+	return c.mockGetSavedSearchSubscriptionPublicCfg.result, c.mockGetSavedSearchSubscriptionPublicCfg.returnedError
+}
+
+// ListSavedSearchNotificationEvents implements BackendSpannerClient.
+func (c mockBackendSpannerClient) ListSavedSearchNotificationEvents(
+	_ context.Context,
+	savedSearchID string,
+	snapshotType string,
+	limit int) ([]gcpspanner.SavedSearchNotificationEvent, error) {
+	if savedSearchID != c.mockListSavedSearchNotificationEventsCfg.expectedSavedSearchID ||
+		snapshotType != c.mockListSavedSearchNotificationEventsCfg.expectedSnapshotType ||
+		limit != c.mockListSavedSearchNotificationEventsCfg.expectedLimit {
+		c.t.Error("unexpected input to mock")
+	}
+
+	return c.mockListSavedSearchNotificationEventsCfg.result, c.mockListSavedSearchNotificationEventsCfg.returnedError
 }
 
 // ListSavedSearchSubscriptions implements BackendSpannerClient.

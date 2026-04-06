@@ -172,3 +172,36 @@ func (c *Client) GetLatestSavedSearchNotificationEvent(
 
 	return r.readRowByKey(ctx, key)
 }
+
+func (c *Client) ListSavedSearchNotificationEvents(ctx context.Context,
+	savedSearchID string, snapshotType string, limit int) ([]SavedSearchNotificationEvent, error) {
+	stmt := spanner.Statement{
+		SQL: `SELECT * FROM SavedSearchNotificationEvents
+			  WHERE SavedSearchId = @SavedSearchId AND SnapshotType = @SnapshotType
+			  ORDER BY Timestamp DESC
+			  LIMIT @Limit`,
+		Params: map[string]any{
+			"SavedSearchId": savedSearchID,
+			"SnapshotType":  SavedSearchSnapshotType(snapshotType),
+			"Limit":         limit,
+		},
+	}
+	iter := c.Single().Query(ctx, stmt)
+	defer iter.Stop()
+
+	var events []SavedSearchNotificationEvent
+	err := iter.Do(func(row *spanner.Row) error {
+		var e SavedSearchNotificationEvent
+		if err := row.ToStruct(&e); err != nil {
+			return err
+		}
+		events = append(events, e)
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return events, nil
+}

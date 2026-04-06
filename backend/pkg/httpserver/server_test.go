@@ -190,6 +190,26 @@ type MockGetSavedSearchConfig struct {
 	err                   error
 }
 
+type MockGetSavedSearchPublicConfig struct {
+	expectedSavedSearchID string
+	output                *backend.SavedSearchResponse
+	err                   error
+}
+
+type MockGetSavedSearchSubscriptionPublicConfig struct {
+	expectedSubscriptionID string
+	output                 *backend.SubscriptionResponse
+	err                    error
+}
+
+type MockListSavedSearchNotificationEventsConfig struct {
+	expectedSavedSearchID string
+	expectedSnapshotType  string
+	expectedLimit         int
+	output                []backendtypes.SavedSearchNotificationEvent
+	err                   error
+}
+
 type MockListUserSavedSeachesConfig struct {
 	expectedUserID    string
 	expectedPageSize  int
@@ -316,6 +336,9 @@ type MockWPTMetricsStorer struct {
 	createUserSavedSearchCfg                          *MockCreateUserSavedSearchConfig
 	deleteUserSavedSearchCfg                          *MockDeleteUserSavedSearchConfig
 	getSavedSearchCfg                                 *MockGetSavedSearchConfig
+	getSavedSearchPublicCfg                           *MockGetSavedSearchPublicConfig
+	getSavedSearchSubscriptionPublicCfg               *MockGetSavedSearchSubscriptionPublicConfig
+	listSavedSearchNotificationEventsCfg              *MockListSavedSearchNotificationEventsConfig
 	listUserSavedSearchesCfg                          *MockListUserSavedSeachesConfig
 	updateUserSavedSearchCfg                          *MockUpdateUserSavedSearchConfig
 	putUserSavedSearchBookmarkCfg                     *MockPutUserSavedSearchBookmarkConfig
@@ -359,6 +382,9 @@ type MockWPTMetricsStorer struct {
 	callCountGetSavedSearchSubscription               int
 	callCountListSavedSearchSubscriptions             int
 	callCountUpdateSavedSearchSubscription            int
+	callCountGetSavedSearchPublic                     int
+	callCountGetSavedSearchSubscriptionPublic         int
+	callCountListSavedSearchNotificationEvents        int
 }
 
 func (m *MockWPTMetricsStorer) GetIDFromFeatureKey(
@@ -711,6 +737,75 @@ func (m *MockWPTMetricsStorer) GetSavedSearch(
 	}
 
 	return m.getSavedSearchCfg.output, m.getSavedSearchCfg.err
+}
+
+func (m *MockWPTMetricsStorer) GetSavedSearchPublic(
+	_ context.Context,
+	savedSearchID string,
+) (*backend.SavedSearchResponse, error) {
+	m.callCountGetSavedSearchPublic++
+	if m.getSavedSearchPublicCfg == nil {
+		m.t.Fatal("getSavedSearchPublicCfg is nil")
+	}
+	if m.getSavedSearchPublicCfg.expectedSavedSearchID != savedSearchID {
+		m.t.Fatalf(
+			"unexpected savedSearchID. want %s, got %s",
+			m.getSavedSearchPublicCfg.expectedSavedSearchID,
+			savedSearchID,
+		)
+	}
+
+	return m.getSavedSearchPublicCfg.output, m.getSavedSearchPublicCfg.err
+}
+
+func (m *MockWPTMetricsStorer) GetSavedSearchSubscriptionPublic(
+	_ context.Context,
+	subscriptionID string,
+) (*backend.SubscriptionResponse, error) {
+	m.callCountGetSavedSearchSubscriptionPublic++
+	if m.getSavedSearchSubscriptionPublicCfg == nil {
+		m.t.Fatal("getSavedSearchSubscriptionPublicCfg is nil")
+	}
+	if m.getSavedSearchSubscriptionPublicCfg.expectedSubscriptionID != subscriptionID {
+		m.t.Fatalf(
+			"unexpected subscriptionID. want %s, got %s",
+			m.getSavedSearchSubscriptionPublicCfg.expectedSubscriptionID,
+			subscriptionID,
+		)
+	}
+
+	return m.getSavedSearchSubscriptionPublicCfg.output, m.getSavedSearchSubscriptionPublicCfg.err
+}
+
+func (m *MockWPTMetricsStorer) ListSavedSearchNotificationEvents(
+	_ context.Context,
+	savedSearchID string,
+	snapshotType string,
+	limit int,
+) ([]backendtypes.SavedSearchNotificationEvent, error) {
+	m.callCountListSavedSearchNotificationEvents++
+	if m.listSavedSearchNotificationEventsCfg == nil {
+		m.t.Fatal("listSavedSearchNotificationEventsCfg is nil")
+	}
+	if m.listSavedSearchNotificationEventsCfg.expectedSavedSearchID != savedSearchID {
+		m.t.Fatalf(
+			"unexpected savedSearchID. want %s, got %s",
+			m.listSavedSearchNotificationEventsCfg.expectedSavedSearchID,
+			savedSearchID,
+		)
+	}
+	if m.listSavedSearchNotificationEventsCfg.expectedSnapshotType != snapshotType {
+		m.t.Fatalf(
+			"unexpected snapshotType. want %s, got %s",
+			m.listSavedSearchNotificationEventsCfg.expectedSnapshotType,
+			snapshotType,
+		)
+	}
+	if m.listSavedSearchNotificationEventsCfg.expectedLimit != limit {
+		m.t.Fatalf("unexpected limit. want %d, got %d", m.listSavedSearchNotificationEventsCfg.expectedLimit, limit)
+	}
+
+	return m.listSavedSearchNotificationEventsCfg.output, m.listSavedSearchNotificationEventsCfg.err
 }
 
 func (m *MockWPTMetricsStorer) DeleteUserSavedSearch(
@@ -1474,13 +1569,18 @@ func (m *mockServerInterface) DeleteSubscription(ctx context.Context,
 
 // GetSubscriptionRSS implements backend.StrictServerInterface.
 // nolint: ireturn // WONTFIX - generated method signature
-func (m *mockServerInterface) GetSubscriptionRSS(ctx context.Context,
+func (m *mockServerInterface) GetSubscriptionRSS(_ context.Context,
 	_ backend.GetSubscriptionRSSRequestObject) (
 	backend.GetSubscriptionRSSResponseObject, error) {
-	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
 	m.callCount++
-	panic("unimplemented")
+
+	return backend.GetSubscriptionRSS200ApplicationrssXmlResponse{
+		Body:          strings.NewReader(""),
+		ContentLength: 0,
+	}, nil
+
 }
+
 func (m *mockServerInterface) assertCallCount(expectedCallCount int) {
 	if m.callCount != expectedCallCount {
 		m.t.Errorf("expected mock server to be used %d times. only used %d times", expectedCallCount, m.callCount)
