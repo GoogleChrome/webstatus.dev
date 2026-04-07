@@ -316,6 +316,57 @@ describe('webstatus-manage-subscriptions-dialog', () => {
     }
   });
 
+  it('sets actionState correctly on successful create for RSS', async () => {
+    const eventSpy = sandbox.spy();
+    element.addEventListener('subscription-save-success', eventSpy);
+
+    // Make it dirty for creation.
+    element.savedSearchId = 'new-saved-search-id';
+    element['_activeChannelId'] = 'rss';
+    element['_selectedFrequency'] = 'monthly';
+    element['_selectedTriggers'] = ['feature_baseline_to_newly'];
+    element['_initialSelectedFrequency'] = 'immediate';
+    element['_initialSelectedTriggers'] = [];
+    await element.updateComplete;
+    expect(element.isDirty).to.be.true;
+
+    // Use a promise that we can resolve manually to check intermediate state.
+    const savePromise = new Promise(resolve => {
+      (apiClient.createSubscription as sinon.SinonStub).callsFake(() => {
+        resolve(mockInitialSubscription);
+        return Promise.resolve(mockInitialSubscription);
+      });
+    });
+
+    const saveOperation = element['_handleSave']();
+    await element.updateComplete;
+
+    // Check intermediate 'saving' state and loading property on button.
+    expect(element['_actionState'].phase).to.equal('saving');
+    const saveButton = element.shadowRoot?.querySelector<SlButton>(
+      'sl-button[variant="primary"]',
+    );
+    expect(saveButton!.loading).to.be.true;
+
+    await savePromise;
+    await saveOperation;
+    await element.updateComplete;
+
+    expect(apiClient.createSubscription).to.have.been.calledWith('test-token', {
+      saved_search_id: 'new-saved-search-id',
+      channel_type: 'rss',
+      frequency: 'monthly',
+      triggers: ['feature_baseline_to_newly'],
+    });
+    expect(eventSpy).to.have.been.calledOnce;
+
+    // Check final 'success' state.
+    expect(element['_actionState'].phase).to.equal('success');
+    if (element['_actionState'].phase === 'success') {
+      expect(element['_actionState'].message).to.equal('Subscription saved.');
+    }
+  });
+
   it('sets actionState correctly on successful update', async () => {
     const eventSpy = sandbox.spy();
     element.addEventListener('subscription-save-success', eventSpy);

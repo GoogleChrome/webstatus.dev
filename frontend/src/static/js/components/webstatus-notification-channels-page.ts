@@ -23,7 +23,7 @@ import {
   firebaseUserContext,
 } from '../contexts/firebase-user-context.js';
 import {apiClientContext} from '../contexts/api-client-context.js';
-import {APIClient} from '../api/client.js';
+import {APIClient, CHANNEL_TYPE_RSS} from '../api/client.js';
 import {components} from 'webstatus.dev-backend';
 import {toast} from '../utils/toast.js';
 import {navigateToUrl} from '../utils/app-router.js';
@@ -59,6 +59,10 @@ export class WebstatusNotificationChannelsPage extends LitElement {
   @state()
   private webhookChannels: NotificationChannelResponse[] = [];
 
+  @state()
+  private rssSubscriptions: components['schemas']['SubscriptionResponse'][] =
+    [];
+
   private _channelsTask = new Task(this, {
     task: async () => {
       if (this.userContext === null) {
@@ -71,18 +75,28 @@ export class WebstatusNotificationChannelsPage extends LitElement {
       }
 
       const token = await this.userContext.user.getIdToken();
-      const channels = await this.apiClient
-        .listNotificationChannels(token)
-        .catch(e => {
+      const [channels, subscriptions] = await Promise.all([
+        this.apiClient.listNotificationChannels(token).catch(e => {
           const errorMessage = e instanceof Error ? e.message : 'unknown error';
           void toast(
             `Failed to load notification channels: ${errorMessage}`,
             'danger',
           );
           return [];
-        });
+        }),
+        this.apiClient.listSubscriptions(token).catch(e => {
+          const errorMessage = e instanceof Error ? e.message : 'unknown error';
+          void toast(`Failed to load subscriptions: ${errorMessage}`, 'danger');
+          return [];
+        }),
+      ]);
+
       this.emailChannels = channels.filter(c => c.type === 'email');
       this.webhookChannels = channels.filter(c => c.type === 'webhook');
+
+      this.rssSubscriptions = subscriptions.filter(
+        s => s.channel_type === CHANNEL_TYPE_RSS,
+      );
     },
     args: () => [this.userContext],
   });
@@ -112,7 +126,10 @@ export class WebstatusNotificationChannelsPage extends LitElement {
               @channel-changed=${() => this._channelsTask.run()}
             >
             </webstatus-notification-webhook-channels>
-            <webstatus-notification-rss-channels>
+            <webstatus-notification-rss-channels
+              .subscriptions=${this.rssSubscriptions}
+              @subscription-changed=${() => this._channelsTask.run()}
+            >
             </webstatus-notification-rss-channels>
           `,
           error: e => {
