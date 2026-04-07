@@ -28,6 +28,10 @@ import '@shoelace-style/shoelace/dist/components/button/button.js';
 // Mock used to isolate nested form rendering and avoid needing to cast to access the component field.
 class MockConfigForm extends HTMLElement {
   validate = () => true;
+  getUpdate = () => ({
+    updates: {name: 'Updated name'},
+    mask: ['name'],
+  });
 }
 
 if (!customElements.get('mock-config-form')) {

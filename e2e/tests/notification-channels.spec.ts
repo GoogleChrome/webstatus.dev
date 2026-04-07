@@ -58,7 +58,6 @@ test.describe('Notification Channels Page', () => {
     // Verify RSS panel content.
     const rssPanel = page.locator('webstatus-notification-rss-channels');
     await expect(rssPanel).toBeVisible();
-    await expect(rssPanel).toContainText('Coming soon');
 
     // Verify Webhook panel content.
     const webhookPanel = page.locator(
@@ -207,6 +206,110 @@ test.describe('Notification Channels Page', () => {
     await deleteButton.click();
 
     const deleteDialog = webhookPanel.locator('sl-dialog[open]');
+    await expect(deleteDialog).toBeVisible();
+    await deleteDialog
+      .getByRole('button', {name: 'Delete', exact: true})
+      .click();
+    await expect(updatedItem).not.toBeVisible();
+  });
+
+  test('authenticated user can create and delete an RSS channel', async ({
+    page,
+  }) => {
+    const nonce = Date.now();
+    const rssName = 'PlaywrightTestCreateDeleteRSS ' + nonce;
+
+    const rssPanel = page.locator('webstatus-notification-rss-channels');
+
+    // Click Create button.
+    const createButton = rssPanel.getByRole('button', {
+      name: 'Create RSS channel',
+    });
+    await expect(createButton).toBeVisible();
+    await createButton.click();
+
+    // Fill the dialog.
+    const dialog = rssPanel.locator(
+      'webstatus-manage-notification-channel-dialog',
+    );
+    await expect(
+      dialog.getByRole('heading', {name: 'Create Rss Channel'}),
+    ).toBeVisible();
+
+    await dialog.getByRole('textbox', {name: 'Name'}).fill(rssName);
+
+    await dialog.getByRole('button', {name: 'Create', exact: true}).click();
+
+    // Verify it's in the list.
+    await expect(dialog.locator('sl-dialog')).not.toBeVisible();
+    const channelItem = rssPanel.locator('.channel-item', {
+      hasText: rssName,
+    });
+    await expect(channelItem).toBeVisible();
+
+    await channelItem.locator('sl-button[label="Delete"]').click();
+
+    const deleteDialog = rssPanel.locator('sl-dialog[open]');
+    await expect(deleteDialog).toBeVisible();
+    await deleteDialog
+      .getByRole('button', {name: 'Delete', exact: true})
+      .click();
+
+    // Verify it's gone.
+    await expect(channelItem).not.toBeVisible();
+  });
+
+  test('authenticated user can update an RSS channel', async ({page}) => {
+    const nonce = Date.now();
+    const originalName = 'PlaywrightTestUpdateOriginalRSS ' + nonce;
+    const updatedName = 'PlaywrightTestUpdateUpdatedRSS ' + nonce;
+
+    const rssPanel = page.locator('webstatus-notification-rss-channels');
+    await rssPanel.getByRole('button', {name: 'Create RSS channel'}).click();
+    const dialog = rssPanel.locator(
+      'webstatus-manage-notification-channel-dialog',
+    );
+    await expect(
+      dialog.getByRole('heading', {name: 'Create Rss Channel'}),
+    ).toBeVisible();
+    await dialog.getByRole('textbox', {name: 'Name'}).fill(originalName);
+    await dialog.getByRole('button', {name: 'Create', exact: true}).click();
+
+    // Verify it was created.
+    await expect(dialog.locator('sl-dialog')).not.toBeVisible();
+    const originalItem = rssPanel.locator('.channel-item', {
+      hasText: originalName,
+    });
+    await expect(originalItem).toBeVisible();
+
+    await originalItem.locator('sl-button[label="Edit"]').click();
+
+    // Verify current values in dialog.
+    await expect(
+      dialog.getByRole('heading', {name: 'Edit Rss Channel'}),
+    ).toBeVisible();
+    await expect(dialog.getByRole('textbox', {name: 'Name'})).toHaveValue(
+      originalName,
+    );
+
+    // Update the values.
+    await dialog.getByRole('textbox', {name: 'Name'}).fill(updatedName);
+
+    await dialog.getByRole('button', {name: 'Save', exact: true}).click();
+
+    // Verify it was updated.
+    await expect(dialog.locator('sl-dialog')).not.toBeVisible();
+    const updatedItem = rssPanel.locator('.channel-item', {
+      hasText: updatedName,
+    });
+    await expect(updatedItem).toBeVisible();
+    await expect(originalItem).not.toBeVisible();
+
+    const deleteButton = updatedItem.locator('sl-button[label="Delete"]');
+    await expect(deleteButton).toBeVisible();
+    await deleteButton.click();
+
+    const deleteDialog = rssPanel.locator('sl-dialog[open]');
     await expect(deleteDialog).toBeVisible();
     await deleteDialog
       .getByRole('button', {name: 'Delete', exact: true})

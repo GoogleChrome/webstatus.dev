@@ -17,6 +17,7 @@
 import {html, TemplateResult} from 'lit';
 import {type components} from 'webstatus.dev-backend';
 import './webhook-config-form.js';
+import './rss-config-form.js';
 
 import {ChannelConfigUpdate} from './channel-config-types.js';
 
@@ -42,6 +43,12 @@ export const ChannelConfigRegistry = {
           ${channel?.config.type === 'email' ? channel.config.address : ''}
           (Verified)
         </div>`;
+      case 'rss':
+        return html`<rss-config-form
+          class="config-form"
+          .channel=${channel}
+          @change=${(e: CustomEvent<ChannelConfigUpdate>) => onUpdate(e.detail)}
+        ></rss-config-form>`;
       default:
         return html`<p>Unsupported channel type: ${type}</p>`;
     }
