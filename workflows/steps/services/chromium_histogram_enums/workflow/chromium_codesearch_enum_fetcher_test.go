@@ -26,6 +26,7 @@ import (
 
 // This is more of an integration test to ensure the data is actually base64 encoded.
 func TestChromiumCodesearchEnumFetcher_Fetch_Base64Encoded(t *testing.T) {
+	t.Skip("Temporarily skipping due to responses being 403s")
 	ctx := context.Background()
 	httpClient := http.DefaultClient
 	fetcher, err := NewChromiumCodesearchEnumFetcher(httpClient)
