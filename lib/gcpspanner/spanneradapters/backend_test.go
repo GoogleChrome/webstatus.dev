@@ -2278,7 +2278,7 @@ func TestCreateNotificationChannel(t *testing.T) {
 			req: backend.CreateNotificationChannelRequest{
 				Name: "My Webhook",
 				Config: newTestCreateNotificationChannelConfig(t, backend.WebhookConfig{
-					Type: backend.WebhookConfigTypeWebhook,
+					Type: backend.Webhook,
 					Url:  "https://hooks.slack.com/services/123",
 				}),
 			},
@@ -2312,7 +2312,7 @@ func TestCreateNotificationChannel(t *testing.T) {
 				Name: "My Webhook",
 				Type: backend.NotificationChannelResponseTypeWebhook,
 				Config: newTestNotificationChannelConfig(t, backend.WebhookConfig{
-					Type: backend.WebhookConfigTypeWebhook,
+					Type: backend.Webhook,
 					Url:  "https://hooks.slack.com/services/123",
 				}),
 				Status:    backend.NotificationChannelStatusEnabled,
@@ -2402,7 +2402,7 @@ func TestUpdateNotificationChannel(t *testing.T) {
 				Name: "New Name",
 				Type: backend.NotificationChannelResponseTypeWebhook,
 				Config: newTestNotificationChannelConfig(t, backend.WebhookConfig{
-					Type: backend.WebhookConfigTypeWebhook,
+					Type: backend.Webhook,
 					Url:  "https://hooks.slack.com/services/123",
 				}),
 				Status:    backend.NotificationChannelStatusEnabled,
@@ -2447,7 +2447,7 @@ func TestUpdateNotificationChannel(t *testing.T) {
 				},
 				Name: nil,
 				Config: newTestUpdateNotificationChannelRequestConfig(t, backend.WebhookConfig{
-					Type: backend.WebhookConfigTypeWebhook,
+					Type: backend.Webhook,
 					Url:  "https://hooks.slack.com/services/456",
 				}),
 			},
@@ -2483,7 +2483,7 @@ func TestUpdateNotificationChannel(t *testing.T) {
 				Name: "My Email", // Name didn't change
 				Type: backend.NotificationChannelResponseTypeWebhook,
 				Config: newTestNotificationChannelConfig(t, backend.WebhookConfig{
-					Type: backend.WebhookConfigTypeWebhook,
+					Type: backend.Webhook,
 					Url:  "https://hooks.slack.com/services/456",
 				}),
 				Status:    backend.NotificationChannelStatusEnabled,

@@ -33,7 +33,7 @@ func validateNotificationChannel(input *backend.CreateNotificationChannelRequest
 		fieldErrors.addFieldError("name", errNotificationChannelInvalidNameLength)
 	}
 
-	if cfg, err := input.Config.AsWebhookConfig(); err == nil && cfg.Type == backend.WebhookConfigTypeWebhook {
+	if cfg, err := input.Config.AsWebhookConfig(); err == nil && cfg.Type == backend.Webhook {
 		if err := httputils.ValidateSlackWebhookURL(cfg.Url); err != nil {
 			fieldErrors.addFieldError("config.url", err)
 		}

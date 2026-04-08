@@ -40,7 +40,7 @@ export class WebstatusApp extends LitElement {
 
   @provide({context: routerContext})
   // TODO(https://github.com/GoogleChrome/webstatus.dev/issues/2020): Remove after moving away from vaadin/router.
-  // @ts-expect-error: Router type instantiation is excessively deep in TS 6.0
+  // @ts-ignore: Router type instantiation is excessively deep in TS 6.0
   router?: Router;
 
   @property({type: Object})

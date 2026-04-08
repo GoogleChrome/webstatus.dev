@@ -54,7 +54,7 @@ func TestCreateNotificationChannel(t *testing.T) {
 				expectedRequest: backend.CreateNotificationChannelRequest{
 					Name: "My Webhook",
 					Config: newTestCreateNotificationChannelConfig(t, backend.WebhookConfig{
-						Type: backend.WebhookConfigTypeWebhook,
+						Type: backend.Webhook,
 						Url:  "https://hooks.slack.com/services/123",
 					}),
 				},
@@ -63,7 +63,7 @@ func TestCreateNotificationChannel(t *testing.T) {
 					Name: "My Webhook",
 					Type: backend.NotificationChannelResponseTypeWebhook,
 					Config: newTestNotificationChannelConfig(t, backend.WebhookConfig{
-						Type: backend.WebhookConfigTypeWebhook,
+						Type: backend.Webhook,
 						Url:  "https://hooks.slack.com/services/123",
 					}),
 					Status:    backend.NotificationChannelStatusEnabled,
@@ -125,7 +125,7 @@ func TestCreateNotificationChannel(t *testing.T) {
 				expectedRequest: backend.CreateNotificationChannelRequest{
 					Name: "Another Webhook",
 					Config: newTestCreateNotificationChannelConfig(t, backend.WebhookConfig{
-						Type: backend.WebhookConfigTypeWebhook,
+						Type: backend.Webhook,
 						Url:  "https://hooks.slack.com/services/456",
 					}),
 				},
@@ -154,7 +154,7 @@ func TestCreateNotificationChannel(t *testing.T) {
 				expectedRequest: backend.CreateNotificationChannelRequest{
 					Name: "Generic Webhook",
 					Config: newTestCreateNotificationChannelConfig(t, backend.WebhookConfig{
-						Type: backend.WebhookConfigTypeWebhook,
+						Type: backend.Webhook,
 						Url:  "https://hooks.slack.com/services/789",
 					}),
 				},
