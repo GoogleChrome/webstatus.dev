@@ -64,6 +64,11 @@ import {
   UserSavedSearch,
 } from '../utils/constants.js';
 
+interface SubscribeButtonConfig {
+  id: string;
+  title: string;
+}
+
 @customElement('webstatus-overview-content')
 export class WebstatusOverviewContent extends LitElement {
   @property({type: Object})
@@ -98,6 +103,54 @@ export class WebstatusOverviewContent extends LitElement {
 
   @query('webstatus-saved-search-editor')
   savedSearchEditor!: WebstatusSavedSearchEditor;
+
+  get subscribeButtonConfig(): SubscribeButtonConfig | null {
+    const savedSearch = savedSearchHelpers.getCurrentSavedSearch(
+      this.appBookmarkInfo,
+    );
+    const userSavedSearch =
+      savedSearch?.scope === SavedSearchScope.UserSavedSearch
+        ? savedSearch
+        : undefined;
+
+    const isHomePage = !this.activeQuery.trim() && !savedSearch;
+
+    if (userSavedSearch) {
+      return {
+        id: userSavedSearch.value.id,
+        title: userSavedSearch.value.name,
+      };
+    }
+
+    if (savedSearch?.scope === SavedSearchScope.GlobalSavedSearch) {
+      // Defensive: If the global search object is missing an ID,
+      // return null so we don't render a broken button.
+      if (!savedSearch.value.id) return null;
+      return {
+        id: savedSearch.value.id ?? '',
+        title: savedSearch.value.name,
+      };
+    }
+
+    if (isHomePage) {
+      return {
+        id: DEFAULT_GLOBAL_SEARCH_ID,
+        title: 'All Features',
+      };
+    }
+
+    return null;
+  }
+
+  get pageDisplayData(): {title: string; description?: string} {
+    const savedSearch = savedSearchHelpers.getCurrentSavedSearch(
+      this.appBookmarkInfo,
+    );
+    return {
+      title: savedSearch ? savedSearch.value.name : 'Features overview',
+      description: savedSearch?.value.description,
+    };
+  }
 
   static get styles(): CSSResultGroup {
     return [
@@ -215,64 +268,31 @@ export class WebstatusOverviewContent extends LitElement {
     }
   }
 
-  private _getButtonDisplayData(): {
-    id: string | undefined;
-    title: string | undefined;
-  } {
-    const savedSearch = savedSearchHelpers.getCurrentSavedSearch(
-      this.appBookmarkInfo,
-    );
-    const userSavedSearch =
-      savedSearch?.scope === SavedSearchScope.UserSavedSearch
-        ? savedSearch
-        : undefined;
-    const isHomePage = !this.activeQuery && !savedSearch;
-
-    let buttonSavedSearchId: string | undefined;
-    let buttonTitle: string | undefined;
-
-    if (userSavedSearch) {
-      buttonSavedSearchId = userSavedSearch.value.id;
-      buttonTitle = userSavedSearch.value.name;
-    } else if (savedSearch?.scope === SavedSearchScope.GlobalSavedSearch) {
-      buttonSavedSearchId = savedSearch.value.id;
-      buttonTitle = savedSearch.value.name;
-    } else if (isHomePage) {
-      buttonSavedSearchId = DEFAULT_GLOBAL_SEARCH_ID;
-      buttonTitle = 'All Features';
-    }
-
-    return {id: buttonSavedSearchId, title: buttonTitle};
-  }
-
   render(): TemplateResult {
     const savedSearch = savedSearchHelpers.getCurrentSavedSearch(
       this.appBookmarkInfo,
     );
-    const pageTitle = savedSearch
-      ? savedSearch.value.name
-      : 'Features overview';
-    const pageDescription = savedSearch?.value.description;
+    const {title, description} = this.pageDisplayData;
+
     const userSavedSearch =
       savedSearch?.scope === SavedSearchScope.UserSavedSearch
         ? savedSearch
         : undefined;
-    const {id: buttonSavedSearchId, title: buttonTitle} =
-      this._getButtonDisplayData();
+    const config = this.subscribeButtonConfig;
 
     return html` <div class="main">
         <div class="hbox halign-items-space-between header-line">
-          <h1 class="halign-stretch" id="overview-title">${pageTitle}</h1>
-          ${buttonSavedSearchId
+          <h1 class="halign-stretch" id="overview-title">${title}</h1>
+          ${config
             ? html`<webstatus-subscribe-button
-                .savedSearchId=${buttonSavedSearchId}
-                .searchTitle=${buttonTitle}
+                .savedSearchId=${config.id}
+                .searchTitle=${config.title}
               ></webstatus-subscribe-button>`
             : nothing}
         </div>
-        ${pageDescription
+        ${description
           ? html`<div class="hbox wrap" id="overview-description">
-              <h3>${pageDescription}</h3>
+              <h3>${description}</h3>
             </div>`
           : nothing}
         <div class="hbox">${this.renderCount()}</div>
