@@ -157,6 +157,11 @@ export class OverviewPage extends LitElement {
         search: `?${new URLSearchParams({q: newQ}).toString()}`,
       };
       this._upgradedSearchId = legacyId;
+      void toast(
+        'URL upgraded. Please update your bookmarks.',
+        'primary',
+        'info-circle',
+      );
       return true;
     }
 

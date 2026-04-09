@@ -334,6 +334,33 @@ describe('webstatus-overview-content', () => {
       getCurrentSavedSearchStub.restore();
     });
 
+    it('should render the subscribe button when a global saved search is active', async () => {
+      const mockGlobalSearch = {
+        id: 'hotlist123',
+        name: 'Global Hotlist',
+        query: 'feature:grid',
+      };
+      const getCurrentSavedSearchStub = sinon
+        .stub(savedSearchHelpers, 'getCurrentSavedSearch')
+        .returns({
+          scope: SavedSearchScope.GlobalSavedSearch,
+          value: mockGlobalSearch,
+        });
+      element.requestUpdate();
+      await element.updateComplete;
+
+      const subscribeButton =
+        element.shadowRoot?.querySelector<SubscribeButton>(
+          'webstatus-subscribe-button',
+        );
+
+      expect(getCurrentSavedSearchStub).to.have.been.called;
+      expect(subscribeButton).to.exist;
+      expect(subscribeButton?.savedSearchId).to.equal(mockGlobalSearch.id);
+      expect(subscribeButton?.searchTitle).to.equal(mockGlobalSearch.name);
+      getCurrentSavedSearchStub.restore();
+    });
+
     it('should not render the subscribe button when no user saved search is active', async () => {
       const getCurrentSavedSearchStub = sinon
         .stub(savedSearchHelpers, 'getCurrentSavedSearch')

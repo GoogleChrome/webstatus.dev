@@ -48,6 +48,8 @@ import {
   type APIClient,
   type SuccessResponsePageableData,
 } from '../api/client.js';
+
+const DEFAULT_GLOBAL_SEARCH_ID = 'all';
 import {WebstatusSavedSearchEditor} from './webstatus-saved-search-editor.js';
 import {
   formatOverviewPageUrl,
@@ -213,6 +215,36 @@ export class WebstatusOverviewContent extends LitElement {
     }
   }
 
+  private _getButtonDisplayData(): {
+    id: string | undefined;
+    title: string | undefined;
+  } {
+    const savedSearch = savedSearchHelpers.getCurrentSavedSearch(
+      this.appBookmarkInfo,
+    );
+    const userSavedSearch =
+      savedSearch?.scope === SavedSearchScope.UserSavedSearch
+        ? savedSearch
+        : undefined;
+    const isHomePage = !this.activeQuery && !savedSearch;
+
+    let buttonSavedSearchId: string | undefined;
+    let buttonTitle: string | undefined;
+
+    if (userSavedSearch) {
+      buttonSavedSearchId = userSavedSearch.value.id;
+      buttonTitle = userSavedSearch.value.name;
+    } else if (savedSearch?.scope === SavedSearchScope.GlobalSavedSearch) {
+      buttonSavedSearchId = savedSearch.value.id;
+      buttonTitle = savedSearch.value.name;
+    } else if (isHomePage) {
+      buttonSavedSearchId = DEFAULT_GLOBAL_SEARCH_ID;
+      buttonTitle = 'All Features';
+    }
+
+    return {id: buttonSavedSearchId, title: buttonTitle};
+  }
+
   render(): TemplateResult {
     const savedSearch = savedSearchHelpers.getCurrentSavedSearch(
       this.appBookmarkInfo,
@@ -225,27 +257,8 @@ export class WebstatusOverviewContent extends LitElement {
       savedSearch?.scope === SavedSearchScope.UserSavedSearch
         ? savedSearch
         : undefined;
-
-    const isHomePage = !this.activeQuery && !savedSearch;
-    let fallbackSearchId: string | undefined;
-    let fallbackTitle: string | undefined;
-
-    if (isHomePage && this.appBookmarkInfo?.globalSavedSearches) {
-      const allFeaturesSearch = this.appBookmarkInfo.globalSavedSearches.find(
-        s => s.id === 'all',
-      );
-      if (allFeaturesSearch) {
-        fallbackSearchId = allFeaturesSearch.id;
-        fallbackTitle = allFeaturesSearch.name;
-      }
-    }
-
-    const buttonSavedSearchId = userSavedSearch
-      ? userSavedSearch.value.id
-      : fallbackSearchId;
-    const buttonTitle = userSavedSearch
-      ? userSavedSearch.value.name
-      : fallbackTitle;
+    const {id: buttonSavedSearchId, title: buttonTitle} =
+      this._getButtonDisplayData();
 
     return html` <div class="main">
         <div class="hbox halign-items-space-between header-line">

@@ -272,6 +272,7 @@ export class WebstatusBookmarksService extends ServiceElement {
         this._currentGlobalSavedSearch = this.findCurrentSavedSearchByQuery(
           this._globalSavedSearches,
         );
+
         this._globalSavedSearchesTaskTracker = {
           status: TaskStatus.COMPLETE,
           data: this._globalSavedSearches,

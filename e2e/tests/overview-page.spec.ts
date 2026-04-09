@@ -433,9 +433,8 @@ test.describe('saved searches', () => {
     await gotoOverviewPageUrl(page, 'http://localhost:5555/?search_id=bad-id');
 
     // Assert toast is visible
-    const toast = page.locator('.toast');
+    const toast = page.getByText('Saved search with id bad-id not found');
     await toast.waitFor({state: 'visible'});
-    // TODO: we need to figure out a way to assert toast message.
   });
 
   test('Clicking on a global saved search bookmark with custom order renders correctly', async ({
@@ -463,9 +462,7 @@ test.describe('saved searches', () => {
     expect(featuresResponses.length).toBe(1);
     // Check that the ids in the request are in the same order as the rows in the table.
     // Get the 'q' query parameter from the url in the first request.
-    const qParam = new URL(featuresRequests[0].url()).searchParams.get(
-      'q',
-    );
+    const qParam = new URL(featuresRequests[0].url()).searchParams.get('q');
     expect(qParam).toBe('hotlist:top-html-interop');
 
     // Get all the rows from the table minus the header and get the links from each of the first cells and extract the
@@ -489,7 +486,7 @@ test.describe('saved searches', () => {
     // Assert that it does not exceed the default page size
     expect(rowIDs.length).toBeLessThanOrEqual(DEFAULT_PAGE_SIZE);
 
-    // Instead of strictly expecting the ids from a q= array limit, we just ensure 
+    // Instead of strictly expecting the ids from a q= array limit, we just ensure
     // the system returned features (which we know HTML interop does).
     await expect(
       page.getByRole('heading', {name: 'Top HTML Interop issues'}),
