@@ -15,7 +15,11 @@
  */
 
 import {test} from '@playwright/test';
-import {loginAsUser, expectDualThemeScreenshot, waitForSidebarLoaded} from './utils';
+import {
+  loginAsUser,
+  expectDualThemeScreenshot,
+  waitForSidebarLoaded,
+} from './utils';
 
 test.beforeEach(async () => {});
 

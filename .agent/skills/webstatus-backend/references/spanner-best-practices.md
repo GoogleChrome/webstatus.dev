@@ -28,7 +28,6 @@ When implementing integer-based explicit ordering columns, choose an approach ba
   - Use `ORDER BY Column DESC` (Highest is Top).
   - Start seeding at high values (e.g. 10,000) and step downwards.
   - **Why**: This prevents integer exhaustion at `0`. When new, more recent items launch, they naturally increment (e.g., 11,000) and take the top spot securely.
-  
 - **Curated / Bounded Lists (e.g. Top Issues, Fixed Categorizations)**
   - Use `ORDER BY Column ASC` (Lowest is Top).
   - Start at `10` and increment by `10`s (10, 20, 30).

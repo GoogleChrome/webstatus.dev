@@ -15,7 +15,11 @@
  */
 
 import {test, expect, Page} from '@playwright/test';
-import {setupFakeNow, expectDualThemeScreenshot, waitForSidebarLoaded} from './utils';
+import {
+  setupFakeNow,
+  expectDualThemeScreenshot,
+  waitForSidebarLoaded,
+} from './utils';
 
 async function waitForAllChartsToLoad(page: Page) {
   // Wait for all charts to finish loading.
