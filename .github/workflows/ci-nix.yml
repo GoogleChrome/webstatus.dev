@@ -18,6 +18,11 @@ on:
   merge_group:
   workflow_dispatch:
 
+permissions:
+  contents: read
+  id-token: write
+  actions: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -53,6 +58,15 @@ jobs:
 
       - name: Magic Nix Cache
         uses: DeterminateSystems/magic-nix-cache-action@565684385bcd71bad329742eefe8d12f2e765b39
+
+      - name: Install npm dependencies
+        run: nix develop --command npm ci --workspaces=false
+
+      - name: Install Go tools
+        run: nix develop --command make go-install-tools
+
+      - name: Generate files
+        run: nix develop --command make gen -B
 
       - name: Run precommit target for CI via Nix
         run: nix develop --command make precommit
@@ -91,6 +105,15 @@ jobs:
 
       - name: Magic Nix Cache
         uses: DeterminateSystems/magic-nix-cache-action@565684385bcd71bad329742eefe8d12f2e765b39
+
+      - name: Install npm dependencies
+        run: nix develop --command npm ci --workspaces=false
+
+      - name: Install Go tools
+        run: nix develop --command make go-install-tools
+
+      - name: Generate files
+        run: nix develop --command make gen -B
 
       - name: Run playwright-test target for CI via Nix
         run: nix develop --command make playwright-test
