@@ -18,6 +18,16 @@ This skill provides guidance for developing and deploying the scheduled data ing
 
 For a detailed map of data sources, Spanner target tables, and job orchestration patterns, see [references/architecture.md](references/architecture.md).
 
+## Development Environments
+
+The project supports two primary development environments:
+
+- **VS Code DevContainer**: A Docker-based environment with all tools pre-installed.
+- **Nix (Alternative)**: A lightweight environment with pinned tool versions. Enter via `nix develop`.
+
+> [!IMPORTANT]
+> Even when using the Nix environment, a **container runtime** (Docker or Podman) is still required on your host machine to run the local Spanner emulator and test local job execution via Skaffold.
+
 ## Infrastructure Abstraction (The Adapter Pattern)
 
 Ingestion jobs must be decoupled from the core DB logic and the "Backend" API.
@@ -44,7 +54,7 @@ Ingestion jobs must be decoupled from the core DB logic and the "Backend" API.
 
 ## Testing & Linting
 
-- **Precommit Suite**: Run `make precommit` to execute the full suite of Go tests, formatting, and linting.
+- **Precommit Suite**: Run `make precommit` to execute the full suite of Go tests, formatting, and linting. Ensure you are inside your chosen environment (Nix or DevContainer) to use the correct tool versions.
 - **Linting**: Run `make go-lint` to lint all Go code using `golangci-lint`.
 - **Quick Test Iteration**: Because this project uses a multi-module workspace (`go.work`), to run tests quickly for a single package without running the whole suite, execute `go test` from _within_ the specific module directory:
   ```bash

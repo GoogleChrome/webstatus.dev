@@ -18,6 +18,21 @@ This skill provides guidance for developing the Go-based backend API for `websta
 
 For a technical deep-dive into the backend implementation patterns, request flows, and auth middleware, see [references/architecture.md](references/architecture.md).
 
+## Development Environments
+
+The project supports two primary development environments:
+
+- **VS Code DevContainer**: A Docker-based environment with all tools pre-installed.
+- **Nix (Alternative)**: A lightweight environment with pinned tool versions (Go 1.26.1). Enter via `nix develop`.
+
+### Tool Management
+
+- **Core Tools**: Go and Node are provided by the environment (Nix or DevContainer).
+- **CLI Tools**: Tools like `wrench` and `oapi-codegen` are managed via `tools/go.mod` and executed via `make` targets (which use `go tool`).
+
+> [!IMPORTANT]
+> A **container runtime** (Docker or Podman) is required on the host machine in both environments to run Spanner integration tests (via `testcontainers-go`) and the local emulator.
+
 ## Guides
 
 - **[Add a New API Endpoint](references/add-api-endpoint.md)**: Mandatory spec-first process.
@@ -52,7 +67,7 @@ We use a Hexagonal-style **Adapter Pattern** to decouple application logic from 
 
 ## Testing & Linting
 
-- **Precommit Suite**: Run `make precommit` to execute the full suite of Go tests, formatting, and linting.
+- **Precommit Suite**: Run `make precommit` to execute the full suite of Go tests, formatting, and linting. This uses the pinned tool versions provided by your environment.
 - **Linting**: Run `make go-lint` to lint all Go code using `golangci-lint`.
 - **Quick Test Iteration**: Because this project uses a multi-module workspace (`go.work`), to run tests quickly for a single package without running the whole suite, execute `go test` from _within_ the specific module directory, or provide the full module path:
   ```bash
@@ -60,7 +75,7 @@ We use a Hexagonal-style **Adapter Pattern** to decouple application logic from 
   # Or
   go test -v github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/...
   ```
-- **Integration Tests**: Any changes to `lib/gcpspanner` **MUST** include integration tests using `testcontainers-go` against the Spanner emulator.
+- **Integration Tests**: Any changes to `lib/gcpspanner` **MUST** include integration tests using `testcontainers-go` against the Spanner emulator. Remember that this requires a working container runtime on your host!
 
 ## Documentation Updates
 

@@ -28,6 +28,16 @@ Workers must use the shared structs in [lib/workertypes/types.go](../../lib/work
 - The workers run locally via Skaffold and connect to local emulators for Spanner (`spanner:9010`) and Pub/Sub (`pubsub:8060`).
 - The `FRONTEND_BASE_URL` locally is usually `http://localhost:5555`.
 
+## Development Environments
+
+The project supports two primary development environments:
+
+- **VS Code DevContainer**: A Docker-based environment with all tools pre-installed.
+- **Nix (Alternative)**: A lightweight environment with pinned tool versions. Enter via `nix develop`.
+
+> [!IMPORTANT]
+> Even when using the Nix environment, a **container runtime** (Docker or Podman) is still required on your host machine to run the local emulators and test local execution via Skaffold.
+
 ## Infrastructure Abstraction (The Adapter Pattern)
 
 All workers must be decoupled from GCP-specific SDKs.

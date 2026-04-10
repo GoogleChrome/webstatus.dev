@@ -16,6 +16,15 @@ For a technical breakdown of the ANTLR grammar, search node transformation, and 
 - The canonical source of truth for the search syntax is `antlr/FeatureSearch.g4`.
 - **DON'T** edit the generated parser files in `lib/gen/featuresearch/parser/` directly.
 
+## Tooling & Environment
+
+The search grammar relies on **ANTLR v4**. The project is configured to handle tool execution seamlessly across different development environments:
+
+- **Nix**: The environment provides the `antlr4` package and sets the `ANTLR=antlr4` environment variable in the shell.
+- **DevContainer**: The environment vendors the ANTLR JAR at `/usr/local/lib/antlr-4.13.2-complete.jar` and the `Makefile` defaults to this path if `ANTLR` is not set.
+
+**Always use `make antlr-gen`** to regenerate the parser. This target abstracts the environment differences and ensures the correct Go-specific flags (`-Dlanguage=Go -visitor -no-listener`) and output directories are used.
+
 ## General Guidelines
 
 - **DO** cross-reference all Go and test code against the official Google Go Style Guide. If you are unsure about a specific style rule, DO NOT assume; you MUST ask the user for clarification.

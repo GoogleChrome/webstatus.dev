@@ -312,8 +312,10 @@ node-test: playwright-install
 ################################
 # ANTLR
 ################################
+ANTLR ?= java -jar /usr/local/lib/antlr-$${ANTLR4_VERSION}-complete.jar
+
 antlr-gen: clean-antlr
-	java -jar /usr/local/lib/antlr-$${ANTLR4_VERSION}-complete.jar -Dlanguage=Go -o lib/gen/featuresearch/parser -visitor -no-listener antlr/FeatureSearch.g4
+	$(ANTLR) -Dlanguage=Go -o lib/gen/featuresearch/parser -visitor -no-listener antlr/FeatureSearch.g4
 
 clean-antlr:
 	rm -rf lib/gen/featuresearch/parser
@@ -349,6 +351,8 @@ ADDLICENSE_ARGS := -c "${COPYRIGHT_NAME}" \
 	-ignore 'infra/storage/spanner/schema.sql' \
 	-ignore 'antlr/.antlr/**' \
 	-ignore '.devcontainer/cache/**' \
+	-ignore '.nix/**' \
+	-ignore 'direnv/**' \
 	-ignore 'workers/email/pkg/digest/testdata/digest.golden.html'
 
 license-check: go-install-tools
@@ -374,10 +378,19 @@ unstaged-changes:
 # fresh-env-for-playwright prerequisite. If unset, the fresh environment will be created.
 SKIP_FRESH_ENV ?=
 
-fresh-env-for-playwright: $(if $(SKIP_FRESH_ENV),,playwright-install delete-local build deploy-local port-forward-manual dev_fake_users dev_fake_data)
+playwright-docker-stop:
+	@echo "Stopping Playwright Docker container if running..."
+	docker stop playwright-server || true
+	docker rm playwright-server || true
+
+fresh-env-for-playwright: $(if $(SKIP_FRESH_ENV),,playwright-docker-stop playwright-install delete-local build deploy-local port-forward-manual dev_fake_users dev_fake_data)
 
 playwright-install:
-	npx playwright install --with-deps
+	@if [ -z "$$PLAYWRIGHT_BROWSERS_PATH" ]; then \
+		npx playwright install --with-deps; \
+	else \
+		echo "Skipping playwright install because PLAYWRIGHT_BROWSERS_PATH is set to $$PLAYWRIGHT_BROWSERS_PATH"; \
+	fi
 
 playwright-update-snapshots: fresh-env-for-playwright
 	npx playwright test --update-snapshots

@@ -9,10 +9,14 @@ When you have finished implementing a feature or fixing a bug and the user asks 
 
 1. **Verify the State**: Run `git status` to see what files have been modified.
 2. **Review the Diffs**: Before committing, use `git diff` to quickly review the changes. Ensure you haven't left any stray `console.log` statements, commented-out debugger code, or unresolved merge conflict markers.
-3. **Format, Lint, and Style**: Run standard project linters (`make precommit`, `make go-lint`, or `make node-lint`). Additionally, cross-reference your changes against the project's specific skills (e.g., `webstatus-backend`, `webstatus-frontend`) and standard Google Style Guides (e.g., Google Go Style Guide, Google TypeScript Style Guide). If you are unsure about a style rule, you may search for it or ask the user.
+3. **Format, Lint, and Style**: Run standard project linters (`make precommit`, `make go-lint`, or `make node-lint`).
+   - **Environment**: Ensure you are in the `nix develop` shell or the project's DevContainer so you use the correct tool versions.
+   - **Regeneration**: If you modified OpenAPI specs, JSON schemas, or ANTLR grammars, you MUST run `make gen` before committing to ensure generated code is in sync.
+   - **Style Guides**: Cross-reference your changes against the project's specific skills (e.g., `webstatus-backend`, `webstatus-frontend`) and standard Google Style Guides. If you are unsure about a style rule, you may search for it or ask the user.
 4. **Create a New Branch**: NEVER commit directly to `main`.
    - Run `git checkout -b feature/<short-description>` or `git checkout -b fix/<short-description>`
 5. **Stage Files**: Add the specific files you modified using `git add <file1> <file2>`. Try to avoid `git add .` unless you are absolutely certain no unrelated files (like local IDE configs) are present.
+   - **Nix**: If you modified `flake.nix`, ensure you also run `nix flake update` and stage the updated `flake.lock`.
 6. **Write a Descriptive Commit Message**: You MUST use the Conventional Commits format (`type(scope): subject`). Make sure to prefix the commit with `feat:`, `fix:`, `chore:`, `docs:`, `test:`, or `refactor:`.
    - _Example_: `feat: implement dark mode component`
    - _Example_: `fix(api): handle missing search name in payload`

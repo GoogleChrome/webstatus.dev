@@ -1,0 +1,105 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: 'ci-nix'
+on:
+  pull_request:
+  merge_group:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@fc881a613ad2a34aca9c9624518214ebc21dfc0c
+        with:
+          remove-dotnet: 'true'
+          remove-android: 'true'
+          remove-haskell: 'true'
+          remove-codeql: 'true'
+          root-reserve-mb: 2048
+          overprovision-lvm: 'true'
+          build-mount-path: '/home/runner/work/webstatus.dev'
+        continue-on-error: true
+
+      - name: Create Workspace
+        run: mkdir -p ${{ github.workspace }}
+
+      - name: Checkout (GitHub)
+        uses: actions/checkout@v6
+
+      - name: Move Docker
+        run: |
+          sudo service docker stop
+          mkdir -p ../docker-storage
+          sudo rm -rf /var/lib/docker
+          sudo ln -s $(realpath ../docker-storage) /var/lib/docker
+          sudo service docker start
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25
+
+      - name: Magic Nix Cache
+        uses: DeterminateSystems/magic-nix-cache-action@565684385bcd71bad329742eefe8d12f2e765b39
+
+      - name: Run precommit target for CI via Nix
+        run: nix develop --command make precommit
+
+  playwright:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@fc881a613ad2a34aca9c9624518214ebc21dfc0c
+        with:
+          remove-dotnet: 'true'
+          remove-android: 'true'
+          remove-haskell: 'true'
+          remove-codeql: 'true'
+          root-reserve-mb: 2048
+          overprovision-lvm: 'true'
+          build-mount-path: '/home/runner/work/webstatus.dev'
+        continue-on-error: true
+
+      - name: Create Workspace
+        run: mkdir -p ${{ github.workspace }}
+
+      - name: Checkout (GitHub)
+        uses: actions/checkout@v6
+
+      - name: Move Docker
+        run: |
+          sudo service docker stop
+          mkdir -p ../docker-storage
+          sudo rm -rf /var/lib/docker
+          sudo ln -s $(realpath ../docker-storage) /var/lib/docker
+          sudo service docker start
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25
+
+      - name: Magic Nix Cache
+        uses: DeterminateSystems/magic-nix-cache-action@565684385bcd71bad329742eefe8d12f2e765b39
+
+      - name: Run playwright-test target for CI via Nix
+        run: nix develop --command make playwright-test
+        env:
+          CI: 'true'
+
+      - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report-nix
+          path: playwright-report/
+          retention-days: 30
