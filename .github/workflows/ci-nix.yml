@@ -59,14 +59,8 @@ jobs:
       - name: Magic Nix Cache
         uses: DeterminateSystems/magic-nix-cache-action@565684385bcd71bad329742eefe8d12f2e765b39
 
-      - name: Install npm dependencies
-        run: nix develop --command npm ci --workspaces=false
-
-      - name: Install Go tools
-        run: nix develop --command make go-install-tools
-
-      - name: Generate files
-        run: nix develop --command make gen -B
+      - name: Run Nix environment setup
+        run: nix develop --command make nix-setup
 
       - name: Run precommit target for CI via Nix
         run: nix develop --command make precommit
@@ -106,14 +100,8 @@ jobs:
       - name: Magic Nix Cache
         uses: DeterminateSystems/magic-nix-cache-action@565684385bcd71bad329742eefe8d12f2e765b39
 
-      - name: Install npm dependencies
-        run: nix develop --command npm ci --workspaces=false
-
-      - name: Install Go tools
-        run: nix develop --command make go-install-tools
-
-      - name: Generate files
-        run: nix develop --command make gen -B
+      - name: Run Nix environment setup
+        run: nix develop --command make nix-setup
 
       - name: Run playwright-test target for CI via Nix
         run: nix develop --command make playwright-test

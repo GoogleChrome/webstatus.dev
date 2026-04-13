@@ -19,6 +19,7 @@ To enter the development environment, navigate to the project root and run:
 
 ```bash
 nix develop
+make nix-setup
 ```
 
 This will drop you into a new shell with all the required tools in your `PATH`:

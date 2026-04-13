@@ -57,6 +57,7 @@ If you prefer not to use Docker for your toolchain or don't use VS Code, you can
 git clone https://github.com/GoogleChrome/webstatus.dev
 cd webstatus.dev
 nix develop
+make nix-setup
 ```
 
 ### Running the services locally

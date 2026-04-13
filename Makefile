@@ -39,6 +39,9 @@ DOCKERFILES := \
 
 build: gen go-build node-install
 
+nix-setup: node-install go-install-tools gen
+	npx playwright install
+
 clean: clean-gen clean-node port-forward-terminate minikube-delete
 
 precommit: license-check  go-fix go-tidy lint test unstaged-changes
