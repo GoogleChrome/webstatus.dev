@@ -15,6 +15,7 @@
 package gcpspanner
 
 import (
+	"errors"
 	"reflect"
 	"slices"
 	"testing"
@@ -41,6 +42,25 @@ var (
 						Identifier: searchtypes.IdentifierAvailableOn,
 						Operator:   searchtypes.OperatorEq,
 						Value:      "chrome",
+					},
+					Children: nil,
+					Keyword:  searchtypes.KeywordNone,
+				},
+			},
+		},
+	}
+
+	unexpandedSavedSearchQuery = TestTree{
+		Query: "saved:XYZ",
+		InputTree: &searchtypes.SearchNode{
+			Keyword: searchtypes.KeywordRoot,
+			Term:    nil,
+			Children: []*searchtypes.SearchNode{
+				{
+					Term: &searchtypes.SearchTerm{
+						Identifier: searchtypes.IdentifierSavedSearch,
+						Operator:   searchtypes.OperatorNone,
+						Value:      "XYZ",
 					},
 					Children: nil,
 					Keyword:  searchtypes.KeywordNone,
@@ -537,7 +557,10 @@ WHERE BrowserName = @param0) AND (fbs.Status = @param1 OR fbs.Status = @param2))
 	for _, tc := range testCases {
 		t.Run(tc.inputTestTree.Query, func(t *testing.T) {
 			b := NewFeatureSearchFilterBuilder()
-			filter := b.Build(tc.inputTestTree.InputTree)
+			filter, err := b.Build(tc.inputTestTree.InputTree)
+			if err != nil {
+				t.Fatalf("Build failed: %v", err)
+			}
 			if !slices.Equal[[]string](filter.Filters(), tc.expectedClauses) {
 				t.Errorf("\nexpected clause [%s]\n  actual clause [%s]", tc.expectedClauses, filter.Filters())
 			}
@@ -545,5 +568,34 @@ WHERE BrowserName = @param0) AND (fbs.Status = @param1 OR fbs.Status = @param2))
 				t.Errorf("expected params (%+v) actual params (%+v)", tc.expectedParams, filter.Params())
 			}
 		})
+	}
+}
+
+func TestBuild_Error(t *testing.T) {
+	b := NewFeatureSearchFilterBuilder()
+	_, err := b.Build(unexpandedSavedSearchQuery.InputTree)
+	if err == nil {
+		t.Fatal("expected error for unexpanded saved search, got nil")
+	}
+	expectedErr := "unexpected unexpanded search identifier: saved"
+	if err.Error() != expectedErr {
+		t.Errorf("expected error %q, got %q", expectedErr, err.Error())
+	}
+
+	// Test nil node
+	_, err = b.Build(nil)
+	if !errors.Is(err, ErrNilSearchNode) {
+		t.Errorf("expected error %v, got %v", ErrNilSearchNode, err)
+	}
+
+	// Test invalid root node
+	invalidRootNode := &searchtypes.SearchNode{
+		Keyword:  searchtypes.KeywordNone,
+		Term:     nil,
+		Children: nil,
+	}
+	_, err = b.Build(invalidRootNode)
+	if !errors.Is(err, ErrInvalidRootNode) {
+		t.Errorf("expected error %v, got %v", ErrInvalidRootNode, err)
 	}
 }
