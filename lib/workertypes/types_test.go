@@ -68,8 +68,9 @@ func TestParseEventSummary(t *testing.T) {
 					UpdatedRename:   0,
 					UpdatedBaseline: 0,
 				},
-				Truncated:  false,
-				Highlights: nil,
+				Truncated:   false,
+				Highlights:  nil,
+				QueryErrors: nil,
 			},
 			wantErr: false,
 		},
@@ -139,6 +140,7 @@ func TestGenerateJSONSummaryFeatureDiffV1(t *testing.T) {
 				Moves:        nil,
 				Splits:       nil,
 				Deleted:      nil,
+				QueryErrors:  nil,
 			},
 			expected:      `{"schemaVersion":"v1","text":"No changes detected","truncated":false,"highlights":null}`,
 			expectedError: nil,
@@ -195,6 +197,7 @@ func TestGenerateJSONSummaryFeatureDiffV1(t *testing.T) {
 				Deleted: []v1.FeatureDeleted{
 					{ID: "4", Name: "D", Reason: v1.ReasonDeleted},
 				},
+				QueryErrors: nil,
 				Moves: []v1.FeatureMoved{
 					{FromID: "4", ToID: "5", FromName: "D", ToName: "E", QueryMatch: v1.QueryMatchMatch},
 				},

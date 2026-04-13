@@ -21,6 +21,7 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/generic"
 )
 
+// nolint:exhaustruct // Tests use uninitialized fields.
 func TestHasChanges(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -165,6 +166,7 @@ func TestHasChanges(t *testing.T) {
 	}
 }
 
+// nolint:exhaustruct // Tests use uninitialized fields.
 func TestFeatureDiff_Sort(t *testing.T) {
 	diff := FeatureDiff{
 		QueryChanged: false,

@@ -102,6 +102,7 @@ func createTestSummary(hasChanges bool) workertypes.EventSummary {
 		Text:          "Test Summary",
 		Categories:    categories,
 		Truncated:     false,
+		QueryErrors:   nil,
 		Highlights:    nil,
 	}
 }

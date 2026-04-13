@@ -44,6 +44,7 @@ type StateCompareWorkflow[D any] interface {
 	HasChanges() bool
 	HasDataChanges() bool
 	SetQueryChanged(bool)
+	SetQueryErrors([]string)
 	GetDiff() *D
 	GenerateJSONSummary() ([]byte, error)
 }
@@ -64,12 +65,13 @@ type StateAdapter interface {
 		snapshot map[string]comparables.Feature,
 		id string,
 		signature string,
+		queryErrors []string,
 		isEmpty bool,
 		err error,
 	)
 
 	// Serialize creates a new state blob from the internal feature snapshot.
-	Serialize(id, searchID, eventID, query string, timestamp time.Time,
+	Serialize(id, searchID, eventID, query string, queryErrors []string, timestamp time.Time,
 		snapshot map[string]comparables.Feature) ([]byte, error)
 }
 

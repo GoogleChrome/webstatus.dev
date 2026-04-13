@@ -49,7 +49,8 @@ func TestRenderDigest_Golden(t *testing.T) {
 			UpdatedRename:   0,
 			UpdatedBaseline: 3,
 		},
-		Truncated: false,
+		Truncated:   false,
+		QueryErrors: nil,
 		Highlights: []workertypes.SummaryHighlight{
 			{
 				// Case 1: Baseline Widely (with multiple docs)

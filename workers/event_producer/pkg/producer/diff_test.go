@@ -71,8 +71,8 @@ func TestGenericStateAdapter_Load(t *testing.T) {
 			name:         "Empty input bytes",
 			inputBytes:   nil,
 			mockMigrator: func(b []byte) ([]byte, error) { return b, nil },
-			mockConverter: func(_ *testSnapshot) (map[string]comparables.Feature, string) {
-				return nil, ""
+			mockConverter: func(_ *testSnapshot) (map[string]comparables.Feature, string, []string) {
+				return nil, "", nil
 			},
 			wantSnapshot:  nil,
 			wantID:        "",
@@ -84,12 +84,12 @@ func TestGenericStateAdapter_Load(t *testing.T) {
 			name:         "Successful load",
 			inputBytes:   []byte(`{"data":"some-data", "idVal": "state-123"}`),
 			mockMigrator: func(b []byte) ([]byte, error) { return b, nil },
-			mockConverter: func(s *testSnapshot) (map[string]comparables.Feature, string) {
+			mockConverter: func(s *testSnapshot) (map[string]comparables.Feature, string, []string) {
 				if s.Data != "some-data" {
 					t.Errorf("converter received unexpected data: %s", s.Data)
 				}
 
-				return testSnapshotMap, "sig-123"
+				return testSnapshotMap, "sig-123", nil
 			},
 			wantSnapshot:  testSnapshotMap,
 			wantID:        "state-123",
@@ -101,10 +101,10 @@ func TestGenericStateAdapter_Load(t *testing.T) {
 			name:         "Migrator fails",
 			inputBytes:   []byte("data"),
 			mockMigrator: func(_ []byte) ([]byte, error) { return nil, testErr },
-			mockConverter: func(_ *testSnapshot) (map[string]comparables.Feature, string) {
+			mockConverter: func(_ *testSnapshot) (map[string]comparables.Feature, string, []string) {
 				t.Error("converter should not be called when migrator fails")
 
-				return nil, ""
+				return nil, "", nil
 			},
 			wantSnapshot:  nil,
 			wantID:        "",
@@ -116,10 +116,10 @@ func TestGenericStateAdapter_Load(t *testing.T) {
 			name:         "Unmarshal fails",
 			inputBytes:   []byte("invalid-json"),
 			mockMigrator: func(b []byte) ([]byte, error) { return b, nil },
-			mockConverter: func(_ *testSnapshot) (map[string]comparables.Feature, string) {
+			mockConverter: func(_ *testSnapshot) (map[string]comparables.Feature, string, []string) {
 				t.Error("converter should not be called when unmarshal fails")
 
-				return nil, ""
+				return nil, "", nil
 			},
 			wantSnapshot:  nil,
 			wantID:        "",
@@ -133,7 +133,7 @@ func TestGenericStateAdapter_Load(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			adapter := newGenericStateAdapter(tc.mockMigrator, tc.mockConverter, nil)
 
-			gotSnapshot, gotID, gotSignature, gotIsEmpty, err := adapter.Load(tc.inputBytes)
+			gotSnapshot, gotID, gotSignature, _, gotIsEmpty, err := adapter.Load(tc.inputBytes)
 
 			if !errors.Is(err, tc.wantErr) {
 				t.Fatalf("Load() error = %v, want type/is %v", err, tc.wantErr)
@@ -164,11 +164,12 @@ func TestV1DiffSerializer_Serialize(t *testing.T) {
 		QueryChanged: false,
 		Added: []featurelistdiffv1.FeatureAdded{{ID: "feat-a", Name: "Feature A", Reason: "", Docs: nil,
 			QueryMatch: featurelistdiffv1.QueryMatchMatch}},
-		Deleted:  nil,
-		Removed:  nil,
-		Modified: nil,
-		Moves:    nil,
-		Splits:   nil,
+		Deleted:     nil,
+		Removed:     nil,
+		Modified:    nil,
+		Moves:       nil,
+		Splits:      nil,
+		QueryErrors: nil,
 	}
 	metadata := differ.DiffMetadata{
 		ID:              "diff-id1",
