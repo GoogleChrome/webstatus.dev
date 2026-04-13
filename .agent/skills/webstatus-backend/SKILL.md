@@ -33,6 +33,15 @@ We use a Hexagonal-style **Adapter Pattern** to decouple application logic from 
 - **Adapters**: Implementations live in `lib/` (e.g., `lib/gcpspanner/spanneradapters` or `lib/valkeycache`).
 - **Why**: This enables painless unit testing using mock adapters and ensures that swapping external services (e.g., Valey to Redis) doesn't leak into business logic.
 
+### Error Handling & Isolation Patterns
+
+- **Centralized Error Interpreter**: Use a dedicated function in a leaf package (e.g., `lib/backendtypes`) to map raw internal errors to safe, static sentinel errors before they cross boundaries. This prevents dynamic context or database details from leaking to presentation layers.
+- **Decoupled Schema Types**: Define identical-looking local types inside versioned schemas (e.g., `v1.QueryError` in `blobtypes`) instead of using internal types directly. This maintain boundary isolation and prevents changes in the backend from breaking saved logs or deliveries.
+- **Orchestrator Data Ownership**: To prevent leaking translation logic into isolated schema interfaces (e.g. adding getters for errors), the orchestrator should hold and compare the data directly if it already possesses it (e.g. in `executionData`).
+- **Exhaustive Enum Conversion**: When mapping enums between packages, ALWAYS use an exhaustive switch case instead of direct type casting. This ensures that all valid source enum values are explicitly handled and mapped to valid destination enum values, preventing unintended values from leaking across package boundaries.
+- **Structured Types Across Boundaries**: Avoid flattening structured objects (like slices of structs) into primitive types (like slices of strings) when passing data across package boundaries or returning from interfaces (e.g., `Load` methods). Using structured types allows for future extension and maintains type safety.
+- **Explicit Presence for Collections**: When dealing with collections (like slices of errors) in schemas or state, use a wrapper like `generic.OptionallySet[[]T]` instead of relying on nil or empty slices to distinguish between "empty but validly checked" and "not set/not applicable". This ensures explicit intent and avoids ambiguity.
+
 ## General Do's and Don'ts
 
 - **DO** cross-reference all code against the official Google Go Style Guide. If you are unsure about a specific style rule, DO NOT assume; you MUST ask the user for clarification.

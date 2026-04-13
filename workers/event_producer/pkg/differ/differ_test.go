@@ -61,11 +61,12 @@ type testDiff struct {
 
 type mockStateAdapter struct {
 	loadReturns struct {
-		snapshot  map[string]comparables.Feature
-		id        string
-		signature string
-		isEmpty   bool
-		err       error
+		snapshot    map[string]comparables.Feature
+		id          string
+		signature   string
+		queryErrors []workertypes.SummaryQueryError
+		isEmpty     bool
+		err         error
 	}
 	serializeCalledWith struct {
 		id        string
@@ -81,11 +82,19 @@ type mockStateAdapter struct {
 	}
 }
 
-func (m *mockStateAdapter) Load(_ []byte) (map[string]comparables.Feature, string, string, bool, error) {
-	return m.loadReturns.snapshot, m.loadReturns.id, m.loadReturns.signature, m.loadReturns.isEmpty, m.loadReturns.err
+func (m *mockStateAdapter) Load(_ []byte) (
+	map[string]comparables.Feature,
+	string,
+	string,
+	[]workertypes.SummaryQueryError,
+	bool,
+	error,
+) {
+	return m.loadReturns.snapshot, m.loadReturns.id, m.loadReturns.signature,
+		m.loadReturns.queryErrors, m.loadReturns.isEmpty, m.loadReturns.err
 }
 
-func (m *mockStateAdapter) Serialize(id, searchID, eventID, query string,
+func (m *mockStateAdapter) Serialize(id, searchID, eventID, query string, _ []workertypes.SummaryQueryError,
 	timestamp time.Time, snapshot map[string]comparables.Feature) ([]byte, error) {
 	m.serializeCalledWith.id = id
 	m.serializeCalledWith.searchID = searchID
@@ -138,7 +147,8 @@ type mockWorkflow[D any] struct {
 	summaryError             error
 }
 
-func (m *mockWorkflow[D]) CalculateDiff(_, _ map[string]comparables.Feature) {
+func (m *mockWorkflow[D]) CalculateDiff(_, _ map[string]comparables.Feature, _ comparables.QueryErrors,
+	_ comparables.SnapshotOrigin) {
 	m.calculateDiffCalled = true
 }
 func (m *mockWorkflow[D]) ReconcileHistory(_ context.Context, _, _ map[string]comparables.Feature) error {
@@ -149,8 +159,13 @@ func (m *mockWorkflow[D]) ReconcileHistory(_ context.Context, _, _ map[string]co
 func (m *mockWorkflow[D]) HasRemovedFeatures() bool { return m.hasRemovedFeaturesResult }
 func (m *mockWorkflow[D]) HasChanges() bool         { return m.hasChangesResult }
 func (m *mockWorkflow[D]) HasDataChanges() bool     { return m.hasDataChangesResult }
-func (m *mockWorkflow[D]) SetQueryChanged(val bool) { m.setQueryChangedCalled = val }
-func (m *mockWorkflow[D]) GetDiff() *D              { return m.getDiffResult }
+func (m *mockWorkflow[D]) SetQueryChanged(val bool) {
+	m.setQueryChangedCalled = val
+}
+
+func (m *mockWorkflow[D]) GetDiff() *D {
+	return m.getDiffResult
+}
 func (m *mockWorkflow[D]) GenerateJSONSummary() ([]byte, error) {
 	return m.summaryResult, m.summaryError
 }
@@ -168,7 +183,7 @@ type mockFetcher struct {
 	fetchError   error
 }
 
-func (m *mockFetcher) FetchFeatures(_ context.Context, query string) ([]backend.Feature, error) {
+func (m *mockFetcher) FetchFeatures(_ context.Context, query string) (*workertypes.FetchFeaturesResult, error) {
 	if m.fetchError != nil {
 		return nil, m.fetchError
 	}
@@ -176,7 +191,7 @@ func (m *mockFetcher) FetchFeatures(_ context.Context, query string) ([]backend.
 		return nil, errors.New("simulated fetch error")
 	}
 
-	return m.queryResults[query], nil
+	return &workertypes.FetchFeaturesResult{Features: m.queryResults[query], UserError: nil}, nil
 }
 
 func (m *mockFetcher) GetFeature(_ context.Context, _ string) (*backendtypes.GetFeatureResult, error) {

@@ -79,6 +79,25 @@ const (
 	V1FeatureListDiff = "v1"
 )
 
+type QueryErrorCode string
+
+const (
+	ErrorCodeSavedSearchNotFound         QueryErrorCode = "SAVED_SEARCH_NOT_FOUND"
+	ErrorCodeHotlistNotFound             QueryErrorCode = "HOTLIST_NOT_FOUND"
+	ErrorCodeSavedSearchCycleDetected    QueryErrorCode = "SAVED_SEARCH_CYCLE_DETECTED"
+	ErrorCodeSavedSearchMaxDepthExceeded QueryErrorCode = "SAVED_SEARCH_MAX_DEPTH_EXCEEDED"
+	ErrorCodeQueryGrammar                QueryErrorCode = "QUERY_GRAMMAR_INVALID"
+	ErrorCodeFeatureNotFound             QueryErrorCode = "FEATURE_NOT_FOUND"
+	ErrorCodeInvalidQuery                QueryErrorCode = "INVALID_QUERY"
+	ErrorCodeUnknown                     QueryErrorCode = "UNKNOWN_ERROR"
+)
+
+type QueryError struct {
+	Code QueryErrorCode `json:"code,omitempty"`
+}
+
+type QueryErrors []QueryError
+
 type FeatureListDiffSnapshot struct {
 	Metadata DiffMetadata `json:"metadata"`
 	Data     FeatureDiff  `json:"data"`
@@ -97,14 +116,24 @@ type DiffMetadata struct {
 	PreviousStateID string `json:"previousStateId,omitempty"`
 }
 
+type SnapshotOrigin string
+
+const (
+	OriginUnknown          SnapshotOrigin = "UNKNOWN"
+	OriginLive             SnapshotOrigin = "LIVE"
+	OriginFallbackPrevious SnapshotOrigin = "FALLBACK_PREVIOUS"
+)
+
 type FeatureDiff struct {
-	QueryChanged bool              `json:"queryChanged,omitempty"`
-	Added        []FeatureAdded    `json:"added,omitempty"`
-	Removed      []FeatureRemoved  `json:"removed,omitempty"`
-	Deleted      []FeatureDeleted  `json:"deleted,omitempty"`
-	Modified     []FeatureModified `json:"modified,omitempty"`
-	Moves        []FeatureMoved    `json:"moves,omitempty"`
-	Splits       []FeatureSplit    `json:"splits,omitempty"`
+	QueryChanged   bool              `json:"queryChanged,omitempty"`
+	QueryErrors    QueryErrors       `json:"queryErrors,omitempty"`
+	SnapshotOrigin SnapshotOrigin    `json:"snapshotOrigin,omitempty"`
+	Added          []FeatureAdded    `json:"added,omitempty"`
+	Removed        []FeatureRemoved  `json:"removed,omitempty"`
+	Deleted        []FeatureDeleted  `json:"deleted,omitempty"`
+	Modified       []FeatureModified `json:"modified,omitempty"`
+	Moves          []FeatureMoved    `json:"moves,omitempty"`
+	Splits         []FeatureSplit    `json:"splits,omitempty"`
 }
 
 func (d *FeatureDiff) MarshalJSON() ([]byte, error) {

@@ -16,11 +16,71 @@
 package comparables
 
 import (
+	"slices"
 	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 	"github.com/GoogleChrome/webstatus.dev/lib/generic"
 )
+
+type SnapshotOrigin string
+
+const (
+	OriginLive             SnapshotOrigin = "LIVE"
+	OriginFallbackPrevious SnapshotOrigin = "FALLBACK_PREVIOUS"
+	OriginUnknown          SnapshotOrigin = "UNKNOWN"
+)
+
+type QueryErrorCode string
+
+const (
+	ErrorCodeSavedSearchNotFound         QueryErrorCode = "SAVED_SEARCH_NOT_FOUND"
+	ErrorCodeHotlistNotFound             QueryErrorCode = "HOTLIST_NOT_FOUND"
+	ErrorCodeSavedSearchCycleDetected    QueryErrorCode = "SAVED_SEARCH_CYCLE_DETECTED"
+	ErrorCodeSavedSearchMaxDepthExceeded QueryErrorCode = "SAVED_SEARCH_MAX_DEPTH_EXCEEDED"
+	ErrorCodeQueryGrammar                QueryErrorCode = "QUERY_GRAMMAR_INVALID"
+	ErrorCodeFeatureNotFound             QueryErrorCode = "FEATURE_NOT_FOUND"
+	ErrorCodeInvalidQuery                QueryErrorCode = "INVALID_QUERY"
+	ErrorCodeUnknown                     QueryErrorCode = "UNKNOWN_ERROR"
+)
+
+// QueryError encapsulates a standardized error code.
+// TODO: In the future, add a Metadata map[string]string to carry dynamic context (e.g., resource IDs).
+type QueryError struct {
+	Code QueryErrorCode
+}
+
+type QueryErrors []QueryError
+
+func (qe QueryErrors) Equal(other QueryErrors) bool {
+	return slices.EqualFunc(qe, other, func(a, b QueryError) bool {
+		return a.Code == b.Code
+	})
+}
+
+// Message returns a user-friendly error message for the given code.
+func (c QueryErrorCode) Message() string {
+	switch c {
+	case ErrorCodeSavedSearchNotFound:
+		return "Saved search not found."
+	case ErrorCodeHotlistNotFound:
+		return "Hotlist not found."
+	case ErrorCodeSavedSearchCycleDetected:
+		return "Saved search cycle detected."
+	case ErrorCodeSavedSearchMaxDepthExceeded:
+		return "Saved search max depth exceeded."
+	case ErrorCodeQueryGrammar:
+		return "The query contains grammar errors."
+	case ErrorCodeFeatureNotFound:
+		return "Feature not found."
+	case ErrorCodeInvalidQuery:
+		return "Invalid query."
+	case ErrorCodeUnknown:
+		fallthrough
+	default:
+		return "An unknown error occurred while processing the query."
+	}
+}
 
 type Feature struct {
 	ID             string

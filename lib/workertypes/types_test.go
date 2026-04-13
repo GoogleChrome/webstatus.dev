@@ -54,8 +54,9 @@ func TestParseEventSummary(t *testing.T) {
 			input:     `{"schemaVersion": "v1", "text": "Hello"}`,
 			wantVisit: true,
 			wantSummary: &EventSummary{
-				SchemaVersion: "v1",
-				Text:          "Hello",
+				SchemaVersion:  "v1",
+				SnapshotOrigin: "",
+				Text:           "Hello",
 				Categories: SummaryCategories{
 					QueryChanged:    0,
 					Added:           0,
@@ -68,8 +69,9 @@ func TestParseEventSummary(t *testing.T) {
 					UpdatedRename:   0,
 					UpdatedBaseline: 0,
 				},
-				Truncated:  false,
-				Highlights: nil,
+				Truncated:   false,
+				Highlights:  nil,
+				QueryErrors: nil,
 			},
 			wantErr: false,
 		},
@@ -132,21 +134,25 @@ func TestGenerateJSONSummaryFeatureDiffV1(t *testing.T) {
 		{
 			name: "Empty",
 			diff: v1.FeatureDiff{
-				QueryChanged: false,
-				Added:        nil,
-				Removed:      nil,
-				Modified:     nil,
-				Moves:        nil,
-				Splits:       nil,
-				Deleted:      nil,
+				SnapshotOrigin: v1.OriginLive,
+				QueryChanged:   false,
+				Added:          nil,
+				Removed:        nil,
+				Modified:       nil,
+				Moves:          nil,
+				Splits:         nil,
+				Deleted:        nil,
+				QueryErrors:    nil,
 			},
-			expected:      `{"schemaVersion":"v1","text":"No changes detected","truncated":false,"highlights":null}`,
+			expected: `{"schemaVersion":"v1","snapshotOrigin":"LIVE",` +
+				`"text":"No changes detected","truncated":false,"highlights":null}`,
 			expectedError: nil,
 		},
 		{
 			name: "Complex Update",
 			diff: v1.FeatureDiff{
-				QueryChanged: true,
+				SnapshotOrigin: v1.OriginLive,
+				QueryChanged:   true,
 				Added: []v1.FeatureAdded{
 					{ID: "1", Name: "A", Reason: v1.ReasonNewMatch, Docs: nil, QueryMatch: v1.QueryMatchMatch},
 					{ID: "2", Name: "B", Reason: v1.ReasonNewMatch, Docs: &v1.Docs{
@@ -195,6 +201,7 @@ func TestGenerateJSONSummaryFeatureDiffV1(t *testing.T) {
 				Deleted: []v1.FeatureDeleted{
 					{ID: "4", Name: "D", Reason: v1.ReasonDeleted},
 				},
+				QueryErrors: nil,
 				Moves: []v1.FeatureMoved{
 					{FromID: "4", ToID: "5", FromName: "D", ToName: "E", QueryMatch: v1.QueryMatchMatch},
 				},
@@ -273,6 +280,7 @@ func TestGenerateJSONSummaryFeatureDiffV1(t *testing.T) {
 
 			expected: `{
     "schemaVersion": "v1",
+    "snapshotOrigin": "LIVE",
     "text": "Search criteria updated, 2 new features matched your search, 2 features no longer matched your search ` +
 				`(1 became Baseline newly available), 1 feature deleted, 1 feature moved/renamed, 1 feature split, ` +
 				`3 features updated (1 became Baseline newly available)",

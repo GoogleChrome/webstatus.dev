@@ -1422,7 +1422,7 @@ func (s *Backend) expandSavedSearches(
 	childAST, err := parser.Parse(query)
 	if err != nil {
 		// If a saved search has an invalid grammar, it is fundamentally broken.
-		return nil, nil, err
+		return nil, nil, &backendtypes.QueryParseError{BadQuery: query, Err: err}
 	}
 
 	// 4. Recurse down into the newly expanded AST
@@ -1538,7 +1538,7 @@ func (s *Backend) ValidateQueryReferences(ctx context.Context, query string, upd
 	parser := searchtypes.FeaturesSearchQueryParser{}
 	node, err := parser.Parse(query)
 	if err != nil {
-		return err
+		return &backendtypes.QueryParseError{BadQuery: query, Err: err}
 	}
 
 	// Unwrap ROOT and PARENS nodes if present to find the actual term.

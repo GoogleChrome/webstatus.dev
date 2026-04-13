@@ -53,6 +53,9 @@ func NewHTMLRenderer(webStatusBaseURL string) (*HTMLRenderer, error) {
 		"formatBaselineStatus": r.formatBaselineStatus,
 		"badgeBackgroundColor": badgeBackgroundColor,
 		"sortedBrowserChanges": r.sortedBrowserChanges,
+		"queryErrorMessage": func(code workertypes.SummaryQueryErrorCode) string {
+			return code.Message()
+		},
 	}
 
 	// Parse both the components and the main template
@@ -196,6 +199,7 @@ type templateData struct {
 	SearchName                string
 	Query                     string
 	SummaryText               string
+	QueryErrors               []workertypes.SummaryQueryError
 	BaselineNewlyChanges      []workertypes.SummaryHighlight
 	BaselineWidelyChanges     []workertypes.SummaryHighlight
 	BaselineRegressionChanges []workertypes.SummaryHighlight
@@ -253,6 +257,7 @@ func (g *templateDataGenerator) VisitV1(summary workertypes.EventSummary) error 
 		SearchName:  g.job.Metadata.SearchName,
 		Query:       g.job.Metadata.Query,
 		SummaryText: summary.Text,
+		QueryErrors: summary.QueryErrors,
 		Truncated:   summary.Truncated,
 		BaseURL:     g.baseURL,
 		UnsubscribeURL: fmt.Sprintf("%s/settings/subscriptions?unsubscribe=%s",

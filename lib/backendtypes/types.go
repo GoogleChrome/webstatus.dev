@@ -16,6 +16,7 @@ package backendtypes
 
 import (
 	"errors"
+	"fmt"
 	"log/slog"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
@@ -79,6 +80,15 @@ var (
 		"query cannot consist entirely of a single saved search or hotlist",
 	)
 )
+
+type QueryParseError struct {
+	BadQuery string
+	Err      error
+}
+
+func (e *QueryParseError) Error() string {
+	return fmt.Sprintf("query cannot be parsed correctly: %s", e.BadQuery)
+}
 
 type UserProfile struct {
 	UserID       string

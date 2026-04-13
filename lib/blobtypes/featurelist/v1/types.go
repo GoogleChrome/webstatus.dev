@@ -101,12 +101,30 @@ type BrowserState struct {
 	Version generic.OptionallySet[*string]                     `json:"version,omitzero"`
 }
 
+type QueryErrorCode string
+
+const (
+	ErrorCodeSavedSearchNotFound         QueryErrorCode = "SAVED_SEARCH_NOT_FOUND"
+	ErrorCodeHotlistNotFound             QueryErrorCode = "HOTLIST_NOT_FOUND"
+	ErrorCodeSavedSearchCycleDetected    QueryErrorCode = "SAVED_SEARCH_CYCLE_DETECTED"
+	ErrorCodeSavedSearchMaxDepthExceeded QueryErrorCode = "SAVED_SEARCH_MAX_DEPTH_EXCEEDED"
+	ErrorCodeQueryGrammar                QueryErrorCode = "QUERY_GRAMMAR_INVALID"
+	ErrorCodeFeatureNotFound             QueryErrorCode = "FEATURE_NOT_FOUND"
+	ErrorCodeInvalidQuery                QueryErrorCode = "INVALID_QUERY"
+	ErrorCodeUnknown                     QueryErrorCode = "UNKNOWN_ERROR"
+)
+
+type QueryError struct {
+	Code QueryErrorCode `json:"code,omitzero"`
+}
+
 type StateMetadata struct {
-	ID             string    `json:"id"`
-	GeneratedAt    time.Time `json:"generatedAt"`
-	SearchID       string    `json:"searchId"`
-	QuerySignature string    `json:"querySignature"`
-	EventID        string    `json:"eventId,omitempty"`
+	ID             string       `json:"id"`
+	GeneratedAt    time.Time    `json:"generatedAt"`
+	SearchID       string       `json:"searchId"`
+	QuerySignature string       `json:"querySignature"`
+	QueryErrors    []QueryError `json:"queryErrors,omitzero"`
+	EventID        string       `json:"eventId,omitempty"`
 }
 
 type Docs struct {

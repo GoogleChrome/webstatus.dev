@@ -35,8 +35,9 @@ func TestRenderDigest_Golden(t *testing.T) {
 
 	// Setup complex test data to exercise all templates
 	summary := workertypes.EventSummary{
-		SchemaVersion: "v1",
-		Text:          "11 features changed",
+		SchemaVersion:  "v1",
+		SnapshotOrigin: workertypes.OriginLive,
+		Text:           "11 features changed",
 		Categories: workertypes.SummaryCategories{
 			Updated:         5,
 			Added:           2,
@@ -49,7 +50,8 @@ func TestRenderDigest_Golden(t *testing.T) {
 			UpdatedRename:   0,
 			UpdatedBaseline: 3,
 		},
-		Truncated: false,
+		Truncated:   false,
+		QueryErrors: nil,
 		Highlights: []workertypes.SummaryHighlight{
 			{
 				// Case 1: Baseline Widely (with multiple docs)
@@ -424,6 +426,84 @@ func TestRenderDigest_Golden(t *testing.T) {
 	}
 
 	goldenFile := filepath.Join("testdata", "digest.golden.html")
+
+	if *updateGolden {
+		if err := os.MkdirAll("testdata", 0755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(goldenFile, []byte(body), 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	expected, err := os.ReadFile(goldenFile)
+	if err != nil {
+		t.Fatalf("failed to read golden file: %v", err)
+	}
+
+	if diff := cmp.Diff(string(expected), body); diff != "" {
+		t.Errorf("HTML mismatch (-want +got):\n%s", diff)
+	}
+}
+
+func TestRenderDigest_QueryError_Golden(t *testing.T) {
+	summary := workertypes.EventSummary{
+		SchemaVersion:  "v1",
+		Text:           "Query failed",
+		SnapshotOrigin: workertypes.OriginFallbackPrevious,
+		Categories: workertypes.SummaryCategories{
+			QueryChanged:    0,
+			Added:           0,
+			Removed:         0,
+			Deleted:         0,
+			Moved:           0,
+			Split:           0,
+			Updated:         0,
+			UpdatedImpl:     0,
+			UpdatedRename:   0,
+			UpdatedBaseline: 0,
+		},
+		Truncated: false,
+		QueryErrors: []workertypes.SummaryQueryError{
+			{Code: workertypes.SummaryQueryErrorCodeSavedSearchNotFound},
+		},
+		Highlights: nil,
+	}
+	summaryRaw, err := json.Marshal(summary)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	job := workertypes.IncomingEmailDeliveryJob{
+		EmailDeliveryJob: workertypes.EmailDeliveryJob{
+			SummaryRaw:     summaryRaw,
+			RecipientEmail: "user@example.com",
+			SubscriptionID: "sub-123",
+			ChannelID:      "chan-1",
+			Metadata: workertypes.DeliveryMetadata{
+				SearchName:  "My CSS Search",
+				Query:       "group:css",
+				Frequency:   workertypes.FrequencyWeekly,
+				EventID:     "evt-123",
+				SearchID:    "s-1",
+				GeneratedAt: time.Now(),
+			},
+			Triggers: nil,
+		},
+		EmailEventID: "email-event-id",
+	}
+
+	renderer, err := NewHTMLRenderer("http://localhost:5555")
+	if err != nil {
+		t.Fatalf("NewHTMLRenderer failed: %v", err)
+	}
+
+	_, body, err := renderer.RenderDigest(job)
+	if err != nil {
+		t.Fatalf("RenderDigest failed: %v", err)
+	}
+
+	goldenFile := filepath.Join("testdata", "digest_query_error.golden.html")
 
 	if *updateGolden {
 		if err := os.MkdirAll("testdata", 0755); err != nil {
