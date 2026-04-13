@@ -283,6 +283,15 @@ func userSavedSearchesPageEquality(left, right *UserSavedSearchesPage) bool {
 
 func TestListAllSavedSearches(t *testing.T) {
 	restartDatabaseContainer(t)
+
+	// Fetch initial searches (e.g. system-seeded searches from migrations) to dynamically
+	// calculate expected count and avoid brittle hardcoding. Note that some migrations
+	// include populating this table with system-wide searches.
+	initialDetails, err := spannerClient.ListAllSavedSearches(context.Background())
+	if err != nil {
+		t.Fatalf("expected nil error fetching initial searches. received %s", err)
+	}
+
 	searches := loadFakeSavedSearches(t)
 
 	t.Run("list all saved search IDs", func(t *testing.T) {
@@ -291,15 +300,21 @@ func TestListAllSavedSearches(t *testing.T) {
 			t.Errorf("expected nil error. received %s", err)
 		}
 
-		if len(details) != len(searches) {
-			t.Errorf("expected %d results. received %d", len(searches), len(details))
+		expectedLen := len(searches) + len(initialDetails)
+		if len(details) != expectedLen {
+			t.Errorf("expected %d results. received %d", expectedLen, len(details))
 		}
 
 		// Build expected details list from created searches (which have generated IDs)
-		expectedDetails := make([]SavedSearchBriefDetails, len(searches))
-		for idx, search := range searches {
-			expectedDetails[idx] = SavedSearchBriefDetails{ID: search.ID, Name: search.Name, Query: search.Query}
+		expectedDetails := make([]SavedSearchBriefDetails, 0, len(searches)+len(initialDetails))
+		for _, search := range searches {
+			expectedDetails = append(expectedDetails, SavedSearchBriefDetails{
+				ID:    search.ID,
+				Name:  search.Name,
+				Query: search.Query,
+			})
 		}
+		expectedDetails = append(expectedDetails, initialDetails...)
 
 		slices.SortFunc(expectedDetails, sortSavedSearchBriefDetails)
 		slices.SortFunc(details, sortSavedSearchBriefDetails)
