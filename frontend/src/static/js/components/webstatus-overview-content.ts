@@ -48,11 +48,14 @@ import {
   type APIClient,
   type SuccessResponsePageableData,
 } from '../api/client.js';
+
+const DEFAULT_GLOBAL_SEARCH_ID = 'all';
 import {WebstatusSavedSearchEditor} from './webstatus-saved-search-editor.js';
 import {
   formatOverviewPageUrl,
   getEditSavedSearch,
   getOrigin,
+  QueryStringOverrides,
   updatePageUrl,
 } from '../utils/urls.js';
 import {
@@ -60,6 +63,11 @@ import {
   SavedSearchOperationType,
   UserSavedSearch,
 } from '../utils/constants.js';
+
+interface SubscribeButtonConfig {
+  id: string;
+  title: string;
+}
 
 @customElement('webstatus-overview-content')
 export class WebstatusOverviewContent extends LitElement {
@@ -95,6 +103,54 @@ export class WebstatusOverviewContent extends LitElement {
 
   @query('webstatus-saved-search-editor')
   savedSearchEditor!: WebstatusSavedSearchEditor;
+
+  get subscribeButtonConfig(): SubscribeButtonConfig | null {
+    const savedSearch = savedSearchHelpers.getCurrentSavedSearch(
+      this.appBookmarkInfo,
+    );
+    const userSavedSearch =
+      savedSearch?.scope === SavedSearchScope.UserSavedSearch
+        ? savedSearch
+        : undefined;
+
+    const isHomePage = !this.activeQuery.trim() && !savedSearch;
+
+    if (userSavedSearch) {
+      return {
+        id: userSavedSearch.value.id,
+        title: userSavedSearch.value.name,
+      };
+    }
+
+    if (savedSearch?.scope === SavedSearchScope.GlobalSavedSearch) {
+      // Defensive: If the global search object is missing an ID,
+      // return null so we don't render a broken button.
+      if (!savedSearch.value.id) return null;
+      return {
+        id: savedSearch.value.id ?? '',
+        title: savedSearch.value.name,
+      };
+    }
+
+    if (isHomePage) {
+      return {
+        id: DEFAULT_GLOBAL_SEARCH_ID,
+        title: 'All Features',
+      };
+    }
+
+    return null;
+  }
+
+  get pageDisplayData(): {title: string; description?: string} {
+    const savedSearch = savedSearchHelpers.getCurrentSavedSearch(
+      this.appBookmarkInfo,
+    );
+    return {
+      title: savedSearch ? savedSearch.value.name : 'Features overview',
+      description: savedSearch?.value.description,
+    };
+  }
 
   static get styles(): CSSResultGroup {
     return [
@@ -191,8 +247,8 @@ export class WebstatusOverviewContent extends LitElement {
     overrides: {edit_saved_search?: boolean},
   ) => void = updatePageUrl;
   _formatOverviewPageUrl: (
-    location: {search: string},
-    overrides: {search_id?: string},
+    location?: {search: string},
+    overrides?: QueryStringOverrides,
   ) => string = formatOverviewPageUrl;
 
   protected async updated(
@@ -208,7 +264,7 @@ export class WebstatusOverviewContent extends LitElement {
         this.savedSearch,
         this.savedSearch.query,
       );
-      this._updatePageUrl('', this.location, {edit_saved_search: undefined});
+      this._updatePageUrl('', this.location, {edit_saved_search: false});
     }
   }
 
@@ -216,27 +272,27 @@ export class WebstatusOverviewContent extends LitElement {
     const savedSearch = savedSearchHelpers.getCurrentSavedSearch(
       this.appBookmarkInfo,
     );
-    const pageTitle = savedSearch
-      ? savedSearch.value.name
-      : 'Features overview';
-    const pageDescription = savedSearch?.value.description;
+    const {title, description} = this.pageDisplayData;
+
     const userSavedSearch =
       savedSearch?.scope === SavedSearchScope.UserSavedSearch
         ? savedSearch
         : undefined;
+    const config = this.subscribeButtonConfig;
 
     return html` <div class="main">
         <div class="hbox halign-items-space-between header-line">
-          <h1 class="halign-stretch" id="overview-title">${pageTitle}</h1>
-          ${userSavedSearch
+          <h1 class="halign-stretch" id="overview-title">${title}</h1>
+          ${config
             ? html`<webstatus-subscribe-button
-                .savedSearchId=${userSavedSearch.value.id}
+                .savedSearchId=${config.id}
+                .searchTitle=${config.title}
               ></webstatus-subscribe-button>`
             : nothing}
         </div>
-        ${pageDescription
+        ${description
           ? html`<div class="hbox wrap" id="overview-description">
-              <h3>${pageDescription}</h3>
+              <h3>${description}</h3>
             </div>`
           : nothing}
         <div class="hbox">${this.renderCount()}</div>

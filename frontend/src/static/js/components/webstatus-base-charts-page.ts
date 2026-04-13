@@ -96,11 +96,19 @@ export class BaseChartsPage extends LitElement {
           ? dateRange.end
           : DEFAULT_END_DATE;
 
-      // Update the URL with the potentially reset dates
+      // Update the URL only if the dates were reset to defaults due to invalidity.
+      // This avoids infinite loops caused by unconditional updatePageUrl calls
+      // which now dispatch popstate events.
       // TODO. We should display a message that we reset the values.
-      this._updatePageUrl(this.location.pathname, this.location, {
-        dateRange: {start: this.startDate, end: this.endDate},
-      });
+      const datesChanged =
+        dateRange.start?.getTime() !== this.startDate.getTime() ||
+        dateRange.end?.getTime() !== this.endDate.getTime();
+
+      if (datesChanged) {
+        this._updatePageUrl(this.location.pathname, this.location, {
+          dateRange: {start: this.startDate, end: this.endDate},
+        });
+      }
     }
   }
 

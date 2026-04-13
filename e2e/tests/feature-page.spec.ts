@@ -20,6 +20,7 @@ import {
   resetUserData,
   loginAsUser,
   expectDualThemeScreenshot,
+  waitForSidebarLoaded,
   waitForTabbedChartCompletion,
 } from './utils';
 
@@ -43,6 +44,7 @@ test('matches the screenshot', async ({page}) => {
   );
 
   const pageContainer = page.locator('.page-container');
+  await waitForSidebarLoaded(page);
   await expectDualThemeScreenshot(page, pageContainer, 'feature-page');
 });
 
@@ -59,6 +61,7 @@ test('matches the screenshot for a discouraged feature', async ({page}) => {
   );
 
   const pageContainer = page.locator('.page-container');
+  await waitForSidebarLoaded(page);
   await expectDualThemeScreenshot(
     page,
     pageContainer,
@@ -126,6 +129,7 @@ test('mobile chart displays on click and matches screenshot', async ({
   );
 
   const pageContainer = page.locator('.page-container');
+  await waitForSidebarLoaded(page);
   await expectDualThemeScreenshot(page, pageContainer, 'feature-page-mobile');
 });
 
@@ -237,6 +241,7 @@ test('redirects for a moved feature', async ({page}) => {
 
   // Take a screenshot for visual verification.
   const pageContainer = page.locator('.page-container');
+  await waitForSidebarLoaded(page);
   await expectDualThemeScreenshot(page, pageContainer, 'feature-page-redirect');
 });
 
@@ -261,6 +266,7 @@ test('shows gone page for a split feature', async ({page}) => {
 
   // Take a screenshot for visual verification.
   const pageContainer = page.locator('.container'); // Assuming a generic container for the error page.
+  await waitForSidebarLoaded(page);
   await expectDualThemeScreenshot(page, pageContainer, 'feature-gone-split');
 });
 

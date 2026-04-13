@@ -17,6 +17,24 @@
 import {test, expect, Page} from '@playwright/test';
 import {gotoOverviewPageUrl, loginAsUser, resetUserData} from './utils';
 
+function expectUrlsEqual(actualUrlStr: string, expectedUrlStr: string) {
+  const actual = new URL(actualUrlStr);
+  const expected = new URL(expectedUrlStr);
+
+  expect(actual.origin).toBe(expected.origin);
+  expect(actual.pathname).toBe(expected.pathname);
+
+  // Verify all expected query params match
+  expected.searchParams.forEach((value, key) => {
+    expect(actual.searchParams.get(key)).toBe(value);
+  });
+
+  // Verify no unexpected extra query params exist
+  expect(Array.from(actual.searchParams.keys()).length).toBe(
+    Array.from(expected.searchParams.keys()).length,
+  );
+}
+
 const USER1 = {
   username: 'test user 1',
   userID: 'abcdedf1234567890',
@@ -61,9 +79,9 @@ const saveButtonLocator = (page: Page) =>
 const shareButtonLocator = (page: Page) =>
   controlsLocator(page).getByLabel('Copy', {exact: true});
 const bookmarkEmptyIconLocator = (page: Page) =>
-  page.getByRole('button', {name: 'Bookmark', exact: true});
+  controlsLocator(page).getByRole('button', {name: 'Bookmark', exact: true});
 const bookmarkFilledIconLocator = (page: Page) =>
-  page.getByRole('button', {name: 'Unbookmark', exact: true});
+  controlsLocator(page).getByRole('button', {name: 'Unbookmark', exact: true});
 const editIconLocator = (page: Page) =>
   controlsLocator(page).getByRole('button', {name: 'Edit'});
 const deleteIconLocator = (page: Page) =>
@@ -92,10 +110,10 @@ const editorAlertLocator = (page: Page) =>
   editorLocator(page).locator('sl-alert#editor-alert');
 
 test.describe('Saved Searches on Overview Page', () => {
-  test.beforeAll(async () => {
+  test.beforeEach(async () => {
     await resetUserData();
   });
-  test.afterAll(async () => {
+  test.afterEach(async () => {
     await resetUserData();
   });
 
@@ -103,8 +121,10 @@ test.describe('Saved Searches on Overview Page', () => {
     page.on('dialog', dialog => dialog.accept());
     // Navigate and potentially clear state if needed
     await gotoOverviewPageUrl(page, 'http://localhost:5555');
-    // Ensure no search_id is present initially for some tests
-    await page.waitForURL(url => !url.searchParams.has('search_id'));
+    // Ensure no saved search is present initially for some tests
+    await page.waitForURL(
+      url => !url.searchParams.get('q')?.includes('saved:'),
+    );
   });
 
   test('User 1 can save a new search', async ({page}) => {
@@ -136,10 +156,11 @@ test.describe('Saved Searches on Overview Page', () => {
     // 4. Submit
     await editorSubmitButtonLocator(page).click();
 
-    // 5. Verify dialog closes and URL updates with search_id
+    // 5. Verify dialog closes and URL updates with q=saved:ID
     await expect(editorDialogLocator(page)).not.toBeVisible();
-    await page.waitForURL(url => url.searchParams.has('search_id'));
-    const searchId = new URL(page.url()).searchParams.get('search_id');
+    await page.waitForURL(url => url.searchParams.get('q')?.includes('saved:'));
+    const qParam = new URL(page.url()).searchParams.get('q');
+    const searchId = qParam?.split(':')[1];
     expect(searchId).toBeTruthy();
 
     // 6. Verify overview page shows description and name
@@ -153,9 +174,11 @@ test.describe('Saved Searches on Overview Page', () => {
     await loginAsUser(page, USER1.username);
     await gotoOverviewPageUrl(
       page,
-      `http://localhost:5555?search_id=${USER1_SEARCH1.id}`,
+      `http://localhost:5555?q=saved:${USER1_SEARCH1.id}`,
     );
-    await page.waitForURL(`**/*search_id=${USER1_SEARCH1.id}*`);
+    await page.waitForURL(
+      url => url.searchParams.get('q') === `saved:${USER1_SEARCH1.id}`,
+    );
 
     // Verify controls are present
     await expect(saveButtonLocator(page)).toBeVisible();
@@ -175,9 +198,11 @@ test.describe('Saved Searches on Overview Page', () => {
     await loginAsUser(page, USER1.username);
     await gotoOverviewPageUrl(
       page,
-      `http://localhost:5555?search_id=${USER2_SEARCH1.id}`,
+      `http://localhost:5555?q=saved:${USER2_SEARCH1.id}`,
     ); // User 1 views User 2's search
-    await page.waitForURL(`**/*search_id=${USER2_SEARCH1.id}*`);
+    await page.waitForURL(
+      url => url.searchParams.get('q') === `saved:${USER2_SEARCH1.id}`,
+    );
 
     // Verify controls are present
     await expect(saveButtonLocator(page)).toBeVisible();
@@ -197,9 +222,11 @@ test.describe('Saved Searches on Overview Page', () => {
     await loginAsUser(page, USER2.username);
     await gotoOverviewPageUrl(
       page,
-      `http://localhost:5555?search_id=${USER1_SEARCH1.id}`,
+      `http://localhost:5555?q=saved:${USER1_SEARCH1.id}`,
     ); // User 2 views User 1's search
-    await page.waitForURL(`**/*search_id=${USER1_SEARCH1.id}*`);
+    await page.waitForURL(
+      url => url.searchParams.get('q') === `saved:${USER1_SEARCH1.id}`,
+    );
 
     // Verify controls are present
     await expect(saveButtonLocator(page)).toBeVisible();
@@ -217,9 +244,11 @@ test.describe('Saved Searches on Overview Page', () => {
     await loginAsUser(page, USER1.username);
     await gotoOverviewPageUrl(
       page,
-      `http://localhost:5555?search_id=${USER1_SEARCH1.id}`,
+      `http://localhost:5555?q=saved:${USER1_SEARCH1.id}`,
     );
-    await page.waitForURL(`**/*search_id=${USER1_SEARCH1.id}*`);
+    await page.waitForURL(
+      url => url.searchParams.get('q') === `saved:${USER1_SEARCH1.id}`,
+    );
 
     const updatedName = 'My Updated Query Name';
     const updatedDescription = 'Description is now updated.';
@@ -257,7 +286,7 @@ test.describe('Saved Searches on Overview Page', () => {
     await gotoOverviewPageUrl(page, 'http://localhost:5555');
     await gotoOverviewPageUrl(
       page,
-      `http://localhost:5555?search_id=${USER1_SEARCH1.id}`,
+      `http://localhost:5555?q=saved:${USER1_SEARCH1.id}`,
     );
     await expect(mainTitleLocator(page)).toContainText(updatedName);
     await expect(mainDescriptionLocator(page)).toContainText(
@@ -270,9 +299,11 @@ test.describe('Saved Searches on Overview Page', () => {
     // Use the second search to avoid conflicts if other tests rely on the first one
     await gotoOverviewPageUrl(
       page,
-      `http://localhost:5555?search_id=${USER1_SEARCH2.id}`,
+      `http://localhost:5555?q=saved:${USER1_SEARCH2.id}`,
     );
-    await page.waitForURL(`**/*search_id=${USER1_SEARCH2.id}*`);
+    await page.waitForURL(
+      url => url.searchParams.get('q') === `saved:${USER1_SEARCH2.id}`,
+    );
 
     // 1. Click delete icon
     await deleteIconLocator(page).click();
@@ -290,7 +321,9 @@ test.describe('Saved Searches on Overview Page', () => {
 
     // 3. Verify dialog closes and URL updates (removes search_id)
     await expect(editorDialogLocator(page)).not.toBeVisible();
-    await page.waitForURL(url => !url.searchParams.has('search_id'));
+    await page.waitForURL(
+      url => !url.searchParams.get('q')?.includes('saved:'),
+    );
 
     // 4. Verify controls no longer show the deleted search
     await expect(editIconLocator(page)).not.toBeVisible();
@@ -301,9 +334,11 @@ test.describe('Saved Searches on Overview Page', () => {
     await loginAsUser(page, USER2.username);
     await gotoOverviewPageUrl(
       page,
-      `http://localhost:5555?search_id=${USER1_SEARCH1.id}`,
+      `http://localhost:5555?q=saved:${USER1_SEARCH1.id}`,
     ); // User 2 views User 1's search
-    await page.waitForURL(`**/*search_id=${USER1_SEARCH1.id}*`);
+    await page.waitForURL(
+      url => url.searchParams.get('q') === `saved:${USER1_SEARCH1.id}`,
+    );
 
     // 1. Verify empty star is present
     await expect(bookmarkEmptyIconLocator(page)).toBeVisible();
@@ -318,7 +353,9 @@ test.describe('Saved Searches on Overview Page', () => {
 
     // 4. Refresh and verify persistence
     await page.reload();
-    await page.waitForURL(`**/*search_id=${USER1_SEARCH1.id}*`);
+    await page.waitForURL(
+      url => url.searchParams.get('q') === `saved:${USER1_SEARCH1.id}`,
+    );
     await expect(bookmarkFilledIconLocator(page)).toBeVisible();
   });
 
@@ -326,10 +363,12 @@ test.describe('Saved Searches on Overview Page', () => {
     await loginAsUser(page, USER1.username);
     await gotoOverviewPageUrl(
       page,
-      `http://localhost:5555?search_id=${USER2_SEARCH1.id}`,
+      `http://localhost:5555?q=saved:${USER2_SEARCH1.id}`,
     );
     // User 1 views User 2's search (which they bookmarked)
-    await page.waitForURL(`**/*search_id=${USER2_SEARCH1.id}*`);
+    await page.waitForURL(
+      url => url.searchParams.get('q') === `saved:${USER2_SEARCH1.id}`,
+    );
 
     // 1. Verify filled star is present
     await expect(bookmarkFilledIconLocator(page)).toBeVisible();
@@ -356,19 +395,20 @@ test.describe('Saved Searches on Overview Page', () => {
     await loginAsUser(page, USER1.username);
     await gotoOverviewPageUrl(
       page,
-      `http://localhost:5555?search_id=${USER1_SEARCH1.id}`,
+      `http://localhost:5555?q=saved:${USER1_SEARCH1.id}`,
     );
-    await page.waitForURL(`**/*search_id=${USER1_SEARCH1.id}*`);
+    await page.waitForURL(
+      url => url.searchParams.get('q') === `saved:${USER1_SEARCH1.id}`,
+    );
 
     // Click the share icon
     await shareButtonLocator(page).click();
 
     // Verify clipboard content
-    const expectedUrl = `${page.url()}`; // The current URL should be the shareable one
     const clipboardText = await page.evaluate(() =>
       navigator.clipboard.readText(),
     );
-    expect(clipboardText).toBe(expectedUrl);
+    expectUrlsEqual(clipboardText, page.url());
   });
 
   test('Edit dialog opens automatically with edit_saved_search=true URL parameter', async ({
@@ -377,7 +417,7 @@ test.describe('Saved Searches on Overview Page', () => {
     await loginAsUser(page, USER1.username);
     await gotoOverviewPageUrl(
       page,
-      `http://localhost:5555?search_id=${USER1_SEARCH1.id}&edit_saved_search=true`,
+      `http://localhost:5555?q=saved:${USER1_SEARCH1.id}&edit_saved_search=true`,
     );
 
     // Verify dialog opens automatically
@@ -428,7 +468,7 @@ test.describe('Saved Searches on Overview Page', () => {
     await editorNameInputLocator(page).fill('My Firefox Search');
     await editorSubmitButtonLocator(page).click();
     await expect(editorDialogLocator(page)).not.toBeVisible(); // Should close now
-    await page.waitForURL(url => url.searchParams.has('search_id'));
+    await page.waitForURL(url => url.searchParams.get('q')?.includes('saved:'));
   });
 
   test.describe('Subscriptions', () => {
@@ -436,9 +476,9 @@ test.describe('Saved Searches on Overview Page', () => {
       await loginAsUser(page, USER1.username);
       await gotoOverviewPageUrl(
         page,
-        `http://localhost:5555?search_id=${USER1_SEARCH1.id}`,
+        `http://localhost:5555?q=saved:${USER1_SEARCH1.id}`,
       );
-      await page.getByRole('button', {name: 'Subscribe'}).click();
+      await page.getByTestId('subscribe-button').click();
       const dialog = page.locator('webstatus-manage-subscriptions-dialog');
       await expect(
         dialog.getByRole('heading', {name: 'Manage notifications'}),
@@ -469,9 +509,9 @@ test.describe('Saved Searches on Overview Page', () => {
       await loginAsUser(page, USER1.username);
       await gotoOverviewPageUrl(
         page,
-        `http://localhost:5555?search_id=${USER1_SEARCH1.id}`,
+        `http://localhost:5555?q=saved:${USER1_SEARCH1.id}`,
       );
-      await page.getByRole('button', {name: 'Subscribe'}).click();
+      await page.getByTestId('subscribe-button').click();
       const dialog = page.locator('webstatus-manage-subscriptions-dialog');
       await expect(
         dialog.getByRole('heading', {name: 'Manage notifications'}),
@@ -504,9 +544,9 @@ test.describe('Saved Searches on Overview Page', () => {
       await loginAsUser(page, USER1.username);
       await gotoOverviewPageUrl(
         page,
-        `http://localhost:5555?search_id=${USER1_SEARCH1.id}`,
+        `http://localhost:5555?q=saved:${USER1_SEARCH1.id}`,
       );
-      await page.getByRole('button', {name: 'Subscribe'}).click();
+      await page.getByTestId('subscribe-button').click();
       const dialog = page.locator('webstatus-manage-subscriptions-dialog');
       await expect(
         dialog.getByRole('heading', {name: 'Manage notifications'}),
@@ -530,9 +570,9 @@ test.describe('Saved Searches on Overview Page', () => {
       await loginAsUser(page, USER2.username);
       await gotoOverviewPageUrl(
         page,
-        `http://localhost:5555?search_id=${USER1_SEARCH1.id}`,
+        `http://localhost:5555?q=saved:${USER1_SEARCH1.id}`,
       );
-      await page.getByRole('button', {name: 'Subscribe'}).click();
+      await page.getByTestId('subscribe-button').click();
       const dialog = page.locator('webstatus-manage-subscriptions-dialog');
       await expect(
         dialog.getByRole('heading', {name: 'Manage notifications'}),
@@ -560,5 +600,20 @@ test.describe('Saved Searches on Overview Page', () => {
         page.locator('sl-alert', {hasText: 'Subscription saved!'}),
       ).toBeVisible();
     });
+  });
+
+  test('Legacy search_id URL upgrades to q=saved:ID', async ({page}) => {
+    await loginAsUser(page, USER1.username);
+
+    // Navigate using legacy URL
+    await page.goto(`http://localhost:5555?search_id=${USER1_SEARCH1.id}`);
+
+    // Verify it redirects to query-based URL
+    await page.waitForURL(
+      url => url.searchParams.get('q') === `saved:${USER1_SEARCH1.id}`,
+    );
+
+    // Verify overview page shows correct title (proving it loaded the saved search)
+    await expect(mainTitleLocator(page)).toHaveText(USER1_SEARCH1.name);
   });
 });
