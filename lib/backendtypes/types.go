@@ -61,6 +61,21 @@ var (
 	// was valid but empty (e.g., an empty array or object). This allows callers to distinguish
 	// between a missing value and an explicitly empty one.
 	ErrEmptyJSONValue = errors.New("JSON value is empty")
+
+	// ErrSavedSearchMaxDepthExceeded indicates that the saved search expansion exceeded the maximum depth.
+	ErrSavedSearchMaxDepthExceeded = errors.New("saved search expansion exceeded maximum depth")
+
+	// ErrSavedSearchCycleDetected indicates a cycle was detected in saved search expansion.
+	ErrSavedSearchCycleDetected = errors.New("cycle detected in saved search expansion")
+
+	// ErrSavedSearchNotFound indicates the saved search was not found.
+	ErrSavedSearchNotFound = errors.New("saved search not found")
+
+	// ErrHotlistNotFound indicates the hotlist was not found.
+	ErrHotlistNotFound = errors.New("hotlist not found")
+
+	// ErrQueryConsistsEntirelyOfSavedSearch indicates the query consists entirely of a saved search.
+	ErrQueryConsistsEntirelyOfSavedSearch = errors.New("query consists entirely of a saved search")
 )
 
 type UserProfile struct {
