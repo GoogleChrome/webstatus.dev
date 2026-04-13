@@ -23,6 +23,7 @@ import (
 	"strings"
 	"time"
 
+	v1 "github.com/GoogleChrome/webstatus.dev/lib/blobtypes/featurelistdiff/v1"
 	"github.com/GoogleChrome/webstatus.dev/lib/workertypes"
 )
 
@@ -196,6 +197,7 @@ type templateData struct {
 	SearchName                string
 	Query                     string
 	SummaryText               string
+	QueryErrors               []v1.QueryError
 	BaselineNewlyChanges      []workertypes.SummaryHighlight
 	BaselineWidelyChanges     []workertypes.SummaryHighlight
 	BaselineRegressionChanges []workertypes.SummaryHighlight
@@ -253,6 +255,7 @@ func (g *templateDataGenerator) VisitV1(summary workertypes.EventSummary) error 
 		SearchName:  g.job.Metadata.SearchName,
 		Query:       g.job.Metadata.Query,
 		SummaryText: summary.Text,
+		QueryErrors: summary.QueryErrors,
 		Truncated:   summary.Truncated,
 		BaseURL:     g.baseURL,
 		UnsubscribeURL: fmt.Sprintf("%s/settings/subscriptions?unsubscribe=%s",

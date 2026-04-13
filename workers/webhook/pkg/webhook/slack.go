@@ -25,6 +25,7 @@ import (
 	"strings"
 	"time"
 
+	v1 "github.com/GoogleChrome/webstatus.dev/lib/blobtypes/featurelistdiff/v1"
 	"github.com/GoogleChrome/webstatus.dev/lib/httputils"
 	"github.com/GoogleChrome/webstatus.dev/lib/workertypes"
 )
@@ -87,6 +88,7 @@ func (s *slackSender) Send(ctx context.Context) error {
 			query:                     query,
 			resultsURL:                resultsURL,
 			summary:                   summary,
+			queryErrors:               nil,
 			baselineNewlyChanges:      nil,
 			baselineWidelyChanges:     nil,
 			baselineRegressionChanges: nil,
@@ -144,6 +146,7 @@ type slackPayloadBuilder struct {
 	query           string
 	resultsURL      string
 	summary         workertypes.EventSummary
+	queryErrors     []v1.QueryError
 
 	baselineNewlyChanges      []workertypes.SummaryHighlight
 	baselineWidelyChanges     []workertypes.SummaryHighlight
@@ -168,6 +171,7 @@ type browserChangeData struct {
 
 func (b *slackPayloadBuilder) VisitV1(summary workertypes.EventSummary) error {
 	b.summary = summary
+	b.queryErrors = summary.QueryErrors
 
 	filtered := workertypes.FilterHighlights(summary.Highlights, b.triggers)
 	if len(filtered) != 0 {
@@ -244,6 +248,7 @@ func (b *slackPayloadBuilder) buildPayload(searchName string) SlackPayload {
 	blocks = append(blocks, sectionBlock(introText))
 	blocks = append(blocks, dividerBlock())
 
+	blocks = b.appendQueryErrors(blocks)
 	blocks = b.appendBaselineChanges(blocks)
 	blocks = b.appendRegressions(blocks)
 	blocks = b.appendBrowserChanges(blocks)
@@ -263,6 +268,17 @@ func (b *slackPayloadBuilder) buildPayload(searchName string) SlackPayload {
 		Text:   "",
 		Blocks: blocks,
 	}
+}
+
+func (b *slackPayloadBuilder) appendQueryErrors(blocks []any) []any {
+	if len(b.queryErrors) > 0 {
+		for _, err := range b.queryErrors {
+			blocks = append(blocks, sectionBlock("⚠️ *"+err.Message+"*"))
+		}
+		blocks = append(blocks, dividerBlock())
+	}
+
+	return blocks
 }
 
 func (b *slackPayloadBuilder) appendBaselineChanges(blocks []any) []any {
