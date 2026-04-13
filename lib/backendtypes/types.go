@@ -75,7 +75,9 @@ var (
 	ErrHotlistNotFound = errors.New("hotlist not found")
 
 	// ErrQueryConsistsEntirelyOfSavedSearch indicates the query consists entirely of a saved search.
-	ErrQueryConsistsEntirelyOfSavedSearch = errors.New("query consists entirely of a saved search")
+	ErrQueryConsistsEntirelyOfSavedSearch = errors.New(
+		"query cannot consist entirely of a single saved search or hotlist",
+	)
 )
 
 type UserProfile struct {
