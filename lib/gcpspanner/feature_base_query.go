@@ -46,6 +46,8 @@ var (
 	gcpFSBrowserImplementationStatusTemplate BaseQueryTemplate
 	// gcpFSBrowserFeatureSupportTemplate is the compiled version of gcpFSBrowserFeatureSupportRawTemplate.
 	gcpFSBrowserFeatureSupportTemplate BaseQueryTemplate
+	// gcpFSSearchIDOrderTemplate is the compiled version of gcpFSSearchIDOrderRawTemplate.
+	gcpFSSearchIDOrderTemplate BaseQueryTemplate
 
 	// localFSMetricsSubQueryTemplate is the compiled version of localFSMetricsSubQueryRawTemplate.
 	localFSMetricsSubQueryTemplate BaseQueryTemplate
@@ -68,6 +70,7 @@ func init() {
 	gcpFSPassRateForBrowserTemplate = NewQueryTemplate(gcpFSPassRateForBrowserRawTemplate)
 	gcpFSBrowserImplementationStatusTemplate = NewQueryTemplate(gcpFSBrowserImplementationStatusRawTemplate)
 	gcpFSBrowserFeatureSupportTemplate = NewQueryTemplate(gcpFSBrowserFeatureSupportRawTemplate)
+	gcpFSSearchIDOrderTemplate = NewQueryTemplate(gcpFSSearchIDOrderRawTemplate)
 
 	localFSMetricsSubQueryTemplate = NewQueryTemplate(localFSMetricsSubQueryRawTemplate)
 	localFSCountQueryTemplate = NewQueryTemplate(localFSCountQueryRawTemplate)
@@ -167,6 +170,11 @@ type LocalFSBrowserFeatureSupportTemplateData struct {
 	BrowserNameParam string
 }
 
+// CommonFSSearchIDOrderTemplateData contains the template data for SearchID ordering.
+type CommonFSSearchIDOrderTemplateData struct {
+	SearchIDParam string
+}
+
 // GCPFSMetricsTemplateData contains the template data for gcpFSMetricsSubQueryTemplate.
 type GCPFSMetricsTemplateData struct {
 	Channel        string
@@ -237,6 +245,11 @@ type SortByBrowserFeatureSupportDetails struct {
 	BrowserName string
 }
 
+// SortBySearchIDOrderDetails contains parameter data for the SearchID sort templates.
+type SortBySearchIDOrderDetails struct {
+	SearchID string
+}
+
 type FeatureSearchQueryArgs struct {
 	MetricView                  WPTMetricView
 	Filters                     []string
@@ -247,6 +260,7 @@ type FeatureSearchQueryArgs struct {
 	SortByStableBrowserImpl     *SortByBrowserImplDetails
 	SortByExpBrowserImpl        *SortByBrowserImplDetails
 	SortByBrowserFeatureSupport *SortByBrowserFeatureSupportDetails
+	SortBySearchIDOrder         *SortBySearchIDOrderDetails
 	Browsers                    []string
 }
 
@@ -424,6 +438,19 @@ COALESCE(
 	`
 	gcpFSBrowserFeatureSupportRawTemplate   = commonFSBrowserFeatureSupportRawTemplate
 	localFSBrowserFeatureSupportRawTemplate = commonFSBrowserFeatureSupportRawTemplate
+
+	commonFSSearchIDOrderRawTemplate = `
+COALESCE(
+    (
+        SELECT PositionIndex
+        FROM SavedSearchFeatureSortOrder
+        WHERE FeatureKey = wf.FeatureKey
+          AND SavedSearchID = @{{ .SearchIDParam }}
+    ),
+    999999999
+) AS PositionIndex
+`
+	gcpFSSearchIDOrderRawTemplate = commonFSSearchIDOrderRawTemplate
 
 	// commonCountQueryRawTemplate returns the count of items, using the base query fragment
 	// for consistency.
@@ -684,6 +711,16 @@ func (f GCPFeatureSearchBaseQuery) Query(args FeatureSearchQueryArgs) (
 				}),
 			Alias: derivedTableSortBrowserFeatureSupport,
 		})
+	} else if args.SortBySearchIDOrder != nil {
+		searchIDParamName := "sortSearchIDParam"
+		params[searchIDParamName] = args.SortBySearchIDOrder.SearchID
+		optionalJoins = append(optionalJoins, JoinData{
+			Template: gcpFSSearchIDOrderTemplate.Execute(
+				CommonFSSearchIDOrderTemplateData{
+					SearchIDParam: searchIDParamName,
+				}),
+			Alias: "sort_search_id_order_calcs",
+		})
 	} else if args.SortByStableBrowserImpl != nil {
 		browserNameParamName := "sortStableBrowserNameMetricParam"
 		params[browserNameParamName] = args.SortByStableBrowserImpl.BrowserName
@@ -830,6 +867,16 @@ func (f LocalFeatureBaseQuery) Query(args FeatureSearchQueryArgs) (
 					BrowserNameParam: browserNameParamName,
 				}),
 			Alias: derivedTableSortBrowserFeatureSupport,
+		})
+	} else if args.SortBySearchIDOrder != nil {
+		searchIDParamName := "sortSearchIDParam"
+		params[searchIDParamName] = args.SortBySearchIDOrder.SearchID
+		optionalJoins = append(optionalJoins, JoinData{
+			Template: gcpFSSearchIDOrderTemplate.Execute(
+				CommonFSSearchIDOrderTemplateData{
+					SearchIDParam: searchIDParamName,
+				}),
+			Alias: "sort_search_id_order_calcs",
 		})
 	}
 

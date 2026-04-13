@@ -277,6 +277,10 @@ type FeatureResultOffsetCursor struct {
 	Offset int `json:"offset"`
 }
 
+type GlobalSavedSearchOffsetCursor struct {
+	Offset int `json:"offset"`
+}
+
 // decodeWPTRunCursor provides a wrapper around the generic decodeCursor.
 func decodeWPTRunCursor(cursor string) (*WPTRunCursor, error) {
 	return decodeCursor[WPTRunCursor](cursor)
@@ -287,6 +291,22 @@ func decodeInputFeatureResultCursor(
 	cursor string) (*FeatureResultOffsetCursor, error) {
 	// Try for the offset based cursor
 	offsetCursor, err := decodeCursor[FeatureResultOffsetCursor](cursor)
+	if err != nil {
+		return nil, err
+	}
+
+	if offsetCursor == nil || offsetCursor.Offset < 0 {
+		return nil, ErrInvalidCursorFormat
+	}
+
+	return offsetCursor, nil
+}
+
+// decodeInputGlobalSavedSearchCursor provides a wrapper around the generic decodeCursor.
+func decodeInputGlobalSavedSearchCursor(
+	cursor string) (*GlobalSavedSearchOffsetCursor, error) {
+	// Try for the offset based cursor
+	offsetCursor, err := decodeCursor[GlobalSavedSearchOffsetCursor](cursor)
 	if err != nil {
 		return nil, err
 	}
@@ -369,6 +389,13 @@ func encodeCursor[T any](in T) string {
 // encodeFeatureResultOffsetCursor provides a wrapper around the generic encodeCursor.
 func encodeFeatureResultOffsetCursor(offset int) string {
 	return encodeCursor(FeatureResultOffsetCursor{
+		Offset: offset,
+	})
+}
+
+// encodeGlobalSavedSearchOffsetCursor provides a wrapper around the generic encodeCursor.
+func encodeGlobalSavedSearchOffsetCursor(offset int) string {
+	return encodeCursor(GlobalSavedSearchOffsetCursor{
 		Offset: offset,
 	})
 }
