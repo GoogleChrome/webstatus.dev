@@ -82,6 +82,25 @@ func (s *Server) ListFeatures(
 			}, nil
 		}
 
+		if errors.Is(err, backendtypes.ErrSavedSearchNotFound) ||
+			errors.Is(err, backendtypes.ErrHotlistNotFound) ||
+			errors.Is(err, backendtypes.ErrSavedSearchCycleDetected) ||
+			errors.Is(err, backendtypes.ErrSavedSearchMaxDepthExceeded) ||
+			errors.Is(err, backendtypes.ErrQueryConsistsEntirelyOfSavedSearch) {
+			slog.WarnContext(ctx, "invalid saved search query", "error", err)
+
+			safeErr := sanitizeValidationError(err)
+			message := "invalid request"
+			if safeErr != nil {
+				message = safeErr.Error()
+			}
+
+			return backend.ListFeatures400JSONResponse{
+				Code:    400,
+				Message: message,
+			}, nil
+		}
+
 		slog.ErrorContext(ctx, "unable to get list of features", "error", err)
 
 		return backend.ListFeatures500JSONResponse{
