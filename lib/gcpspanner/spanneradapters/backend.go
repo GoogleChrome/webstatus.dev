@@ -19,9 +19,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
+	"maps"
 	"math/big"
 	"slices"
+	"strings"
 	"time"
 
 	"cloud.google.com/go/spanner"
@@ -132,6 +135,23 @@ type BackendSpannerClient interface {
 		savedSearchID string,
 		authenticatedUserID *string) (*gcpspanner.UserSavedSearch, error)
 	DeleteUserSavedSearch(ctx context.Context, req gcpspanner.DeleteUserSavedSearchRequest) error
+	ListSystemGlobalSavedSearches(
+		ctx context.Context,
+		pageSize int,
+		pageToken *string,
+	) ([]gcpspanner.SystemGlobalSavedSearch, int64, *string, error)
+	GetSystemGlobalSavedSearch(
+		ctx context.Context,
+		id string,
+	) (*gcpspanner.SystemGlobalSavedSearchWithSortOption, error)
+	GetSavedSearch(
+		ctx context.Context,
+		id string,
+	) (*gcpspanner.SavedSearch, error)
+	GetReferencingSavedSearchIDs(
+		ctx context.Context,
+		id string,
+	) ([]string, error)
 	ListUserSavedSearches(
 		ctx context.Context,
 		userID string,
@@ -561,7 +581,7 @@ func (s *Backend) CreateNotificationChannel(ctx context.Context,
 	var channelType gcpspanner.NotificationChannelType
 	var spannerWebhookConfig *gcpspanner.WebhookConfig
 
-	if cfg, err := req.Config.AsWebhookConfig(); err == nil && cfg.Type == backend.Webhook {
+	if cfg, err := req.Config.AsWebhookConfig(); err == nil && cfg.Type == backend.WebhookConfigTypeWebhook {
 		channelType = gcpspanner.NotificationChannelTypeWebhook
 		spannerWebhookConfig = s.toSpannerWebhookConfig(&cfg)
 	} else {
@@ -635,8 +655,7 @@ func (s *Backend) UpdateNotificationChannel(
 			updateReq.Name.Value = *req.Name
 		case backend.UpdateNotificationChannelRequestMaskConfig:
 			// We need to know the type to know which config to set.
-			if cfg, err := req.Config.AsWebhookConfig(); err == nil &&
-				cfg.Type == backend.Webhook {
+			if cfg, err := req.Config.AsWebhookConfig(); err == nil && cfg.Type == backend.WebhookConfigTypeWebhook {
 				updateReq.Type.IsSet = true
 				updateReq.Type.Value = gcpspanner.NotificationChannelTypeWebhook
 				updateReq.WebhookConfig.IsSet = true
@@ -702,7 +721,7 @@ func toBackendNotificationChannel(channel *gcpspanner.NotificationChannel) *back
 	case gcpspanner.NotificationChannelTypeWebhook:
 		if channel.WebhookConfig != nil {
 			bytes, _ := json.Marshal(backend.WebhookConfig{
-				Type: backend.Webhook,
+				Type: backend.WebhookConfigTypeWebhook,
 				Url:  channel.WebhookConfig.URL,
 			})
 			// UnmarshalJSON() is confusingly named - it just makes a copy of 'bytes' to store in config.
@@ -780,6 +799,70 @@ func (s *Backend) ListUserSavedSearches(
 	return &backend.UserSavedSearchPage{
 		Metadata: metadata,
 		Data:     results,
+	}, nil
+}
+
+func (s *Backend) ListGlobalSavedSearches(
+	ctx context.Context,
+	pageSize int,
+	pageToken *string,
+) (*backend.GlobalSavedSearchPage, error) {
+	page, _, nextPageToken, err := s.client.ListSystemGlobalSavedSearches(ctx, pageSize, pageToken)
+	if err != nil {
+		if errors.Is(err, gcpspanner.ErrInvalidCursorFormat) {
+			return nil, errors.Join(err, backendtypes.ErrInvalidPageToken)
+		}
+
+		return nil, err
+	}
+	var metadata *backend.PageMetadata
+	if nextPageToken != nil {
+		metadata = &backend.PageMetadata{
+			NextPageToken: nextPageToken,
+		}
+	}
+	var results []backend.GlobalSavedSearch
+	if len(page) > 0 {
+		for _, savedSearch := range page {
+			results = append(results, backend.GlobalSavedSearch{
+				Id:           &savedSearch.ID,
+				DisplayOrder: &savedSearch.DisplayOrder,
+				Name:         savedSearch.Name,
+				Description:  savedSearch.Description,
+				Query:        savedSearch.Query,
+				CreatedAt:    &savedSearch.CreatedAt,
+				UpdatedAt:    &savedSearch.UpdatedAt,
+			})
+		}
+	}
+
+	return &backend.GlobalSavedSearchPage{
+		Metadata: metadata,
+		Data:     &results,
+	}, nil
+}
+
+func (s *Backend) GetGlobalSavedSearch(
+	ctx context.Context,
+	searchID string,
+) (*backend.GlobalSavedSearch, error) {
+	savedSearch, err := s.client.GetSystemGlobalSavedSearch(ctx, searchID)
+	if err != nil {
+		if errors.Is(err, gcpspanner.ErrQueryReturnedNoResults) {
+			return nil, errors.Join(err, backendtypes.ErrEntityDoesNotExist)
+		}
+
+		return nil, err
+	}
+
+	return &backend.GlobalSavedSearch{
+		Id:           &savedSearch.ID,
+		DisplayOrder: &savedSearch.DisplayOrder,
+		Name:         savedSearch.Name,
+		Description:  savedSearch.Description,
+		Query:        savedSearch.Query,
+		CreatedAt:    &savedSearch.CreatedAt,
+		UpdatedAt:    &savedSearch.UpdatedAt,
 	}, nil
 }
 
@@ -1273,18 +1356,258 @@ func (b BrowserList) ToStringList() []string {
 	return ret
 }
 
+// expandSavedSearches recursively expands IdentifierSavedSearch nodes by looking up the actual
+// saved search from the database and parsing its query. It limits recursion depth to prevent
+// abuse/DoS and checks seenIDs to prevent infinite cycles.
+func (s *Backend) expandSavedSearches(
+	ctx context.Context,
+	node *searchtypes.SearchNode,
+	depth int,
+	seenIDs map[string]struct{},
+) (*searchtypes.SearchNode, *string, error) {
+	if node == nil {
+		return nil, nil, nil
+	}
+
+	const maxDepth = 2
+	if depth > maxDepth {
+		return nil, nil, backendtypes.ErrSavedSearchMaxDepthExceeded
+	}
+
+	var injectedSortTarget *string
+
+	if node.Term == nil ||
+		(node.Term.Identifier != searchtypes.IdentifierSavedSearch &&
+			node.Term.Identifier != searchtypes.IdentifierHotlist) {
+		return s.expandNonSavedSearchChildren(ctx, node, depth, seenIDs)
+	}
+
+	savedSearchID := node.Term.Value
+	isHotlist := node.Term.Identifier == searchtypes.IdentifierHotlist
+	// 1. Cycle detection
+	if _, exists := seenIDs[savedSearchID]; exists {
+		return nil, nil, backendtypes.ErrSavedSearchCycleDetected
+	}
+
+	// Fetch the query for the saved search. Hotlists map to system global searches.
+	query, sortTgt, err := s.fetchQueryForSavedSearch(ctx, savedSearchID, isHotlist)
+	if err != nil {
+		return nil, nil, err
+	}
+	if sortTgt != nil {
+		injectedSortTarget = sortTgt
+	}
+
+	if strings.TrimSpace(query) == "" {
+		// Return a special node that yields no filters, effectively matching everything.
+		return &searchtypes.SearchNode{
+			Keyword:  searchtypes.KeywordNone,
+			Term:     nil,
+			Children: nil,
+		}, injectedSortTarget, nil
+	}
+
+	// 3. Parse its string query
+	parser := searchtypes.FeaturesSearchQueryParser{}
+	childAST, err := parser.Parse(query)
+	if err != nil {
+		// If a saved search has an invalid grammar, it is fundamentally broken.
+		return nil, nil, err
+	}
+
+	// 4. Recurse down into the newly expanded AST
+	newSeen := make(map[string]struct{}, len(seenIDs)+1)
+	maps.Copy(newSeen, seenIDs)
+	newSeen[savedSearchID] = struct{}{}
+
+	expandedChild, sortTgt, err := s.expandSavedSearches(ctx, childAST, depth+1, newSeen)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if sortTgt != nil {
+		injectedSortTarget = sortTgt
+	}
+
+	childToWrap := expandedChild
+	if expandedChild != nil && expandedChild.Keyword == searchtypes.KeywordRoot && len(expandedChild.Children) == 1 {
+		childToWrap = expandedChild.Children[0]
+	}
+
+	// Wrap the expanded AST in parentheses just to be functionally isolated in the tree.
+	return &searchtypes.SearchNode{
+		Keyword:  searchtypes.KeywordParens,
+		Children: []*searchtypes.SearchNode{childToWrap},
+		Term:     nil,
+	}, injectedSortTarget, nil
+}
+
+func (s *Backend) expandNonSavedSearchChildren(
+	ctx context.Context,
+	node *searchtypes.SearchNode,
+	depth int,
+	seenIDs map[string]struct{},
+) (*searchtypes.SearchNode, *string, error) {
+	var injectedSortTarget *string
+	var expandedChildren []*searchtypes.SearchNode
+	if node.Children != nil {
+		expandedChildren = make([]*searchtypes.SearchNode, 0, len(node.Children))
+		for _, child := range node.Children {
+			expandedChild, sortTgt, err := s.expandSavedSearches(ctx, child, depth, seenIDs)
+			if err != nil {
+				return nil, nil, err
+			}
+			if sortTgt != nil {
+				injectedSortTarget = sortTgt
+			}
+			expandedChildren = append(expandedChildren, expandedChild)
+		}
+	}
+
+	// Create a new node to avoid mutating the original
+	newNode := &searchtypes.SearchNode{
+		Keyword:  node.Keyword,
+		Term:     node.Term,
+		Children: expandedChildren,
+	}
+
+	return newNode, injectedSortTarget, nil
+}
+
+func (s *Backend) fetchSystemHotlistQuery(
+	ctx context.Context,
+	savedSearchID string,
+) (string, *string, error) {
+	systemSearch, err := s.client.GetSystemGlobalSavedSearch(ctx, savedSearchID)
+	if err != nil {
+		if errors.Is(err, gcpspanner.ErrQueryReturnedNoResults) {
+			return "", nil, backendtypes.ErrHotlistNotFound
+		}
+
+		return "", nil, err
+	}
+	var injectedSortTarget *string
+	if systemSearch.HasCustomSortOrder {
+		idCopy := savedSearchID
+		injectedSortTarget = &idCopy
+	}
+
+	return systemSearch.Query, injectedSortTarget, nil
+}
+
+func (s *Backend) fetchUserSearchQuery(
+	ctx context.Context,
+	savedSearchID string,
+) (string, error) {
+	userSearch, err := s.client.GetSavedSearch(ctx, savedSearchID)
+	if err != nil {
+		if errors.Is(err, gcpspanner.ErrQueryReturnedNoResults) {
+			return "", backendtypes.ErrSavedSearchNotFound
+		}
+
+		return "", err
+	}
+
+	return userSearch.Query, nil
+}
+
+func (s *Backend) fetchQueryForSavedSearch(
+	ctx context.Context,
+	savedSearchID string,
+	isHotlist bool,
+) (string, *string, error) {
+	if isHotlist {
+		return s.fetchSystemHotlistQuery(ctx, savedSearchID)
+	}
+	query, err := s.fetchUserSearchQuery(ctx, savedSearchID)
+
+	return query, nil, err
+}
+
+func (s *Backend) ValidateQueryReferences(ctx context.Context, query string, updateID *string) error {
+	parser := searchtypes.FeaturesSearchQueryParser{}
+	node, err := parser.Parse(query)
+	if err != nil {
+		return err
+	}
+
+	// Unwrap ROOT and PARENS nodes if present to find the actual term.
+	checkNode := node
+	for checkNode != nil &&
+		(checkNode.Keyword == searchtypes.KeywordRoot || checkNode.Keyword == searchtypes.KeywordParens) &&
+		len(checkNode.Children) == 1 {
+		checkNode = checkNode.Children[0]
+	}
+
+	if checkNode != nil && checkNode.Keyword == searchtypes.KeywordNone &&
+		checkNode.Term != nil &&
+		(checkNode.Term.Identifier == searchtypes.IdentifierSavedSearch ||
+			checkNode.Term.Identifier == searchtypes.IdentifierHotlist) {
+		return fmt.Errorf("%w, please subscribe to the existing search directly",
+			backendtypes.ErrQueryConsistsEntirelyOfSavedSearch)
+	}
+
+	maxAncestorDist := 0
+	if updateID != nil {
+		maxAncestorDist, err = s.getMaxAncestorDistance(ctx, *updateID, 0)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Run expansion as a dry-run check mechanism.
+	// Starting with depth = maxAncestorDist ensures that any transitive ancestors
+	// won't exceed the global depth limit of 2.
+	_, _, err = s.expandSavedSearches(ctx, node, maxAncestorDist, map[string]struct{}{})
+
+	return err
+}
+
+func (s *Backend) getMaxAncestorDistance(ctx context.Context, id string, currentDist int) (int, error) {
+	// Global limit is 2. If we're already at 2, we can stop.
+	if currentDist >= 2 {
+		return currentDist, nil
+	}
+	referrers, err := s.client.GetReferencingSavedSearchIDs(ctx, id)
+	if err != nil {
+		return 0, err
+	}
+	maxDist := currentDist
+	for _, refID := range referrers {
+		dist, err := s.getMaxAncestorDistance(ctx, refID, currentDist+1)
+		if err != nil {
+			return 0, err
+		}
+		if dist > maxDist {
+			maxDist = dist
+		}
+	}
+
+	return maxDist, nil
+}
+
 func (s *Backend) FeaturesSearch(
 	ctx context.Context,
 	pageToken *string,
 	pageSize int,
 	searchNode *searchtypes.SearchNode,
 	sortOrder *backend.ListFeaturesParamsSort,
-	wptMetricView backend.WPTMetricView,
+	wptMetricType backend.WPTMetricView,
 	browsers []backend.BrowserPathParam,
 ) (*backend.FeaturePage, error) {
-	spannerSortOrder := getFeatureSearchSortOrder(sortOrder)
-	page, err := s.client.FeaturesSearch(ctx, pageToken, pageSize, searchNode,
-		spannerSortOrder, getSpannerWPTMetricView(wptMetricView),
+
+	expandedAST, injectedSortTarget, err := s.expandSavedSearches(ctx, searchNode, 0, map[string]struct{}{})
+	if err != nil {
+		return nil, err
+	}
+
+	sortable := getFeatureSearchSortOrder(sortOrder)
+	if sortOrder == nil && injectedSortTarget != nil {
+		sortable = gcpspanner.NewSearchIDOrderSort(true, *injectedSortTarget)
+	}
+
+	page, err := s.client.FeaturesSearch(ctx, pageToken, pageSize, expandedAST,
+		sortable, getSpannerWPTMetricView(wptMetricType),
 		BrowserList(browsers).ToStringList())
 	if err != nil {
 		if errors.Is(err, gcpspanner.ErrInvalidCursorFormat) {
@@ -1315,11 +1638,14 @@ func (s *Backend) FeaturesSearch(
 // nolint: gocyclo // WONTFIX. Keep all the cases here so that the exhaustive
 // linter can catch a missing case.
 func getFeatureSearchSortOrder(
-	sortOrder *backend.ListFeaturesParamsSort) gcpspanner.Sortable {
-	if sortOrder == nil {
+	in *backend.ListFeaturesParamsSort,
+) gcpspanner.Sortable {
+	if in == nil {
 		return gcpspanner.NewBaselineStatusSort(false)
 	}
-	switch *sortOrder {
+
+	switch *in {
+
 	case backend.NameAsc:
 		return gcpspanner.NewFeatureNameSort(true)
 	case backend.NameDesc:
@@ -1427,7 +1753,7 @@ func getFeatureSearchSortOrder(
 	}
 
 	// Unknown sort order
-	slog.WarnContext(context.TODO(), "unsupported sort order", "order", *sortOrder)
+	slog.WarnContext(context.TODO(), "unsupported sort order", "order", *in)
 
 	return gcpspanner.NewBaselineStatusSort(false)
 }
