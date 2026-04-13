@@ -107,6 +107,27 @@ func (s *Server) UpdateSavedSearch(
 			Errors:  validationErr.fieldErrorMap,
 		}, nil
 	}
+
+	if request.Body.Query != nil {
+		err := s.wptMetricsStorer.ValidateQueryReferences(ctx, *request.Body.Query, &request.SearchId)
+		if err != nil {
+			if safeErr := sanitizeValidationError(err); safeErr != nil {
+				return backend.UpdateSavedSearch400JSONResponse{
+					Code:    http.StatusBadRequest,
+					Message: safeErr.Error(),
+					Errors:  nil,
+				}, nil
+			}
+
+			slog.ErrorContext(ctx, "unexpected error during query validation", "error", err)
+
+			return backend.UpdateSavedSearch500JSONResponse{
+				Code:    http.StatusInternalServerError,
+				Message: "internal server error",
+			}, nil
+		}
+	}
+
 	output, err := s.wptMetricsStorer.UpdateUserSavedSearch(ctx, request.SearchId, user.ID, request.Body)
 	if err != nil {
 		if errors.Is(err, backendtypes.ErrUserNotAuthorizedForAction) {
