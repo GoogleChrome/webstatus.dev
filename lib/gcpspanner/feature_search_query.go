@@ -131,6 +131,9 @@ func (b *FeatureSearchFilterBuilder) traverseAndGenerateFilters(node *searchtype
 		case searchtypes.IdentifierAvailableDate:
 			// Currently not a terminal identifier.
 			break
+		case searchtypes.IdentifierSavedSearch, searchtypes.IdentifierHotlist:
+			// Handled upstream by ValidateQueryReferences and recursive expansion.
+			break
 		case searchtypes.IdentifierAvailableOn:
 			filter = b.availabilityFilter(node.Term.Value, node.Term.Operator)
 		case searchtypes.IdentifierName:
