@@ -41,6 +41,8 @@ description_term: 'desc' COLON ANY_VALUE;
 group_term: 'group' COLON ANY_VALUE;
 snapshot_term: 'snapshot' COLON ANY_VALUE;
 id_term: 'id' COLON ANY_VALUE;
+saved_term: 'saved' COLON ANY_VALUE;
+hotlist_term: 'hotlist' COLON ANY_VALUE;
 term:
 	available_date_term
 	| available_on_term
@@ -50,6 +52,8 @@ term:
 	| id_term
 	| snapshot_term
 	| description_term
+	| saved_term
+	| hotlist_term
 	| name_term;
 
 date_range_query: startDate = DATE '..' endDate = DATE;
