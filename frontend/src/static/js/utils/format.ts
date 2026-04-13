@@ -26,7 +26,9 @@ export function formatNumberShorthand(input: number): string {
   return new Intl.NumberFormat(undefined, {
     notation: 'compact',
     maximumFractionDigits: 1,
-  }).format(input);
+  })
+    .format(input)
+    .toUpperCase();
 }
 
 /**
