@@ -60,6 +60,9 @@ nix develop
 make nix-setup
 ```
 
+> [!NOTE]
+> To clean up the downloaded browsers and start fresh, you can run `make clean-nix`.
+
 ### Running the services locally
 
 After setting up your environment, check out the [DEVELOPMENT.md](./DEVELOPMENT.md) for more information to get started and running locally.

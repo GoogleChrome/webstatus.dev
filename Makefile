@@ -39,10 +39,16 @@ DOCKERFILES := \
 
 build: gen go-build node-install
 
+# Note: We only install deps for webkit because full --with-deps fails on newer systems
+# (like Ubuntu 24.04) due to virtual package resolution issues (e.g. libasound2).
 nix-setup: node-install go-install-tools gen
 	npx playwright install
+	npx playwright install-deps webkit
 
 clean: clean-gen clean-node port-forward-terminate minikube-delete
+
+clean-nix:
+	rm -rf .nix/
 
 precommit: license-check  go-fix go-tidy lint test unstaged-changes
 
@@ -392,7 +398,7 @@ playwright-install:
 	@if [ -z "$$PLAYWRIGHT_BROWSERS_PATH" ]; then \
 		npx playwright install --with-deps; \
 	else \
-		echo "Skipping playwright install because PLAYWRIGHT_BROWSERS_PATH is set to $$PLAYWRIGHT_BROWSERS_PATH"; \
+		echo "Skipping playwright install because PLAYWRIGHT_BROWSERS_PATH is set to $$PLAYWRIGHT_BROWSERS_PATH. This should have been handled by nix-develop already to prevent sudo prompt."; \
 	fi
 
 playwright-update-snapshots: fresh-env-for-playwright

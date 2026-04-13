@@ -24,9 +24,9 @@ make nix-setup
 
 This will drop you into a new shell with all the required tools in your `PATH`:
 
-- Go (1.26.1)
-- Node.js (24.14.0)
-- OpenJDK 25
+- Go
+- Node.js
+- OpenJDK
 - Terraform, Cloud SDK, Minikube, Skaffold, etc.
 
 You can verify the versions by looking at the output message when you enter the shell.
@@ -101,32 +101,15 @@ Instead, rely entirely on your host shell's `direnv` hook:
 
 Now, whenever you open a new integrated terminal in VS Code, your shell will automatically load the Nix environment _after_ initialization, ensuring all tools are available.
 
-## Playwright WebKit on Nix
+## Playwright and Browsers
 
-Playwright's WebKit browser requires some special handling in a Nix environment because it expects libraries that may not match the default versions in Nixpkgs.
+Playwright manages its own browser binaries and system dependencies.
 
-We have handled this in `flake.nix`:
+When you run `make nix-setup`, it runs `npx playwright install` to download browsers, and `npx playwright install-deps webkit` to install system dependencies for WebKit on the host.
 
-1.  **Correct Library Versions**: We use `libxml2_13` instead of the default `libxml2` because it provides the exact `libxml2.so.2` file WebKit expects, avoiding brittle symlink hacks.
-2.  **Automatic Patching**: When you enter the shell (`nix develop`), it automatically checks if Playwright browsers are installed in `.nix/browsers`. If found, it patches the `MiniBrowser` wrapper script to preserve your `LD_LIBRARY_PATH` instead of overwriting it.
+We only install dependencies for `webkit` because a full `--with-deps` can fail on newer Linux distributions (like Ubuntu 24.04) due to package name changes (e.g., `libasound2` being replaced by `libasound2t64`).
 
-### Clean Build of the Environment
-
-If you run into issues with browsers or want to ensure a clean setup:
-
-1.  **Clean Playwright Cache**: Delete the cached browsers to force a redownload.
-    ```bash
-    rm -rf .nix/browsers
-    ```
-2.  **Re-install Browsers**: Run the install command again (inside `nix develop`).
-    ```bash
-    npx playwright install
-    ```
-3.  **Re-enter Shell**: Exit and re-enter `nix develop` to trigger the automatic patching again!
-    ```bash
-    exit
-    nix develop
-    ```
+This ensures that browsers work correctly without needing complex configuration or patching in the Nix flake.
 
 ## Playwright E2E Tests and Docker
 
