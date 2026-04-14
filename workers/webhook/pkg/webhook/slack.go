@@ -268,10 +268,18 @@ func (b *slackPayloadBuilder) buildPayload(searchName string) SlackPayload {
 func (b *slackPayloadBuilder) appendBaselineChanges(blocks []any) []any {
 	if len(b.baselineNewlyChanges) > 0 {
 		logoURL := fmt.Sprintf("%s/public/img/email/newly.png", b.frontendBaseURL)
-		blocks = append(blocks, contextBlock(contextImageText(logoURL, "Newly Available", "*Baseline: Newly available*")...))
+		blocks = append(
+			blocks,
+			contextBlock(contextImageText(logoURL, "Newly Available", "*Baseline: Newly available*")...),
+		)
 		for _, h := range b.baselineNewlyChanges {
 			featureURL := fmt.Sprintf("%s/features/%s", b.frontendBaseURL, h.FeatureID)
-			txt := fmt.Sprintf("<%s|%s> \n*Date:* %s", featureURL, h.FeatureName, formatDate(h.BaselineChange.To.LowDate))
+			txt := fmt.Sprintf(
+				"<%s|%s> \n*Date:* %s",
+				featureURL,
+				h.FeatureName,
+				formatDate(h.BaselineChange.To.LowDate),
+			)
 			blocks = append(blocks, sectionBlock(txt))
 		}
 	}
@@ -385,10 +393,18 @@ func (b *slackPayloadBuilder) appendSplitFeatures(blocks []any) []any {
 				if sub.QueryMatch == workertypes.QueryMatchNoMatch {
 					noLongerStr = " :warning: _(No longer matches)_"
 				}
-				items = append(items, fmt.Sprintf("• <%s/features/%s|%s>%s", b.frontendBaseURL, sub.ID, sub.Name, noLongerStr))
+				items = append(
+					items,
+					fmt.Sprintf("• <%s/features/%s|%s>%s", b.frontendBaseURL, sub.ID, sub.Name, noLongerStr),
+				)
 			}
 			featureURL := fmt.Sprintf("%s/features/%s", b.frontendBaseURL, h.FeatureID)
-			txt := fmt.Sprintf("*Split* \n<%s|%s> split into: \n%s", featureURL, h.FeatureName, strings.Join(items, "\n"))
+			txt := fmt.Sprintf(
+				"*Split* \n<%s|%s> split into: \n%s",
+				featureURL,
+				h.FeatureName,
+				strings.Join(items, "\n"),
+			)
 			blocks = append(blocks, sectionBlock(txt))
 		}
 	}

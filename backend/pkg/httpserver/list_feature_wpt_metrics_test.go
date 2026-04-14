@@ -300,8 +300,13 @@ func TestListFeatureWPTMetrics(t *testing.T) {
 				eventPublisher:          nil,
 				baseURL:                 getTestBaseURL(t)}
 			assertTestServerRequest(t, &myServer, tc.request, tc.expectedResponse)
-			assertMocksExpectations(t, tc.expectedCallCount, mockStorer.callCountListMetricsForFeatureIDBrowserAndChannel,
-				"ListMetricsForFeatureIDBrowserAndChannel", mockCacher)
+			assertMocksExpectations(
+				t,
+				tc.expectedCallCount,
+				mockStorer.callCountListMetricsForFeatureIDBrowserAndChannel,
+				"ListMetricsForFeatureIDBrowserAndChannel",
+				mockCacher,
+			)
 		})
 	}
 }

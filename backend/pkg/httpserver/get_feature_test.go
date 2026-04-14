@@ -85,7 +85,12 @@ func TestGetFeature(t *testing.T) {
 				err: nil,
 			},
 			expectedCallCount: 1,
-			request:           httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/v1/features/feature1", nil),
+			request: httptest.NewRequestWithContext(
+				t.Context(),
+				http.MethodGet,
+				"/v1/features/feature1",
+				nil,
+			),
 			expectedGetCalls: []*ExpectedGetCall{
 				{
 					Key:   `getFeature-{"feature_id":"feature1","Params":{}}`,
@@ -129,7 +134,12 @@ func TestGetFeature(t *testing.T) {
 			name:              "Success Case - no optional params - use defaults - cached",
 			mockConfig:        nil,
 			expectedCallCount: 0,
-			request:           httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/v1/features/feature1", nil),
+			request: httptest.NewRequestWithContext(
+				t.Context(),
+				http.MethodGet,
+				"/v1/features/feature1",
+				nil,
+			),
 			expectedGetCalls: []*ExpectedGetCall{
 				{
 					Key: `getFeature-{"feature_id":"feature1","Params":{}}`,
@@ -319,8 +329,13 @@ func TestGetFeature(t *testing.T) {
 				err:                   gcpspanner.ErrQueryReturnedNoResults,
 			},
 			expectedCallCount: 1,
-			request:           httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/v1/features/feature1", nil),
-			expectedResponse:  testJSONResponse(404, `{"code":404,"message":"feature id feature1 is not found"}`),
+			request: httptest.NewRequestWithContext(
+				t.Context(),
+				http.MethodGet,
+				"/v1/features/feature1",
+				nil,
+			),
+			expectedResponse: testJSONResponse(404, `{"code":404,"message":"feature id feature1 is not found"}`),
 			expectedGetCalls: []*ExpectedGetCall{
 				{
 					Key:   `getFeature-{"feature_id":"feature1","Params":{}}`,
@@ -340,8 +355,13 @@ func TestGetFeature(t *testing.T) {
 				err:                   errTest,
 			},
 			expectedCallCount: 1,
-			request:           httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/v1/features/feature1", nil),
-			expectedResponse:  testJSONResponse(500, `{"code":500,"message":"unable to get feature"}`),
+			request: httptest.NewRequestWithContext(
+				t.Context(),
+				http.MethodGet,
+				"/v1/features/feature1",
+				nil,
+			),
+			expectedResponse: testJSONResponse(500, `{"code":500,"message":"unable to get feature"}`),
 			expectedGetCalls: []*ExpectedGetCall{
 				{
 					Key:   `getFeature-{"feature_id":"feature1","Params":{}}`,
@@ -361,7 +381,12 @@ func TestGetFeature(t *testing.T) {
 				err:                   nil,
 			},
 			expectedCallCount: 1,
-			request:           httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/v1/features/feature1", nil),
+			request: httptest.NewRequestWithContext(
+				t.Context(),
+				http.MethodGet,
+				"/v1/features/feature1",
+				nil,
+			),
 			expectedResponse: func() *http.Response {
 				// nolint:exhaustruct
 				return &http.Response{
@@ -400,7 +425,12 @@ func TestGetFeature(t *testing.T) {
 				err: nil,
 			},
 			expectedCallCount: 1,
-			request:           httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/v1/features/feature1", nil),
+			request: httptest.NewRequestWithContext(
+				t.Context(),
+				http.MethodGet,
+				"/v1/features/feature1",
+				nil,
+			),
 			expectedResponse: testJSONResponse(410, `
 {"code":410,"message":"feature is split","new_features":[{"id":"other1"},{"id":"other2"}],"type":"split"}`,
 			),

@@ -99,9 +99,21 @@ func TestFilterData(t *testing.T) {
 			},
 			filteredBrowsers: []string{"chrome", "firefox"},
 			expectedResult: []bcdconsumertypes.BrowserRelease{
-				{BrowserName: "chrome", BrowserVersion: "100.0.0", ReleaseDate: time.Date(2024, 4, 9, 0, 0, 0, 0, time.UTC)},
-				{BrowserName: "chrome", BrowserVersion: "101.0.0", ReleaseDate: time.Date(2024, 5, 12, 0, 0, 0, 0, time.UTC)},
-				{BrowserName: "firefox", BrowserVersion: "110.0", ReleaseDate: time.Date(2024, 4, 20, 0, 0, 0, 0, time.UTC)},
+				{
+					BrowserName:    "chrome",
+					BrowserVersion: "100.0.0",
+					ReleaseDate:    time.Date(2024, 4, 9, 0, 0, 0, 0, time.UTC),
+				},
+				{
+					BrowserName:    "chrome",
+					BrowserVersion: "101.0.0",
+					ReleaseDate:    time.Date(2024, 5, 12, 0, 0, 0, 0, time.UTC),
+				},
+				{
+					BrowserName:    "firefox",
+					BrowserVersion: "110.0",
+					ReleaseDate:    time.Date(2024, 4, 20, 0, 0, 0, 0, time.UTC),
+				},
 			},
 			expectedError: nil,
 		},
@@ -159,7 +171,11 @@ func TestFilterData(t *testing.T) {
 			},
 			filteredBrowsers: []string{"firefox"},
 			expectedResult: []bcdconsumertypes.BrowserRelease{ // Release 101.0.0 should be excluded
-				{BrowserName: "firefox", BrowserVersion: "100.0.0", ReleaseDate: time.Date(2024, 4, 9, 0, 0, 0, 0, time.UTC)},
+				{
+					BrowserName:    "firefox",
+					BrowserVersion: "100.0.0",
+					ReleaseDate:    time.Date(2024, 4, 9, 0, 0, 0, 0, time.UTC),
+				},
 			},
 			expectedError: nil,
 		},

@@ -181,9 +181,24 @@ func TestUpsertFeatureGroupLookups(t *testing.T) {
 		}
 		// Assert the expected look ups
 		expectedLookups := []spannerFeatureGroupKeysLookup{
-			{GroupID: groupKeyToID["parent"], WebFeatureID: featureKeyToID["FeatureX"], Depth: 0, GroupKeyLowercase: "parent"},
-			{GroupID: groupKeyToID["parent"], WebFeatureID: featureKeyToID["FeatureZ"], Depth: 1, GroupKeyLowercase: "parent"},
-			{GroupID: groupKeyToID["child"], WebFeatureID: featureKeyToID["FeatureZ"], Depth: 0, GroupKeyLowercase: "child"},
+			{
+				GroupID:           groupKeyToID["parent"],
+				WebFeatureID:      featureKeyToID["FeatureX"],
+				Depth:             0,
+				GroupKeyLowercase: "parent",
+			},
+			{
+				GroupID:           groupKeyToID["parent"],
+				WebFeatureID:      featureKeyToID["FeatureZ"],
+				Depth:             1,
+				GroupKeyLowercase: "parent",
+			},
+			{
+				GroupID:           groupKeyToID["child"],
+				WebFeatureID:      featureKeyToID["FeatureZ"],
+				Depth:             0,
+				GroupKeyLowercase: "child",
+			},
 		}
 
 		assertFeatureGroupKeysLookups(ctx, t, expectedLookups)

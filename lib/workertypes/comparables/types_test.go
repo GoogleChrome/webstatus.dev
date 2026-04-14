@@ -63,19 +63,28 @@ func TestNewFeatureFromBackendFeature(t *testing.T) {
 			want: createExpectedFeature("feat-1", "Feature One",
 				backend.Widely, map[backend.SupportedBrowsers]BrowserState{
 					backend.Chrome: {
-						Status:  generic.OptionallySet[backend.BrowserImplementationStatus]{Value: backend.Available, IsSet: true},
+						Status: generic.OptionallySet[backend.BrowserImplementationStatus]{
+							Value: backend.Available,
+							IsSet: true,
+						},
 						Date:    generic.OptionallySet[*time.Time]{Value: &date.Time, IsSet: true},
 						Version: generic.OptionallySet[*string]{Value: new("version"), IsSet: true},
 					},
 					backend.ChromeAndroid: zero[BrowserState](),
 					backend.Firefox: {
-						Status:  generic.OptionallySet[backend.BrowserImplementationStatus]{Value: backend.Unavailable, IsSet: true},
+						Status: generic.OptionallySet[backend.BrowserImplementationStatus]{
+							Value: backend.Unavailable,
+							IsSet: true,
+						},
 						Date:    generic.UnsetOpt[*time.Time](),
 						Version: generic.UnsetOpt[*string](),
 					},
 					backend.FirefoxAndroid: zero[BrowserState](),
 					backend.Safari: {
-						Status:  generic.OptionallySet[backend.BrowserImplementationStatus]{Value: backend.Available, IsSet: true},
+						Status: generic.OptionallySet[backend.BrowserImplementationStatus]{
+							Value: backend.Available,
+							IsSet: true,
+						},
 						Date:    generic.UnsetOpt[*time.Time](),
 						Version: generic.UnsetOpt[*string](),
 					},

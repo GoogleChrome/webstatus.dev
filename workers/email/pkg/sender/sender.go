@@ -63,7 +63,14 @@ func (s *Sender) ProcessMessage(ctx context.Context, job workertypes.IncomingEma
 	subject, body, err := s.renderer.RenderDigest(job)
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to render email", "subscription_id", job.SubscriptionID, "error", err)
-		if dbErr := s.stateManager.RecordFailure(ctx, job.ChannelID, err, s.now(), false, job.EmailEventID); dbErr != nil {
+		if dbErr := s.stateManager.RecordFailure(
+			ctx,
+			job.ChannelID,
+			err,
+			s.now(),
+			false,
+			job.EmailEventID,
+		); dbErr != nil {
 			slog.ErrorContext(ctx, "failed to record channel failure", "channel_id", job.ChannelID, "error", dbErr)
 		}
 

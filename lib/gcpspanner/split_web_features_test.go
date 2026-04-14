@@ -166,7 +166,10 @@ func TestGetSplitWebFeatureByOriginalFeatureKey(t *testing.T) {
 	}
 
 	// Setup split feature.
-	splitFeature := SplitWebFeature{OriginalFeatureKey: "feature-a", TargetFeatureKeys: []string{"feature-b", "feature-c"}}
+	splitFeature := SplitWebFeature{
+		OriginalFeatureKey: "feature-a",
+		TargetFeatureKeys:  []string{"feature-b", "feature-c"},
+	}
 	err = spannerClient.SyncSplitWebFeatures(ctx, []SplitWebFeature{splitFeature})
 	if err != nil {
 		t.Fatalf("failed to sync split features: %v", err)

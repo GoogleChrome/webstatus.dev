@@ -61,9 +61,14 @@ func (c *Client) StoreDailyChromiumHistogramMetrics(
 			chromiumHistogramEnumValueID, err := c.GetIDFromChromiumHistogramEnumValueKey(
 				ctx, *chromiumHistogramEnumID, bucketID)
 			if err != nil {
-				slog.WarnContext(ctx, "unable to find histogram value id. likely a draft or obsolete feature. will skip",
-					"id", *chromiumHistogramEnumID,
-					"bucketID", bucketID)
+				slog.WarnContext(
+					ctx,
+					"unable to find histogram value id. likely a draft or obsolete feature. will skip",
+					"id",
+					*chromiumHistogramEnumID,
+					"bucketID",
+					bucketID,
+				)
 
 				continue
 			}

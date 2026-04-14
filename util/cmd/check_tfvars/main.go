@@ -58,7 +58,11 @@ type VarSchema struct {
 func main() {
 	infraDir := flag.String("dir", "infra", "Path to the infra directory")
 	varsPaths := flag.String("vars", "", "Comma-separated paths to variable files (for coverage check)")
-	backendVarsPaths := flag.String("backend-vars", "", "Comma-separated paths to backend variable files (partial check)")
+	backendVarsPaths := flag.String(
+		"backend-vars",
+		"",
+		"Comma-separated paths to backend variable files (partial check)",
+	)
 	flag.Parse()
 
 	schemas, err := parseVariables(*infraDir)
@@ -332,7 +336,12 @@ func validateMapValue(val cty.Value, schema *TypeSchema, path, filename string) 
 
 func validateListValue(val cty.Value, schema *TypeSchema, path, filename string) error {
 	if !val.Type().IsListType() && !val.Type().IsSetType() && !val.Type().IsTupleType() {
-		return fmt.Errorf("variable '%s' in %s: expected list/set/tuple, got %s", path, filename, val.Type().FriendlyName())
+		return fmt.Errorf(
+			"variable '%s' in %s: expected list/set/tuple, got %s",
+			path,
+			filename,
+			val.Type().FriendlyName(),
+		)
 	}
 	i := 0
 	for it := val.ElementIterator(); it.Next(); {

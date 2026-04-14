@@ -125,7 +125,7 @@ func (m webFeatureSpannerMapper) SelectAll() spanner.Statement {
 	FROM %s`, m.Table()))
 }
 
-func (m webFeatureSpannerMapper) SelectOne(key string) spanner.Statement {
+func (m webFeatureSpannerMapper) SelectOne(featureKey string) spanner.Statement {
 	stmt := spanner.NewStatement(fmt.Sprintf(`
 	SELECT
 		ID, FeatureKey, Name, Description, DescriptionHtml
@@ -133,7 +133,27 @@ func (m webFeatureSpannerMapper) SelectOne(key string) spanner.Statement {
 	WHERE FeatureKey = @featureKey
 	LIMIT 1`, m.Table()))
 	parameters := map[string]any{
-		"featureKey": key,
+		"featureKey": featureKey,
+	}
+	stmt.Params = parameters
+
+	return stmt
+}
+
+// webFeatureByIDSpannerMapper is a specialized mapper for looking up WebFeatures by ID.
+type webFeatureByIDSpannerMapper struct {
+	webFeatureSpannerMapper
+}
+
+func (m webFeatureByIDSpannerMapper) SelectOne(id string) spanner.Statement {
+	stmt := spanner.NewStatement(fmt.Sprintf(`
+	SELECT
+		ID, FeatureKey, Name, Description, DescriptionHtml
+	FROM %s
+	WHERE ID = @id
+	LIMIT 1`, m.Table()))
+	parameters := map[string]any{
+		"id": id,
 	}
 	stmt.Params = parameters
 
@@ -347,7 +367,12 @@ func (m webFeatureSpannerMapper) moveSystemManagedSavedSearch(
 	systemManagedSearch, err := c.GetSystemManagedSavedSearchByFeatureID(ctx, sourceID)
 	if err != nil {
 		if errors.Is(err, ErrQueryReturnedNoResults) {
-			slog.WarnContext(ctx, "system managed saved search not found during redirect, skipping", "sourceID", sourceID)
+			slog.WarnContext(
+				ctx,
+				"system managed saved search not found during redirect, skipping",
+				"sourceID",
+				sourceID,
+			)
 
 			return nil // Not an error, just nothing to do.
 		}
@@ -411,7 +436,7 @@ func (m webFeatureSpannerMapper) moveSystemManagedSavedSearch(
 		return fmt.Errorf("unable to get saved search: %w", err)
 	}
 
-	targetFeature, err := c.GetWebFeatureByID(ctx, targetID)
+	targetFeature, err := c.GetWebFeatureByInternalID(ctx, targetID)
 	if err != nil {
 		return fmt.Errorf("unable to get target feature for redirect: %w", err)
 	}
@@ -738,8 +763,8 @@ func (c *Client) GetIDFromFeatureKey(ctx context.Context, filter *FeatureIDFilte
 		getIDByKey(ctx, filter.featureKey)
 }
 
-func (c *Client) GetWebFeatureByID(ctx context.Context, id string) (*SpannerWebFeature, error) {
-	return newEntityReader[webFeatureSpannerMapper, SpannerWebFeature, string](c).readRowByKey(ctx, id)
+func (c *Client) GetWebFeatureByInternalID(ctx context.Context, id string) (*SpannerWebFeature, error) {
+	return newEntityReader[webFeatureByIDSpannerMapper, SpannerWebFeature, string](c).readRowByKey(ctx, id)
 }
 
 func (c *Client) fetchAllWebFeatureIDsWithTransaction(

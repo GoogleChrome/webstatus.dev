@@ -355,12 +355,15 @@ func (c *Client) UpsertWPTRunFeatureMetrics(
 
 			// Update LatestWPTRunFeatureMetrics if newer
 			if shouldUpsertLatestMetric(existingTimeStart, metric.TimeStart) {
-				m1, err := spanner.InsertOrUpdateStruct(LatestWPTRunFeatureMetricsTable, SpannerLatestWPTRunFeatureMetric{
-					RunMetricID:  metric.ID,
-					WebFeatureID: metric.WebFeatureID,
-					BrowserName:  metric.BrowserName,
-					Channel:      metric.Channel,
-				})
+				m1, err := spanner.InsertOrUpdateStruct(
+					LatestWPTRunFeatureMetricsTable,
+					SpannerLatestWPTRunFeatureMetric{
+						RunMetricID:  metric.ID,
+						WebFeatureID: metric.WebFeatureID,
+						BrowserName:  metric.BrowserName,
+						Channel:      metric.Channel,
+					},
+				)
 				if err != nil {
 					return errors.Join(ErrInternalQueryFailure, err)
 				}

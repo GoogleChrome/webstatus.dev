@@ -64,7 +64,9 @@ func getSampleBrowserReleases() []BrowserRelease {
 // Helper method to get all the browser releases in a stable order.
 // nolint: lll
 func (c *Client) ReadAllBrowserReleases(ctx context.Context, _ *testing.T) ([]BrowserRelease, error) {
-	stmt := spanner.NewStatement("SELECT BrowserName, BrowserVersion, ReleaseDate FROM BrowserReleases ORDER BY ReleaseDate ASC")
+	stmt := spanner.NewStatement(
+		"SELECT BrowserName, BrowserVersion, ReleaseDate FROM BrowserReleases ORDER BY ReleaseDate ASC",
+	)
 	iter := c.Single().Query(ctx, stmt)
 	defer iter.Stop()
 

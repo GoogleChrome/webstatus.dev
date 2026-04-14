@@ -69,7 +69,7 @@ func TestUpdateNotificationChannel_Restrictions(t *testing.T) {
 				Name: "Old Webhook",
 				Type: backend.NotificationChannelResponseTypeWebhook,
 				Config: newTestNotificationChannelConfig(t, backend.WebhookConfig{
-					Type: backend.WebhookConfigTypeWebhook,
+					Type: backend.Webhook,
 					Url:  "https://hooks.slack.com/services/old",
 				}),
 				Status:    backend.NotificationChannelStatusEnabled,
@@ -80,16 +80,18 @@ func TestUpdateNotificationChannel_Restrictions(t *testing.T) {
 				expectedUserID:    testUser.ID,
 				expectedChannelID: "channel123",
 				expectedRequest: backend.UpdateNotificationChannelRequest{
-					Config:     nil,
-					Name:       new("Updated Webhook"),
-					UpdateMask: []backend.UpdateNotificationChannelRequestUpdateMask{backend.UpdateNotificationChannelRequestMaskName},
+					Config: nil,
+					Name:   new("Updated Webhook"),
+					UpdateMask: []backend.UpdateNotificationChannelRequestUpdateMask{
+						backend.UpdateNotificationChannelRequestMaskName,
+					},
 				},
 				output: &backend.NotificationChannelResponse{
 					Id:   "channel123",
 					Name: "Updated Webhook",
 					Type: backend.NotificationChannelResponseTypeWebhook,
 					Config: newTestNotificationChannelConfig(t, backend.WebhookConfig{
-						Type: backend.WebhookConfigTypeWebhook,
+						Type: backend.Webhook,
 						Url:  "https://hooks.slack.com/services/old",
 					}),
 					Status:    backend.NotificationChannelStatusEnabled,
@@ -130,9 +132,11 @@ func TestUpdateNotificationChannel_Restrictions(t *testing.T) {
 				expectedUserID:    testUser.ID,
 				expectedChannelID: "channel123",
 				expectedRequest: backend.UpdateNotificationChannelRequest{
-					Config:     nil,
-					Name:       new("New Name"),
-					UpdateMask: []backend.UpdateNotificationChannelRequestUpdateMask{backend.UpdateNotificationChannelRequestMaskName},
+					Config: nil,
+					Name:   new("New Name"),
+					UpdateMask: []backend.UpdateNotificationChannelRequestUpdateMask{
+						backend.UpdateNotificationChannelRequestMaskName,
+					},
 				},
 				output: nil,
 				err:    backendtypes.ErrUserNotAuthorizedForAction,
@@ -213,13 +217,25 @@ func TestUpdateNotificationChannel_Restrictions(t *testing.T) {
 				eventPublisher:          nil,
 			}
 
-			assertTestServerRequest(t, &myServer, req, expectedResponse, withAuthMiddleware(mockAuthMiddleware(testUser)))
+			assertTestServerRequest(
+				t,
+				&myServer,
+				req,
+				expectedResponse,
+				withAuthMiddleware(mockAuthMiddleware(testUser)),
+			)
 
 			fetchCount := 0
 			if tc.expectedStatus != 400 {
 				fetchCount = 1
 			}
-			assertMocksExpectations(t, fetchCount, mockStorer.callCountGetNotificationChannel, "GetNotificationChannel", nil)
+			assertMocksExpectations(
+				t,
+				fetchCount,
+				mockStorer.callCountGetNotificationChannel,
+				"GetNotificationChannel",
+				nil,
+			)
 			assertMocksExpectations(t, tc.expectedUpdateCount,
 				mockStorer.callCountUpdateNotificationChannel, "UpdateNotificationChannel", nil)
 		})

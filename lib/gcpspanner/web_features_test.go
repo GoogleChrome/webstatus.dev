@@ -192,7 +192,11 @@ func TestUpsertWebFeature(t *testing.T) {
 		var systemManagedSearch *SystemManagedSavedSearch
 		_, err = spannerClient.ReadWriteTransaction(ctx, func(
 			ctx context.Context, txn *spanner.ReadWriteTransaction) error {
-			systemManagedSearch, err = spannerClient.getSystemManagedSavedSearchByFeatureIDAndTransaction(ctx, txn, *featureID)
+			systemManagedSearch, err = spannerClient.getSystemManagedSavedSearchByFeatureIDAndTransaction(
+				ctx,
+				txn,
+				*featureID,
+			)
 
 			return err
 		})
@@ -916,5 +920,151 @@ func TestSyncWebFeatures_MultipleRedirectsToSameTarget(t *testing.T) {
 	_, err = spannerClient.GetSavedSearch(ctx, smsA.SavedSearchID)
 	if !errors.Is(err, ErrQueryReturnedNoResults) {
 		t.Errorf("Expected SavedSearch for A to be cleaned up, got error: %v", err)
+	}
+}
+
+func TestGetWebFeatureByInternalID(t *testing.T) {
+	restartDatabaseContainer(t)
+	ctx := t.Context()
+
+	feature := WebFeature{
+		Name:            "Feature Test ID",
+		FeatureKey:      "feature-test-id",
+		Description:     "",
+		DescriptionHTML: "",
+	}
+
+	id, err := spannerClient.upsertWebFeature(ctx, feature)
+	if err != nil {
+		t.Fatalf("Failed to insert feature: %v", err)
+	}
+
+	// Attempt to get by ID
+	fetched, err := spannerClient.GetWebFeatureByInternalID(ctx, *id)
+	if err != nil {
+		t.Fatalf("Failed to get feature by ID: %v", err)
+	}
+
+	if fetched.FeatureKey != feature.FeatureKey {
+		t.Errorf("Expected feature key %s, got %s", feature.FeatureKey, fetched.FeatureKey)
+	}
+}
+
+// TestSyncWebFeatures_Redirects_RepurposeSavedSearch simulates the scenario reported in Issue #2401.
+// See https://github.com/GoogleChrome/webstatus.dev/issues/2401
+// The issue is that GetWebFeatureByID is broken (queries by FeatureKey instead of ID).
+// This test triggers the specific branch in moveSystemManagedSavedSearch that calls GetWebFeatureByID.
+//
+// State A: Database has Feature A and Feature B, both with system-managed saved searches.
+// State B: We simulate a situation where Feature B (the target of redirect) somehow lost its
+//
+//	system-managed saved search (or never had one), while Feature A is being redirected to Feature B.
+//	We do this by manually deleting Feature B's saved search.
+//
+// Driven by a web-features release containing a redirect from A -> B, the Sync process tries to
+// repurpose Feature A's saved search for Feature B because Feature B doesn't have one.
+// This calls GetWebFeatureByID with Feature B's ID, which fails currently due to the bug.
+//
+// Log analysis from issue #2401 confirms that buildFeatureKeyToIDMap succeeded (didn't fail with missing target),
+// meaning the target feature WAS in the database, but failed when fetching it by ID later in
+// moveSystemManagedSavedSearch.
+func TestSyncWebFeatures_Redirects_RepurposeSavedSearch(t *testing.T) {
+	ctx := t.Context()
+	restartDatabaseContainer(t)
+
+	// Ensure specific tables are clean for this test to avoid state leakage
+	// TODO: We should create a helper function to clean specific tables and use it across tests that need it.
+	// When running this test in isolation, this works. But when running the entire suite, sometimes the emulator
+	// is slow to delete data from previous tests, causing this test to fail because of unexpected existing data.
+	_, err := spannerClient.Apply(ctx, []*spanner.Mutation{
+		spanner.Delete("SystemManagedSavedSearches", spanner.AllKeys()),
+		spanner.Delete("SavedSearches", spanner.AllKeys()),
+		spanner.Delete("WebFeatures", spanner.AllKeys()),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// 1. Setup initial state with two features
+	initialState := []WebFeature{
+		{FeatureKey: "feature-a", Name: "Feature A", Description: "", DescriptionHTML: ""},
+		{FeatureKey: "feature-b", Name: "Feature B", Description: "", DescriptionHTML: ""},
+	}
+	if err := spannerClient.SyncWebFeatures(ctx, initialState); err != nil {
+		t.Fatalf("Failed to set up initial state: %v", err)
+	}
+
+	// Ensure system managed saved queries exist
+	if err := spannerClient.SyncSystemManagedSavedQuery(ctx); err != nil {
+		t.Fatalf("Failed to sync system managed saved queries: %v", err)
+	}
+
+	// Get IDs for the features
+	pairs, err := spannerClient.FetchAllWebFeatureIDsAndKeys(ctx)
+	if err != nil {
+		t.Fatalf("Failed to fetch feature IDs and keys: %v", err)
+	}
+	featureKeyToID := make(map[string]string)
+	for _, pair := range pairs {
+		featureKeyToID[pair.FeatureKey] = pair.ID
+	}
+
+	// Verify it exists before deleting
+	_, err = spannerClient.GetSystemManagedSavedSearchByFeatureID(ctx, featureKeyToID["feature-b"])
+	if err != nil {
+		t.Fatalf("Expected system-managed saved search to exist for feature-b before deletion: %v", err)
+	}
+
+	// Delete the system-managed saved search for the TARGET (feature-b)
+	err = spannerClient.DeleteSystemManagedSavedSearch(ctx, featureKeyToID["feature-b"])
+	if err != nil {
+		t.Fatalf("Failed to delete system managed saved search for feature-b: %v", err)
+	}
+
+	// Verify it doesn't exist after deleting
+	_, err = spannerClient.GetSystemManagedSavedSearchByFeatureID(ctx, featureKeyToID["feature-b"])
+	if !errors.Is(err, ErrQueryReturnedNoResults) {
+		t.Fatalf("Expected ErrQueryReturnedNoResults for deleted search, got %v", err)
+	}
+
+	// 2. Run the sync with a redirect from feature-a -> feature-b
+	desiredState := []WebFeature{
+		{FeatureKey: "feature-b", Name: "Feature B", Description: "", DescriptionHTML: ""}, // feature-a is removed
+	}
+	opts := []SyncWebFeaturesOption{
+		WithRedirectTargets(map[string]string{
+			"feature-a": "feature-b",
+		}),
+	}
+
+	// This call will FAIL without the fix to issue #2401 because it will try to look up feature-b by ID and fail.
+	err = spannerClient.SyncWebFeatures(ctx, desiredState, opts...)
+	if err != nil {
+		t.Fatalf("Expected SyncWebFeatures to succeed after fix, but failed: %v", err)
+	}
+
+	// Verify source search is gone
+	_, err = spannerClient.GetSystemManagedSavedSearchByFeatureID(ctx, featureKeyToID["feature-a"])
+	if !errors.Is(err, ErrQueryReturnedNoResults) {
+		t.Errorf("Expected ErrQueryReturnedNoResults for source search, got %v", err)
+	}
+
+	// Verify target search now exists
+	sms, err := spannerClient.GetSystemManagedSavedSearchByFeatureID(ctx, featureKeyToID["feature-b"])
+	if err != nil {
+		t.Fatalf("Failed to get saved search for feature-b after sync: %v", err)
+	}
+
+	// Verify saved search was repurposed correctly
+	savedSearch, err := spannerClient.GetSavedSearch(ctx, sms.SavedSearchID)
+	if err != nil {
+		t.Fatalf("Failed to get saved search details: %v", err)
+	}
+	expectedName := "Feature: Feature B"
+	expectedQuery := `id:"feature-b"`
+	if savedSearch.Name != expectedName {
+		t.Errorf("Expected saved search name '%s', got '%s'", expectedName, savedSearch.Name)
+	}
+	if savedSearch.Query != expectedQuery {
+		t.Errorf("Expected saved search query '%s', got '%s'", expectedQuery, savedSearch.Query)
 	}
 }

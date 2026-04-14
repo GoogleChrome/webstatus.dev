@@ -1372,6 +1372,48 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BasicErrorModel'
+  /v1/subscriptions/{subscription_id}/rss:
+    description: Public RSS feed for a specific subscription.
+    parameters:
+      - name: subscription_id
+        in: path
+        description: Subscription ID
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Get RSS feed for a subscription
+      operationId: getSubscriptionRSS
+      parameters:
+        - $ref: '#/components/parameters/paginationTokenParam'
+        - $ref: '#/components/parameters/paginationSizeParam'
+      security:
+        - noAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/rss+xml:
+              schema:
+                type: string
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '429':
+          description: Rate Limit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '500':
+          description: Internal Service Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
 components:
   parameters:
     browserPathParam:
@@ -1867,6 +1909,15 @@ components:
       required:
         - type
         - address
+    RSSConfig:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - rss
+      required:
+        - type
     CreateNotificationChannelRequest:
       type: object
       required:
@@ -1880,10 +1931,12 @@ components:
           description: Configuration specific to the channel type.
           oneOf:
             - $ref: '#/components/schemas/WebhookConfig'
+            - $ref: '#/components/schemas/RSSConfig'
           discriminator:
             propertyName: type
             mapping:
               webhook: '#/components/schemas/WebhookConfig'
+              rss: '#/components/schemas/RSSConfig'
     NotificationChannel:
       type: object
       properties:
@@ -1892,6 +1945,7 @@ components:
           enum:
             - email
             - webhook
+            - rss
         name:
           type: string
           description: The name of the channel.
@@ -1900,11 +1954,13 @@ components:
           oneOf:
             - $ref: '#/components/schemas/EmailConfig'
             - $ref: '#/components/schemas/WebhookConfig'
+            - $ref: '#/components/schemas/RSSConfig'
           discriminator:
             propertyName: type
             mapping:
               email: '#/components/schemas/EmailConfig'
               webhook: '#/components/schemas/WebhookConfig'
+              rss: '#/components/schemas/RSSConfig'
       required:
         - type
         - name
@@ -1943,10 +1999,12 @@ components:
           description: Configuration specific to the channel type.
           oneOf:
             - $ref: '#/components/schemas/WebhookConfig'
+            - $ref: '#/components/schemas/RSSConfig'
           discriminator:
             propertyName: type
             mapping:
               webhook: '#/components/schemas/WebhookConfig'
+              rss: '#/components/schemas/RSSConfig'
         update_mask:
           type: array
           description: >

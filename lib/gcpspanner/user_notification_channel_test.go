@@ -225,7 +225,10 @@ func TestSyncUserProfileInfo(t *testing.T) {
 		email3: {ID: "", UserID: userID, Email: email3, IsDisabledBySystem: false}, // New, should be enabled
 	}
 
-	opts := cmpopts.IgnoreFields(TestNotificationChannel{ID: "", UserID: "", Email: "", IsDisabledBySystem: false}, "ID")
+	opts := cmpopts.IgnoreFields(
+		TestNotificationChannel{ID: "", UserID: "", Email: "", IsDisabledBySystem: false},
+		"ID",
+	)
 	if diff := cmp.Diff(expectedState, currentState, opts); diff != "" {
 		t.Errorf("Mismatch in user notification channels (-want +got):\n%s", diff)
 	}
