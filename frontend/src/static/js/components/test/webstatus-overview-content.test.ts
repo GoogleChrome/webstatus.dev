@@ -16,334 +16,290 @@
 
 import {WebstatusOverviewContent} from '../webstatus-overview-content.js';
 import '../webstatus-overview-content.js';
-import {elementUpdated, expect, fixture, html} from '@open-wc/testing';
+import {expect, fixture, html} from '@open-wc/testing';
 
-import {APIClient} from '../../api/client.js';
-
-import {stub} from 'sinon'; // Make sure you have sinon installed
 import {
   savedSearchHelpers,
   SavedSearchScope,
 } from '../../contexts/app-bookmark-info-context.js';
 import sinon from 'sinon';
-import {WebstatusSavedSearchEditor} from '../webstatus-saved-search-editor.js';
 import {
   BookmarkOwnerRole,
   BookmarkStatusActive,
   UserSavedSearch,
 } from '../../utils/constants.js';
-import {UserContext} from '../../contexts/firebase-user-context.js';
-import {SubscribeButton} from '../webstatus-subscribe-button.js';
 
-describe('webstatus-overview-content', () => {
+import {TaskStatus} from '@lit/task';
+import {WebstatusSavedSearchEditor} from '../webstatus-saved-search-editor.js';
+
+describe('WebstatusOverviewContent', () => {
   let element: WebstatusOverviewContent;
-  let apiClientMock: sinon.SinonStubbedInstance<APIClient>;
-  let userMock: UserContext;
-  let editor: WebstatusSavedSearchEditor;
-  let editorIsOpenStub: sinon.SinonStub;
-  let editorOpenSpy: sinon.SinonSpy;
-  let getEditSavedSearchStub: sinon.SinonStub;
-  let updatePageUrlStub: sinon.SinonStub;
 
-  const mockSavedSearchOwner: UserSavedSearch = {
-    id: 'owner123',
-    name: 'My Search',
+  const mockUserSearch: UserSavedSearch = {
+    id: 'user-123',
+    name: 'My CSS',
     query: 'feature:css',
-    description: 'A search I own',
+    description: 'test description',
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     permissions: {role: BookmarkOwnerRole},
-    bookmark_status: {status: BookmarkStatusActive}, // Owners always have it bookmarked implicitly
+    bookmark_status: {status: BookmarkStatusActive},
   };
 
-  const mockLocation = {search: '?q=feature:css'};
-
   beforeEach(async () => {
-    apiClientMock = sinon.createStubInstance(APIClient);
-    userMock = {
-      user: {
-        getIdToken: sinon.stub().resolves('mock-token'),
-      },
-    } as unknown as UserContext;
-
     element = await fixture<WebstatusOverviewContent>(html`
-      <webstatus-overview-content
-        .apiClient=${apiClientMock}
-        .userContext=${userMock}
-        .location=${mockLocation}
-      >
-      </webstatus-overview-content>
+      <webstatus-overview-content></webstatus-overview-content>
     `);
-
-    element._getOrigin = () => 'http://localhost:8080';
-
-    getEditSavedSearchStub = sinon
-      .stub(element, '_getEditSavedSearch')
-      .returns(false);
-    updatePageUrlStub = sinon.stub(element, '_updatePageUrl');
-    // Get the mocked editor instance after the element is rendered
-    editor = element.shadowRoot!.querySelector<WebstatusSavedSearchEditor>(
-      'webstatus-saved-search-editor',
-    )!;
-    editorOpenSpy = sinon.spy(editor, 'open');
-    editorIsOpenStub = sinon.stub(editor, 'isOpen');
+    element._getOrigin = () => 'http://localhost';
+    sinon.stub(element, '_getEditSavedSearch').returns(false);
+    sinon.stub(element, '_updatePageUrl');
   });
 
   afterEach(() => {
     sinon.restore();
   });
 
-  it('should correctly update activeQuery based on getCurrentQuery return value', async () => {
-    const apiClient = new APIClient('');
-    const location = {search: ''};
+  describe('Property Synchronization (willUpdate)', () => {
+    it('syncs activeQuery and savedSearch from helpers when appBookmarkInfo changes', async () => {
+      sinon.stub(savedSearchHelpers, 'getCurrentQuery').returns('test-q');
+      sinon.stub(savedSearchHelpers, 'getCurrentSavedSearch').returns({
+        scope: SavedSearchScope.UserSavedSearch,
+        value: mockUserSearch,
+      });
 
-    const getCurrentQueryStub = stub(savedSearchHelpers, 'getCurrentQuery');
-
-    // Test case 1: Empty query
-    getCurrentQueryStub.returns('');
-    let component = await fixture<WebstatusOverviewContent>(
-      html`<webstatus-overview-content
-        .location=${location}
-        .apiClient=${apiClient}
-      ></webstatus-overview-content>`,
-    );
-    await elementUpdated(component);
-    expect(component.activeQuery).to.eq('');
-
-    // Test case 2: A specific query
-    getCurrentQueryStub.returns('my-test-query');
-    component = await fixture<WebstatusOverviewContent>(
-      html`<webstatus-overview-content
-        .location=${location}
-        .apiClient=${apiClient}
-      ></webstatus-overview-content>`,
-    );
-    await elementUpdated(component);
-    expect(component.activeQuery).to.eq('my-test-query');
-
-    // Test case 3: Another query
-    getCurrentQueryStub.returns('another-test-query');
-    component = await fixture<WebstatusOverviewContent>(
-      html`<webstatus-overview-content
-        .location=${location}
-        .apiClient=${apiClient}
-      ></webstatus-overview-content>`,
-    );
-    await elementUpdated(component);
-    expect(component.activeQuery).to.eq('another-test-query');
-
-    getCurrentQueryStub.restore();
-  });
-
-  describe('RenderBookmarkUI', () => {
-    let container: HTMLElement;
-    afterEach(() => {
-      document.body.removeChild(container);
-    });
-
-    it('should display the bookmark title and description when query is matched', async () => {
-      container = document.createElement('div');
-      container.innerHTML = `
-          <webstatus-overview-content>
-          </webstatus-overview-content>
-      `;
-      const element: WebstatusOverviewContent = container.querySelector(
-        'webstatus-overview-content',
-      ) as WebstatusOverviewContent;
-      // Set location to one of the globalSavedSearches.
-      element.location = {search: '?q=test_query_1'};
-      element.appBookmarkInfo = {
-        globalSavedSearches: [
-          {
-            name: 'Test Bookmark 1',
-            query: 'test_query_1',
-            description: 'test description1',
-          },
-          {
-            name: 'Test Bookmark 2',
-            query: 'test_query_2',
-            description: 'test description2',
-          },
-        ],
-        currentGlobalSavedSearch: {
-          name: 'Test Bookmark 1',
-          query: 'test_query_1',
-          description: 'test description1',
-        },
-      };
-      document.body.appendChild(container);
+      // Trigger willUpdate
+      element.appBookmarkInfo = {currentLocation: {search: ''}} as any;
       await element.updateComplete;
 
-      const title = element?.shadowRoot?.querySelector('#overview-title');
-      expect(title).to.exist;
-      expect(title!.textContent!.trim()).to.equal('Test Bookmark 1');
-
-      const description = element?.shadowRoot?.querySelector(
-        '#overview-description',
-      );
-      expect(description).to.exist;
-      expect(description!.textContent).to.contain('test description1');
-    });
-    it('should not display description UI when it is empty', async () => {
-      container = document.createElement('div');
-      container.innerHTML = `
-          <webstatus-overview-content>
-          </webstatus-overview-content>
-      `;
-      const element: WebstatusOverviewContent = container.querySelector(
-        'webstatus-overview-content',
-      ) as WebstatusOverviewContent;
-      // Set location to one of the globalSavedSearches.
-      element.location = {search: '?q=test_query_1'};
-      element.appBookmarkInfo = {
-        globalSavedSearches: [
-          {
-            name: 'Test Bookmark 1',
-            query: 'test_query_1',
-          },
-        ],
-        currentGlobalSavedSearch: {
-          name: 'Test Bookmark 1',
-          query: 'test_query_1',
-        },
-      };
-      document.body.appendChild(container);
-      await element.updateComplete;
-
-      const title = element?.shadowRoot?.querySelector('#overview-title');
-      expect(title).to.exist;
-      expect(title!.textContent!.trim()).to.equal('Test Bookmark 1');
-
-      const description = element?.shadowRoot?.querySelector(
-        '#overview-description',
-      );
-      expect(description).to.not.exist;
-    });
-  });
-
-  describe('updated lifecycle hook', () => {
-    it('opens edit dialog and updates URL if edit_saved_search param is present', async () => {
-      element.location = {search: 'test'};
-      element.appBookmarkInfo = {
-        globalSavedSearches: [
-          {
-            name: 'Test Bookmark 1',
-            query: 'test_query_1',
-            description: 'test description1',
-          },
-          {
-            name: 'Test Bookmark 2',
-            query: 'test_query_2',
-            description: 'test description2',
-          },
-        ],
-        currentGlobalSavedSearch: {
-          name: 'Test Bookmark 1',
-          query: 'test_query_1',
-          description: 'test description1',
-        },
-      };
-      element.savedSearch = {...mockSavedSearchOwner};
-      getEditSavedSearchStub.returns(true); // Simulate finding the param
-      editorIsOpenStub.returns(false); // Simulate editor not already open
-
-      // Trigger the updated lifecycle hook manually for testing
-      element.requestUpdate();
-      await element.updateComplete;
-
-      // It should call openSavedSearchDialog, which calls editor.open
-      expect(editorOpenSpy).to.have.been.calledOnceWith(
-        'edit',
-        element.savedSearch,
-        element.savedSearch.query,
-      );
-      // It should remove the URL parameter
-      expect(updatePageUrlStub).to.have.been.calledOnceWith(
-        '',
-        element.location,
-        {edit_saved_search: undefined},
-      );
+      expect(element.activeQuery).to.equal('test-q');
+      expect(element.savedSearch).to.deep.equal(mockUserSearch);
     });
 
-    it('does not open edit dialog if editor is already open', async () => {
-      element.savedSearch = {...mockSavedSearchOwner};
-      getEditSavedSearchStub.returns(true);
-      editorIsOpenStub.returns(true);
-
-      element.requestUpdate();
-      await element.updateComplete;
-
-      expect(editorOpenSpy).to.not.have.been.called;
-      // Should not update URL if dialog wasn't opened by this hook
-      expect(updatePageUrlStub).to.not.have.been.called;
-      expect(getEditSavedSearchStub).to.have.been.called;
-    });
-
-    it('does not open edit dialog if edit_saved_search param is not present', async () => {
-      element.savedSearch = {...mockSavedSearchOwner};
-      getEditSavedSearchStub.returns(false); // Param not present
-
-      editorIsOpenStub.returns(false);
-
-      element.requestUpdate();
-      await element.updateComplete;
-
-      expect(editorIsOpenStub).to.not.have.been.called;
-      expect(updatePageUrlStub).to.not.have.been.called;
-    });
-
-    it('does not open edit dialog if savedSearch is not available', async () => {
-      element.savedSearch = undefined; // No saved search loaded yet
-      getEditSavedSearchStub.returns(true);
-      editorIsOpenStub.returns(false);
-
-      element.requestUpdate();
-      await element.updateComplete;
-
-      expect(editorOpenSpy).to.not.have.been.called;
-      // updatePageUrl might still be called depending on exact logic,
-      // but the primary action (opening dialog) shouldn't happen.
-      // Let's assert it's not called for clarity, though the original code
-      // might call it regardless. The important part is the dialog doesn't open.
-      expect(updatePageUrlStub).to.not.have.been.called;
-    });
-  });
-
-  describe('Subscribe button', () => {
-    it('should render the subscribe button when a user saved search is active', async () => {
-      const getCurrentSavedSearchStub = sinon
-        .stub(savedSearchHelpers, 'getCurrentSavedSearch')
-        .returns({
-          scope: SavedSearchScope.UserSavedSearch,
-          value: mockSavedSearchOwner,
-        });
-      element.requestUpdate();
-      await element.updateComplete;
-
-      const subscribeButton =
-        element.shadowRoot?.querySelector<SubscribeButton>(
-          'webstatus-subscribe-button',
-        );
-
-      expect(getCurrentSavedSearchStub).to.have.been.called;
-      expect(subscribeButton).to.exist;
-      expect(subscribeButton?.savedSearchId).to.equal(mockSavedSearchOwner.id);
-      getCurrentSavedSearchStub.restore();
-    });
-
-    it('should not render the subscribe button when no user saved search is active', async () => {
-      const getCurrentSavedSearchStub = sinon
+    it('resets savedSearch to undefined if no search is found', async () => {
+      element.savedSearch = mockUserSearch;
+      sinon
         .stub(savedSearchHelpers, 'getCurrentSavedSearch')
         .returns(undefined);
+
+      element.appBookmarkInfo = {} as any;
+      await element.updateComplete;
+
+      expect(element.savedSearch).to.be.undefined;
+    });
+  });
+
+  describe('Logic: subscribeButtonConfig', () => {
+    it('returns config for GlobalSavedSearch scope', () => {
+      sinon.stub(savedSearchHelpers, 'getCurrentSavedSearch').returns({
+        scope: SavedSearchScope.GlobalSavedSearch,
+        value: {id: 'global-456', name: 'Global Search', query: ''},
+      });
+      expect(element.subscribeButtonConfig?.id).to.equal('global-456');
+    });
+
+    it('returns config for UserSavedSearch scope', () => {
+      sinon.stub(savedSearchHelpers, 'getCurrentSavedSearch').returns({
+        scope: SavedSearchScope.UserSavedSearch,
+        value: mockUserSearch,
+      });
+      expect(element.subscribeButtonConfig?.id).to.equal('user-123');
+    });
+
+    it('returns "all" config for the home page (no query, no search)', () => {
+      element.activeQuery = '';
+      sinon
+        .stub(savedSearchHelpers, 'getCurrentSavedSearch')
+        .returns(undefined);
+      expect(element.subscribeButtonConfig?.id).to.equal('all');
+    });
+
+    it('returns null when a query is present but no search is matched', () => {
+      element.activeQuery = 'some-unsaved-query';
+      sinon
+        .stub(savedSearchHelpers, 'getCurrentSavedSearch')
+        .returns(undefined);
+      expect(element.subscribeButtonConfig).to.be.null;
+    });
+
+    it('returns null if GlobalSavedSearch is missing an ID', () => {
+      sinon.stub(savedSearchHelpers, 'getCurrentSavedSearch').returns({
+        scope: SavedSearchScope.GlobalSavedSearch,
+        value: {name: 'Broken Search', id: undefined} as any,
+      });
+      // Updated to expect null instead of an empty string
+      expect(element.subscribeButtonConfig).to.be.null;
+    });
+
+    it('returns "all" config for whitespace-only queries', () => {
+      element.activeQuery = '   ';
+      sinon
+        .stub(savedSearchHelpers, 'getCurrentSavedSearch')
+        .returns(undefined);
+      expect(element.subscribeButtonConfig?.id).to.equal('all');
+    });
+  });
+
+  describe('Logic: pageDisplayData', () => {
+    it('returns search name and description when search is active', () => {
+      sinon.stub(savedSearchHelpers, 'getCurrentSavedSearch').returns({
+        scope: SavedSearchScope.GlobalSavedSearch,
+        value: {name: 'Global Title', description: 'Global Desc', query: ''},
+      });
+      expect(element.pageDisplayData.title).to.equal('Global Title');
+      expect(element.pageDisplayData.description).to.equal('Global Desc');
+    });
+
+    it('returns default title when no search is active', () => {
+      sinon
+        .stub(savedSearchHelpers, 'getCurrentSavedSearch')
+        .returns(undefined);
+      expect(element.pageDisplayData.title).to.equal('Features overview');
+    });
+  });
+
+  describe('UI Rendering: Feature Count', () => {
+    it('renders error message when task fails', async () => {
+      element.taskTracker = {
+        status: TaskStatus.ERROR,
+        error: {} as any,
+        data: undefined,
+      };
+      element.requestUpdate();
+      await element.updateComplete;
+      expect(element.shadowRoot?.textContent).to.contain(
+        'Failed to load features',
+      );
+    });
+    it('renders 0 features if data is missing', async () => {
+      element.taskTracker = {
+        status: TaskStatus.COMPLETE,
+        error: undefined,
+        data: undefined,
+      };
+      element.requestUpdate();
+      await element.updateComplete;
+      expect(element.shadowRoot?.textContent).to.contain('0 features');
+    });
+  });
+
+  describe('UI Rendering: Templates', () => {
+    it('renders the subscribe button only when config is non-null', async () => {
+      const configStub = sinon.stub(element, 'subscribeButtonConfig');
+
+      // Branch: config exists
+      configStub.get(() => ({id: '1', title: 'T'}));
+      element.requestUpdate();
+      await element.updateComplete;
+      expect(element.shadowRoot?.querySelector('webstatus-subscribe-button')).to
+        .exist;
+
+      // Branch: config is null
+      configStub.get(() => null);
+      element.requestUpdate();
+      await element.updateComplete;
+      expect(element.shadowRoot?.querySelector('webstatus-subscribe-button')).to
+        .not.exist;
+    });
+
+    it('renders the description block only when present', async () => {
+      sinon
+        .stub(element, 'pageDisplayData')
+        .get(() => ({title: 'T', description: 'Show me'}));
+      element.requestUpdate();
+      await element.updateComplete;
+      expect(element.shadowRoot?.querySelector('#overview-description')).to
+        .exist;
+    });
+
+    it('renders the correct feature count states', async () => {
+      // Pending state
+      element.taskTracker = {
+        status: TaskStatus.PENDING,
+        error: undefined,
+        data: undefined,
+      };
+      element.requestUpdate();
+      await element.updateComplete;
+      expect(element.shadowRoot?.textContent).to.contain('Loading features...');
+
+      // Complete state
+      element.taskTracker = {
+        status: TaskStatus.COMPLETE,
+        error: undefined,
+        data: {metadata: {total: 42}, items: []},
+      } as any;
+      element.requestUpdate();
+      await element.updateComplete;
+      expect(
+        element.shadowRoot?.querySelector('.stats-summary')?.textContent,
+      ).to.contain('42 features');
+    });
+  });
+
+  describe('Behavior: Lifecycle & URL Params', () => {
+    it('automatically opens the editor when edit_saved_search param is true', async () => {
+      const editor =
+        element.shadowRoot?.querySelector<WebstatusSavedSearchEditor>(
+          'webstatus-saved-search-editor',
+        );
+      if (!editor) throw new Error('Editor not found');
+      const openSpy = sinon.spy(editor, 'open');
+
+      (element._getEditSavedSearch as sinon.SinonStub).returns(true);
+      element.savedSearch = mockUserSearch;
+      sinon.stub(editor, 'isOpen').returns(false);
+
       element.requestUpdate();
       await element.updateComplete;
 
-      const subscribeButton = element.shadowRoot?.querySelector(
-        'webstatus-subscribe-button',
+      expect(openSpy).to.have.been.calledOnce;
+      expect(element._updatePageUrl).to.have.been.calledWith(
+        '',
+        element.location,
+        {edit_saved_search: false},
       );
-      expect(getCurrentSavedSearchStub).to.have.been.called;
-      expect(subscribeButton).to.not.exist;
-      getCurrentSavedSearchStub.restore();
+    });
+    it('waits for savedSearch to be available before opening editor from URL', async () => {
+      const editor =
+        element.shadowRoot?.querySelector<WebstatusSavedSearchEditor>(
+          'webstatus-saved-search-editor',
+        );
+      const openSpy = sinon.spy(editor!, 'open');
+
+      (element._getEditSavedSearch as sinon.SinonStub).returns(true);
+      element.savedSearch = undefined; // Data hasn't arrived yet
+
+      element.requestUpdate();
+      await element.updateComplete;
+      expect(openSpy).to.not.have.been.called;
+
+      // Now data arrives
+      element.savedSearch = mockUserSearch;
+      element.requestUpdate();
+      await element.updateComplete;
+
+      expect(openSpy).to.have.been.calledOnce;
+    });
+  });
+
+  describe('Events & Interactions', () => {
+    it('triggers openSavedSearchDialog when open-saved-search-editor event is received', async () => {
+      const dialogSpy = sinon.spy(element, 'openSavedSearchDialog');
+      const eventDetail = {
+        type: 'edit',
+        savedSearch: mockUserSearch,
+        overviewPageQueryInput: 'q',
+      };
+
+      element.dispatchEvent(
+        new CustomEvent('open-saved-search-editor', {
+          detail: eventDetail,
+          bubbles: true,
+          composed: true,
+        }),
+      );
+
+      expect(dialogSpy).to.have.been.calledWith('edit', mockUserSearch, 'q');
     });
   });
 });

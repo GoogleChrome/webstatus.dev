@@ -47,6 +47,10 @@ export interface UserSavedSearch extends SavedSearch {
 }
 
 export interface GlobalSavedSearch extends SavedSearch {
+  id?: string;
+  display_order?: number;
+  created_at?: string;
+  updated_at?: string;
   // Should display query results in query's order.
   is_ordered?: boolean;
   // Override the num parameter value, if provided.
@@ -59,12 +63,6 @@ export interface SavedSearch {
   query: string;
   // Overview page description
   description?: string;
-}
-
-export function isUserSavedSearch(
-  value: {} | null | undefined,
-): value is UserSavedSearch {
-  return value !== undefined && value !== null;
 }
 
 export interface OpenSavedSearchEvent {
@@ -135,59 +133,7 @@ export const INTEROP_FEATURES: string[] = [
   'writing-mode',
 ];
 
-export const DEFAULT_GLOBAL_SAVED_SEARCHES: GlobalSavedSearch[] = [
-  {
-    name: 'Baseline 2026',
-    query: 'baseline_date:2026-01-01..2026-12-31',
-    description: 'All features that reached Baseline during 2026',
-  },
-  {
-    name: 'Baseline 2025',
-    query: 'baseline_date:2025-01-01..2025-12-31',
-    description: 'All features that reached Baseline during 2025',
-  },
-  {
-    name: 'Baseline 2024',
-    query: 'baseline_date:2024-01-01..2024-12-31',
-    description: 'All features that reached Baseline during 2024',
-  },
-  {
-    name: 'Baseline 2023',
-    query: 'baseline_date:2023-01-01..2023-12-31',
-    description: 'All features that reached Baseline during 2023',
-  },
-  {
-    name: 'Baseline 2022',
-    query: 'baseline_date:2022-01-01..2022-12-31',
-    description: 'All features that reached Baseline during 2022',
-  },
-  {
-    name: 'Baseline 2021',
-    query: 'baseline_date:2021-01-01..2021-12-31',
-    description: 'All features that reached Baseline during 2021',
-  },
-  {
-    name: 'Baseline 2020',
-    query: 'baseline_date:2020-01-01..2020-12-31',
-    description: 'All features that reached Baseline during 2020',
-  },
-  {
-    name: 'Top CSS Interop issues',
-    query: `id:${TOP_CSS_INTEROP_ISSUES.join(' OR id:')}`,
-    description:
-      "This list reflects the top 10 interoperability pain points identified by developers in the State of CSS 2025 survey. We have also included their implementation status across Baseline browsers. You will notice that in some cases the items are already Baseline features, but may not have have been Baseline for long enough for developers to use with their target audience's browser support requirements. Since some voted-on pain points involve multiple web features, the list extends beyond 10 individual items for clarity and comprehensive coverage.",
-    is_ordered: true,
-    override_num_param: 25,
-  },
-  {
-    name: 'Top HTML Interop issues',
-    query: `id:${TOP_HTML_INTEROP_ISSUES.join(' OR id:')}`,
-    description:
-      "This list reflects the top 10 interoperability pain points identified by developers in the State of HTML 2025 survey. We have also included their implementation status across Baseline browsers. You will notice that in some cases the items are already Baseline features, but may not have have been Baseline for long enough for developers to use with their target audience's browser support requirements. Since some voted-on pain points involve multiple web features, the list extends beyond 10 individual items for clarity and comprehensive coverage.",
-    is_ordered: true,
-    override_num_param: 25,
-  },
-];
+// End of file
 
 export const VOCABULARY = [
   {
@@ -281,6 +227,14 @@ export const VOCABULARY = [
   {
     name: 'id:',
     doc: 'Find by its feature identifier . E.g., id:html',
+  },
+  {
+    name: 'saved:',
+    doc: 'Find by your personal saved search ID. E.g., saved:your-search-id',
+  },
+  {
+    name: 'hotlist:',
+    doc: 'Find by system global list ID. E.g., hotlist:baseline-2024',
   },
   {
     name: 'OR',
