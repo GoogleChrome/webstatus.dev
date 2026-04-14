@@ -78,10 +78,6 @@
       ]
     }
   },
-  "forwardPorts": [
-    // gcloud CLI
-    8085
-  ],
   "runArgs": [
     "--env-file",
     ".devcontainer/devcontainer.env",
