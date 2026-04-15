@@ -73,7 +73,8 @@ func TestGetSubscriptionRSS(t *testing.T) {
 			eventsCfg: &MockListSavedSearchNotificationEventsConfig{
 				expectedSavedSearchID: "search-id",
 				expectedSnapshotType:  string(backend.SubscriptionFrequencyImmediate),
-				expectedLimit:         20,
+				expectedPageSize:      100,
+				expectedPageToken:     nil,
 				output: []backendtypes.SavedSearchNotificationEvent{
 					{
 						ID:            "event-1",
@@ -87,16 +88,83 @@ func TestGetSubscriptionRSS(t *testing.T) {
 						DiffBlobPath:  "",
 					},
 				},
-				err: nil,
+				outputNextPageToken: nil,
+				err:                 nil,
 			},
 			expectedStatusCode:  200,
 			expectedContentType: "application/rss+xml",
 			expectedBodyContains: []string{
 				"<title>WebStatus.dev - test search</title>",
 				"<description>RSS feed for saved search: test search</description>",
-				"<guid>event-1</guid>",
+				"<guid isPermaLink=\"false\">event-1</guid>",
 				"<pubDate>Thu, 01 Jan 2026 12:00:00 +0000</pubDate>",
 				"<link>http://localhost:8080/features?q=query</link>",
+			},
+		},
+		{
+			name: "success with pagination",
+			subCfg: &MockGetSavedSearchSubscriptionPublicConfig{
+				expectedSubscriptionID: "sub-id",
+				output: &backend.SubscriptionResponse{
+					Id: "sub-id",
+					Subscribable: backend.SavedSearchInfo{
+						Id:   "search-id",
+						Name: "",
+					},
+					ChannelId: "",
+					CreatedAt: time.Time{},
+					Frequency: backend.SubscriptionFrequencyImmediate,
+					Triggers:  nil,
+					UpdatedAt: time.Time{},
+				},
+				err: nil,
+			},
+			searchCfg: &MockGetSavedSearchPublicConfig{
+				expectedSavedSearchID: "search-id",
+				output: &backend.SavedSearchResponse{
+					Id:             "search-id",
+					Name:           "test search",
+					Query:          "query",
+					BookmarkStatus: nil,
+					CreatedAt:      time.Time{},
+					Description:    nil,
+					Permissions:    nil,
+					UpdatedAt:      time.Time{},
+				},
+				err: nil,
+			},
+			eventsCfg: &MockListSavedSearchNotificationEventsConfig{
+				expectedSavedSearchID: "search-id",
+				expectedSnapshotType:  string(backend.SubscriptionFrequencyImmediate),
+				expectedPageSize:      100,
+				expectedPageToken:     nil,
+				output: []backendtypes.SavedSearchNotificationEvent{
+					{
+						ID:            "event-1",
+						SavedSearchID: "search-id",
+						SnapshotType:  string(backend.SubscriptionFrequencyImmediate),
+						Timestamp:     time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC),
+						EventType:     "IMMEDIATE_DIFF",
+						Summary:       []byte(`"summary"`),
+						Reasons:       nil,
+						BlobPath:      "",
+						DiffBlobPath:  "",
+					},
+				},
+				outputNextPageToken: &[]string{"next-token"}[0],
+				err:                 nil,
+			},
+			expectedStatusCode:  200,
+			expectedContentType: "application/rss+xml",
+			expectedBodyContains: []string{
+				"<title>WebStatus.dev - test search</title>",
+				"<description>RSS feed for saved search: test search</description>",
+				"<guid isPermaLink=\"false\">event-1</guid>",
+				"<pubDate>Thu, 01 Jan 2026 12:00:00 +0000</pubDate>",
+				"<link>http://localhost:8080/features?q=query</link>",
+				`<atom:link rel="next" ` +
+					`href="http://localhost:8080/v1/subscriptions/sub-id/rss?page_size=100&amp;page_token=next-token">` +
+					`</atom:link>`,
 			},
 		},
 		{

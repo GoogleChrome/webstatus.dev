@@ -170,8 +170,9 @@ type WPTMetricsStorer interface {
 		ctx context.Context,
 		savedSearchID string,
 		snapshotType string,
-		limit int,
-	) ([]backendtypes.SavedSearchNotificationEvent, error)
+		pageSize int,
+		pageToken *string,
+	) ([]backendtypes.SavedSearchNotificationEvent, *string, error)
 	UpdateSavedSearchSubscription(
 		ctx context.Context,
 		userID, subscriptionID string,

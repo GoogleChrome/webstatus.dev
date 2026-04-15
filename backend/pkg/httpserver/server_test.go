@@ -205,8 +205,10 @@ type MockGetSavedSearchSubscriptionPublicConfig struct {
 type MockListSavedSearchNotificationEventsConfig struct {
 	expectedSavedSearchID string
 	expectedSnapshotType  string
-	expectedLimit         int
+	expectedPageSize      int
+	expectedPageToken     *string
 	output                []backendtypes.SavedSearchNotificationEvent
+	outputNextPageToken   *string
 	err                   error
 }
 
@@ -781,8 +783,9 @@ func (m *MockWPTMetricsStorer) ListSavedSearchNotificationEvents(
 	_ context.Context,
 	savedSearchID string,
 	snapshotType string,
-	limit int,
-) ([]backendtypes.SavedSearchNotificationEvent, error) {
+	pageSize int,
+	pageToken *string,
+) ([]backendtypes.SavedSearchNotificationEvent, *string, error) {
 	m.callCountListSavedSearchNotificationEvents++
 	if m.listSavedSearchNotificationEventsCfg == nil {
 		m.t.Fatal("listSavedSearchNotificationEventsCfg is nil")
@@ -801,11 +804,32 @@ func (m *MockWPTMetricsStorer) ListSavedSearchNotificationEvents(
 			snapshotType,
 		)
 	}
-	if m.listSavedSearchNotificationEventsCfg.expectedLimit != limit {
-		m.t.Fatalf("unexpected limit. want %d, got %d", m.listSavedSearchNotificationEventsCfg.expectedLimit, limit)
+	if m.listSavedSearchNotificationEventsCfg.expectedPageSize != pageSize {
+		m.t.Fatalf(
+			"unexpected pageSize. want %d, got %d",
+			m.listSavedSearchNotificationEventsCfg.expectedPageSize,
+			pageSize,
+		)
+	}
+	if m.listSavedSearchNotificationEventsCfg.expectedPageToken != nil && pageToken != nil {
+		if *m.listSavedSearchNotificationEventsCfg.expectedPageToken != *pageToken {
+			m.t.Fatalf(
+				"unexpected pageToken. want %s, got %s",
+				*m.listSavedSearchNotificationEventsCfg.expectedPageToken,
+				*pageToken,
+			)
+		}
+	} else if m.listSavedSearchNotificationEventsCfg.expectedPageToken != pageToken {
+		m.t.Fatalf(
+			"unexpected pageToken. want %v, got %v",
+			m.listSavedSearchNotificationEventsCfg.expectedPageToken,
+			pageToken,
+		)
 	}
 
-	return m.listSavedSearchNotificationEventsCfg.output, m.listSavedSearchNotificationEventsCfg.err
+	return m.listSavedSearchNotificationEventsCfg.output,
+		m.listSavedSearchNotificationEventsCfg.outputNextPageToken,
+		m.listSavedSearchNotificationEventsCfg.err
 }
 
 func (m *MockWPTMetricsStorer) DeleteUserSavedSearch(

@@ -211,8 +211,10 @@ type mockGetSavedSearchSubscriptionPublicConfig struct {
 type mockListSavedSearchNotificationEventsConfig struct {
 	expectedSavedSearchID string
 	expectedSnapshotType  string
-	expectedLimit         int
+	expectedPageSize      int
+	expectedPageToken     *string
 	result                []gcpspanner.SavedSearchNotificationEvent
+	outputNextPageToken   *string
 	returnedError         error
 }
 
@@ -675,14 +677,24 @@ func (c mockBackendSpannerClient) ListSavedSearchNotificationEvents(
 	_ context.Context,
 	savedSearchID string,
 	snapshotType string,
-	limit int) ([]gcpspanner.SavedSearchNotificationEvent, error) {
+	pageSize int,
+	pageToken *string) ([]gcpspanner.SavedSearchNotificationEvent, *string, error) {
 	if savedSearchID != c.mockListSavedSearchNotificationEventsCfg.expectedSavedSearchID ||
 		snapshotType != c.mockListSavedSearchNotificationEventsCfg.expectedSnapshotType ||
-		limit != c.mockListSavedSearchNotificationEventsCfg.expectedLimit {
+		pageSize != c.mockListSavedSearchNotificationEventsCfg.expectedPageSize {
 		c.t.Error("unexpected input to mock")
 	}
+	if c.mockListSavedSearchNotificationEventsCfg.expectedPageToken != nil && pageToken != nil {
+		if *c.mockListSavedSearchNotificationEventsCfg.expectedPageToken != *pageToken {
+			c.t.Error("unexpected page token in mock")
+		}
+	} else if c.mockListSavedSearchNotificationEventsCfg.expectedPageToken != pageToken {
+		c.t.Error("unexpected page token in mock")
+	}
 
-	return c.mockListSavedSearchNotificationEventsCfg.result, c.mockListSavedSearchNotificationEventsCfg.returnedError
+	return c.mockListSavedSearchNotificationEventsCfg.result,
+		c.mockListSavedSearchNotificationEventsCfg.outputNextPageToken,
+		c.mockListSavedSearchNotificationEventsCfg.returnedError
 }
 
 // ListSavedSearchSubscriptions implements BackendSpannerClient.

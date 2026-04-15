@@ -23,6 +23,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"strconv"
 	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/backendtypes"
@@ -33,19 +34,31 @@ import (
 type RSS struct {
 	XMLName xml.Name `xml:"rss"`
 	Version string   `xml:"version,attr"`
+	AtomNS  string   `xml:"xmlns:atom,attr"`
 	Channel Channel  `xml:"channel"`
 }
 
+type AtomLink struct {
+	Rel  string `xml:"rel,attr"`
+	Href string `xml:"href,attr"`
+}
+
 type Channel struct {
-	Title       string `xml:"title"`
-	Link        string `xml:"link"`
-	Description string `xml:"description"`
-	Items       []Item `xml:"item"`
+	Title       string     `xml:"title"`
+	Link        string     `xml:"link"`
+	Description string     `xml:"description"`
+	AtomLinks   []AtomLink `xml:"atom:link"`
+	Items       []Item     `xml:"item"`
+}
+
+type GUID struct {
+	Value       string `xml:",chardata"`
+	IsPermaLink string `xml:"isPermaLink,attr"`
 }
 
 type Item struct {
 	Description string `xml:"description"`
-	GUID        string `xml:"guid"`
+	GUID        GUID   `xml:"guid"`
 	PubDate     string `xml:"pubDate"`
 }
 
@@ -87,7 +100,14 @@ func (s *Server) GetSubscriptionRSS(
 	}
 
 	snapshotType := string(sub.Frequency)
-	events, err := s.wptMetricsStorer.ListSavedSearchNotificationEvents(ctx, search.Id, snapshotType, 20)
+	pageSize := getPageSizeOrDefault(request.Params.PageSize)
+	events, nextPageToken, err := s.wptMetricsStorer.ListSavedSearchNotificationEvents(
+		ctx,
+		search.Id,
+		snapshotType,
+		pageSize,
+		request.Params.PageToken,
+	)
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to list notification events", "error", err)
 
@@ -102,19 +122,54 @@ func (s *Server) GetSubscriptionRSS(
 	rss := RSS{
 		XMLName: xml.Name{Local: "rss", Space: ""},
 		Version: "2.0",
+		AtomNS:  "http://www.w3.org/2005/Atom",
 		Channel: Channel{
 			Title:       fmt.Sprintf("WebStatus.dev - %s", search.Name),
 			Link:        channelLink,
 			Description: fmt.Sprintf("RSS feed for saved search: %s", search.Name),
 			Items:       make([]Item, 0, len(events)),
+			AtomLinks:   nil,
 		},
+	}
+
+	selfURL := s.baseURL.JoinPath("v1", "subscriptions", request.SubscriptionId, "rss")
+	selfQuery := selfURL.Query()
+	if request.Params.PageToken != nil {
+		selfQuery.Set("page_token", *request.Params.PageToken)
+	}
+	if request.Params.PageSize != nil {
+		selfQuery.Set("page_size", strconv.Itoa(*request.Params.PageSize))
+	}
+	if len(selfQuery) > 0 {
+		selfURL.RawQuery = selfQuery.Encode()
+	}
+
+	rss.Channel.AtomLinks = append(rss.Channel.AtomLinks, AtomLink{
+		Rel:  "self",
+		Href: selfURL.String(),
+	})
+
+	if nextPageToken != nil {
+		u := s.baseURL.JoinPath("v1", "subscriptions", request.SubscriptionId, "rss")
+		q := u.Query()
+		q.Set("page_token", *nextPageToken)
+		q.Set("page_size", strconv.Itoa(pageSize))
+		u.RawQuery = q.Encode()
+
+		rss.Channel.AtomLinks = append(rss.Channel.AtomLinks, AtomLink{
+			Rel:  "next",
+			Href: u.String(),
+		})
 	}
 
 	for _, e := range events {
 		rss.Channel.Items = append(rss.Channel.Items, Item{
 			Description: string(e.Summary),
-			GUID:        e.ID,
-			PubDate:     e.Timestamp.Format(time.RFC1123Z),
+			GUID: GUID{
+				Value:       e.ID,
+				IsPermaLink: "false",
+			},
+			PubDate: e.Timestamp.Format(time.RFC1123Z),
 		})
 	}
 
@@ -128,10 +183,13 @@ func (s *Server) GetSubscriptionRSS(
 		}, nil
 	}
 
-	fullXML := []byte(xml.Header + string(xmlBytes))
+	var buf bytes.Buffer
+	buf.Grow(len(xml.Header) + len(xmlBytes))
+	buf.WriteString(xml.Header)
+	buf.Write(xmlBytes)
 
 	return backend.GetSubscriptionRSS200ApplicationrssXmlResponse{
-		Body:          bytes.NewReader(fullXML),
-		ContentLength: int64(len(fullXML)),
+		Body:          bytes.NewReader(buf.Bytes()),
+		ContentLength: int64(buf.Len()),
 	}, nil
 }

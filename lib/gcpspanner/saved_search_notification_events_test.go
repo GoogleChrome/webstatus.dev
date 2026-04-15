@@ -461,13 +461,26 @@ func TestListSavedSearchNotificationEvents(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			events, err := spannerClient.ListSavedSearchNotificationEvents(ctx, savedSearchID, snapshotType, tc.limit)
+			events, nextPageToken, err := spannerClient.ListSavedSearchNotificationEvents(
+				ctx,
+				savedSearchID,
+				snapshotType,
+				tc.limit,
+				nil,
+			)
 			if err != nil {
 				t.Fatalf("ListSavedSearchNotificationEvents() failed: %v", err)
 			}
 
 			if len(events) != tc.expectedCount {
 				t.Errorf("expected %d events, got %d", tc.expectedCount, len(events))
+			}
+
+			if tc.limit == 2 && nextPageToken == nil {
+				t.Errorf("expected nextPageToken, got nil")
+			}
+			if tc.limit == 10 && nextPageToken != nil {
+				t.Errorf("expected no nextPageToken, got %s", *nextPageToken)
 			}
 
 			for i, expectedID := range tc.expectedIDs {

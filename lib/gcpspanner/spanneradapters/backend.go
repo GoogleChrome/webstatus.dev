@@ -162,8 +162,13 @@ type BackendSpannerClient interface {
 	) (*string, error)
 	UpdateNotificationChannel(ctx context.Context, req gcpspanner.UpdateNotificationChannelRequest) error
 	DeleteNotificationChannel(ctx context.Context, channelID string, userID string) error
-	ListSavedSearchNotificationEvents(ctx context.Context,
-		savedSearchID string, snapshotType string, limit int) ([]gcpspanner.SavedSearchNotificationEvent, error)
+	ListSavedSearchNotificationEvents(
+		ctx context.Context,
+		savedSearchID string,
+		snapshotType string,
+		pageSize int,
+		pageToken *string,
+	) ([]gcpspanner.SavedSearchNotificationEvent, *string, error)
 }
 
 // Backend converts queries to spanner to usable entities for the backend
@@ -177,11 +182,22 @@ func NewBackend(client BackendSpannerClient) *Backend {
 	return &Backend{client: client}
 }
 
-func (s *Backend) ListSavedSearchNotificationEvents(ctx context.Context,
-	savedSearchID string, snapshotType string, limit int) ([]backendtypes.SavedSearchNotificationEvent, error) {
-	notifEvents, err := s.client.ListSavedSearchNotificationEvents(ctx, savedSearchID, snapshotType, limit)
+func (s *Backend) ListSavedSearchNotificationEvents(
+	ctx context.Context,
+	savedSearchID string,
+	snapshotType string,
+	pageSize int,
+	pageToken *string,
+) ([]backendtypes.SavedSearchNotificationEvent, *string, error) {
+	notifEvents, nextPageToken, err := s.client.ListSavedSearchNotificationEvents(
+		ctx,
+		savedSearchID,
+		snapshotType,
+		pageSize,
+		pageToken,
+	)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	events := make([]backendtypes.SavedSearchNotificationEvent, 0, len(notifEvents))
@@ -203,7 +219,7 @@ func (s *Backend) ListSavedSearchNotificationEvents(ctx context.Context,
 		})
 	}
 
-	return events, nil
+	return events, nextPageToken, nil
 }
 
 func (s *Backend) SyncUserProfileInfo(ctx context.Context, userProfile backendtypes.UserProfile) error {
