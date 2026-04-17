@@ -181,6 +181,7 @@ func (m *mockIDGenerator) NewDiffID() string  { return m.diffID }
 type mockFetcher struct {
 	queryResults map[string][]backend.Feature
 	fetchError   error
+	userErrors   map[string]*workertypes.UserError
 }
 
 func (m *mockFetcher) FetchFeatures(_ context.Context, query string) (*workertypes.FetchFeaturesResult, error) {
@@ -189,6 +190,11 @@ func (m *mockFetcher) FetchFeatures(_ context.Context, query string) (*workertyp
 	}
 	if query == "error:old" {
 		return nil, errors.New("simulated fetch error")
+	}
+	if m.userErrors != nil {
+		if err, ok := m.userErrors[query]; ok {
+			return &workertypes.FetchFeaturesResult{Features: nil, UserError: err}, nil
+		}
 	}
 
 	return &workertypes.FetchFeaturesResult{Features: m.queryResults[query], UserError: nil}, nil
@@ -367,6 +373,49 @@ func TestRun(t *testing.T) {
 				_ *mockDiffSerializer[testDiff], workflow *mockWorkflow[testDiff]) {
 				if workflow.calculateDiffCalled {
 					t.Error("expected CalculateDiff not to be called on flush failure")
+				}
+				if !workflow.setQueryChangedCalled {
+					t.Error("expected SetQueryChanged to be called")
+				}
+			},
+		},
+		{
+			name:               "Query Change - Flush UserError (Old Query Fails)",
+			query:              "q=new",
+			previousStateBytes: []byte("old-state"),
+			setupMocks: func(adapter *mockStateAdapter, serializer *mockDiffSerializer[testDiff],
+				workflow *mockWorkflow[testDiff], fetcher *mockFetcher) {
+				adapter.loadReturns.isEmpty = false
+				adapter.loadReturns.signature = "q=old"
+				adapter.loadReturns.snapshot = snapshotAB
+				fetcher.queryResults = map[string][]backend.Feature{
+					"q=new": {featureA},
+				}
+				fetcher.userErrors = map[string]*workertypes.UserError{
+					"q=old": {
+						QueryErrors: []workertypes.SummaryQueryError{
+							{Code: workertypes.SummaryQueryErrorCodeSavedSearchNotFound},
+						},
+					},
+				}
+				workflow.hasChangesResult = false // No data diff was performed
+				workflow.getDiffResult = &testDiff{Content: ""}
+				adapter.serializeReturns.bytes = []byte("new-state-flush-usererror")
+				serializer.serializeReturns.bytes = []byte("diff-flush-usererror")
+				workflow.summaryResult = []byte("summary-flush-usererror")
+			},
+			wantResult: &DiffResult{
+				State:       BlobArtifact{ID: "state-id", Bytes: []byte("new-state-flush-usererror")},
+				Diff:        BlobArtifact{ID: "event-456", Bytes: []byte("diff-flush-usererror")},
+				Summary:     []byte("summary-flush-usererror"),
+				Reasons:     []workertypes.Reason{workertypes.ReasonQueryChanged},
+				GeneratedAt: fixedTime,
+			},
+			wantErr: nil,
+			verifyMocks: func(t *testing.T, _ *mockStateAdapter,
+				_ *mockDiffSerializer[testDiff], workflow *mockWorkflow[testDiff]) {
+				if workflow.calculateDiffCalled {
+					t.Error("expected CalculateDiff not to be called on flush UserError")
 				}
 				if !workflow.setQueryChangedCalled {
 					t.Error("expected SetQueryChanged to be called")

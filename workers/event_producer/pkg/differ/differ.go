@@ -238,7 +238,9 @@ func (d *FeatureDiffer[D]) executePlan(ctx context.Context, plan executionPlan) 
 
 	if plan.QueryChanged {
 		result, err := d.client.FetchFeatures(ctx, plan.PreviousQuery)
-		if err == nil {
+		// FetchFeatures returns err == nil for valid queries that failed on the user's end
+		// (e.g. saved search not found). We must check both to ensure success.
+		if err == nil && result.UserError == nil {
 			data.TargetSnapshot = comparables.NewFeatureMapFromBackendFeatures(result.Features)
 		} else {
 			// Fallback: If old query fails, we return nil TargetSnapshot.
