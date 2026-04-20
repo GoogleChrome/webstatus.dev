@@ -131,6 +131,7 @@ type BackendSpannerClient interface {
 		ctx context.Context,
 		savedSearchID string,
 		authenticatedUserID *string) (*gcpspanner.UserSavedSearch, error)
+	GetSavedSearch(ctx context.Context, id string) (*gcpspanner.SavedSearch, error)
 	DeleteUserSavedSearch(ctx context.Context, req gcpspanner.DeleteUserSavedSearchRequest) error
 	ListUserSavedSearches(
 		ctx context.Context,
@@ -144,6 +145,8 @@ type BackendSpannerClient interface {
 	CreateSavedSearchSubscription(
 		ctx context.Context, req gcpspanner.CreateSavedSearchSubscriptionRequest) (*string, error)
 	GetSavedSearchSubscription(ctx context.Context, subscriptionID string, userID string) (
+		*gcpspanner.SavedSearchSubscriptionView, error)
+	GetSavedSearchSubscriptionPublic(ctx context.Context, subscriptionID string) (
 		*gcpspanner.SavedSearchSubscriptionView, error)
 	UpdateSavedSearchSubscription(ctx context.Context, req gcpspanner.UpdateSavedSearchSubscriptionRequest) error
 	DeleteSavedSearchSubscription(ctx context.Context, subscriptionID string, userID string) error
@@ -159,6 +162,13 @@ type BackendSpannerClient interface {
 	) (*string, error)
 	UpdateNotificationChannel(ctx context.Context, req gcpspanner.UpdateNotificationChannelRequest) error
 	DeleteNotificationChannel(ctx context.Context, channelID string, userID string) error
+	ListSavedSearchNotificationEvents(
+		ctx context.Context,
+		savedSearchID string,
+		snapshotType string,
+		pageSize int,
+		pageToken *string,
+	) ([]gcpspanner.SavedSearchNotificationEvent, *string, error)
 }
 
 // Backend converts queries to spanner to usable entities for the backend
@@ -170,6 +180,46 @@ type Backend struct {
 // NewBackend constructs an adapter for the backend service.
 func NewBackend(client BackendSpannerClient) *Backend {
 	return &Backend{client: client}
+}
+
+func (s *Backend) ListSavedSearchNotificationEvents(
+	ctx context.Context,
+	savedSearchID string,
+	snapshotType string,
+	pageSize int,
+	pageToken *string,
+) ([]backendtypes.SavedSearchNotificationEvent, *string, error) {
+	notifEvents, nextPageToken, err := s.client.ListSavedSearchNotificationEvents(
+		ctx,
+		savedSearchID,
+		snapshotType,
+		pageSize,
+		pageToken,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	events := make([]backendtypes.SavedSearchNotificationEvent, 0, len(notifEvents))
+	for _, e := range notifEvents {
+		var summaryBytes []byte
+		if e.Summary.Valid {
+			summaryBytes, _ = json.Marshal(e.Summary.Value)
+		}
+		events = append(events, backendtypes.SavedSearchNotificationEvent{
+			ID:            e.ID,
+			SavedSearchID: e.SavedSearchID,
+			SnapshotType:  string(e.SnapshotType),
+			Timestamp:     e.Timestamp,
+			EventType:     e.EventType,
+			Reasons:       e.Reasons,
+			BlobPath:      e.BlobPath,
+			DiffBlobPath:  e.DiffBlobPath,
+			Summary:       summaryBytes,
+		})
+	}
+
+	return events, nextPageToken, nil
 }
 
 func (s *Backend) SyncUserProfileInfo(ctx context.Context, userProfile backendtypes.UserProfile) error {
@@ -844,6 +894,24 @@ func (s *Backend) GetSavedSearch(ctx context.Context, savedSearchID string, user
 	}
 
 	return convertUserSavedSearchToSavedSearchResponse(savedSearch), nil
+}
+
+func (s *Backend) GetSavedSearchPublic(ctx context.Context, savedSearchID string) (
+	*backend.SavedSearchResponse, error) {
+	savedSearch, err := s.client.GetSavedSearch(ctx, savedSearchID)
+	if err != nil {
+		if errors.Is(err, gcpspanner.ErrQueryReturnedNoResults) {
+			return nil, errors.Join(err, backendtypes.ErrEntityDoesNotExist)
+		}
+
+		return nil, err
+	}
+
+	return convertUserSavedSearchToSavedSearchResponse(&gcpspanner.UserSavedSearch{
+		SavedSearch:  *savedSearch,
+		Role:         nil,
+		IsBookmarked: nil,
+	}), nil
 }
 
 func buildUpdateSavedSearchRequestForGCP(savedSearchID string,
@@ -1661,6 +1729,20 @@ func (s *Backend) GetSavedSearchSubscription(ctx context.Context,
 		if errors.Is(err, gcpspanner.ErrMissingRequiredRole) {
 			return nil, errors.Join(err, backendtypes.ErrUserNotAuthorizedForAction)
 		} else if errors.Is(err, gcpspanner.ErrQueryReturnedNoResults) {
+			return nil, errors.Join(err, backendtypes.ErrEntityDoesNotExist)
+		}
+
+		return nil, err
+	}
+
+	return toBackendSubscription(sub), nil
+}
+
+func (s *Backend) GetSavedSearchSubscriptionPublic(ctx context.Context,
+	subscriptionID string) (*backend.SubscriptionResponse, error) {
+	sub, err := s.client.GetSavedSearchSubscriptionPublic(ctx, subscriptionID)
+	if err != nil {
+		if errors.Is(err, gcpspanner.ErrQueryReturnedNoResults) {
 			return nil, errors.Join(err, backendtypes.ErrEntityDoesNotExist)
 		}
 

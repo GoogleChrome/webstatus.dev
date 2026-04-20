@@ -16,6 +16,7 @@ package gcpspanner
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"cloud.google.com/go/spanner"
@@ -171,4 +172,97 @@ func (c *Client) GetLatestSavedSearchNotificationEvent(
 	}
 
 	return r.readRowByKey(ctx, key)
+}
+
+// savedSearchNotificationEventCursor is used for pagination.
+type savedSearchNotificationEventCursor struct {
+	LastTimestamp time.Time `json:"last_timestamp"`
+	LastID        string    `json:"last_id"`
+}
+
+// decodeSavedSearchNotificationEventCursor decodes a cursor string.
+func decodeSavedSearchNotificationEventCursor(cursor string) (*savedSearchNotificationEventCursor, error) {
+	return decodeCursor[savedSearchNotificationEventCursor](cursor)
+}
+
+// encodeSavedSearchNotificationEventCursor encodes a cursor struct.
+func encodeSavedSearchNotificationEventCursor(lastTimestamp time.Time, lastID string) string {
+	return encodeCursor(savedSearchNotificationEventCursor{
+		LastTimestamp: lastTimestamp,
+		LastID:        lastID,
+	})
+}
+
+type ListSavedSearchNotificationEventsRequest struct {
+	SavedSearchID string
+	SnapshotType  string
+	PageSize      int
+	PageToken     *string
+}
+
+func (r ListSavedSearchNotificationEventsRequest) GetPageSize() int {
+	return r.PageSize
+}
+
+type listSavedSearchNotificationEventsMapper struct{}
+
+func (m listSavedSearchNotificationEventsMapper) Table() string {
+	return "SavedSearchNotificationEvents"
+}
+
+func (m listSavedSearchNotificationEventsMapper) SelectList(
+	req ListSavedSearchNotificationEventsRequest,
+) spanner.Statement {
+	var parsedToken *savedSearchNotificationEventCursor
+	if req.PageToken != nil {
+		parsedToken, _ = decodeSavedSearchNotificationEventCursor(*req.PageToken)
+	}
+
+	params := map[string]any{
+		"SavedSearchId": req.SavedSearchID,
+		"SnapshotType":  SavedSearchSnapshotType(req.SnapshotType),
+		"Limit":         req.PageSize,
+	}
+
+	var pageFilter string
+	if parsedToken != nil {
+		pageFilter = `AND (Timestamp < @LastTimestamp OR (Timestamp = @LastTimestamp AND EventId > @LastID))`
+		params["LastTimestamp"] = parsedToken.LastTimestamp
+		params["LastID"] = parsedToken.LastID
+	}
+
+	query := fmt.Sprintf(`SELECT * FROM SavedSearchNotificationEvents
+			  WHERE SavedSearchId = @SavedSearchId AND SnapshotType = @SnapshotType %s
+			  ORDER BY Timestamp DESC, EventId ASC
+			  LIMIT @Limit`, pageFilter)
+	stmt := spanner.NewStatement(query)
+	stmt.Params = params
+
+	return stmt
+}
+
+func (m listSavedSearchNotificationEventsMapper) EncodePageToken(item SavedSearchNotificationEvent) string {
+	return encodeSavedSearchNotificationEventCursor(item.Timestamp, item.ID)
+}
+
+func (c *Client) ListSavedSearchNotificationEvents(
+	ctx context.Context,
+	savedSearchID string,
+	snapshotType string,
+	pageSize int,
+	pageToken *string,
+) ([]SavedSearchNotificationEvent, *string, error) {
+	req := ListSavedSearchNotificationEventsRequest{
+		SavedSearchID: savedSearchID,
+		SnapshotType:  snapshotType,
+		PageSize:      pageSize,
+		PageToken:     pageToken,
+	}
+
+	items, token, err := newEntityLister[listSavedSearchNotificationEventsMapper](c).list(ctx, req)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return items, token, nil
 }

@@ -17,6 +17,7 @@ package gcpspanner
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -399,5 +400,94 @@ func TestGetLatestSavedSearchNotificationEvent(t *testing.T) {
 	}
 	if !latestEvent.Timestamp.Equal(eventTimes[2]) {
 		t.Errorf("Latest event Timestamp mismatch: got %v, want %v", latestEvent.Timestamp, eventTimes[2])
+	}
+}
+
+func TestListSavedSearchNotificationEvents(t *testing.T) {
+	ctx := t.Context()
+	restartDatabaseContainer(t)
+
+	savedSearchID := createSavedSearchForNotificationTests(ctx, t)
+	snapshotType := "compat-stats"
+
+	eventTimes := []time.Time{
+		time.Date(2025, 1, 1, 10, 0, 0, 0, time.UTC),
+		time.Date(2025, 1, 1, 11, 0, 0, 0, time.UTC),
+		time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC),
+	}
+
+	setupLockAndInitialState(ctx, t, savedSearchID, snapshotType, "worker-1", "path/initial", 10*time.Minute,
+		time.Date(2025, 1, 1, 9, 0, 0, 0, time.UTC))
+
+	for i, eventTime := range eventTimes {
+		eventID := fmt.Sprintf("event-%d", i)
+		_, err := spannerClient.PublishSavedSearchNotificationEvent(ctx, SavedSearchNotificationCreateRequest{
+			SavedSearchID: savedSearchID,
+			SnapshotType:  SavedSearchSnapshotType(snapshotType),
+			Timestamp:     eventTime,
+			EventType:     "IMMEDIATE_DIFF",
+			Reasons:       []string{"DATA_UPDATED"},
+			BlobPath:      "path/" + eventID,
+			DiffBlobPath:  "diff/path/" + eventID,
+			Summary: spanner.NullJSON{
+				Value: nil,
+				Valid: false,
+			},
+		}, "path/"+eventID, "worker-1", WithID(eventID))
+		if err != nil {
+			t.Fatalf("PublishSavedSearchNotificationEvent() failed: %v", err)
+		}
+	}
+
+	testCases := []struct {
+		name          string
+		limit         int
+		expectedCount int
+		expectedIDs   []string
+	}{
+		{
+			name:          "list all",
+			limit:         10,
+			expectedCount: 3,
+			expectedIDs:   []string{"event-2", "event-1", "event-0"},
+		},
+		{
+			name:          "list with limit",
+			limit:         2,
+			expectedCount: 2,
+			expectedIDs:   []string{"event-2", "event-1"},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			events, nextPageToken, err := spannerClient.ListSavedSearchNotificationEvents(
+				ctx,
+				savedSearchID,
+				snapshotType,
+				tc.limit,
+				nil,
+			)
+			if err != nil {
+				t.Fatalf("ListSavedSearchNotificationEvents() failed: %v", err)
+			}
+
+			if len(events) != tc.expectedCount {
+				t.Errorf("expected %d events, got %d", tc.expectedCount, len(events))
+			}
+
+			if tc.limit == 2 && nextPageToken == nil {
+				t.Errorf("expected nextPageToken, got nil")
+			}
+			if tc.limit == 10 && nextPageToken != nil {
+				t.Errorf("expected no nextPageToken, got %s", *nextPageToken)
+			}
+
+			for i, expectedID := range tc.expectedIDs {
+				if events[i].ID != expectedID {
+					t.Errorf("at index %d: expected ID %s, got %s", i, expectedID, events[i].ID)
+				}
+			}
+		})
 	}
 }
