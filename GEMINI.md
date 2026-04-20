@@ -13,6 +13,7 @@ This document provides context to Gemini Code Assist to help it generate more ac
 This section describes the tools and commands for local development.
 
 - **Devcontainer**: The project uses a devcontainer for a consistent development environment.
+- **Nix**: An alternative development environment that avoids heavy Docker containers for the toolchain. See `docs/nix-setup.md` for details.
 - **Skaffold & Minikube**: Local development is managed by `skaffold`, which deploys services to a local `minikube` Kubernetes cluster.
 - **Makefile**: Common development tasks are scripted in the `Makefile`. See below for key commands.
 

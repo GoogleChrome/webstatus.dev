@@ -39,7 +39,16 @@ DOCKERFILES := \
 
 build: gen go-build node-install
 
+# Note: We only install deps for webkit because full --with-deps fails on newer systems
+# (like Ubuntu 24.04) due to virtual package resolution issues (e.g. libasound2).
+nix-setup: node-install go-install-tools gen
+	npx playwright install
+	npx playwright install-deps webkit
+
 clean: clean-gen clean-node port-forward-terminate minikube-delete
+
+clean-nix:
+	rm -rf .nix/
 
 precommit: license-check  go-fix go-tidy lint test unstaged-changes
 
@@ -312,8 +321,10 @@ node-test: playwright-install
 ################################
 # ANTLR
 ################################
+ANTLR ?= java -jar /usr/local/lib/antlr-$${ANTLR4_VERSION}-complete.jar
+
 antlr-gen: clean-antlr
-	java -jar /usr/local/lib/antlr-$${ANTLR4_VERSION}-complete.jar -Dlanguage=Go -o lib/gen/featuresearch/parser -visitor -no-listener antlr/FeatureSearch.g4
+	$(ANTLR) -Dlanguage=Go -o lib/gen/featuresearch/parser -visitor -no-listener antlr/FeatureSearch.g4
 
 clean-antlr:
 	rm -rf lib/gen/featuresearch/parser
@@ -349,6 +360,8 @@ ADDLICENSE_ARGS := -c "${COPYRIGHT_NAME}" \
 	-ignore 'infra/storage/spanner/schema.sql' \
 	-ignore 'antlr/.antlr/**' \
 	-ignore '.devcontainer/cache/**' \
+	-ignore '.nix/**' \
+	-ignore 'direnv/**' \
 	-ignore 'workers/email/pkg/digest/testdata/digest.golden.html'
 
 license-check: go-install-tools
@@ -374,10 +387,19 @@ unstaged-changes:
 # fresh-env-for-playwright prerequisite. If unset, the fresh environment will be created.
 SKIP_FRESH_ENV ?=
 
-fresh-env-for-playwright: $(if $(SKIP_FRESH_ENV),,playwright-install delete-local build deploy-local port-forward-manual dev_fake_users dev_fake_data)
+playwright-docker-stop:
+	@echo "Stopping Playwright Docker container if running..."
+	docker stop playwright-server || true
+	docker rm playwright-server || true
+
+fresh-env-for-playwright: $(if $(SKIP_FRESH_ENV),,playwright-docker-stop playwright-install delete-local build deploy-local port-forward-manual dev_fake_users dev_fake_data)
 
 playwright-install:
-	npx playwright install --with-deps
+	@if [ -z "$$PLAYWRIGHT_BROWSERS_PATH" ]; then \
+		npx playwright install --with-deps; \
+	else \
+		echo "Skipping playwright install because PLAYWRIGHT_BROWSERS_PATH is set to $$PLAYWRIGHT_BROWSERS_PATH. This should have been handled by nix-develop already to prevent sudo prompt."; \
+	fi
 
 playwright-update-snapshots: fresh-env-for-playwright
 	npx playwright test --update-snapshots

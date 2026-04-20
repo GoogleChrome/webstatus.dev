@@ -35,6 +35,17 @@ For a detailed technical guide on the local development environment (Skaffold/Mi
 - **Retries**: Playwright tests are configured to retry twice on failure only when running in a CI environment. If you want to simulate this locally and test flakiness, you can prefix your command with `CI=true` (e.g., `CI=true make playwright-test`).
 - **Browsers**: If you ever need to test against new browsers (e.g., mobile viewports, branded Edge/Chrome), modify the `projects` array within `playwright.config.ts`.
 
+## Nix Environment & Docker Browser
+
+When working in the Nix development environment (via `nix develop` or `direnv`), special handling is required for Playwright:
+
+- **Isolated Browsers**: Browsers are isolated to `.nix/browsers` to avoid affecting host installations.
+- **Docker Browser Server**: To guarantee 100% font parity for screenshots, the environment defaults to `USE_DOCKER_BROWSER=true`. This automatically spins up a Docker container and connects to it via WebSocket.
+- **Known Limitation**: The "Show browsers" option in the VS Code Playwright extension is **broken** when using the Docker server.
+- **Workarounds**:
+  - Use UI Mode (`make playwright-ui` or `npx playwright test --ui`).
+  - Temporarily disable Docker to use local Nix-patched browsers: `USE_DOCKER_BROWSER=false npx playwright test --headed`.
+
 ## Execution & Debugging
 
 - For detailed instructions on rapid iteration, debugging CI failures, and using traces, see [references/execution-and-debugging.md](references/execution-and-debugging.md).

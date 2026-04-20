@@ -74,3 +74,10 @@ tsconfig.tsbuildinfo
 
 # Docker build log files
 infra/*.log
+
+# Direnv
+.envrc
+.direnv/
+
+# Nix
+.nix/

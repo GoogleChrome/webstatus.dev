@@ -33,9 +33,11 @@ capabilities, please refer to our [Search Syntax Guide](./antlr/FeatureSearch.md
 
 ## Get the code
 
-This repository relies heavily on [devcontainers](https://code.visualstudio.com/docs/remote/create-dev-container) to get started.
+To get started with the codebase, you can use either a **VS Code DevContainer** or **Nix**.
 
-To continue setting up locally:
+### Option 1: VS Code DevContainer (Recommended for VS Code users)
+
+This repository supports [devcontainers](https://code.visualstudio.com/docs/remote/create-dev-container) to provide a fully configured environment.
 
 ```sh
 git clone https://github.com/GoogleChrome/webstatus.dev
@@ -47,9 +49,23 @@ code webstatus.dev # Opens Visual Studio Code with the webstatus.dev folder.
 # 2. Select the option: Dev containers: Rebuild and Reopen in Container
 ```
 
+### Option 2: Nix (Alternative)
+
+If you prefer not to use Docker for your toolchain or don't use VS Code, you can use Nix. See the [Nix Setup Guide](./docs/nix-setup.md) for detailed instructions.
+
+```sh
+git clone https://github.com/GoogleChrome/webstatus.dev
+cd webstatus.dev
+nix develop
+make nix-setup
+```
+
+> [!NOTE]
+> To clean up the downloaded browsers and start fresh, you can run `make clean-nix`.
+
 ### Running the services locally
 
-After getting the code with or without devcontainer, check out the [DEVELOPMENT.md](./DEVELOPMENT.md) for more information to get started and running locally.
+After setting up your environment, check out the [DEVELOPMENT.md](./DEVELOPMENT.md) for more information to get started and running locally.
 
 ### Using Gemini CLI
 

@@ -13,11 +13,11 @@
 
 ## Requirements
 
-The recommended way to do development is through the provided devcontainer. To
-run a devcontainer, check out this
-[web page](https://code.visualstudio.com/docs/devcontainers/containers#_system-requirements)
-for the latest requirements to run devcontainer. The devcontainer will have
-everything pre-installed.
+The recommended way to do development is through the provided **VS Code DevContainer**. The devcontainer will have everything pre-installed.
+
+Alternatively, you can use **Nix** to set up your development environment. See the [Nix Setup Guide](./docs/nix-setup.md) for detailed instructions.
+
+For either path, a container runtime (like Docker Desktop) is still required on your host machine to run the local services.
 
 ## Project Structure
 

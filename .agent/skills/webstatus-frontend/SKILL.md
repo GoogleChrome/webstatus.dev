@@ -14,6 +14,13 @@ This skill provides architectural guidance and conventions for the `frontend/` d
 - **State Management**: Uses **Lit Context** for dependency injection and state management via a service container pattern (`<webstatus-services-container>`).
 - **API Interaction**: Communicates with the Go backend using TypeScript types generated from the OpenAPI specification (`make node-openapi`).
 
+## Development Environments
+
+The project supports two primary development environments:
+
+- **VS Code DevContainer**: A Docker-based environment with all tools pre-installed.
+- **Nix (Alternative)**: A lightweight environment with pinned tool versions (Node.js 24.14.0). Enter via `nix develop`.
+
 ## Architecture
 
 For a technical breakdown of the Lit component hierarchy, frontend identity flows, and theming patterns, see [references/architecture.md](references/architecture.md).
@@ -36,7 +43,11 @@ For a technical breakdown of the Lit component hierarchy, frontend identity flow
 
 ## Testing & Linting
 
-- **Test Execution**: `npm run test -w frontend`.
+- **Test Execution**: `npm run test -w frontend` or `make node-test`.
+- **Nix Environment**:
+  - Browsers are isolated to `.nix/browsers`.
+  - If browsers are missing, run `npx playwright install` within the `nix develop` shell.
+  - Note: Frontend unit tests always use local browsers, even in Nix (unlike E2E tests which may default to a Docker-based browser).
 - **Linting**: Run `make node-lint` to run ESLint and Prettier for the frontend code, or `make lint-fix` to attempt auto-fixing. `make style-lint` is also available for CSS.
 - **ES Module Testing**: When testing components that use ES module exports directly (e.g. Firebase Auth), use a helper property (e.g. `credentialGetter`) that can be overridden with a Sinon stub.
 - **Typing**: Use generic arguments for `querySelector` in tests (e.g. `querySelector<HTMLSlotElement>(...)`) for type safety.
@@ -54,6 +65,7 @@ If a frontend unit test is timing out or failing mysteriously, Web Test Runner's
 
 - **Watch Mode**: Instruct the user to run `npm run test:watch -w frontend` in their own terminal.
 - **Visual Debugging**: Ask the user to open the provided localhost URL (e.g., `http://localhost:8000/`) in their web browser and inspect the developer console/DOM to see where the test is getting stuck.
+- **Wayland Support**: In the Nix environment, Firefox is automatically configured to run natively if Wayland is detected (`MOZ_ENABLE_WAYLAND=1`).
 - **DON'T** arbitrarily increase the timeout in `web-test-runner.config.mjs` to fix timeout issues. Address the root cause of the hang instead.
 
 ## Documentation Updates
