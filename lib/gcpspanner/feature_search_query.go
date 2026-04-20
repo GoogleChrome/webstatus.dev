@@ -15,6 +15,7 @@
 package gcpspanner
 
 import (
+	"errors"
 	"fmt"
 	"maps"
 	"strings"
@@ -23,6 +24,15 @@ import (
 	"cloud.google.com/go/spanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/searchtypes"
 )
+
+// ErrNilSearchNode is returned when a nil search node is passed to the builder.
+var ErrNilSearchNode = errors.New("search node cannot be nil")
+
+// ErrInvalidRootNode is returned when the root node of the search AST is invalid.
+var ErrInvalidRootNode = errors.New("invalid root node in search AST")
+
+// ErrUnexpandedSearchTerm is returned when an unexpanded search term is encountered.
+var ErrUnexpandedSearchTerm = errors.New("unexpected unexpanded search term")
 
 type FeatureSearchFilterBuilder struct {
 	paramCounter int
@@ -62,37 +72,46 @@ func (b *FeatureSearchFilterBuilder) addParamGetName(param any) string {
 }
 
 // Build constructs a Spanner query for the FeaturesSearch function.
-func (b *FeatureSearchFilterBuilder) Build(node *searchtypes.SearchNode) *FeatureSearchCompiledFilter {
+func (b *FeatureSearchFilterBuilder) Build(node *searchtypes.SearchNode) (*FeatureSearchCompiledFilter, error) {
 	// Ensure it is not nil
-	if node == nil ||
-		// Check for our root node.
-		node.Keyword != searchtypes.KeywordRoot ||
+	if node == nil {
+		return nil, ErrNilSearchNode
+	}
+	// Check for our root node.
+	if node.Keyword != searchtypes.KeywordRoot ||
 		// Currently root should only have at most one child.
 		// lib/gcpspanner/searchtypes/features_search_visitor.go
 		len(node.Children) != 1 {
-		return nil
+		return nil, ErrInvalidRootNode
 	}
 
 	//  Initialize the map and (re)set counter to 0
 	b.params = make(map[string]any)
 	b.paramCounter = 0
 
-	generatedFilters := b.traverseAndGenerateFilters(node.Children[0])
+	generatedFilters, err := b.traverseAndGenerateFilters(node.Children[0])
+	if err != nil {
+		return nil, err
+	}
 
 	return &FeatureSearchCompiledFilter{
 		params:  b.params,
 		filters: generatedFilters,
-	}
+	}, nil
 }
 
-func (b *FeatureSearchFilterBuilder) traverseAndGenerateFilters(node *searchtypes.SearchNode) []string {
+func (b *FeatureSearchFilterBuilder) traverseAndGenerateFilters(node *searchtypes.SearchNode) ([]string, error) {
 	var filters []string
 
 	switch {
 	case node.IsKeyword(): // Handle AND/OR keyword
 		childFilters := make([]string, 0, len(node.Children)) // Collect child filters first
 		for _, child := range node.Children {
-			childFilters = append(childFilters, b.traverseAndGenerateFilters(child)...)
+			res, err := b.traverseAndGenerateFilters(child)
+			if err != nil {
+				return nil, err
+			}
+			childFilters = append(childFilters, res...)
 		}
 
 		// Join child filters using the current node's operator
@@ -113,7 +132,11 @@ func (b *FeatureSearchFilterBuilder) traverseAndGenerateFilters(node *searchtype
 		// Handle parenthesized sub-expressions.
 		childFilters := make([]string, 0, len(node.Children))
 		for _, child := range node.Children {
-			childFilters = append(childFilters, b.traverseAndGenerateFilters(child)...)
+			res, err := b.traverseAndGenerateFilters(child)
+			if err != nil {
+				return nil, err
+			}
+			childFilters = append(childFilters, res...)
 		}
 
 		// Join without spaces because if there are multiple terms, they will
@@ -131,6 +154,9 @@ func (b *FeatureSearchFilterBuilder) traverseAndGenerateFilters(node *searchtype
 		case searchtypes.IdentifierAvailableDate:
 			// Currently not a terminal identifier.
 			break
+		case searchtypes.IdentifierSavedSearch, searchtypes.IdentifierHotlist:
+			// Handled upstream by ValidateQueryReferences and recursive expansion.
+			return nil, fmt.Errorf("%w: '%s'", ErrUnexpandedSearchTerm, node.Term.Identifier)
 		case searchtypes.IdentifierAvailableOn:
 			filter = b.availabilityFilter(node.Term.Value, node.Term.Operator)
 		case searchtypes.IdentifierName:
@@ -155,7 +181,7 @@ func (b *FeatureSearchFilterBuilder) traverseAndGenerateFilters(node *searchtype
 		}
 	}
 
-	return filters
+	return filters, nil
 }
 
 func searchOperatorToSpannerBinaryOperator(in searchtypes.SearchOperator) string {

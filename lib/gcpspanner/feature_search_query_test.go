@@ -15,6 +15,7 @@
 package gcpspanner
 
 import (
+	"errors"
 	"reflect"
 	"slices"
 	"testing"
@@ -41,6 +42,25 @@ var (
 						Identifier: searchtypes.IdentifierAvailableOn,
 						Operator:   searchtypes.OperatorEq,
 						Value:      "chrome",
+					},
+					Children: nil,
+					Keyword:  searchtypes.KeywordNone,
+				},
+			},
+		},
+	}
+
+	unexpandedSavedSearchQuery = TestTree{
+		Query: "saved:XYZ",
+		InputTree: &searchtypes.SearchNode{
+			Keyword: searchtypes.KeywordRoot,
+			Term:    nil,
+			Children: []*searchtypes.SearchNode{
+				{
+					Term: &searchtypes.SearchTerm{
+						Identifier: searchtypes.IdentifierSavedSearch,
+						Operator:   searchtypes.OperatorNone,
+						Value:      "XYZ",
 					},
 					Children: nil,
 					Keyword:  searchtypes.KeywordNone,
@@ -537,12 +557,53 @@ WHERE BrowserName = @param0) AND (fbs.Status = @param1 OR fbs.Status = @param2))
 	for _, tc := range testCases {
 		t.Run(tc.inputTestTree.Query, func(t *testing.T) {
 			b := NewFeatureSearchFilterBuilder()
-			filter := b.Build(tc.inputTestTree.InputTree)
+			filter, err := b.Build(tc.inputTestTree.InputTree)
+			if err != nil {
+				t.Fatalf("Build failed: %v", err)
+			}
 			if !slices.Equal[[]string](filter.Filters(), tc.expectedClauses) {
 				t.Errorf("\nexpected clause [%s]\n  actual clause [%s]", tc.expectedClauses, filter.Filters())
 			}
 			if !reflect.DeepEqual(tc.expectedParams, filter.Params()) {
 				t.Errorf("expected params (%+v) actual params (%+v)", tc.expectedParams, filter.Params())
+			}
+		})
+	}
+}
+
+func TestBuild_Error(t *testing.T) {
+	testCases := []struct {
+		name        string
+		tree        *searchtypes.SearchNode
+		expectedErr error
+	}{
+		{
+			name:        "unexpanded saved search",
+			tree:        unexpandedSavedSearchQuery.InputTree,
+			expectedErr: ErrUnexpandedSearchTerm,
+		},
+		{
+			name:        "nil node",
+			tree:        nil,
+			expectedErr: ErrNilSearchNode,
+		},
+		{
+			name: "invalid root node",
+			tree: &searchtypes.SearchNode{
+				Keyword:  searchtypes.KeywordNone,
+				Term:     nil,
+				Children: nil,
+			},
+			expectedErr: ErrInvalidRootNode,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			b := NewFeatureSearchFilterBuilder()
+			_, err := b.Build(tc.tree)
+			if !errors.Is(err, tc.expectedErr) {
+				t.Errorf("expected error %v, got %v", tc.expectedErr, err)
 			}
 		})
 	}

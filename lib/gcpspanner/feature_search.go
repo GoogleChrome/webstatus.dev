@@ -119,10 +119,14 @@ func (c *Client) FeaturesSearch(
 ) (*FeatureResultPage, error) {
 	// Build filterable
 	filterBuilder := NewFeatureSearchFilterBuilder()
-	filter := filterBuilder.Build(searchNode)
+	filter, err := filterBuilder.Build(searchNode)
+	if errors.Is(err, ErrNilSearchNode) {
+		filter = nil
+	} else if err != nil {
+		return nil, errors.Join(ErrInternalQueryFailure, err)
+	}
 
 	var offsetCursor *FeatureResultOffsetCursor
-	var err error
 	if pageToken != nil {
 		offsetCursor, err = decodeInputFeatureResultCursor(*pageToken)
 		if err != nil {
