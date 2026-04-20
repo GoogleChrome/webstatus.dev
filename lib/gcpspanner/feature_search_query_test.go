@@ -572,30 +572,39 @@ WHERE BrowserName = @param0) AND (fbs.Status = @param1 OR fbs.Status = @param2))
 }
 
 func TestBuild_Error(t *testing.T) {
-	b := NewFeatureSearchFilterBuilder()
-	_, err := b.Build(unexpandedSavedSearchQuery.InputTree)
-	if err == nil {
-		t.Fatal("expected error for unexpanded saved search, got nil")
-	}
-	expectedErr := "unexpected unexpanded search identifier: saved"
-	if err.Error() != expectedErr {
-		t.Errorf("expected error %q, got %q", expectedErr, err.Error())
+	testCases := []struct {
+		name        string
+		tree        *searchtypes.SearchNode
+		expectedErr error
+	}{
+		{
+			name:        "unexpanded saved search",
+			tree:        unexpandedSavedSearchQuery.InputTree,
+			expectedErr: ErrUnexpandedSearchTerm,
+		},
+		{
+			name:        "nil node",
+			tree:        nil,
+			expectedErr: ErrNilSearchNode,
+		},
+		{
+			name: "invalid root node",
+			tree: &searchtypes.SearchNode{
+				Keyword:  searchtypes.KeywordNone,
+				Term:     nil,
+				Children: nil,
+			},
+			expectedErr: ErrInvalidRootNode,
+		},
 	}
 
-	// Test nil node
-	_, err = b.Build(nil)
-	if !errors.Is(err, ErrNilSearchNode) {
-		t.Errorf("expected error %v, got %v", ErrNilSearchNode, err)
-	}
-
-	// Test invalid root node
-	invalidRootNode := &searchtypes.SearchNode{
-		Keyword:  searchtypes.KeywordNone,
-		Term:     nil,
-		Children: nil,
-	}
-	_, err = b.Build(invalidRootNode)
-	if !errors.Is(err, ErrInvalidRootNode) {
-		t.Errorf("expected error %v, got %v", ErrInvalidRootNode, err)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			b := NewFeatureSearchFilterBuilder()
+			_, err := b.Build(tc.tree)
+			if !errors.Is(err, tc.expectedErr) {
+				t.Errorf("expected error %v, got %v", tc.expectedErr, err)
+			}
+		})
 	}
 }

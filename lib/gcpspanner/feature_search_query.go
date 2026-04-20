@@ -31,6 +31,9 @@ var ErrNilSearchNode = errors.New("search node cannot be nil")
 // ErrInvalidRootNode is returned when the root node of the search AST is invalid.
 var ErrInvalidRootNode = errors.New("invalid root node in search AST")
 
+// ErrUnexpandedSearchTerm is returned when an unexpanded search term is encountered.
+var ErrUnexpandedSearchTerm = errors.New("unexpected unexpanded search term")
+
 type FeatureSearchFilterBuilder struct {
 	paramCounter int
 	params       map[string]any
@@ -153,7 +156,7 @@ func (b *FeatureSearchFilterBuilder) traverseAndGenerateFilters(node *searchtype
 			break
 		case searchtypes.IdentifierSavedSearch, searchtypes.IdentifierHotlist:
 			// Handled upstream by ValidateQueryReferences and recursive expansion.
-			return nil, fmt.Errorf("unexpected unexpanded search identifier: %s", node.Term.Identifier)
+			return nil, fmt.Errorf("%w: '%s'", ErrUnexpandedSearchTerm, node.Term.Identifier)
 		case searchtypes.IdentifierAvailableOn:
 			filter = b.availabilityFilter(node.Term.Value, node.Term.Operator)
 		case searchtypes.IdentifierName:
