@@ -17,6 +17,7 @@ package gcpspanner
 import (
 	"context"
 	"reflect"
+	"slices"
 	"testing"
 
 	"cloud.google.com/go/spanner"
@@ -36,7 +37,7 @@ func TestGetSavedSearch(t *testing.T) {
 	restartDatabaseContainer(t)
 	ctx := context.Background()
 
-	id := uuid.New().String()
+	id := uuid.NewString()
 	desc := systemSearchDesc
 	expectedSavedSearch := &SavedSearch{
 		ID:          id,
@@ -182,4 +183,78 @@ func savedSearchEquality(left, right SavedSearch) bool {
 		// Just make sure the times are non zero.
 		!left.CreatedAt.IsZero() && !right.CreatedAt.IsZero() &&
 		!left.UpdatedAt.IsZero() && !right.UpdatedAt.IsZero()
+}
+
+func TestGetReferencingSavedSearchIDs(t *testing.T) {
+	restartDatabaseContainer(t)
+	ctx := context.Background()
+
+	targetID := uuid.NewString()
+
+	// Note: We don't need to insert a saved search with targetID first because
+	// GetReferencingSavedSearchIDs only performs string matching on the Query field
+	// and does not enforce referential integrity or check for the actual existence
+	// of the referenced search.
+
+	// Insert searches that reference the targetID
+	ref1 := &SavedSearch{
+		ID:          uuid.NewString(),
+		Name:        "ref 1",
+		Query:       "saved:" + targetID,
+		Scope:       UserPublicScope,
+		AuthorID:    "user1",
+		Description: nil,
+		CreatedAt:   spanner.CommitTimestamp,
+		UpdatedAt:   spanner.CommitTimestamp,
+	}
+	ref2 := &SavedSearch{
+		ID:          uuid.NewString(),
+		Name:        "ref 2",
+		Query:       "hotlist:" + targetID,
+		Scope:       UserPublicScope,
+		AuthorID:    "user2",
+		Description: nil,
+		CreatedAt:   spanner.CommitTimestamp,
+		UpdatedAt:   spanner.CommitTimestamp,
+	}
+	// Insert a search that does NOT reference the targetID
+	noref := &SavedSearch{
+		ID:          uuid.NewString(),
+		Name:        "no ref",
+		Query:       "saved:other-id",
+		Scope:       UserPublicScope,
+		AuthorID:    "user3",
+		Description: nil,
+		CreatedAt:   spanner.CommitTimestamp,
+		UpdatedAt:   spanner.CommitTimestamp,
+	}
+
+	_, err := spannerClient.ReadWriteTransaction(ctx, func(_ context.Context, txn *spanner.ReadWriteTransaction) error {
+		m1, _ := spanner.InsertStruct(savedSearchesTable, ref1)
+		m2, _ := spanner.InsertStruct(savedSearchesTable, ref2)
+		m3, _ := spanner.InsertStruct(savedSearchesTable, noref)
+
+		return txn.BufferWrite([]*spanner.Mutation{m1, m2, m3})
+	})
+	if err != nil {
+		t.Fatalf("unexpected error during insert: %s", err)
+	}
+
+	results, err := spannerClient.GetReferencingSavedSearchIDs(ctx, targetID)
+	if err != nil {
+		t.Errorf("expected nil error. received %s", err)
+	}
+
+	expectedIDs := []string{ref1.ID, ref2.ID}
+	if len(results) != len(expectedIDs) {
+		t.Errorf("expected %d results, got %d", len(expectedIDs), len(results))
+	}
+
+	// Check that expected IDs are in results (order might not be guaranteed)
+	for _, id := range expectedIDs {
+		found := slices.Contains(results, id)
+		if !found {
+			t.Errorf("expected result to contain %s", id)
+		}
+	}
 }

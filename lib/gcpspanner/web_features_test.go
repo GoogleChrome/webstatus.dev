@@ -489,6 +489,32 @@ func setupRedirectDataAndAssert(
 	if err != nil {
 		t.Fatalf("Failed to sync latest feature developer signals: %v", err)
 	}
+
+	// Insert dummy SavedSearch to satisfy foreign key constraint
+	_, err = spannerClient.CreateNewUserSavedSearchWithUUID(ctx, CreateUserSavedSearchRequest{
+		Name:        "Test Search",
+		Description: nil,
+		Query:       "query",
+		OwnerUserID: "test-author",
+	}, "test-saved-search-id")
+	if err != nil {
+		t.Fatalf("Failed to insert dummy SavedSearch: %v", err)
+	}
+
+	// Insert SavedSearchFeatureSortOrder for feature-a
+	var mapper savedSearchFeatureSortOrderMapper
+	m, err := mapper.InsertOrUpdateMutation(SpannerSavedSearchFeatureSortOrder{
+		SavedSearchID: "test-saved-search-id",
+		FeatureKey:    "feature-a",
+		PositionIndex: 10,
+	})
+	if err != nil {
+		t.Fatalf("Failed to create mutation for SavedSearchFeatureSortOrder: %v", err)
+	}
+	_, err = spannerClient.Apply(ctx, []*spanner.Mutation{m})
+	if err != nil {
+		t.Fatalf("Failed to insert SavedSearchFeatureSortOrder: %v", err)
+	}
 }
 
 func verifyRedirectDataMovedAndAssert(
@@ -600,6 +626,42 @@ func verifyRedirectDataMovedAndAssert(
 	}
 	if len(signals) != 1 {
 		t.Fatal("expected 1 feature developer signal for feature-b")
+	}
+
+	// Check SavedSearchFeatureSortOrder
+	// Verify that the row for feature-a is gone
+	stmt := spanner.NewStatement("SELECT count(*) FROM SavedSearchFeatureSortOrder WHERE FeatureKey = 'feature-a'")
+	iter := spannerClient.Single().Query(ctx, stmt)
+	defer iter.Stop()
+	row, err := iter.Next()
+	if err != nil {
+		t.Fatalf("failed to query sort order for feature-a: %v", err)
+	}
+	var count int64
+	if err := row.Columns(&count); err != nil {
+		t.Fatalf("failed to scan count for feature-a: %v", err)
+	}
+	if count != 0 {
+		t.Errorf("expected 0 sort order rows for feature-a, got %d", count)
+	}
+
+	// Verify that a row for feature-b exists with the same PositionIndex
+	stmt = spanner.NewStatement(
+		"SELECT PositionIndex FROM SavedSearchFeatureSortOrder WHERE FeatureKey = 'feature-b' AND " +
+			"SavedSearchID = 'test-saved-search-id'",
+	)
+	iter = spannerClient.Single().Query(ctx, stmt)
+	defer iter.Stop()
+	row, err = iter.Next()
+	if err != nil {
+		t.Fatalf("failed to query sort order for feature-b: %v", err)
+	}
+	var positionIndex int64
+	if err := row.Columns(&positionIndex); err != nil {
+		t.Fatalf("failed to scan position index for feature-b: %v", err)
+	}
+	if positionIndex != 10 {
+		t.Errorf("expected position index 10 for feature-b, got %d", positionIndex)
 	}
 }
 

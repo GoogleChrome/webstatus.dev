@@ -357,6 +357,40 @@ func (m webFeatureSpannerMapper) moveLatestFeatureDeveloperSignals(
 	return mutations, nil
 }
 
+func (m webFeatureSpannerMapper) moveSavedSearchFeatureSortOrder(
+	ctx context.Context,
+	c *Client,
+	sourceKey string,
+	targetKey string,
+) ([]*spanner.Mutation, error) {
+	txn := c.ReadOnlyTransaction()
+	defer txn.Close()
+
+	rows, err := c.GetSavedSearchFeatureSortOrderByFeatureKey(ctx, txn, sourceKey)
+	if err != nil {
+		return nil, err
+	}
+
+	var mutations []*spanner.Mutation
+	var mapper savedSearchFeatureSortOrderMapper
+	for _, row := range rows {
+		m, err := mapper.InsertOrUpdateMutation(SpannerSavedSearchFeatureSortOrder{
+			SavedSearchID: row.SavedSearchID,
+			FeatureKey:    targetKey,
+			PositionIndex: row.PositionIndex,
+		})
+		if err != nil {
+			return nil, err
+		}
+		mutations = append(mutations, m)
+
+		deleteMutation := mapper.DeleteMutation(row.SavedSearchID, sourceKey)
+		mutations = append(mutations, deleteMutation)
+	}
+
+	return mutations, nil
+}
+
 func (m webFeatureSpannerMapper) moveSystemManagedSavedSearch(
 	ctx context.Context,
 	c *Client,
@@ -491,6 +525,7 @@ func (m webFeatureSpannerMapper) PreDeleteHook(
 	var latestFeatureDeveloperSignalMutations []*spanner.Mutation
 	var savedSearchMutations []*spanner.Mutation
 	var systemManagedSearchMutations []*spanner.Mutation
+	var savedSearchFeatureSortOrderMutations []*spanner.Mutation
 
 	// The following sections are where the WebFeatureID is the primary key (or part of the primary key).
 	// This requires us to copy the rows (with updated IDs) because Spanner does not allow the modifications of keys.
@@ -552,6 +587,16 @@ func (m webFeatureSpannerMapper) PreDeleteHook(
 
 			return nil, err
 		}
+
+		// Move SavedSearchFeatureSortOrder
+		mutations, err = m.moveSavedSearchFeatureSortOrder(ctx, c, sourceKey, targetKey)
+		if err != nil {
+			slog.ErrorContext(ctx, "unable to move saved search feature sort order",
+				"sourceKey", sourceKey, "targetKey", targetKey, "err", err)
+
+			return nil, err
+		}
+		savedSearchFeatureSortOrderMutations = append(savedSearchFeatureSortOrderMutations, mutations...)
 	}
 
 	var groups []ExtraMutationsGroup
@@ -601,6 +646,13 @@ func (m webFeatureSpannerMapper) PreDeleteHook(
 		groups = append(groups, ExtraMutationsGroup{
 			tableName: systemManagedSavedSearchesTable,
 			mutations: systemManagedSearchMutations,
+		})
+	}
+
+	if len(savedSearchFeatureSortOrderMutations) > 0 {
+		groups = append(groups, ExtraMutationsGroup{
+			tableName: "SavedSearchFeatureSortOrder",
+			mutations: savedSearchFeatureSortOrderMutations,
 		})
 	}
 
