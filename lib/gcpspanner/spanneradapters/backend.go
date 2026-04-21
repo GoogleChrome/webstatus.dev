@@ -2098,3 +2098,67 @@ func toBackendSubscription(sub *gcpspanner.SavedSearchSubscriptionView) *backend
 		UpdatedAt: sub.UpdatedAt,
 	}
 }
+
+func (s *Backend) ListGlobalSavedSearches(
+	ctx context.Context,
+	pageSize int,
+	pageToken *string,
+) (*backend.GlobalSavedSearchPage, error) {
+	page, nextPageToken, err := s.client.ListSystemGlobalSavedSearches(ctx, pageSize, pageToken)
+	if err != nil {
+		if errors.Is(err, gcpspanner.ErrInvalidCursorFormat) {
+			return nil, errors.Join(err, backendtypes.ErrInvalidPageToken)
+		}
+
+		return nil, err
+	}
+	var metadata *backend.PageMetadata
+	if nextPageToken != nil {
+		metadata = &backend.PageMetadata{
+			NextPageToken: nextPageToken,
+		}
+	}
+	var results []backend.GlobalSavedSearch
+	if len(page) > 0 {
+		for _, savedSearch := range page {
+			results = append(results, backend.GlobalSavedSearch{
+				Id:           &savedSearch.ID,
+				DisplayOrder: &savedSearch.DisplayOrder,
+				Name:         savedSearch.Name,
+				Description:  savedSearch.Description,
+				Query:        savedSearch.Query,
+				CreatedAt:    &savedSearch.CreatedAt,
+				UpdatedAt:    &savedSearch.UpdatedAt,
+			})
+		}
+	}
+
+	return &backend.GlobalSavedSearchPage{
+		Metadata: metadata,
+		Data:     &results,
+	}, nil
+}
+
+func (s *Backend) GetGlobalSavedSearch(
+	ctx context.Context,
+	searchID string,
+) (*backend.GlobalSavedSearch, error) {
+	savedSearch, err := s.client.GetSystemGlobalSavedSearch(ctx, searchID)
+	if err != nil {
+		if errors.Is(err, gcpspanner.ErrQueryReturnedNoResults) {
+			return nil, errors.Join(err, backendtypes.ErrEntityDoesNotExist)
+		}
+
+		return nil, err
+	}
+
+	return &backend.GlobalSavedSearch{
+		Id:           &savedSearch.ID,
+		DisplayOrder: &savedSearch.DisplayOrder,
+		Name:         savedSearch.Name,
+		Description:  savedSearch.Description,
+		Query:        savedSearch.Query,
+		CreatedAt:    &savedSearch.CreatedAt,
+		UpdatedAt:    &savedSearch.UpdatedAt,
+	}, nil
+}

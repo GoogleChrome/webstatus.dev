@@ -136,11 +136,25 @@ type WPTMetricsStorer interface {
 		userID string,
 		savedSearch *backend.SavedSearchUpdateRequest,
 	) (*backend.SavedSearchResponse, error)
+	ValidateQueryReferences(
+		ctx context.Context,
+		query string,
+		updateID *string,
+	) error
 	PutUserSavedSearchBookmark(
 		ctx context.Context,
 		userID string,
 		savedSearchID string,
 	) error
+	ListGlobalSavedSearches(
+		ctx context.Context,
+		pageSize int,
+		pageToken *string,
+	) (*backend.GlobalSavedSearchPage, error)
+	GetGlobalSavedSearch(
+		ctx context.Context,
+		searchID string,
+	) (*backend.GlobalSavedSearch, error)
 	RemoveUserSavedSearchBookmark(
 		ctx context.Context,
 		userID string,

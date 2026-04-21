@@ -220,6 +220,18 @@ type MockListUserSavedSeachesConfig struct {
 	err               error
 }
 
+type MockValidateQueryReferencesConfig struct {
+	expectedQuery string
+	err           error
+}
+
+type MockListGlobalSavedSearchesConfig struct {
+	expectedPageSize  int
+	expectedPageToken *string
+	output            *backend.GlobalSavedSearchPage
+	err               error
+}
+
 type MockUpdateUserSavedSearchConfig struct {
 	expectedSavedSearchID string
 	expectedUserID        string
@@ -356,6 +368,8 @@ type MockWPTMetricsStorer struct {
 	getSavedSearchSubscriptionCfg                     *MockGetSavedSearchSubscriptionConfig
 	listSavedSearchSubscriptionsCfg                   *MockListSavedSearchSubscriptionsConfig
 	updateSavedSearchSubscriptionCfg                  *MockUpdateSavedSearchSubscriptionConfig
+	validateQueryReferencesCfg                        *MockValidateQueryReferencesConfig
+	listGlobalSavedSearchesCfg                        *MockListGlobalSavedSearchesConfig
 	t                                                 *testing.T
 	callCountListMissingOneImplCounts                 int
 	callCountListMissingOneImplFeatures               int
@@ -387,6 +401,9 @@ type MockWPTMetricsStorer struct {
 	callCountGetSavedSearchPublic                     int
 	callCountGetSavedSearchSubscriptionPublic         int
 	callCountListSavedSearchNotificationEvents        int
+	callCountValidateQueryReferences                  int
+	callCountListGlobalSavedSearches                  int
+	callCountGetGlobalSavedSearch                     int
 }
 
 func (m *MockWPTMetricsStorer) GetIDFromFeatureKey(
@@ -1046,6 +1063,54 @@ func (m *MockWPTMetricsStorer) UpdateNotificationChannel(
 	return m.updateNotificationChannelCfg.output, m.updateNotificationChannelCfg.err
 }
 
+func (m *MockWPTMetricsStorer) ValidateQueryReferences(
+	_ context.Context,
+	query string,
+	_ *string,
+) error {
+	m.callCountValidateQueryReferences++
+	if m.validateQueryReferencesCfg != nil && query != m.validateQueryReferencesCfg.expectedQuery {
+		m.t.Errorf("unexpected query %s", query)
+	}
+
+	if m.validateQueryReferencesCfg == nil {
+		return nil
+	}
+
+	return m.validateQueryReferencesCfg.err
+}
+
+func (m *MockWPTMetricsStorer) ListGlobalSavedSearches(
+	_ context.Context,
+	pageSize int,
+	pageToken *string,
+) (*backend.GlobalSavedSearchPage, error) {
+	m.callCountListGlobalSavedSearches++
+
+	if m.listGlobalSavedSearchesCfg == nil {
+		return nil, errors.New("basic mock")
+	}
+
+	if pageSize != m.listGlobalSavedSearchesCfg.expectedPageSize {
+		m.t.Errorf("unexpected page size %d", pageSize)
+	}
+
+	if !reflect.DeepEqual(pageToken, m.listGlobalSavedSearchesCfg.expectedPageToken) {
+		m.t.Errorf("unexpected page token %+v", pageToken)
+	}
+
+	return m.listGlobalSavedSearchesCfg.output, m.listGlobalSavedSearchesCfg.err
+}
+
+func (m *MockWPTMetricsStorer) GetGlobalSavedSearch(
+	_ context.Context,
+	_ string,
+) (*backend.GlobalSavedSearch, error) {
+	m.callCountGetGlobalSavedSearch++
+
+	return nil, errors.New("basic mock") // basic mock
+}
+
 type MockPublishSearchConfigurationChangedConfig struct {
 	expectedResp       *backend.SavedSearchResponse
 	expectedUserID     string
@@ -1519,6 +1584,17 @@ func (m *mockServerInterface) ListNotificationChannels(
 	panic("unimplemented")
 }
 
+// ListGlobalSavedSearches implements backend.StrictServerInterface.
+// nolint: ireturn // WONTFIX - generated method signature
+func (m *mockServerInterface) ListGlobalSavedSearches(
+	ctx context.Context,
+	_ backend.ListGlobalSavedSearchesRequestObject,
+) (backend.ListGlobalSavedSearchesResponseObject, error) {
+	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
+	m.callCount++
+	panic("unimplemented")
+}
+
 // PingUser implements backend.StrictServerInterface.
 // nolint: ireturn // WONTFIX - generated method signature
 func (m *mockServerInterface) PingUser(
@@ -1581,6 +1657,15 @@ func (m *mockServerInterface) GetSubscription(ctx context.Context,
 	panic("unimplemented")
 }
 
+// GetSubscriptionRSS implements backend.StrictServerInterface.
+// nolint: ireturn // WONTFIX - generated method signature
+func (m *mockServerInterface) GetSubscriptionRSS(ctx context.Context, _ backend.GetSubscriptionRSSRequestObject) (
+	backend.GetSubscriptionRSSResponseObject, error) {
+	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
+	m.callCount++
+	panic("unimplemented")
+}
+
 // DeleteSubscription implements backend.StrictServerInterface.
 // nolint: ireturn // WONTFIX - generated method signature
 func (m *mockServerInterface) DeleteSubscription(ctx context.Context,
@@ -1589,19 +1674,6 @@ func (m *mockServerInterface) DeleteSubscription(ctx context.Context,
 	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
 	m.callCount++
 	panic("unimplemented")
-}
-
-// GetSubscriptionRSS implements backend.StrictServerInterface.
-// nolint: ireturn // WONTFIX - generated method signature
-func (m *mockServerInterface) GetSubscriptionRSS(_ context.Context,
-	_ backend.GetSubscriptionRSSRequestObject) (
-	backend.GetSubscriptionRSSResponseObject, error) {
-	m.callCount++
-
-	return backend.GetSubscriptionRSS200ApplicationrssXmlResponse{
-		Body:          strings.NewReader(""),
-		ContentLength: 0,
-	}, nil
 }
 
 func (m *mockServerInterface) assertCallCount(expectedCallCount int) {

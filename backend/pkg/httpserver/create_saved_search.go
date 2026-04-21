@@ -118,6 +118,29 @@ func validateSavedSearch(input *backend.SavedSearch) *fieldValidationErrors {
 	return nil
 }
 
+// sanitizeValidationError inspects the error chain for known validation errors.
+// If found, it returns the base sentinel error to ensure we only expose safe,
+// non-leaking error messages to the client. It returns nil if the error is not
+// a recognized validation error.
+func sanitizeValidationError(err error) error {
+	switch {
+	case errors.Is(err, backendtypes.ErrSavedSearchNotFound):
+		return backendtypes.ErrSavedSearchNotFound
+	case errors.Is(err, backendtypes.ErrHotlistNotFound):
+		return backendtypes.ErrHotlistNotFound
+	case errors.Is(err, backendtypes.ErrSavedSearchCycleDetected):
+		return backendtypes.ErrSavedSearchCycleDetected
+	case errors.Is(err, backendtypes.ErrSavedSearchMaxDepthExceeded):
+		return backendtypes.ErrSavedSearchMaxDepthExceeded
+	case errors.Is(err, backendtypes.ErrQueryConsistsEntirelyOfSavedSearch):
+		return backendtypes.ErrQueryConsistsEntirelyOfSavedSearch
+	case errors.Is(err, errQueryDoesNotMatchGrammar):
+		return errQueryDoesNotMatchGrammar
+	default:
+		return nil
+	}
+}
+
 // CreateSavedSearch implements backend.StrictServerInterface.
 // nolint: ireturn // Name generated from openapi
 func (s *Server) CreateSavedSearch(ctx context.Context, request backend.CreateSavedSearchRequestObject) (
@@ -142,6 +165,22 @@ func (s *Server) CreateSavedSearch(ctx context.Context, request backend.CreateSa
 			Message: "input validation errors",
 			Errors:  validationErr.fieldErrorMap,
 		}, nil
+	}
+
+	err := s.wptMetricsStorer.ValidateQueryReferences(ctx, request.Body.Query, nil)
+	if err != nil {
+		if safeErr := sanitizeValidationError(err); safeErr != nil {
+			// nolint:nilerr // WONTFIX - false positive when returning structured 400 response instead of Go error.
+			return backend.CreateSavedSearch400JSONResponse{
+				Code:    http.StatusBadRequest,
+				Message: safeErr.Error(),
+				Errors:  nil,
+			}, nil
+		}
+
+		slog.ErrorContext(ctx, "unexpected error during query validation", "error", err)
+
+		return nil, err
 	}
 
 	output, err := s.wptMetricsStorer.CreateUserSavedSearch(ctx, user.ID, *request.Body)

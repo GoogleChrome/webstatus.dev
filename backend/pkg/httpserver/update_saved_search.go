@@ -107,6 +107,25 @@ func (s *Server) UpdateSavedSearch(
 			Errors:  validationErr.fieldErrorMap,
 		}, nil
 	}
+
+	if request.Body.Query != nil {
+		err := s.wptMetricsStorer.ValidateQueryReferences(ctx, *request.Body.Query, &request.SearchId)
+		if err != nil {
+			if safeErr := sanitizeValidationError(err); safeErr != nil {
+				// nolint:nilerr // WONTFIX - false positive when returning structured 400 response instead of Go error.
+				return backend.UpdateSavedSearch400JSONResponse{
+					Code:    http.StatusBadRequest,
+					Message: safeErr.Error(),
+					Errors:  nil,
+				}, nil
+			}
+
+			slog.ErrorContext(ctx, "unexpected error during query validation", "error", err)
+
+			return nil, err
+		}
+	}
+
 	output, err := s.wptMetricsStorer.UpdateUserSavedSearch(ctx, request.SearchId, user.ID, request.Body)
 	if err != nil {
 		if errors.Is(err, backendtypes.ErrUserNotAuthorizedForAction) {

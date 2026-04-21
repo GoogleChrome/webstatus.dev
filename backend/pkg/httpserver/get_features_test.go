@@ -547,6 +547,40 @@ func TestListFeatures(t *testing.T) {
 				nil,
 			),
 		},
+		{
+			name: "400 case - query consists entirely of saved search",
+			mockConfig: &MockFeaturesSearchConfig{
+				expectedPageToken:     nil,
+				expectedPageSize:      100,
+				expectedSearchNode:    nil,
+				expectedSortBy:        nil,
+				expectedWPTMetricView: backend.TestCounts,
+				expectedBrowsers: []backend.BrowserPathParam{
+					backend.Chrome,
+					backend.Edge,
+					backend.Firefox,
+					backend.Safari,
+					backend.ChromeAndroid,
+					backend.FirefoxAndroid,
+					backend.SafariIos,
+				},
+				page: nil,
+				err:  backendtypes.ErrQueryConsistsEntirelyOfSavedSearch,
+			},
+			expectedGetCalls: []*ExpectedGetCall{
+				{
+					Key:   `listFeatures-{"Params":{}}`,
+					Value: nil,
+					Err:   cachetypes.ErrCachedDataNotFound,
+				},
+			},
+			expectedCacheCalls: nil,
+			expectedCallCount:  1,
+			expectedResponse: testJSONResponse(400,
+				`{"code":400,"message":"query cannot consist entirely of a single saved search or hotlist"}`,
+			),
+			request: httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/v1/features", nil),
+		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
