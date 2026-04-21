@@ -102,6 +102,8 @@ func (b *FeatureSearchFilterBuilder) Build(node *searchtypes.SearchNode) (*Featu
 
 func (b *FeatureSearchFilterBuilder) traverseAndGenerateFilters(node *searchtypes.SearchNode) ([]string, error) {
 	switch {
+	case node == nil:
+		return nil, nil
 	case node.IsKeyword():
 		return b.handleKeywordNode(node)
 	case node.Keyword == searchtypes.KeywordParens:
@@ -119,6 +121,9 @@ func (b *FeatureSearchFilterBuilder) handleKeywordNode(node *searchtypes.SearchN
 	var otherChildren []*searchtypes.SearchNode
 
 	for _, child := range node.Children {
+		if child == nil {
+			continue
+		}
 		// Check if it is a direct hotlist term
 		if child.Term != nil && child.Term.Identifier == searchtypes.IdentifierHotlist {
 			hotlistIDs = append(hotlistIDs, child.Term.Value)

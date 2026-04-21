@@ -1193,6 +1193,62 @@ func testFeatureCommonFilterCombos(ctx context.Context, t *testing.T, client *Cl
 				},
 			},
 		},
+		{
+			name: "Nil child in AND during expansion simulation",
+			// Simulate post-expansion tree with a nil child.
+			// available on barBrowser AND nil child
+			searchNode: &searchtypes.SearchNode{
+				Keyword: searchtypes.KeywordRoot,
+				Term:    nil,
+				Children: []*searchtypes.SearchNode{
+					{
+						Keyword: searchtypes.KeywordAND,
+						Term:    nil,
+						Children: []*searchtypes.SearchNode{
+							nil, // The nil child we want to test
+							{
+								Children: nil,
+								Term: &searchtypes.SearchTerm{
+									Identifier: searchtypes.IdentifierAvailableOn,
+									Value:      "barBrowser",
+									Operator:   searchtypes.OperatorEq,
+								},
+								Keyword: searchtypes.KeywordNone,
+							},
+						},
+					},
+				},
+			},
+			expectedPage: &FeatureResultPage{
+				Total:         2,
+				NextPageToken: nil,
+				Features: []FeatureResult{
+					getFeatureSearchTestFeature(FeatureSearchTestFId1),
+					getFeatureSearchTestFeature(FeatureSearchTestFId2),
+				},
+			},
+		},
+		{
+			name: "Nil root child during expansion simulation",
+			// Simulate post-expansion tree with a nil root child.
+			searchNode: &searchtypes.SearchNode{
+				Keyword: searchtypes.KeywordRoot,
+				Term:    nil,
+				Children: []*searchtypes.SearchNode{
+					nil,
+				},
+			},
+			expectedPage: &FeatureResultPage{
+				Total:         4,
+				NextPageToken: nil,
+				Features: []FeatureResult{
+					getFeatureSearchTestFeature(FeatureSearchTestFId1),
+					getFeatureSearchTestFeature(FeatureSearchTestFId2),
+					getFeatureSearchTestFeature(FeatureSearchTestFId3),
+					getFeatureSearchTestFeature(FeatureSearchTestFId4),
+				},
+			},
+		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
