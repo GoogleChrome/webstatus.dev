@@ -88,6 +88,51 @@ func TestCreateNotificationChannel(t *testing.T) {
 }`),
 		},
 		{
+			name: "success rss",
+			requestBody: `
+{
+	"name": "My RSS Feed",
+	"config": {
+		"type": "rss"
+	}
+}`,
+			storerCfg: &MockCreateNotificationChannelConfig{
+				expectedUserID: testUser.ID,
+				expectedRequest: backend.CreateNotificationChannelRequest{
+					Name: "My RSS Feed",
+					Config: newTestCreateNotificationChannelConfig(t, backend.RSSConfig{
+						Type: backend.RSSConfigTypeRss,
+					}),
+				},
+				output: &backend.NotificationChannelResponse{
+					Id:   "channel456",
+					Name: "My RSS Feed",
+					Type: backend.NotificationChannelResponseTypeRss,
+					Config: newTestNotificationChannelConfig(t, backend.RSSConfig{
+						Type: backend.RSSConfigTypeRss,
+					}),
+					Status:    backend.NotificationChannelStatusEnabled,
+					CreatedAt: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+					UpdatedAt: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+				},
+				err: nil,
+			},
+			expectedCallCount: 1,
+			expectedResponse: testJSONResponse(201, `
+{
+	"id": "channel456",
+	"name": "My RSS Feed",
+	"type": "rss",
+	"config": {
+		"type": "rss"
+	},
+	"status": "enabled",
+	"created_at": "2000-01-01T00:00:00Z",
+	"updated_at": "2000-01-01T00:00:00Z"
+}`),
+		},
+
+		{
 			name: "reject email config",
 			// Attempt to create an email channel manually should be rejected.
 			// We use a raw JSON body since the generated client won't even allow this.
@@ -106,7 +151,7 @@ func TestCreateNotificationChannel(t *testing.T) {
 	"code": 400,
 	"message": "input validation errors",
 	"errors": {
-		"config": "invalid config: only webhook channels can be created manually"
+		"config": "invalid config: only webhook or rss channels can be created manually"
 	}
 }`),
 		},

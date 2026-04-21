@@ -68,6 +68,7 @@ type NotificationChannelType string
 const (
 	NotificationChannelTypeEmail   NotificationChannelType = "email"
 	NotificationChannelTypeWebhook NotificationChannelType = "webhook"
+	NotificationChannelTypeRSS     NotificationChannelType = "rss"
 )
 
 func getAllNotificationTypes() []NotificationChannelType {
@@ -76,6 +77,7 @@ func getAllNotificationTypes() []NotificationChannelType {
 	types := map[NotificationChannelType]any{
 		NotificationChannelTypeEmail:   nil,
 		NotificationChannelTypeWebhook: nil,
+		NotificationChannelTypeRSS:     nil,
 	}
 
 	ret := make([]NotificationChannelType, 0, len(types))
@@ -84,7 +86,6 @@ func getAllNotificationTypes() []NotificationChannelType {
 	}
 
 	return ret
-
 }
 
 // CreateNotificationChannelRequest is the request to create a channel.
@@ -175,6 +176,8 @@ func (c *NotificationChannel) toSpanner() *spannerNotificationChannel {
 		configData = c.EmailConfig
 	case NotificationChannelTypeWebhook:
 		configData = c.WebhookConfig
+	case NotificationChannelTypeRSS:
+		configData = nil
 	}
 
 	var config spanner.NullJSON
@@ -201,6 +204,8 @@ func (sc *spannerNotificationChannel) toPublic() (*NotificationChannel, error) {
 		channelType = NotificationChannelTypeEmail
 	case string(NotificationChannelTypeWebhook):
 		channelType = NotificationChannelTypeWebhook
+	case string(NotificationChannelTypeRSS):
+		channelType = NotificationChannelTypeRSS
 	default:
 		return nil, fmt.Errorf("unknown notification channel type '%s'", sc.Type)
 	}
@@ -257,6 +262,9 @@ func loadSubscriptionConfigs(
 			return ret, err
 		}
 		ret.WebhookConfig = &webhookConfig
+		ret.EmailConfig = nil
+	case NotificationChannelTypeRSS:
+		ret.WebhookConfig = nil
 		ret.EmailConfig = nil
 	}
 

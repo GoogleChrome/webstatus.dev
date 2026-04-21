@@ -1602,7 +1602,6 @@ func (m *mockServerInterface) GetSubscriptionRSS(_ context.Context,
 		Body:          strings.NewReader(""),
 		ContentLength: 0,
 	}, nil
-
 }
 
 func (m *mockServerInterface) assertCallCount(expectedCallCount int) {

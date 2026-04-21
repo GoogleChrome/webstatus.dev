@@ -102,6 +102,65 @@ func TestUpdateNotificationChannel_Restrictions(t *testing.T) {
 			},
 			expectedUpdateCount: 1,
 		},
+
+		{
+			name: "success rss update",
+			requestBody: `
+{
+	"name": "Updated RSS",
+	"update_mask": ["name"]
+}`,
+			expectedStatus: 200,
+			expectedResponseBody: `
+{
+	"id": "channel123",
+	"name": "Updated RSS",
+	"type": "rss",
+	"config": {
+		"type": "rss"
+	},
+	"status": "enabled",
+	"created_at": "2000-01-01T00:00:00Z",
+	"updated_at": "2000-01-01T00:00:00Z"
+}`,
+			expectFetch: true,
+			expectedGetOutput: &backend.NotificationChannelResponse{
+				Id:   "channel123",
+				Name: "Old RSS",
+				Type: backend.NotificationChannelResponseTypeRss,
+				Config: newTestNotificationChannelConfig(t, backend.RSSConfig{
+					Type: backend.RSSConfigTypeRss,
+				}),
+				Status:    backend.NotificationChannelStatusEnabled,
+				CreatedAt: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+				UpdatedAt: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+			},
+			updateStorerCfg: &MockUpdateNotificationChannelConfig{
+				expectedUserID:    testUser.ID,
+				expectedChannelID: "channel123",
+				expectedRequest: backend.UpdateNotificationChannelRequest{
+					Config: nil,
+					Name:   new("Updated RSS"),
+					UpdateMask: []backend.UpdateNotificationChannelRequestUpdateMask{
+						backend.UpdateNotificationChannelRequestMaskName,
+					},
+				},
+				output: &backend.NotificationChannelResponse{
+					Id:   "channel123",
+					Name: "Updated RSS",
+					Type: backend.NotificationChannelResponseTypeRss,
+					Config: newTestNotificationChannelConfig(t, backend.RSSConfig{
+						Type: backend.RSSConfigTypeRss,
+					}),
+					Status:    backend.NotificationChannelStatusEnabled,
+					CreatedAt: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+					UpdatedAt: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+				},
+				err: nil,
+			},
+			expectedUpdateCount: 1,
+		},
+
 		{
 			name: "reject update to existing email channel (rename)",
 			requestBody: `
@@ -159,7 +218,7 @@ func TestUpdateNotificationChannel_Restrictions(t *testing.T) {
 	"code": 400,
 	"message": "input validation errors",
 	"errors": {
-		"config": "invalid config: only webhook updates are supported"
+		"config": "invalid config: only webhook or rss updates are supported"
 	}
 }`,
 			expectFetch:         false,
