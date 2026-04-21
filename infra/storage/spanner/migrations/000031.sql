@@ -28,6 +28,7 @@ CREATE TABLE SystemGlobalSavedSearches (
     -- Status indicates whether the global saved search is currently active and should be displayed to users.
     -- This allows for easy deprecation of old searches without deleting them from the database, preserving historical data and preventing broken references in user-generated content.
     -- The "all" saved search will also be marked as unlisted to prevent it from showing up in the UI, but it will still be accessible via direct link and can be used as a catch-all query for API requests.
+    -- Valid values are 'LISTED' and 'UNLISTED'. See lib/gcpspanner/system_global_saved_searches.go for constants.
     Status STRING(32) NOT NULL,
     CONSTRAINT FK_SystemGlobal_SavedSearches FOREIGN KEY (SavedSearchID) REFERENCES SavedSearches (ID) ON DELETE CASCADE
 ) PRIMARY KEY (SavedSearchID);
@@ -42,4 +43,12 @@ CREATE TABLE SavedSearchFeatureSortOrder (
     -- by 10 (10, 20, 30) to allow injecting new features comfortably between them over time.
     PositionIndex INT64 NOT NULL,
     CONSTRAINT FK_SavedSearchSort_SavedSearch FOREIGN KEY (SavedSearchID) REFERENCES SavedSearches (ID) ON DELETE CASCADE
+    -- Note: A foreign key constraint on FeatureKey referencing WebFeatures(FeatureKey) was omitted
+    -- to prevent migration failure in environments where referenced features are not yet present.
 ) PRIMARY KEY (SavedSearchID, FeatureKey);
+
+-- Helper query to scan for orphaned sort order records (interim solution maintenance)
+-- SELECT s.SavedSearchID, s.FeatureKey
+-- FROM SavedSearchFeatureSortOrder s
+-- LEFT JOIN WebFeatures f ON s.FeatureKey = f.FeatureKey
+-- WHERE f.FeatureKey IS NULL;

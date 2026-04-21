@@ -74,7 +74,9 @@ func TestListSystemGlobalSavedSearches(t *testing.T) {
 	}
 
 	// 2. Fetch UNLISTED separately directly via spanner to assert they correctly exist
-	stmt := spanner.NewStatement("SELECT SavedSearchID FROM SystemGlobalSavedSearches WHERE Status = 'UNLISTED'")
+	stmt := spanner.NewStatement(
+		"SELECT SavedSearchID FROM SystemGlobalSavedSearches WHERE Status = '" + SystemGlobalSavedSearchStatusUnlisted + "'",
+	)
 	iter := spannerClient.Single().Query(ctx, stmt)
 	defer iter.Stop()
 
@@ -101,7 +103,9 @@ func TestListSystemGlobalSavedSearches(t *testing.T) {
 
 	// 3. Verify no other unknown status types exist
 	stmtCnt := spanner.NewStatement(
-		"SELECT count(*) FROM SystemGlobalSavedSearches WHERE Status NOT IN ('LISTED', 'UNLISTED')")
+		"SELECT count(*) FROM SystemGlobalSavedSearches WHERE Status NOT IN ('" +
+			SystemGlobalSavedSearchStatusListed + "', '" + SystemGlobalSavedSearchStatusUnlisted + "')",
+	)
 	iterCnt := spannerClient.Single().Query(ctx, stmtCnt)
 	defer iterCnt.Stop()
 	row, err := iterCnt.Next()
@@ -114,7 +118,8 @@ func TestListSystemGlobalSavedSearches(t *testing.T) {
 	}
 	if unknownCount > 0 {
 		t.Fatalf(
-			"found %d SystemGlobalSavedSearches with unknown statuses (expected only LISTED or UNLISTED)",
+			"found %d SystemGlobalSavedSearches with unknown statuses (expected only "+
+				SystemGlobalSavedSearchStatusListed+" or "+SystemGlobalSavedSearchStatusUnlisted+")",
 			unknownCount,
 		)
 	}

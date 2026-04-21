@@ -37,7 +37,7 @@ func TestGetSavedSearch(t *testing.T) {
 	restartDatabaseContainer(t)
 	ctx := context.Background()
 
-	id := uuid.New().String()
+	id := uuid.NewString()
 	desc := systemSearchDesc
 	expectedSavedSearch := &SavedSearch{
 		ID:          id,
@@ -189,7 +189,7 @@ func TestGetReferencingSavedSearchIDs(t *testing.T) {
 	restartDatabaseContainer(t)
 	ctx := context.Background()
 
-	targetID := uuid.New().String()
+	targetID := uuid.NewString()
 
 	// Note: We don't need to insert a saved search with targetID first because
 	// GetReferencingSavedSearchIDs only performs string matching on the Query field
@@ -198,7 +198,7 @@ func TestGetReferencingSavedSearchIDs(t *testing.T) {
 
 	// Insert searches that reference the targetID
 	ref1 := &SavedSearch{
-		ID:          uuid.New().String(),
+		ID:          uuid.NewString(),
 		Name:        "ref 1",
 		Query:       "saved:" + targetID,
 		Scope:       UserPublicScope,
@@ -208,7 +208,7 @@ func TestGetReferencingSavedSearchIDs(t *testing.T) {
 		UpdatedAt:   spanner.CommitTimestamp,
 	}
 	ref2 := &SavedSearch{
-		ID:          uuid.New().String(),
+		ID:          uuid.NewString(),
 		Name:        "ref 2",
 		Query:       "hotlist:" + targetID,
 		Scope:       UserPublicScope,
@@ -219,7 +219,7 @@ func TestGetReferencingSavedSearchIDs(t *testing.T) {
 	}
 	// Insert a search that does NOT reference the targetID
 	noref := &SavedSearch{
-		ID:          uuid.New().String(),
+		ID:          uuid.NewString(),
 		Name:        "no ref",
 		Query:       "saved:other-id",
 		Scope:       UserPublicScope,

@@ -22,6 +22,11 @@ import (
 	"cloud.google.com/go/spanner"
 )
 
+const (
+	SystemGlobalSavedSearchStatusListed   = "LISTED"
+	SystemGlobalSavedSearchStatusUnlisted = "UNLISTED"
+)
+
 // SystemGlobalSavedSearch represents a joined row from SystemGlobalSavedSearches and SavedSearches.
 type SystemGlobalSavedSearch struct {
 	ID           string           `spanner:"ID"`
@@ -92,6 +97,7 @@ func (m listSystemGlobalSavedSearchesMapper) SelectList(req ListSystemGlobalSave
 	var pageFilter string
 	params := map[string]any{
 		"pageSize": req.PageSize,
+		"status":   SystemGlobalSavedSearchStatusListed,
 	}
 	if req.PageToken != nil {
 		cursor, err := decodeCursor[globalSavedSearchCursor](*req.PageToken)
@@ -108,7 +114,7 @@ func (m listSystemGlobalSavedSearchesMapper) SelectList(req ListSystemGlobalSave
 			g.DisplayOrder, g.Status
 		FROM SystemGlobalSavedSearches g
 		JOIN SavedSearches s ON g.SavedSearchID = s.ID
-		WHERE g.Status = 'LISTED' %s
+		WHERE g.Status = @status %s
 		ORDER BY g.DisplayOrder DESC, g.SavedSearchID ASC
 		LIMIT @pageSize`, pageFilter)
 	stmt := spanner.NewStatement(query)

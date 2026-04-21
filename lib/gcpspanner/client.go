@@ -1307,14 +1307,13 @@ func newAllByKeysEntityReader[
 	}
 }
 
-func (r *allByKeysEntityReader[M, KeysContainer, SpannerStruct]) readAllByKeys(
+func (r *allByKeysEntityReader[M, KeysContainer, SpannerStruct]) readAllByKeysWithTransaction(
 	ctx context.Context,
 	keys KeysContainer,
+	txn transaction,
 ) ([]SpannerStruct, error) {
 	var mapper M
 	stmt := mapper.SelectAllByKeys(keys)
-	txn := r.Single()
-	defer txn.Close()
 	it := txn.Query(ctx, stmt)
 	defer it.Stop()
 
@@ -1335,6 +1334,16 @@ func (r *allByKeysEntityReader[M, KeysContainer, SpannerStruct]) readAllByKeys(
 	}
 
 	return entities, nil
+}
+
+func (r *allByKeysEntityReader[M, KeysContainer, SpannerStruct]) readAllByKeys(
+	ctx context.Context,
+	keys KeysContainer,
+) ([]SpannerStruct, error) {
+	txn := r.Single()
+	defer txn.Close()
+
+	return r.readAllByKeysWithTransaction(ctx, keys, txn)
 }
 
 // entitySynchronizer handles the synchronization of a Spanner table with a
