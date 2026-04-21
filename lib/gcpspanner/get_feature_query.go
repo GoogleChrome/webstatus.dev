@@ -63,6 +63,7 @@ func (q GetFeatureQueryBuilder) Build(
 		SortByStableBrowserImpl:     nil,
 		SortByExpBrowserImpl:        nil,
 		SortByBrowserFeatureSupport: nil,
+		SortBySearchIDOrder:         nil,
 	}
 	queryArgs.Filters = defaultFeatureSearchFilters()
 	if filter != nil {

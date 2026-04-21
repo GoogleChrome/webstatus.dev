@@ -553,6 +553,55 @@ WHERE BrowserName = @param0) AND (fbs.Status = @param1 OR fbs.Status = @param2))
 				"param3": "%" + "grid" + "%",
 			},
 		},
+		// This case simulates a tree after search expansion where an expanded
+		// saved search returned nil and was appended to the children list of a keyword node.
+		{
+			inputTestTree: TestTree{
+				Query: "nil child in AND",
+				InputTree: &searchtypes.SearchNode{
+					Keyword: searchtypes.KeywordRoot,
+					Term:    nil,
+					Children: []*searchtypes.SearchNode{
+						{
+							Keyword: searchtypes.KeywordAND,
+							Term:    nil,
+							Children: []*searchtypes.SearchNode{
+								nil,
+								{
+									Keyword: searchtypes.KeywordNone,
+									Term: &searchtypes.SearchTerm{
+										Identifier: searchtypes.IdentifierName,
+										Operator:   searchtypes.OperatorEq,
+										Value:      "feat1",
+									},
+									Children: nil,
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedClauses: []string{`(wf.Name_Lowercase = @param0 OR wf.FeatureKey_Lowercase = @param0)`},
+			expectedParams: map[string]any{
+				"param0": "feat1",
+			},
+		},
+		// This case simulates a tree after search expansion where the root node's
+		// only child was expanded to nil.
+		{
+			inputTestTree: TestTree{
+				Query: "nil root child",
+				InputTree: &searchtypes.SearchNode{
+					Keyword: searchtypes.KeywordRoot,
+					Term:    nil,
+					Children: []*searchtypes.SearchNode{
+						nil,
+					},
+				},
+			},
+			expectedClauses: nil,
+			expectedParams:  map[string]any{},
+		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.inputTestTree.Query, func(t *testing.T) {

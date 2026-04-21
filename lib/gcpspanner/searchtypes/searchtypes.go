@@ -80,6 +80,17 @@ type SearchNode struct {
 	Children []*SearchNode
 }
 
+// EmptySearchNode returns the representation of an empty search query AST.
+// Currently, an empty query is represented by nil.
+func EmptySearchNode() *SearchNode {
+	return nil
+}
+
+// IsEmptySearchNode returns true if the node represents an empty search query.
+func IsEmptySearchNode(node *SearchNode) bool {
+	return node == nil
+}
+
 func (n SearchNode) IsKeyword() bool {
 	return n.Keyword == KeywordAND || n.Keyword == KeywordOR
 }
