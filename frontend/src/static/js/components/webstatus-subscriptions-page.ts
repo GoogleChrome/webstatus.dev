@@ -251,8 +251,21 @@ export class SubscriptionsPage extends LitElement {
                   ></sl-icon>
                   <span>${channel?.name ?? sub.channel_id}</span> |
                   <span>${FREQUENCY_DISPLAY_NAMES[sub.frequency]}</span>
+                  ${channel?.type === 'rss'
+                    ? html` |
+                        <span
+                          >URL:
+                          ${this.apiClient
+                            .getBaseUrl()
+                            .replace(
+                              /\/$/,
+                              '',
+                            )}/v1/subscriptions/${sub.id}/rss</span
+                        >`
+                    : ''}
                 </small>
               </div>
+
               <div class="subscription-actions">
                 <sl-button
                   size="small"

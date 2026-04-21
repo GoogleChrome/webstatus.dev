@@ -294,11 +294,17 @@ function base64urlEncode(str: string): string {
 
 export class APIClient {
   private readonly client: ReturnType<typeof createClient<paths>>;
+  private readonly baseUrl: string;
   constructor(baseUrl: string) {
+    this.baseUrl = baseUrl;
     this.client = createClient<paths>({
       baseUrl,
       ...fetchOptions,
     });
+  }
+
+  public getBaseUrl(): string {
+    return this.baseUrl;
   }
 
   // Internal client detail for constructing a FeatureResultOffsetCursor pagination token.

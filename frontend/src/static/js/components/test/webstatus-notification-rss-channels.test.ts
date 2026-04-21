@@ -18,23 +18,22 @@ import {assert, fixture, html} from '@open-wc/testing';
 import type {WebstatusNotificationRssChannels} from '../../components/webstatus-notification-rss-channels.js';
 import '../../components/webstatus-notification-rss-channels.js';
 import '../../components/webstatus-notification-panel.js';
+import type {components} from 'webstatus.dev-backend';
 
 describe('webstatus-notification-rss-channels', () => {
-  it('displays "Coming soon" message', async () => {
+  it('displays "No RSS channels configured." message', async () => {
     const el = await fixture<WebstatusNotificationRssChannels>(html`
       <webstatus-notification-rss-channels></webstatus-notification-rss-channels>
     `);
-
     const basePanel = el.shadowRoot!.querySelector(
       'webstatus-notification-panel',
     );
     assert.isNotNull(basePanel);
-
-    const comingSoonText = basePanel!.querySelector(
+    const noChannelsText = basePanel!.querySelector(
       '[slot="content"] p',
     ) as HTMLParagraphElement;
-    assert.isNotNull(comingSoonText);
-    assert.include(comingSoonText.textContent, 'Coming soon');
+    assert.isNotNull(noChannelsText);
+    assert.include(noChannelsText.textContent, 'No RSS channels configured.');
   });
 
   it('displays "Create RSS channel" button', async () => {
@@ -55,5 +54,46 @@ describe('webstatus-notification-rss-channels', () => {
       createButton.textContent!.trim().replace(/\s+/g, ' '),
       'Create RSS channel',
     );
+  });
+
+  it('displays list of channels', async () => {
+    const mockChannels: components['schemas']['NotificationChannelResponse'][] =
+      [
+        {
+          id: 'channel-1',
+          type: 'rss',
+          name: 'RSS Channel 1',
+          config: {type: 'rss'},
+          status: 'enabled',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+        {
+          id: 'channel-2',
+          type: 'rss',
+          name: 'RSS Channel 2',
+          config: {type: 'rss'},
+          status: 'disabled',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+      ];
+
+    const el = await fixture<WebstatusNotificationRssChannels>(html`
+      <webstatus-notification-rss-channels
+        .channels=${mockChannels}
+      ></webstatus-notification-rss-channels>
+    `);
+
+    const basePanel = el.shadowRoot!.querySelector(
+      'webstatus-notification-panel',
+    );
+    assert.isNotNull(basePanel);
+
+    const channelItems = basePanel!.querySelectorAll('.channel-item');
+    assert.equal(channelItems.length, 2);
+
+    assert.include(channelItems[0].textContent, 'RSS Channel 1');
+    assert.include(channelItems[1].textContent, 'RSS Channel 2');
   });
 });

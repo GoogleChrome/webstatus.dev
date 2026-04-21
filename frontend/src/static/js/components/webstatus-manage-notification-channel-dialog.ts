@@ -61,13 +61,15 @@ export class ManageNotificationChannelDialog extends LitElement {
   private _handleSave() {
     if (this._configForm && !this._configForm.validate()) return;
 
+    const update = this._configForm.getUpdate();
+    const detail = {
+      mode: this.mode,
+      channelId: this.channel?.id,
+      ...update,
+    };
     this.dispatchEvent(
       new CustomEvent('save', {
-        detail: {
-          mode: this.mode,
-          channelId: this.channel?.id,
-          ...this._pendingUpdate,
-        },
+        detail: detail,
       }),
     );
   }
