@@ -27,16 +27,10 @@ import {
   UserSavedSearchesUnknownError,
   appBookmarkInfoContext,
 } from '../contexts/app-bookmark-info-context.js';
-import {
-  DEFAULT_GLOBAL_SAVED_SEARCHES,
-  GlobalSavedSearch,
-  SavedSearch,
-  UserSavedSearch,
-  isUserSavedSearch,
-} from '../utils/constants.js';
+import {GlobalSavedSearch, UserSavedSearch} from '../utils/constants.js';
 import {
   QueryStringOverrides,
-  getSearchID,
+  getLegacySearchID,
   getSearchQuery,
   updatePageUrl,
 } from '../utils/urls.js';
@@ -94,6 +88,9 @@ export class WebstatusBookmarksService extends ServiceElement {
     UserSavedSearch[],
     SavedSearchError
   > = undefined;
+
+  _globalSavedSearchesTaskTracker?: TaskTracker<GlobalSavedSearch[], Error> =
+    undefined;
 
   loadingUserSavedSearchByIDTask = new Task(this, {
     autoRun: false,
@@ -161,10 +158,12 @@ export class WebstatusBookmarksService extends ServiceElement {
             q: '',
           },
         );
+        this._currentLocation = this.getLocation();
       }
       this.refreshAppBookmarkInfo();
     },
-    onError: async (error: {} | null | undefined) => {
+    // eslint-disable-next-line @typescript-eslint/no-restricted-types
+    onError: async (error: unknown) => {
       // The task only runs with _currentSearchID being valid
       const searchID = this._currentSearchID;
       let err: SavedSearchError;
@@ -188,9 +187,10 @@ export class WebstatusBookmarksService extends ServiceElement {
         this._currentLocation!.pathname,
         this._currentLocation!,
         {
-          search_id: '',
+          q: '',
         },
       );
+      this._currentLocation = this.getLocation();
 
       // TODO: Reconsider showing the toast in one of the UI components once we have one central
       // UI component that reads the bookmark info instead of the current multiple locations.
@@ -224,7 +224,8 @@ export class WebstatusBookmarksService extends ServiceElement {
       };
       this.refreshAppBookmarkInfo();
     },
-    onError: async (error: {} | null | undefined) => {
+    // eslint-disable-next-line @typescript-eslint/no-restricted-types
+    onError: async (error: unknown) => {
       let err: SavedSearchError;
       if (error instanceof ApiError) {
         err = new UserSavedSearchesInternalError(error.message);
@@ -246,12 +247,60 @@ export class WebstatusBookmarksService extends ServiceElement {
     },
   });
 
-  _globalSavedSearches: GlobalSavedSearch[];
+  loadingGlobalSavedSearchesTask = new Task(this, {
+    args: () => [this.apiClient] as const,
+    task: async ([apiClient]) => {
+      // Return empty array if api is not loaded
+      if (apiClient === undefined) {
+        return undefined;
+      }
+      this._globalSavedSearchesTaskTracker = {
+        status: TaskStatus.PENDING,
+        data: undefined,
+        error: undefined,
+      };
+      this.refreshAppBookmarkInfo();
+
+      // Grab the first page, we assume there will be < 100 global searches
+      const result = await apiClient.getGlobalSavedSearches(undefined, 100);
+      return result?.data ?? [];
+    },
+    onComplete: data => {
+      if (data) {
+        this._globalSavedSearches = data as GlobalSavedSearch[];
+        // recheck if the current location corresponds to any global search
+        this._currentGlobalSavedSearch = this.findCurrentSavedSearchByQuery(
+          this._globalSavedSearches,
+        );
+
+        this._globalSavedSearchesTaskTracker = {
+          status: TaskStatus.COMPLETE,
+          data: this._globalSavedSearches,
+          error: undefined,
+        };
+        this.refreshAppBookmarkInfo();
+      }
+    },
+    // eslint-disable-next-line @typescript-eslint/no-restricted-types
+    onError: async (error: unknown) => {
+      console.error('Failed to load global saved searches:', error);
+      this._globalSavedSearches = [];
+      this._globalSavedSearchesTaskTracker = {
+        status: TaskStatus.ERROR,
+        error: error instanceof Error ? error : new Error(String(error)),
+        data: undefined,
+      };
+      this.refreshAppBookmarkInfo();
+    },
+  });
+
+  _globalSavedSearches: GlobalSavedSearch[] = [];
   _currentGlobalSavedSearch?: GlobalSavedSearch;
   // A snapshot of the current location that relates to the saved search
   // information currently loaded by the service.
   // Typically, we should only update this on navigation events which indicates
   // that we should probably refresh the bookmark information.
+  @state()
   _currentLocation?: AppLocation;
 
   protected willUpdate(changedProperties: PropertyValueMap<this>): void {
@@ -264,11 +313,12 @@ export class WebstatusBookmarksService extends ServiceElement {
       if (this.userContext === undefined) {
         return;
       }
-      const incomingSearchID = this.getSearchID(
-        this._currentLocation ?? {search: '', href: '', pathname: ''},
-      );
       const incomingSearchQuery = this.getSearchQuery(
         this._currentLocation ?? {search: ''},
+      );
+      const incomingSearchID = this.getSearchIDFromQuery(
+        incomingSearchQuery,
+        'saved',
       );
       if (
         // If the there's a new search id we need to search
@@ -280,6 +330,19 @@ export class WebstatusBookmarksService extends ServiceElement {
       ) {
         this._currentSearchQuery = incomingSearchQuery;
         this._currentSearchID = incomingSearchID;
+
+        // Immediately set to PENDING for new searches to avoid race conditions
+        // where components read stale COMPLETE state before the new fetch completes.
+        if (incomingSearchID !== '') {
+          this._userSavedSearchByIDTaskTracker = {
+            status: TaskStatus.PENDING,
+            error: undefined,
+            data: undefined,
+            query: incomingSearchQuery,
+          };
+          this.refreshAppBookmarkInfo();
+        }
+
         void this.loadingUserSavedSearchByIDTask.run();
       }
     }
@@ -292,11 +355,30 @@ export class WebstatusBookmarksService extends ServiceElement {
     ) {
       void this.loadingUserSavedSearchesTask.run();
     }
+
+    if (changedProperties.has('apiClient') && this.apiClient !== undefined) {
+      void this.loadingGlobalSavedSearchesTask.run();
+    }
   }
 
   // Helper for testing.
   getLocation: GetLocationFunction = getCurrentLocation;
-  getSearchID: (location: AppLocation) => string = getSearchID;
+  getLegacySearchID: (location: AppLocation) => string = getLegacySearchID;
+
+  getSearchIDFromQuery(query: string, scope: 'hotlist' | 'saved'): string {
+    const trimmed = query.trim();
+    if (trimmed.startsWith(`${scope}:`)) {
+      const parts = trimmed.split(':');
+      if (parts.length === 2) {
+        let raw = parts[1];
+        if (raw.startsWith('"') && raw.endsWith('"')) {
+          raw = raw.slice(1, -1);
+        }
+        return raw;
+      }
+    }
+    return '';
+  }
   getSearchQuery: (location: {search: string}) => string = getSearchQuery;
   updatePageUrl: (
     pathname: string,
@@ -307,16 +389,15 @@ export class WebstatusBookmarksService extends ServiceElement {
 
   constructor() {
     super();
-    this._globalSavedSearches = DEFAULT_GLOBAL_SAVED_SEARCHES;
   }
 
-  private handlePopState() {
+  private handlePopState = () => {
     this._currentLocation = this.getLocation();
     this._currentGlobalSavedSearch = this.findCurrentSavedSearchByQuery(
       this.appBookmarkInfo.globalSavedSearches,
     );
     this.refreshAppBookmarkInfo();
-  }
+  };
 
   connectedCallback(): void {
     super.connectedCallback();
@@ -326,7 +407,7 @@ export class WebstatusBookmarksService extends ServiceElement {
     this._currentGlobalSavedSearch = this.findCurrentSavedSearchByQuery(
       this._globalSavedSearches,
     );
-    window.addEventListener('popstate', this.handlePopState.bind(this));
+    window.addEventListener('popstate', this.handlePopState);
     this.addEventListener('saved-search-saved', this.handleSavedSearchSaved);
     this.addEventListener('saved-search-edited', this.handleSavedSearchEdited);
     this.addEventListener(
@@ -365,23 +446,30 @@ export class WebstatusBookmarksService extends ServiceElement {
       'saved-search-unbookmarked',
       this.handleSavedSearchDeleted,
     );
-    window.removeEventListener('popstate', this.handlePopState.bind(this));
+    window.removeEventListener('popstate', this.handlePopState);
+    window.removeEventListener('webstatus-url-updated', this.handlePopState);
   }
 
   findCurrentSavedSearchByQuery(
-    savedSearches?: SavedSearch[],
-  ): SavedSearch | undefined {
+    savedSearches?: GlobalSavedSearch[],
+  ): GlobalSavedSearch | undefined {
     const currentQuery = this.getSearchQuery(
       this._currentLocation ?? {search: ''},
     );
-    return savedSearches?.find(search => search.query === currentQuery);
+    const searchId = this.getSearchIDFromQuery(currentQuery, 'hotlist');
+
+    // Check by ID first, then fallback to testing the query matching (for legacy support).
+    return savedSearches?.find(
+      search =>
+        (searchId && search.id === searchId) ||
+        (currentQuery && search.query === currentQuery),
+    );
   }
 
   handleSavedSearchSaved = (e: Event) => {
-    if (!(e instanceof CustomEvent)) return;
-    const detail = e.detail;
-    if (!isUserSavedSearch(detail)) return;
-    const savedSearch = detail;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+    const event = e as CustomEvent<UserSavedSearch>;
+    const savedSearch = event.detail;
 
     if (
       this._userSavedSearchesTaskTracker === undefined ||
@@ -416,21 +504,17 @@ export class WebstatusBookmarksService extends ServiceElement {
       this._currentLocation!.pathname,
       this._currentLocation!,
       {
-        search_id: savedSearch.id,
-        // Clear out q query parameter if present
-        q: undefined,
+        q: `saved:${savedSearch.id}`,
       },
     );
     this._currentLocation = this.getLocation();
-
     this.refreshAppBookmarkInfo();
   };
 
   handleSavedSearchEdited = (e: Event) => {
-    if (!(e instanceof CustomEvent)) return;
-    const detail = e.detail;
-    if (!isUserSavedSearch(detail)) return;
-    const editedSearch = detail;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+    const event = e as CustomEvent<UserSavedSearch>;
+    const editedSearch = event.detail;
 
     if (this._userSavedSearchesTaskTracker?.data) {
       this._userSavedSearchesTaskTracker.data =
@@ -453,10 +537,9 @@ export class WebstatusBookmarksService extends ServiceElement {
   };
 
   handleSavedSearchDeleted = (e: Event) => {
-    if (!(e instanceof CustomEvent)) return;
-    const detail = e.detail;
-    if (typeof detail !== 'string') return;
-    const deletedSearchId = detail;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+    const event = e as CustomEvent<string>;
+    const deletedSearchId = event.detail;
     if (this._userSavedSearchesTaskTracker?.data) {
       this._userSavedSearchesTaskTracker.data =
         this._userSavedSearchesTaskTracker?.data?.filter(
@@ -467,7 +550,7 @@ export class WebstatusBookmarksService extends ServiceElement {
         this._currentLocation!.pathname,
         this._currentLocation!,
         {
-          search_id: '',
+          q: '',
         },
       );
     }
@@ -490,6 +573,7 @@ export class WebstatusBookmarksService extends ServiceElement {
       userSavedSearchTask: this._userSavedSearchByIDTaskTracker,
       currentLocation: this._currentLocation,
       userSavedSearchesTask: this._userSavedSearchesTaskTracker,
+      globalSavedSearchesTask: this._globalSavedSearchesTaskTracker,
     };
   }
 }

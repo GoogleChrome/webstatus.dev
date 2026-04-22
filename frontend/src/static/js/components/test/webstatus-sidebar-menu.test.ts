@@ -35,11 +35,13 @@ const testGlobalSavedSearches: GlobalSavedSearch[] = [
     name: 'Test Bookmark 1',
     query: 'test_query_1',
     description: 'test description1',
+    id: 'alias-1',
   },
   {
     name: 'Test Bookmark 2',
     query: 'test_query_2',
     description: 'test description2',
+    id: 'alias-2',
   },
 ];
 
@@ -56,6 +58,11 @@ class FakeSavedSearchParentElement extends LitElement {
   appBookmarkInfo: AppBookmarkInfo = {
     globalSavedSearches: testGlobalSavedSearches,
     currentGlobalSavedSearch: undefined,
+    globalSavedSearchesTask: {
+      status: TaskStatus.COMPLETE,
+      data: testGlobalSavedSearches,
+      error: undefined,
+    },
     userSavedSearchesTask: {
       status: TaskStatus.COMPLETE,
       data: testUserSavedSearches,
@@ -178,11 +185,12 @@ describe('webstatus-sidebar-menu', () => {
   it('updates the active bookmark query when the URL changes', async () => {
     // Set mock location to match a test bookmark
     const mockLocation = {
-      search: `?q=${el.appBookmarkInfo?.globalSavedSearches?.[1].query}`,
-      href: `http://localhost/?q=${el.appBookmarkInfo?.globalSavedSearches?.[1].query}`,
+      search: `?q=hotlist:${el.appBookmarkInfo?.globalSavedSearches?.[1].id}`,
+      href: `http://localhost/?q=hotlist:${el.appBookmarkInfo?.globalSavedSearches?.[1].id}`,
     };
     (el.getLocation as sinon.SinonStub).returns(mockLocation);
     parent.appBookmarkInfo = {
+      ...parent.appBookmarkInfo,
       globalSavedSearches: testGlobalSavedSearches,
       currentGlobalSavedSearch: testGlobalSavedSearches[1],
       currentLocation: mockLocation,
@@ -193,7 +201,7 @@ describe('webstatus-sidebar-menu', () => {
     await el.updateComplete;
     expect(el.getLocation as sinon.SinonStub).to.be.called;
     expect(el.activeQuery).to.equal(
-      el.appBookmarkInfo?.globalSavedSearches?.[1].query,
+      `hotlist:${el.appBookmarkInfo?.globalSavedSearches?.[1].id}`,
     );
   });
 
@@ -237,8 +245,8 @@ describe('webstatus-sidebar-menu', () => {
     expect(el.activeQuery).to.be.null;
 
     const mockLocation = {
-      search: `?q=${el.appBookmarkInfo?.globalSavedSearches?.[0].query}`,
-      href: `http://localhost/?q=${el.appBookmarkInfo?.globalSavedSearches?.[0].query}`,
+      search: `?q=hotlist:${el.appBookmarkInfo?.globalSavedSearches?.[0].id}`,
+      href: `http://localhost/?q=hotlist:${el.appBookmarkInfo?.globalSavedSearches?.[0].id}`,
     };
     (el.getLocation as sinon.SinonStub).returns(mockLocation);
 
@@ -248,6 +256,7 @@ describe('webstatus-sidebar-menu', () => {
     // Click the anchor. The parent element handles updating the currentGlobalSavedSearch
     bookmarkAnchor.click();
     parent.appBookmarkInfo = {
+      ...parent.appBookmarkInfo,
       globalSavedSearches: testGlobalSavedSearches,
       currentGlobalSavedSearch: testGlobalSavedSearches[0],
       currentLocation: mockLocation,
@@ -258,7 +267,7 @@ describe('webstatus-sidebar-menu', () => {
     // Assertions
     expect(clickStub.calledOnce).to.be.true;
     expect(el.activeQuery).to.equal(
-      el.appBookmarkInfo?.globalSavedSearches?.[0].query,
+      `hotlist:${el.appBookmarkInfo?.globalSavedSearches?.[0].id}`,
     );
 
     const bookmarkItems = el.shadowRoot
@@ -284,8 +293,8 @@ describe('webstatus-sidebar-menu', () => {
   it('correctly handles bookmark clicks for user saved searches, verifying isQueryActive', async () => {
     // Set up the URL to match the first user bookmark
     const mockLocation: AppLocation = {
-      href: `http://localhost/?search_id=${testUserSavedSearches[0].id}`,
-      search: `?search_id=${testUserSavedSearches[0].id}`,
+      href: `http://localhost/?q=saved:${testUserSavedSearches[0].id}`,
+      search: `?q=saved:${testUserSavedSearches[0].id}`,
       pathname: '/',
     };
     (el.getLocation as sinon.SinonStub).returns(mockLocation);
@@ -309,7 +318,7 @@ describe('webstatus-sidebar-menu', () => {
     await el.updateComplete; // Allow the component to update after the click
 
     expect(clickStub.calledOnce).to.be.true;
-    expect(el.activeQuery).to.equal(testUserSavedSearches[0].query);
+    expect(el.activeQuery).to.equal(`saved:${testUserSavedSearches[0].id}`);
 
     // Assertions to check the selected state of other bookmarks
     const userBookmarkItems = el.shadowRoot?.querySelectorAll(
@@ -465,8 +474,8 @@ describe('webstatus-sidebar-menu', () => {
   it('marks the active search item as selected on first load', async () => {
     // Mock the location to match the first search BEFORE the fixture is created
     const mockLocation = {
-      search: `?q=${testGlobalSavedSearches[0].query}`,
-      href: `http://localhost/?q=${testGlobalSavedSearches[0].query}`,
+      search: `?q=hotlist:${testGlobalSavedSearches[0].id}`,
+      href: `http://localhost/?q=hotlist:${testGlobalSavedSearches[0].id}`,
     };
     const getCurrentLocationStub = sinon.stub().returns(mockLocation);
     const navigateToUrlStub = sinon.stub();
@@ -479,8 +488,23 @@ describe('webstatus-sidebar-menu', () => {
         .appBookmarkInfo=${{
           globalSavedSearches: testGlobalSavedSearches,
           currentGlobalSavedSearch: testGlobalSavedSearches[0],
+          globalSavedSearchesTask: {
+            status: TaskStatus.COMPLETE,
+            data: testGlobalSavedSearches,
+            error: undefined,
+          },
           currentLocation: mockLocation,
-        }}
+          userSavedSearchesTask: {
+            status: TaskStatus.COMPLETE,
+            data: [],
+            error: undefined,
+          },
+          userSavedSearchTask: {
+            status: TaskStatus.COMPLETE,
+            data: undefined,
+            error: undefined,
+          },
+        } as AppBookmarkInfo}
       ></webstatus-sidebar-menu>
     `);
 

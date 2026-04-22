@@ -20,6 +20,7 @@ import {
   freezeAnimations,
   loginAsUser,
   testUsers,
+  waitForSidebarLoaded,
   expectDualThemeScreenshot,
 } from './utils';
 
@@ -118,6 +119,7 @@ test.describe('Login Component States', () => {
 
 test('matches the screenshot for unauthenticated user', async ({page}) => {
   await page.goto('http://localhost:5555/');
+  await waitForSidebarLoaded(page);
 
   const login = page.locator('webstatus-login');
   await expect(login).toContainText('Log in');

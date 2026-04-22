@@ -29,7 +29,6 @@ import {
 import './webstatus-overview-table.js';
 import {TaskTracker} from '../utils/task-tracker.js';
 import {ApiError} from '../api/errors.js';
-import {Toast} from '../utils/toast.js';
 import {
   CurrentSavedSearch,
   SavedSearchScope,
@@ -54,61 +53,6 @@ export class WebstatusOverviewDataLoader extends LitElement {
   @property({type: Object})
   savedSearch: CurrentSavedSearch;
 
-  findFeaturesFromAtom(
-    searchKey: string,
-    searchValue: string,
-  ): components['schemas']['Feature'][] {
-    if (!this.taskTracker.data) {
-      return [];
-    }
-
-    const features: components['schemas']['Feature'][] = [];
-    const data = this.taskTracker.data?.data || [];
-    for (const feature of data) {
-      if (searchKey === 'id' && feature?.feature_id === searchValue) {
-        features.push(feature);
-        break;
-      } else if (
-        searchKey === 'name' &&
-        (feature?.feature_id.includes(searchValue) ||
-          feature?.name.includes(searchValue))
-      ) {
-        features.push(feature);
-      }
-    }
-    return features;
-  }
-
-  reorderByQueryTerms(): components['schemas']['Feature'][] | undefined {
-    if (
-      !this.savedSearch ||
-      this.savedSearch.scope !== SavedSearchScope.GlobalSavedSearch ||
-      !this.savedSearch.value.is_ordered
-    ) {
-      return undefined;
-    }
-
-    const atoms: string[] = this.savedSearch.value.query.trim().split('OR');
-    const features = [];
-    for (const atom of atoms) {
-      const terms = atom.trim().split(':');
-      const foundFeatures = this.findFeaturesFromAtom(terms[0], terms[1]);
-      if (foundFeatures) {
-        features.push(...foundFeatures);
-      }
-    }
-
-    if (features.length !== this.taskTracker.data?.data?.length) {
-      void new Toast().toast(
-        `Unable to apply custom sorting to saved search "${this.savedSearch.value.name}". Defaulting to normal sorting.`,
-        'warning',
-        'exclamation-triangle',
-      );
-      return undefined;
-    }
-    return features;
-  }
-
   render(): TemplateResult {
     const columns: ColumnKey[] = parseColumnsSpec(
       getColumnsSpec(this.location),
@@ -126,14 +70,6 @@ export class WebstatusOverviewDataLoader extends LitElement {
       headerCells = renderSavedSearchHeaderCells(search.value.name, columns);
     } else {
       headerCells = renderHeaderCells(location, columns, sortSpec!);
-    }
-
-    if (
-      this.taskTracker.data?.data &&
-      this.taskTracker.status === TaskStatus.COMPLETE
-    ) {
-      this.taskTracker.data.data =
-        this.reorderByQueryTerms() || this.taskTracker.data?.data;
     }
 
     const featureTaskTracker: TaskTracker<

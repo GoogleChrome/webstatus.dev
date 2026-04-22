@@ -53,6 +53,7 @@ type PageablePath =
   | '/v1/users/me/notification-channels'
   | '/v1/stats/features/browsers/{browser}/feature_counts'
   | '/v1/users/me/saved-searches'
+  | '/v1/global-saved-searches'
   | '/v1/users/me/subscriptions'
   | '/v1/stats/baseline_status/low_date_feature_counts'
   | '/v1/stats/features/browsers/{browser}/missing_one_implementation_counts'
@@ -516,8 +517,8 @@ export class APIClient {
 
   // Get one page of features
   public async getFeatures(
-    q: FeatureSearchType,
-    sort: FeatureSortOrderType,
+    q?: FeatureSearchType,
+    sort?: FeatureSortOrderType,
     wptMetricView?: FeatureWPTMetricViewType,
     offset?: number,
     pageSize?: number,
@@ -540,8 +541,8 @@ export class APIClient {
 
   // Get all features
   public async getAllFeatures(
-    q: FeatureSearchType,
-    sort: FeatureSortOrderType,
+    q?: FeatureSearchType,
+    sort?: FeatureSortOrderType,
     wptMetricView?: FeatureWPTMetricViewType,
   ): Promise<components['schemas']['Feature'][]> {
     const queryParams: paths['/v1/features']['get']['parameters']['query'] = {};
@@ -551,7 +552,7 @@ export class APIClient {
     return this.getAllPagesOfData(
       '/v1/features',
       {params: {query: queryParams}},
-      this.createOffsetPaginationTokenForGetFeatures,
+      this.createOffsetPaginationTokenForGetFeatures.bind(this),
     );
   }
 
@@ -825,6 +826,18 @@ export class APIClient {
       }),
       '/v1/saved-searches/{search_id}',
       'delete',
+    );
+  }
+
+  public async getGlobalSavedSearches(
+    pageToken?: string,
+    pageSize?: number,
+  ): Promise<SuccessResponsePageableData<'/v1/global-saved-searches'>> {
+    return this.getPageOfData(
+      '/v1/global-saved-searches',
+      {params: {query: {}}},
+      pageToken,
+      pageSize,
     );
   }
 

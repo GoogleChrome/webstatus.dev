@@ -39,6 +39,9 @@ export class SubscribeButton extends LitElement {
   @property({type: String})
   savedSearchId = '';
 
+  @property({type: String})
+  searchTitle?: string;
+
   @property({attribute: false})
   toaster = toast;
 
@@ -52,11 +55,12 @@ export class SubscribeButton extends LitElement {
 
     return html`
       <sl-button
+        data-testid="subscribe-button"
         variant="primary"
         @click=${() => (this._isSubscriptionDialogOpen = true)}
       >
         <sl-icon slot="prefix" name="bell"></sl-icon>
-        Subscribe
+        ${this.searchTitle ? `Subscribe to ${this.searchTitle}` : 'Subscribe'}
       </sl-button>
 
       <webstatus-manage-subscriptions-dialog

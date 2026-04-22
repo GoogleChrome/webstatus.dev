@@ -15,7 +15,11 @@
  */
 
 import {test, expect, Page} from '@playwright/test';
-import {setupFakeNow, expectDualThemeScreenshot} from './utils';
+import {
+  setupFakeNow,
+  expectDualThemeScreenshot,
+  waitForSidebarLoaded,
+} from './utils';
 
 async function waitForAllChartsToLoad(page: Page) {
   // Wait for all charts to finish loading.
@@ -29,6 +33,7 @@ test.beforeEach(async ({page}) => {
 
 test('matches the screenshot', async ({page}) => {
   await page.goto('http://localhost:5555/stats');
+  await waitForSidebarLoaded(page);
 
   // Wait for the global feature support chart container to exist.
   await page.waitForSelector('#global-feature-support-chart-container');

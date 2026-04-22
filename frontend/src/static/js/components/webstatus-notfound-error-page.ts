@@ -22,6 +22,7 @@ import {getSearchQuery, formatFeaturePageUrl} from '../utils/urls.js';
 import {consume} from '@lit/context';
 import {APIClient, apiClientContext} from '../contexts/api-client-context.js';
 import {Task} from '@lit/task';
+
 import {Toast} from '../utils/toast.js';
 
 type SimilarFeature = {name: string; url: string};

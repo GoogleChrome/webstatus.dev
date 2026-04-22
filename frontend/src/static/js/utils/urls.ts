@@ -43,7 +43,7 @@ export function getWPTMetricView(location: {search: string}): string {
   return getQueryParam(location.search, 'wpt_metric_view');
 }
 
-export function getSearchID(location: {search: string}): string {
+export function getLegacySearchID(location: {search: string}): string {
   return getQueryParam(location.search, 'search_id');
 }
 
@@ -84,7 +84,6 @@ export type QueryStringOverrides = {
   wpt_metric_view?: string;
   dateRange?: DateRange;
   column_options?: string[];
-  search_id?: string;
   edit_saved_search?: boolean;
 };
 
@@ -156,12 +155,6 @@ function getContextualQueryStringParams(
     searchParams.set('endDate', endDate);
   }
 
-  const searchID =
-    'search_id' in overrides ? overrides.search_id : getSearchID(location);
-  if (searchID) {
-    searchParams.set('search_id', searchID);
-  }
-
   const editBookmark =
     'edit_saved_search' in overrides ? overrides.edit_saved_search : undefined;
   if (editBookmark) {
@@ -204,6 +197,10 @@ export function updatePageUrl(
   const qs = getContextualQueryStringParams(location, overrides);
   const url = `${pathname}${qs}`;
   window.history.replaceState({}, '', url);
+  // TODO: Remove manual popstate dispatch when migrating to URLPattern-based router.
+  // See https://github.com/GoogleChrome/webstatus.dev/issues/2020
+  // This is a workaround to force Vaadin Router to update its location state.
+  window.dispatchEvent(new PopStateEvent('popstate'));
 }
 
 /* Return the origin of the current page. */
