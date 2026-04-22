@@ -224,6 +224,7 @@ func TestListGlobalSavedSearches(t *testing.T) {
 				operationResponseCaches: initOperationResponseCaches(mockCacher, getTestRouteCacheOptions()),
 				eventPublisher:          nil,
 				baseURL:                 getTestBaseURL(t),
+				rssRenderer:             nil,
 			}
 
 			assertTestServerRequest(t, &myServer, tc.request, tc.expectedResponse)

@@ -268,6 +268,7 @@ func TestUpdateNotificationChannel_Restrictions(t *testing.T) {
 				t:                            t,
 			}
 			myServer := Server{
+				rssRenderer:             NewRSSRenderer(),
 				wptMetricsStorer:        mockStorer,
 				baseURL:                 getTestBaseURL(t),
 				metadataStorer:          nil,

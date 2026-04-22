@@ -256,6 +256,7 @@ func TestPingUser(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			authMiddlewareOption := withAuthMiddleware(tc.authMiddleware)
 			myServer := Server{
+				rssRenderer: NewRSSRenderer(),
 				// nolint:exhaustruct
 				wptMetricsStorer: &MockWPTMetricsStorer{t: t, syncUserProfileInfoCfg: tc.syncUserProfileInfoCfg},
 				metadataStorer:   nil,

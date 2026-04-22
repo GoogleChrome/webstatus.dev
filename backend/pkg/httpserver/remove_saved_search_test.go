@@ -105,8 +105,15 @@ func TestRemoveSavedSearch(t *testing.T) {
 				deleteUserSavedSearchCfg: tc.cfg,
 				t:                        t,
 			}
-			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: nil, userGitHubClientFactory: nil,
-				operationResponseCaches: nil, baseURL: getTestBaseURL(t), eventPublisher: nil}
+			myServer := Server{
+				rssRenderer:             NewRSSRenderer(),
+				wptMetricsStorer:        mockStorer,
+				metadataStorer:          nil,
+				userGitHubClientFactory: nil,
+				operationResponseCaches: nil,
+				baseURL:                 getTestBaseURL(t),
+				eventPublisher:          nil,
+			}
 			assertTestServerRequest(t, &myServer, tc.request, tc.expectedResponse,
 				[]testServerOption{authMiddlewareOption}...)
 			assertMocksExpectations(t, 1, mockStorer.callCountDeleteUserSavedSearch,

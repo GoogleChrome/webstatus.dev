@@ -420,8 +420,15 @@ func TestCreateSavedSearch(t *testing.T) {
 				callCountPublishSearchConfigurationChanged: 0,
 				publishSearchConfigurationChangedCfg:       tc.mockPublishConfig,
 			}
-			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: nil, userGitHubClientFactory: nil,
-				operationResponseCaches: nil, baseURL: getTestBaseURL(t), eventPublisher: mockPublisher}
+			myServer := Server{
+				rssRenderer:             NewRSSRenderer(),
+				wptMetricsStorer:        mockStorer,
+				metadataStorer:          nil,
+				userGitHubClientFactory: nil,
+				operationResponseCaches: nil,
+				baseURL:                 getTestBaseURL(t),
+				eventPublisher:          mockPublisher,
+			}
 			assertTestServerRequest(t, &myServer, tc.request, tc.expectedResponse,
 				[]testServerOption{tc.authMiddlewareOption}...)
 		})

@@ -201,6 +201,7 @@ type Server struct {
 	baseURL                 *url.URL
 	userGitHubClientFactory UserGitHubClientFactory
 	eventPublisher          EventPublisher
+	rssRenderer             *RSSRenderer
 }
 
 type GitHubUserClient interface {
@@ -276,6 +277,7 @@ func NewHTTPServer(
 		operationResponseCaches: initOperationResponseCaches(rawBytesDataCacher, routeCacheOptions),
 		baseURL:                 baseURL,
 		userGitHubClientFactory: userGitHubClientFactory,
+		rssRenderer:             NewRSSRenderer(),
 	}
 
 	return createOpenAPIServerServer(port, srv, preRequestValidationMiddlewares, authMiddleware)

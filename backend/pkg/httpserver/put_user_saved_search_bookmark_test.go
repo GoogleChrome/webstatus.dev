@@ -105,10 +105,15 @@ func TestPutUserSavedSearchBookmark(t *testing.T) {
 				putUserSavedSearchBookmarkCfg: tc.cfg,
 				t:                             t,
 			}
-			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: nil, userGitHubClientFactory: nil,
+			myServer := Server{
+				rssRenderer:             NewRSSRenderer(),
+				wptMetricsStorer:        mockStorer,
+				metadataStorer:          nil,
+				userGitHubClientFactory: nil,
 				operationResponseCaches: nil,
 				eventPublisher:          nil,
-				baseURL:                 getTestBaseURL(t)}
+				baseURL:                 getTestBaseURL(t),
+			}
 			assertTestServerRequest(t, &myServer, tc.request, tc.expectedResponse,
 				[]testServerOption{authMiddlewareOption}...)
 			assertMocksExpectations(t, 1, mockStorer.callCountPutUserSavedSearchBookmark,
