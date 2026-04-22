@@ -23,6 +23,7 @@ import (
 	"time"
 
 	v1 "github.com/GoogleChrome/webstatus.dev/lib/blobtypes/featurelistdiff/v1"
+	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 )
 
 var (
@@ -89,13 +90,86 @@ type SummaryCategories struct {
 	UpdatedBaseline int `json:"updated_baseline,omitzero"`
 }
 
+// SummaryQueryErrorCode defines the error codes for query errors in the summary.
+type SummaryQueryErrorCode string
+
+const (
+	SummaryQueryErrorCodeFeatureNotFound          SummaryQueryErrorCode = "feature_not_found"
+	SummaryQueryErrorCodeInvalidQuery             SummaryQueryErrorCode = "invalid_query"
+	SummaryQueryErrorCodeSavedSearchNotFound      SummaryQueryErrorCode = "saved_search_not_found"
+	SummaryQueryErrorCodeHotlistNotFound          SummaryQueryErrorCode = "hotlist_not_found"
+	SummaryQueryErrorCodeSavedSearchCycleDetected SummaryQueryErrorCode = "saved_search_cycle_detected"
+	SummaryQueryErrorCodeMaxDepthExceeded         SummaryQueryErrorCode = "saved_search_max_depth_exceeded"
+	SummaryQueryErrorCodeQueryGrammar             SummaryQueryErrorCode = "query_grammar_invalid"
+	SummaryQueryErrorCodeUnknown                  SummaryQueryErrorCode = "unknown"
+)
+
+func (c SummaryQueryErrorCode) Message() string {
+	switch c {
+	case SummaryQueryErrorCodeFeatureNotFound:
+		return "Feature not found"
+	case SummaryQueryErrorCodeInvalidQuery:
+		return "Invalid query"
+	case SummaryQueryErrorCodeSavedSearchNotFound:
+		return "Saved search not found"
+	case SummaryQueryErrorCodeHotlistNotFound:
+		return "Hotlist not found"
+	case SummaryQueryErrorCodeSavedSearchCycleDetected:
+		return "Saved search cycle detected"
+	case SummaryQueryErrorCodeMaxDepthExceeded:
+		return "Saved search max depth exceeded"
+	case SummaryQueryErrorCodeQueryGrammar:
+		return "Invalid query grammar"
+	case SummaryQueryErrorCodeUnknown:
+		fallthrough
+	default:
+		return "Unknown query error"
+	}
+}
+
+type SnapshotOrigin string
+
+const (
+	OriginUnknown          SnapshotOrigin = "UNKNOWN"
+	OriginLive             SnapshotOrigin = "LIVE"
+	OriginFallbackPrevious SnapshotOrigin = "FALLBACK_PREVIOUS"
+)
+
+func (o SnapshotOrigin) Normalize() SnapshotOrigin {
+	if o == "" {
+		return OriginUnknown
+	}
+
+	return o
+}
+
+// SummaryQueryError contains the error code for a query error.
+// We only include the Code (and drop the Message) to allow the specific
+// renderer (email, Slack, etc.) to decide how to render the error.
+type SummaryQueryError struct {
+	Code SummaryQueryErrorCode `json:"code"`
+}
+
+// FetchFeaturesResult contains the result of FetchFeatures.
+type FetchFeaturesResult struct {
+	Features  []backend.Feature
+	UserError *UserError
+}
+
+// UserError contains expected user-facing errors.
+type UserError struct {
+	QueryErrors []SummaryQueryError
+}
+
 // EventSummary matches the JSON structure stored in the database 'Summary' column.
 type EventSummary struct {
-	SchemaVersion string             `json:"schemaVersion"`
-	Text          string             `json:"text"`
-	Categories    SummaryCategories  `json:"categories,omitzero"`
-	Truncated     bool               `json:"truncated"`
-	Highlights    []SummaryHighlight `json:"highlights"`
+	SchemaVersion  string              `json:"schemaVersion"`
+	Text           string              `json:"text"`
+	Categories     SummaryCategories   `json:"categories,omitzero"`
+	Truncated      bool                `json:"truncated"`
+	SnapshotOrigin SnapshotOrigin      `json:"snapshotOrigin,omitempty"`
+	QueryErrors    []SummaryQueryError `json:"queryErrors,omitempty"`
+	Highlights     []SummaryHighlight  `json:"highlights"`
 }
 
 func (h SummaryHighlight) MatchesTrigger(t JobTrigger) bool {
@@ -260,9 +334,37 @@ func (g FeatureDiffV1SummaryGenerator) GenerateJSONSummary(
 	d v1.FeatureDiff) ([]byte, error) {
 	var s EventSummary
 	s.SchemaVersion = VersionEventSummaryV1
+	s.SnapshotOrigin = SnapshotOrigin(d.SnapshotOrigin).Normalize()
 
 	s.Categories, s.Text = g.calculateCategoriesAndText(d)
 	s.Highlights, s.Truncated = g.generateHighlights(d)
+
+	summaryQueryErrors := make([]SummaryQueryError, 0, len(d.QueryErrors))
+	for _, e := range d.QueryErrors {
+		var code SummaryQueryErrorCode
+		switch e.Code {
+		case v1.ErrorCodeQueryGrammar:
+			code = SummaryQueryErrorCodeQueryGrammar
+		case v1.ErrorCodeSavedSearchNotFound:
+			code = SummaryQueryErrorCodeSavedSearchNotFound
+		case v1.ErrorCodeHotlistNotFound:
+			code = SummaryQueryErrorCodeHotlistNotFound
+		case v1.ErrorCodeSavedSearchCycleDetected:
+			code = SummaryQueryErrorCodeSavedSearchCycleDetected
+		case v1.ErrorCodeSavedSearchMaxDepthExceeded:
+			code = SummaryQueryErrorCodeMaxDepthExceeded
+		case v1.ErrorCodeFeatureNotFound:
+			code = SummaryQueryErrorCodeFeatureNotFound
+		case v1.ErrorCodeInvalidQuery:
+			code = SummaryQueryErrorCodeInvalidQuery
+		case v1.ErrorCodeUnknown:
+			code = SummaryQueryErrorCodeUnknown
+		default:
+			code = SummaryQueryErrorCodeUnknown
+		}
+		summaryQueryErrors = append(summaryQueryErrors, SummaryQueryError{Code: code})
+	}
+	s.QueryErrors = summaryQueryErrors
 
 	b, err := json.Marshal(s)
 	if err != nil {

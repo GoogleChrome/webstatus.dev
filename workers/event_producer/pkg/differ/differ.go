@@ -17,7 +17,9 @@ package differ
 import (
 	"context"
 	"fmt"
+	"slices"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 	"github.com/GoogleChrome/webstatus.dev/lib/workertypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/workertypes/comparables"
 	"github.com/google/uuid"
@@ -47,15 +49,18 @@ func (d *FeatureDiffer[D]) Run(ctx context.Context, searchID string, query strin
 	previousStateBytes []byte) (*DiffResult, error) {
 	workflow := d.workflowFactory()
 	// 1. Load Context
-	snapshot, id, signature, isEmpty, err := d.stateAdapter.Load(previousStateBytes)
+	snapshot, id, signature, queryErrors, isEmpty, err := d.stateAdapter.Load(previousStateBytes)
 	if err != nil {
 		return nil, fmt.Errorf("%w: failed to load previous state: %w", ErrFatal, err)
 	}
+	qErrs := mapSummaryQueryErrorsToComparables(queryErrors)
+
 	prevCtx := previousContext{
-		Signature: signature,
-		Snapshot:  snapshot,
-		IsEmpty:   isEmpty,
-		ID:        id,
+		Signature:   signature,
+		Snapshot:    snapshot,
+		QueryErrors: qErrs,
+		IsEmpty:     isEmpty,
+		ID:          id,
 	}
 
 	// 2. Plan
@@ -68,13 +73,8 @@ func (d *FeatureDiffer[D]) Run(ctx context.Context, searchID string, query strin
 	}
 	data.OldSnapshot = prevCtx.Snapshot
 
-	// 4. Compute Pure Diff
-	// We check data.TargetSnapshot != nil because if the Flush Strategy failed (in executePlan),
-	// it returns nil to signal "Skip Diffing".
-	// toSnapshot() guarantees a non-nil map (empty map) for valid empty results,
-	// so nil strictly means "Data Not Available".
-	if !plan.IsColdStart && data.TargetSnapshot != nil {
-		workflow.CalculateDiff(data.OldSnapshot, data.TargetSnapshot)
+	if len(data.QueryErrors) > 0 || (!plan.IsColdStart && data.TargetSnapshot != nil) {
+		workflow.CalculateDiff(data.OldSnapshot, data.TargetSnapshot, data.QueryErrors, data.SnapshotOrigin)
 	}
 
 	// 5. Reconcile History
@@ -97,12 +97,14 @@ func (d *FeatureDiffer[D]) Run(ctx context.Context, searchID string, query strin
 	// - plan.QueryChanged: The query signature changed. We must persist the new StateBytes
 	//   linked to the new query so future runs compare against the correct context,
 	//   even if the feature list data happens to be identical.
-	shouldWrite := workflow.HasChanges() || plan.IsColdStart || plan.QueryChanged
+	// - queryErrorsChanged: The query broke or was fixed, we need to notify the user.
+	finalDiff := workflow.GetDiff()
+
+	queryErrorsChanged := !slices.Equal(prevCtx.QueryErrors, data.QueryErrors)
+	shouldWrite := workflow.HasChanges() || plan.IsColdStart || plan.QueryChanged || queryErrorsChanged
 	if !shouldWrite {
 		return nil, ErrNoChangesDetected
 	}
-
-	finalDiff := workflow.GetDiff()
 	newStateID := d.idGenerator.NewStateID()
 	diffID := d.idGenerator.NewDiffID()
 
@@ -114,7 +116,17 @@ func (d *FeatureDiffer[D]) Run(ctx context.Context, searchID string, query strin
 		return nil, fmt.Errorf("%w, failed to serialize diff: %w", ErrFatal, err)
 	}
 
-	newStateBytes, err := d.stateAdapter.Serialize(newStateID, searchID, eventID, query, t, data.NewSnapshot)
+	workertypesErrs := mapComparablesToSummaryQueryErrors(data.QueryErrors)
+
+	newStateBytes, err := d.stateAdapter.Serialize(
+		newStateID,
+		searchID,
+		eventID,
+		query,
+		workertypesErrs,
+		t,
+		data.NewSnapshot,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("%w: failed to serialize new state: %w", ErrFatal, err)
 	}
@@ -149,10 +161,11 @@ func (d *FeatureDiffer[D]) determineReasons(plan executionPlan, workflow StateCo
 // --- Internal Helper: Context Loading ---
 
 type previousContext struct {
-	Signature string
-	Snapshot  map[string]comparables.Feature
-	IsEmpty   bool
-	ID        string
+	Signature   string
+	Snapshot    map[string]comparables.Feature
+	QueryErrors comparables.QueryErrors
+	IsEmpty     bool
+	ID          string
 }
 
 // --- Internal Helper: Planning ---
@@ -192,6 +205,8 @@ type executionData struct {
 	OldSnapshot    map[string]comparables.Feature
 	TargetSnapshot map[string]comparables.Feature
 	NewSnapshot    map[string]comparables.Feature
+	QueryErrors    comparables.QueryErrors
+	SnapshotOrigin comparables.SnapshotOrigin
 }
 
 func (d *FeatureDiffer[D]) executePlan(ctx context.Context, plan executionPlan) (executionData, error) {
@@ -199,11 +214,21 @@ func (d *FeatureDiffer[D]) executePlan(ctx context.Context, plan executionPlan) 
 		OldSnapshot:    nil,
 		TargetSnapshot: nil,
 		NewSnapshot:    nil,
+		QueryErrors:    nil,
+		SnapshotOrigin: comparables.OriginLive, // Default to live
 	}
 
-	newLive, err := d.client.FetchFeatures(ctx, plan.CurrentQuery)
+	result, err := d.client.FetchFeatures(ctx, plan.CurrentQuery)
 	if err != nil {
-		return data, err
+		return data, err // Fail pipeline for transient errors
+	}
+	var newLive []backend.Feature
+	if result.UserError != nil {
+		data.QueryErrors = mapSummaryQueryErrorsToComparables(result.UserError.QueryErrors)
+		data.SnapshotOrigin = comparables.OriginFallbackPrevious
+		newLive = nil // Suppress live data on query error
+	} else {
+		newLive = result.Features
 	}
 	data.NewSnapshot = comparables.NewFeatureMapFromBackendFeatures(newLive)
 
@@ -212,20 +237,85 @@ func (d *FeatureDiffer[D]) executePlan(ctx context.Context, plan executionPlan) 
 	}
 
 	if plan.QueryChanged {
-		oldLive, err := d.client.FetchFeatures(ctx, plan.PreviousQuery)
-		if err == nil {
-			data.TargetSnapshot = comparables.NewFeatureMapFromBackendFeatures(oldLive)
+		result, err := d.client.FetchFeatures(ctx, plan.PreviousQuery)
+		// FetchFeatures returns err == nil for valid queries that failed on the user's end
+		// (e.g. saved search not found). We must check both to ensure success.
+		if err == nil && result.UserError == nil {
+			data.TargetSnapshot = comparables.NewFeatureMapFromBackendFeatures(result.Features)
 		} else {
 			// Fallback: If old query fails, we return nil TargetSnapshot.
 			// Run() detects this and skips diffing, treating it as a silent reset.
 			return executionData{
-				NewSnapshot:    data.NewSnapshot,
+				OldSnapshot:    nil,
 				TargetSnapshot: nil,
-				OldSnapshot:    nil}, nil
+				NewSnapshot:    data.NewSnapshot,
+				QueryErrors:    data.QueryErrors,
+				SnapshotOrigin: data.SnapshotOrigin,
+			}, nil
 		}
 	} else {
 		data.TargetSnapshot = data.NewSnapshot
 	}
 
 	return data, nil
+}
+
+func mapSummaryQueryErrorsToComparables(errs []workertypes.SummaryQueryError) comparables.QueryErrors {
+	qErrs := make(comparables.QueryErrors, 0, len(errs))
+	for _, e := range errs {
+		var code comparables.QueryErrorCode
+		switch e.Code {
+		case workertypes.SummaryQueryErrorCodeSavedSearchNotFound:
+			code = comparables.ErrorCodeSavedSearchNotFound
+		case workertypes.SummaryQueryErrorCodeHotlistNotFound:
+			code = comparables.ErrorCodeHotlistNotFound
+		case workertypes.SummaryQueryErrorCodeSavedSearchCycleDetected:
+			code = comparables.ErrorCodeSavedSearchCycleDetected
+		case workertypes.SummaryQueryErrorCodeMaxDepthExceeded:
+			code = comparables.ErrorCodeSavedSearchMaxDepthExceeded
+		case workertypes.SummaryQueryErrorCodeQueryGrammar:
+			code = comparables.ErrorCodeQueryGrammar
+		case workertypes.SummaryQueryErrorCodeFeatureNotFound:
+			code = comparables.ErrorCodeFeatureNotFound
+		case workertypes.SummaryQueryErrorCodeInvalidQuery:
+			code = comparables.ErrorCodeInvalidQuery
+		case workertypes.SummaryQueryErrorCodeUnknown:
+			code = comparables.ErrorCodeUnknown
+		default:
+			code = comparables.ErrorCodeUnknown
+		}
+		qErrs = append(qErrs, comparables.QueryError{Code: code})
+	}
+
+	return qErrs
+}
+
+func mapComparablesToSummaryQueryErrors(errs []comparables.QueryError) []workertypes.SummaryQueryError {
+	workertypesErrs := make([]workertypes.SummaryQueryError, 0, len(errs))
+	for _, e := range errs {
+		var code workertypes.SummaryQueryErrorCode
+		switch e.Code {
+		case comparables.ErrorCodeSavedSearchNotFound:
+			code = workertypes.SummaryQueryErrorCodeSavedSearchNotFound
+		case comparables.ErrorCodeHotlistNotFound:
+			code = workertypes.SummaryQueryErrorCodeHotlistNotFound
+		case comparables.ErrorCodeSavedSearchCycleDetected:
+			code = workertypes.SummaryQueryErrorCodeSavedSearchCycleDetected
+		case comparables.ErrorCodeSavedSearchMaxDepthExceeded:
+			code = workertypes.SummaryQueryErrorCodeMaxDepthExceeded
+		case comparables.ErrorCodeQueryGrammar:
+			code = workertypes.SummaryQueryErrorCodeQueryGrammar
+		case comparables.ErrorCodeFeatureNotFound:
+			code = workertypes.SummaryQueryErrorCodeFeatureNotFound
+		case comparables.ErrorCodeInvalidQuery:
+			code = workertypes.SummaryQueryErrorCodeInvalidQuery
+		case comparables.ErrorCodeUnknown:
+			code = workertypes.SummaryQueryErrorCodeUnknown
+		default:
+			code = workertypes.SummaryQueryErrorCodeUnknown
+		}
+		workertypesErrs = append(workertypesErrs, workertypes.SummaryQueryError{Code: code})
+	}
+
+	return workertypesErrs
 }

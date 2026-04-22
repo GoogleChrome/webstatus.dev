@@ -68,11 +68,26 @@ func (e *EventProducerDiffer) GetFeature(
 		backendtypes.DefaultBrowsers())
 }
 
-func (e *EventProducerDiffer) FetchFeatures(ctx context.Context, query string) ([]backend.Feature, error) {
+func parseQuery(query string) (*searchtypes.SearchNode, []workertypes.SummaryQueryError) {
 	parser := searchtypes.FeaturesSearchQueryParser{}
 	node, err := parser.Parse(query)
 	if err != nil {
-		return nil, err
+		return nil, []workertypes.SummaryQueryError{
+			{Code: workertypes.SummaryQueryErrorCodeQueryGrammar},
+		}
+	}
+
+	return node, nil
+}
+
+func (e *EventProducerDiffer) FetchFeatures(ctx context.Context, query string) (
+	*workertypes.FetchFeaturesResult, error) {
+	node, qErrs := parseQuery(query)
+	if qErrs != nil {
+		return &workertypes.FetchFeaturesResult{
+			Features:  nil,
+			UserError: &workertypes.UserError{QueryErrors: qErrs},
+		}, nil
 	}
 	var features []backend.Feature
 
@@ -91,6 +106,16 @@ func (e *EventProducerDiffer) FetchFeatures(ctx context.Context, query string) (
 			backendtypes.DefaultBrowsers(),
 		)
 		if err != nil {
+			qErrs := interpretFetchFeaturesError(err)
+			if qErrs != nil {
+				return &workertypes.FetchFeaturesResult{
+					Features: nil,
+					UserError: &workertypes.UserError{
+						QueryErrors: qErrs,
+					},
+				}, nil
+			}
+
 			return nil, err
 		}
 		features = append(features, featurePage.Data...)
@@ -100,7 +125,35 @@ func (e *EventProducerDiffer) FetchFeatures(ctx context.Context, query string) (
 		pageToken = featurePage.Metadata.NextPageToken
 	}
 
-	return features, nil
+	return &workertypes.FetchFeaturesResult{Features: features, UserError: nil}, nil
+}
+
+// interpretFetchFeaturesError maps backend errors to workertypes.SummaryQueryError.
+func interpretFetchFeaturesError(err error) []workertypes.SummaryQueryError {
+	if err == nil {
+		return nil
+	}
+
+	if errors.Is(err, backendtypes.ErrSavedSearchNotFound) ||
+		errors.Is(err, backendtypes.ErrSavedSearchCycleDetected) ||
+		errors.Is(err, backendtypes.ErrSavedSearchMaxDepthExceeded) {
+		var compCode workertypes.SummaryQueryErrorCode
+		if errors.Is(err, backendtypes.ErrSavedSearchNotFound) {
+			compCode = workertypes.SummaryQueryErrorCodeSavedSearchNotFound
+		} else if errors.Is(err, backendtypes.ErrSavedSearchCycleDetected) {
+			compCode = workertypes.SummaryQueryErrorCodeSavedSearchCycleDetected
+		} else if errors.Is(err, backendtypes.ErrSavedSearchMaxDepthExceeded) {
+			compCode = workertypes.SummaryQueryErrorCodeMaxDepthExceeded
+		}
+
+		return []workertypes.SummaryQueryError{
+			{
+				Code: compCode,
+			},
+		}
+	}
+
+	return nil
 }
 
 type EventProducerSpannerClient interface {

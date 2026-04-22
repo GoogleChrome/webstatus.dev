@@ -1,0 +1,41 @@
+{
+  "blocks": [
+    {
+      "text": {
+        "emoji": true,
+        "text": "Weekly digest: My CSS Search",
+        "type": "plain_text"
+      },
+      "type": "header"
+    },
+    {
+      "text": {
+        "text": "Here is your update for the saved search *'My CSS Search'*. \n*Query failed.*",
+        "type": "mrkdwn"
+      },
+      "type": "section"
+    },
+    {
+      "type": "divider"
+    },
+    {
+      "text": {
+        "text": "⚠️ *Saved search not found*",
+        "type": "mrkdwn"
+      },
+      "type": "section"
+    },
+    {
+      "type": "divider"
+    },
+    {
+      "elements": [
+        {
+          "text": "You can \u003chttps://webstatus.dev/settings/subscriptions|unsubscribe\u003e on \u003chttps://webstatus.dev/settings/subscriptions|webstatus.dev\u003e",
+          "type": "mrkdwn"
+        }
+      ],
+      "type": "context"
+    }
+  ]
+}

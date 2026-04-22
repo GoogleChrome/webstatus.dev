@@ -46,7 +46,49 @@ import (
 //     3. Consider "Quiet Rollout": If your new field will be backfilled with "default/empty" values
 //     (like "Unavailable" or "Unknown") that users shouldn't be bothered about, add a check
 //     in the "Added" case to return no change for those specific values.
-func (w *FeatureDiffWorkflow) CalculateDiff(oldMap, newMap map[string]comparables.Feature) {
+func (w *FeatureDiffWorkflow) CalculateDiff(oldMap, newMap map[string]comparables.Feature,
+	errs comparables.QueryErrors, origin comparables.SnapshotOrigin) {
+	switch origin {
+	case comparables.OriginLive:
+		w.diff.SnapshotOrigin = OriginLive
+	case comparables.OriginFallbackPrevious:
+		w.diff.SnapshotOrigin = OriginFallbackPrevious
+	case comparables.OriginUnknown:
+		w.diff.SnapshotOrigin = OriginUnknown
+	default:
+		w.diff.SnapshotOrigin = OriginUnknown
+	}
+	qErrors := make(QueryErrors, 0, len(errs))
+	for _, e := range errs {
+		var v1Code QueryErrorCode
+		switch e.Code {
+		case comparables.ErrorCodeSavedSearchNotFound:
+			v1Code = ErrorCodeSavedSearchNotFound
+		case comparables.ErrorCodeHotlistNotFound:
+			v1Code = ErrorCodeHotlistNotFound
+		case comparables.ErrorCodeSavedSearchCycleDetected:
+			v1Code = ErrorCodeSavedSearchCycleDetected
+		case comparables.ErrorCodeSavedSearchMaxDepthExceeded:
+			v1Code = ErrorCodeSavedSearchMaxDepthExceeded
+		case comparables.ErrorCodeQueryGrammar:
+			v1Code = ErrorCodeQueryGrammar
+		case comparables.ErrorCodeFeatureNotFound:
+			v1Code = ErrorCodeFeatureNotFound
+		case comparables.ErrorCodeInvalidQuery:
+			v1Code = ErrorCodeInvalidQuery
+		case comparables.ErrorCodeUnknown:
+			v1Code = ErrorCodeUnknown
+		}
+		qErrors = append(qErrors, QueryError{
+			Code: v1Code,
+		})
+	}
+	w.diff.QueryErrors = qErrors
+
+	if len(errs) > 0 {
+		return
+	}
+
 	for id, newF := range newMap {
 		oldF, exists := oldMap[id]
 		if !exists {

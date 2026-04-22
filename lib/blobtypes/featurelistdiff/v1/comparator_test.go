@@ -15,6 +15,7 @@
 package v1
 
 import (
+	"slices"
 	"testing"
 	"time"
 
@@ -68,33 +69,41 @@ func TestCalculateDiff(t *testing.T) {
 		name         string
 		oldMap       map[string]comparables.Feature
 		newMap       map[string]comparables.Feature
+		errs         comparables.QueryErrors
 		wantAdded    int
 		wantRemoved  int
 		wantModified int
+		wantErrors   QueryErrors
 	}{
 		{
 			name:         "No Changes",
 			oldMap:       map[string]comparables.Feature{"1": newBaseFeature("1", "A", "limited")},
 			newMap:       map[string]comparables.Feature{"1": newBaseFeature("1", "A", "limited")},
+			errs:         nil,
 			wantAdded:    0,
 			wantRemoved:  0,
 			wantModified: 0,
+			wantErrors:   nil,
 		},
 		{
 			name:         "Addition",
 			oldMap:       map[string]comparables.Feature{},
 			newMap:       map[string]comparables.Feature{"2": newBaseFeature("2", "A", "limited")},
+			errs:         nil,
 			wantAdded:    1,
 			wantRemoved:  0,
 			wantModified: 0,
+			wantErrors:   nil,
 		},
 		{
 			name:         "Removal",
 			oldMap:       map[string]comparables.Feature{"1": newBaseFeature("1", "A", "limited")},
 			newMap:       map[string]comparables.Feature{},
+			errs:         nil,
 			wantAdded:    0,
 			wantRemoved:  1,
 			wantModified: 0,
+			wantErrors:   nil,
 		},
 		{
 			name: "Modification",
@@ -104,16 +113,36 @@ func TestCalculateDiff(t *testing.T) {
 			newMap: map[string]comparables.Feature{
 				"1": newBaseFeature("1", "A", "widely"),
 			},
+			errs:         nil,
 			wantAdded:    0,
 			wantRemoved:  0,
 			wantModified: 1,
+			wantErrors:   nil,
+		},
+		{
+			name:   "Query Error - Saved Search Not Found",
+			oldMap: map[string]comparables.Feature{"1": newBaseFeature("1", "A", "limited")},
+			newMap: map[string]comparables.Feature{"1": newBaseFeature("1", "A", "widely")}, // Should be ignored!
+			errs: comparables.QueryErrors{
+				{
+					Code: comparables.ErrorCodeSavedSearchNotFound,
+				},
+			},
+			wantAdded:    0,
+			wantRemoved:  0,
+			wantModified: 0, // Feature diffing should be skipped!
+			wantErrors: QueryErrors{
+				{
+					Code: ErrorCodeSavedSearchNotFound,
+				},
+			},
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			w := NewFeatureDiffWorkflow(nil, nil)
-			w.CalculateDiff(tc.oldMap, tc.newMap)
+			w.CalculateDiff(tc.oldMap, tc.newMap, tc.errs, comparables.OriginLive)
 			diff := w.diff
 			if len(diff.Added) != tc.wantAdded {
 				t.Errorf("Added count: got %d, want %d", len(diff.Added), tc.wantAdded)
@@ -123,6 +152,13 @@ func TestCalculateDiff(t *testing.T) {
 			}
 			if len(diff.Modified) != tc.wantModified {
 				t.Errorf("Modified count: got %d, want %d", len(diff.Modified), tc.wantModified)
+			}
+
+			gotErrors := w.diff.QueryErrors
+			if len(gotErrors) != len(tc.wantErrors) {
+				t.Errorf("QueryErrors count mismatch: got %d, want %d", len(gotErrors), len(tc.wantErrors))
+			} else if !slices.Equal(gotErrors, tc.wantErrors) {
+				t.Errorf("QueryErrors mismatch: got %v, want %v", gotErrors, tc.wantErrors)
 			}
 		})
 	}

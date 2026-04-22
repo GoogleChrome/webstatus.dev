@@ -644,11 +644,16 @@ func TestEventProducerDiffer_FetchFeatures(t *testing.T) {
 
 	// A simple query that parses successfully
 	query := "name:foo"
-	features, err := adapter.FetchFeatures(context.Background(), query)
+	result, err := adapter.FetchFeatures(context.Background(), query)
 	if err != nil {
 		t.Fatalf("FetchFeatures() unexpected error: %v", err)
 	}
 
+	if result.UserError != nil {
+		t.Fatalf("FetchFeatures() unexpected user error: %v", result.UserError)
+	}
+
+	features := result.Features
 	if len(features) != 2 {
 		t.Errorf("Expected 2 features (across 2 pages), got %d", len(features))
 	}

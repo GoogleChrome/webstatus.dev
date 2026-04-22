@@ -98,11 +98,13 @@ func createTestSummary(hasChanges bool) workertypes.EventSummary {
 	}
 
 	return workertypes.EventSummary{
-		SchemaVersion: "v1",
-		Text:          "Test Summary",
-		Categories:    categories,
-		Truncated:     false,
-		Highlights:    nil,
+		SchemaVersion:  "v1",
+		SnapshotOrigin: workertypes.OriginLive,
+		Text:           "Test Summary",
+		Categories:     categories,
+		Truncated:      false,
+		QueryErrors:    nil,
+		Highlights:     nil,
 	}
 }
 

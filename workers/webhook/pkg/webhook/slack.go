@@ -87,6 +87,7 @@ func (s *slackSender) Send(ctx context.Context) error {
 			query:                     query,
 			resultsURL:                resultsURL,
 			summary:                   summary,
+			queryErrors:               nil,
 			baselineNewlyChanges:      nil,
 			baselineWidelyChanges:     nil,
 			baselineRegressionChanges: nil,
@@ -144,6 +145,7 @@ type slackPayloadBuilder struct {
 	query           string
 	resultsURL      string
 	summary         workertypes.EventSummary
+	queryErrors     []workertypes.SummaryQueryError
 
 	baselineNewlyChanges      []workertypes.SummaryHighlight
 	baselineWidelyChanges     []workertypes.SummaryHighlight
@@ -168,6 +170,7 @@ type browserChangeData struct {
 
 func (b *slackPayloadBuilder) VisitV1(summary workertypes.EventSummary) error {
 	b.summary = summary
+	b.queryErrors = summary.QueryErrors
 
 	filtered := workertypes.FilterHighlights(summary.Highlights, b.triggers)
 	if len(filtered) != 0 {
@@ -244,6 +247,7 @@ func (b *slackPayloadBuilder) buildPayload(searchName string) SlackPayload {
 	blocks = append(blocks, sectionBlock(introText))
 	blocks = append(blocks, dividerBlock())
 
+	blocks = b.appendQueryErrors(blocks)
 	blocks = b.appendBaselineChanges(blocks)
 	blocks = b.appendRegressions(blocks)
 	blocks = b.appendBrowserChanges(blocks)
@@ -263,6 +267,36 @@ func (b *slackPayloadBuilder) buildPayload(searchName string) SlackPayload {
 		Text:   "",
 		Blocks: blocks,
 	}
+}
+
+func (b *slackPayloadBuilder) appendQueryErrors(blocks []any) []any {
+	if len(b.queryErrors) > 0 {
+		for _, err := range b.queryErrors {
+			var msg string
+			switch err.Code {
+			case workertypes.SummaryQueryErrorCodeFeatureNotFound:
+				msg = "Feature not found"
+			case workertypes.SummaryQueryErrorCodeInvalidQuery:
+				msg = "Invalid query"
+			case workertypes.SummaryQueryErrorCodeSavedSearchNotFound:
+				msg = "Saved search not found"
+			case workertypes.SummaryQueryErrorCodeHotlistNotFound:
+				msg = "Hotlist not found"
+			case workertypes.SummaryQueryErrorCodeSavedSearchCycleDetected:
+				msg = "Saved search cycle detected"
+			case workertypes.SummaryQueryErrorCodeMaxDepthExceeded:
+				msg = "Saved search max depth exceeded"
+			case workertypes.SummaryQueryErrorCodeQueryGrammar:
+				msg = "Invalid query grammar"
+			case workertypes.SummaryQueryErrorCodeUnknown:
+				msg = "Unknown query error"
+			}
+			blocks = append(blocks, sectionBlock("⚠️ *"+msg+"*"))
+		}
+		blocks = append(blocks, dividerBlock())
+	}
+
+	return blocks
 }
 
 func (b *slackPayloadBuilder) appendBaselineChanges(blocks []any) []any {

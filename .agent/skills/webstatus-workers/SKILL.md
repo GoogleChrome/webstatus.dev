@@ -23,6 +23,16 @@ Workers must use the shared structs in [lib/workertypes/types.go](../../lib/work
 - **Feature Differ "Added" Semantics**: Within a `FeatureDiff`, the `Added` array represents features that _newly matched_ the search query since the last run. It does NOT mean the feature just entered the web platform. **Do not attempt to calculate baseline or status transitions against a "zero state" for features in the `Added` array**, as this falsely reports them as "becoming" newly/widely available when they merely entered the search results.
 - **Browser Implementation Grouping**: When formatting browser data for consumption (like combining Chrome Desktop and Chrome Android into a single row), the two implementations can ONLY be grouped if their entire transition state is identical. You must verify that `From.Status`, `To.Status`, `To.Version`, and `To.Date` perfectly match before combining them.
 
+## Error Handling and Serialization Patterns
+
+- **Structured Errors for Future-Proofing**: When storing errors in shared structures like `EventSummary`, use a custom struct instead of a simple slice of strings, even if it has only one field initially. This prevents breaking serialization when adding fields in the future.
+- **Enums for Rendering Decisions**: Use enum codes in shared summary structures instead of full human-readable messages. This leaves the decision of how to render the error to the specific renderer (email, Slack, etc.) and avoids hardcoding presentation logic in the pipeline source.
+- **Documenting Dropped Fields**: Always add comments to explain why a field is omitted (e.g., dropping `Message` in favor of `Code` enum) to preserve design intent for future maintainers.
+- **Leaf Package Pattern for Circular Dependencies**: Use a leaf package (like `lib/backendtypes`) to house shared simple types and error codes to break cyclic dependencies between generic orchestrators and versioned data handlers.
+- **Schema Isolation**: Workers handling versioned state blobs (like `v1.FeatureDiffSnapshot`) must use the types and enums defined within that specific schema's package (e.g., `v1.QueryErrorCode`) rather than importing internal `backendtypes`. This ensures the worker pipeline remains fully insulated from backend internal changes.
+- **Orchestrator Data Ownership**: To prevent leaking translation logic into isolated schema interfaces (e.g. adding getters for errors), the orchestrator should hold and compare the data directly if it already possesses it (e.g. in `executionData`).
+- **Multi-Layer Enum Strategy for Serialization Safety**: When definitions of query error codes seem to be duplicated across different packages (e.g., `lib/workertypes/comparables`, `lib/workertypes`, and storage `blobtypes/v1`), understand that this is an intentional application of the Multi-Layer Enum Strategy. This ensures service boundaries are respected and we decouple internal pipeline logic from the external storage schema. We use exhaustive switch statements (enforced by the linter) to map between these layers, ensuring that adding a new error code forces updates across all layers without silent failures or brittle type casting.
+
 ## Local Development
 
 - The workers run locally via Skaffold and connect to local emulators for Spanner (`spanner:9010`) and Pub/Sub (`pubsub:8060`).

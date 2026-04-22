@@ -36,10 +36,6 @@ type mockReconcileClient struct {
 	errors map[string]error
 }
 
-func (m *mockReconcileClient) FetchFeatures(_ context.Context, _ string) ([]backend.Feature, error) {
-	return nil, nil // Not used in reconciler tests
-}
-
 func (m *mockReconcileClient) GetFeature(
 	_ context.Context,
 	featureID string,
@@ -68,14 +64,16 @@ func TestReconcileHistory(t *testing.T) {
 		{
 			name: "Scenario 1: Feature Moved (Rename) - Matching",
 			initialDiff: &FeatureDiff{
-				Removed: []FeatureRemoved{{ID: "old-id", Name: "Old Name", Reason: ReasonUnmatched, Diff: nil}},
-				Deleted: nil,
+				SnapshotOrigin: OriginLive,
+				Removed:        []FeatureRemoved{{ID: "old-id", Name: "Old Name", Reason: ReasonUnmatched, Diff: nil}},
+				Deleted:        nil,
 				Added: []FeatureAdded{{ID: "new-id", Name: "New Name", Reason: ReasonNewMatch, Docs: nil,
 					QueryMatch: QueryMatchMatch}},
 				QueryChanged: false,
 				Modified:     nil,
 				Moves:        nil,
 				Splits:       nil,
+				QueryErrors:  nil,
 			},
 			oldState: map[string]comparables.Feature{
 				"old-id": newBaseFeature("old-id", "Old Name", "limited"),
@@ -90,8 +88,9 @@ func TestReconcileHistory(t *testing.T) {
 			},
 			mockErrors: nil,
 			expectedDiff: &FeatureDiff{
-				Removed: nil,
-				Added:   nil,
+				SnapshotOrigin: OriginLive,
+				Removed:        nil,
+				Added:          nil,
 				Moves: []FeatureMoved{
 					{
 						FromID:     "old-id",
@@ -105,12 +104,14 @@ func TestReconcileHistory(t *testing.T) {
 				Modified:     nil,
 				Splits:       nil,
 				Deleted:      nil,
+				QueryErrors:  nil,
 			},
 			wantErr: false,
 		},
 		{
 			name: "Scenario 2: Feature Split (Full) - All Matching",
 			initialDiff: &FeatureDiff{
+				SnapshotOrigin: OriginLive,
 				Removed: []FeatureRemoved{{ID: "monolith", Name: "Monolith Feature", Reason: ReasonUnmatched,
 					Diff: nil}},
 				Added: []FeatureAdded{
@@ -122,6 +123,7 @@ func TestReconcileHistory(t *testing.T) {
 				Moves:        nil,
 				Splits:       nil,
 				Deleted:      nil,
+				QueryErrors:  nil,
 			},
 			oldState: nil,
 			newState: map[string]comparables.Feature{
@@ -140,8 +142,9 @@ func TestReconcileHistory(t *testing.T) {
 			},
 			mockErrors: nil,
 			expectedDiff: &FeatureDiff{
-				Removed: nil,
-				Added:   nil,
+				SnapshotOrigin: OriginLive,
+				Removed:        nil,
+				Added:          nil,
 				Splits: []FeatureSplit{
 					{
 						FromID:   "monolith",
@@ -168,12 +171,14 @@ func TestReconcileHistory(t *testing.T) {
 				Modified:     nil,
 				Moves:        nil,
 				Deleted:      nil,
+				QueryErrors:  nil,
 			},
 			wantErr: false,
 		},
 		{
 			name: "Scenario 3: Feature Split - Partial Matching",
 			initialDiff: &FeatureDiff{
+				SnapshotOrigin: OriginLive,
 				Removed: []FeatureRemoved{{ID: "monolith", Name: "Monolith Feature", Reason: ReasonUnmatched,
 					Diff: nil}},
 				Added: []FeatureAdded{
@@ -184,6 +189,7 @@ func TestReconcileHistory(t *testing.T) {
 				Moves:        nil,
 				Splits:       nil,
 				Deleted:      nil,
+				QueryErrors:  nil,
 			},
 			oldState: nil,
 			newState: map[string]comparables.Feature{
@@ -216,8 +222,9 @@ func TestReconcileHistory(t *testing.T) {
 			},
 			mockErrors: nil,
 			expectedDiff: &FeatureDiff{
-				Removed: nil,
-				Added:   nil,
+				SnapshotOrigin: OriginLive,
+				Removed:        nil,
+				Added:          nil,
 				Splits: []FeatureSplit{
 					{
 						FromID:   "monolith",
@@ -234,12 +241,14 @@ func TestReconcileHistory(t *testing.T) {
 				Modified:     nil,
 				Moves:        nil,
 				Deleted:      nil,
+				QueryErrors:  nil,
 			},
 			wantErr: false,
 		},
 		{
 			name: "Scenario 4: Regular Removal (Unmatched with Diff)",
 			initialDiff: &FeatureDiff{
+				SnapshotOrigin: OriginLive,
 				Removed: []FeatureRemoved{{ID: "removed-id", Name: "Removed Feature", Reason: ReasonUnmatched,
 					Diff: nil}},
 				Added:        nil,
@@ -248,6 +257,7 @@ func TestReconcileHistory(t *testing.T) {
 				Moves:        nil,
 				Splits:       nil,
 				Deleted:      nil,
+				QueryErrors:  nil,
 			},
 			oldState: map[string]comparables.Feature{
 				"removed-id": newBaseFeature("removed-id", "Removed Feature", "limited"),
@@ -276,6 +286,7 @@ func TestReconcileHistory(t *testing.T) {
 			},
 			mockErrors: nil,
 			expectedDiff: &FeatureDiff{
+				SnapshotOrigin: OriginLive,
 				// Remains in Removed list
 				Removed: []FeatureRemoved{{ID: "removed-id", Name: "Removed Feature", Reason: ReasonUnmatched,
 					Diff: &FeatureModified{
@@ -304,12 +315,14 @@ func TestReconcileHistory(t *testing.T) {
 				Moves:        nil,
 				Splits:       nil,
 				Deleted:      nil,
+				QueryErrors:  nil,
 			},
 			wantErr: false,
 		},
 		{
 			name: "Scenario 5: Hard Delete (EntityDoesNotExist)",
 			initialDiff: &FeatureDiff{
+				SnapshotOrigin: OriginLive,
 				Removed: []FeatureRemoved{{ID: "deleted-id", Name: "Deleted Feature",
 					Reason: ReasonUnmatched, Diff: nil}},
 				Deleted:      nil,
@@ -318,6 +331,7 @@ func TestReconcileHistory(t *testing.T) {
 				Modified:     nil,
 				Moves:        nil,
 				Splits:       nil,
+				QueryErrors:  nil,
 			},
 			oldState: map[string]comparables.Feature{
 				"deleted-id": newBaseFeature("deleted-id", "Deleted Feature", "limited"),
@@ -328,6 +342,7 @@ func TestReconcileHistory(t *testing.T) {
 				"deleted-id": backendtypes.ErrEntityDoesNotExist,
 			},
 			expectedDiff: &FeatureDiff{
+				SnapshotOrigin: OriginLive,
 				// Should be moved to Deleted list
 				Removed:      nil,
 				Deleted:      []FeatureDeleted{{ID: "deleted-id", Name: "Deleted Feature", Reason: ReasonDeleted}},
@@ -336,13 +351,15 @@ func TestReconcileHistory(t *testing.T) {
 				Modified:     nil,
 				Moves:        nil,
 				Splits:       nil,
+				QueryErrors:  nil,
 			},
 			wantErr: false,
 		},
 		{
 			name: "Scenario 6: Move Destination Out of Scope",
 			initialDiff: &FeatureDiff{
-				Removed: []FeatureRemoved{{ID: "old-id", Name: "Old Name", Reason: ReasonUnmatched, Diff: nil}},
+				SnapshotOrigin: OriginLive,
+				Removed:        []FeatureRemoved{{ID: "old-id", Name: "Old Name", Reason: ReasonUnmatched, Diff: nil}},
 				Added: []FeatureAdded{{ID: "unrelated-id", Name: "Unrelated", Reason: ReasonNewMatch, Docs: nil,
 					QueryMatch: QueryMatchMatch}},
 				QueryChanged: false,
@@ -350,6 +367,7 @@ func TestReconcileHistory(t *testing.T) {
 				Moves:        nil,
 				Splits:       nil,
 				Deleted:      nil,
+				QueryErrors:  nil,
 			},
 			oldState: nil,
 			newState: map[string]comparables.Feature{
@@ -377,7 +395,8 @@ func TestReconcileHistory(t *testing.T) {
 			},
 			mockErrors: nil,
 			expectedDiff: &FeatureDiff{
-				Removed: nil,
+				SnapshotOrigin: OriginLive,
+				Removed:        nil,
 				Added: []FeatureAdded{{ID: "unrelated-id", Name: "Unrelated", Reason: ReasonNewMatch, Docs: nil,
 					QueryMatch: QueryMatchMatch}},
 				Moves: []FeatureMoved{
@@ -393,12 +412,14 @@ func TestReconcileHistory(t *testing.T) {
 				Modified:     nil,
 				Splits:       nil,
 				Deleted:      nil,
+				QueryErrors:  nil,
 			},
 			wantErr: false,
 		},
 		{
 			name: "Scenario 7: DB Error",
 			initialDiff: &FeatureDiff{
+				SnapshotOrigin: OriginLive,
 				Removed: []FeatureRemoved{{ID: "error-id", Name: "Error Feature", Reason: ReasonUnmatched,
 					Diff: nil}},
 				Added:        nil,
@@ -407,6 +428,7 @@ func TestReconcileHistory(t *testing.T) {
 				Moves:        nil,
 				Splits:       nil,
 				Deleted:      nil,
+				QueryErrors:  nil,
 			},
 			oldState:    nil,
 			newState:    nil,
@@ -420,6 +442,7 @@ func TestReconcileHistory(t *testing.T) {
 		{
 			name: "Scenario 8: Split Destination Completely Out of Scope",
 			initialDiff: &FeatureDiff{
+				SnapshotOrigin: OriginLive,
 				Removed: []FeatureRemoved{{ID: "monolith", Name: "Monolith Feature", Reason: ReasonUnmatched,
 					Diff: nil}},
 				Added: []FeatureAdded{{ID: "unrelated", Name: "Unrelated",
@@ -429,6 +452,7 @@ func TestReconcileHistory(t *testing.T) {
 				Moves:        nil,
 				Splits:       nil,
 				Deleted:      nil,
+				QueryErrors:  nil,
 			},
 			oldState: nil,
 			newState: map[string]comparables.Feature{
@@ -460,7 +484,8 @@ func TestReconcileHistory(t *testing.T) {
 			},
 			mockErrors: nil,
 			expectedDiff: &FeatureDiff{
-				Removed: nil,
+				SnapshotOrigin: OriginLive,
+				Removed:        nil,
 				Added: []FeatureAdded{{ID: "unrelated", Name: "Unrelated", Reason: ReasonNewMatch, Docs: nil,
 					QueryMatch: QueryMatchMatch}},
 				Splits: []FeatureSplit{
@@ -482,6 +507,7 @@ func TestReconcileHistory(t *testing.T) {
 				Modified:     nil,
 				Moves:        nil,
 				Deleted:      nil,
+				QueryErrors:  nil,
 			},
 			wantErr: false,
 		},
@@ -490,7 +516,8 @@ func TestReconcileHistory(t *testing.T) {
 			// A moved to B. C is just a new feature.
 			// Result should be Move(A->B) + Added(C). B should NOT be in Added list.
 			initialDiff: &FeatureDiff{
-				Removed: []FeatureRemoved{{ID: "old-id", Name: "Old Name", Reason: ReasonUnmatched, Diff: nil}},
+				SnapshotOrigin: OriginLive,
+				Removed:        []FeatureRemoved{{ID: "old-id", Name: "Old Name", Reason: ReasonUnmatched, Diff: nil}},
 				Added: []FeatureAdded{
 					{ID: "new-id", Name: "New Name", Reason: ReasonNewMatch, Docs: nil, QueryMatch: QueryMatchMatch},
 					{
@@ -506,6 +533,7 @@ func TestReconcileHistory(t *testing.T) {
 				Moves:        nil,
 				Splits:       nil,
 				Deleted:      nil,
+				QueryErrors:  nil,
 			},
 			oldState: nil,
 			newState: map[string]comparables.Feature{
@@ -519,7 +547,8 @@ func TestReconcileHistory(t *testing.T) {
 			},
 			mockErrors: nil,
 			expectedDiff: &FeatureDiff{
-				Removed: nil,
+				SnapshotOrigin: OriginLive,
+				Removed:        nil,
 				Added: []FeatureAdded{
 					{
 						ID:         "extra-id",
@@ -540,14 +569,16 @@ func TestReconcileHistory(t *testing.T) {
 						QueryMatch: QueryMatchMatch,
 					},
 				},
-				Splits:  nil,
-				Deleted: nil,
+				Splits:      nil,
+				Deleted:     nil,
+				QueryErrors: nil,
 			},
 			wantErr: false,
 		},
 		{
 			name: "Scenario 10: Mixed Removed and Deleted",
 			initialDiff: &FeatureDiff{
+				SnapshotOrigin: OriginLive,
 				Removed: []FeatureRemoved{
 					{ID: "deleted-id", Name: "Deleted Feature", Reason: ReasonUnmatched, Diff: nil},
 					{ID: "removed-id", Name: "Removed Feature", Reason: ReasonUnmatched, Diff: nil},
@@ -558,6 +589,7 @@ func TestReconcileHistory(t *testing.T) {
 				Moves:        nil,
 				Splits:       nil,
 				Deleted:      nil,
+				QueryErrors:  nil,
 			},
 			oldState: map[string]comparables.Feature{
 				"removed-id": newBaseFeature("removed-id", "Removed Feature", "limited"),
@@ -591,6 +623,7 @@ func TestReconcileHistory(t *testing.T) {
 				"deleted-id": backendtypes.ErrEntityDoesNotExist,
 			},
 			expectedDiff: &FeatureDiff{
+				SnapshotOrigin: OriginLive,
 				Removed: []FeatureRemoved{{ID: "removed-id", Name: "Removed Feature", Reason: ReasonUnmatched,
 					Diff: &FeatureModified{
 						ID:   "removed-id",
@@ -618,6 +651,7 @@ func TestReconcileHistory(t *testing.T) {
 				Modified:     nil,
 				Moves:        nil,
 				Splits:       nil,
+				QueryErrors:  nil,
 			},
 			wantErr: false,
 		},
@@ -626,13 +660,15 @@ func TestReconcileHistory(t *testing.T) {
 			// A moves to B. B was ALREADY in the list (so it's not in 'Added').
 			// Result should be Move(A->B) with QueryMatchMatch.
 			initialDiff: &FeatureDiff{
-				Removed:      []FeatureRemoved{{ID: "old-id", Name: "Old Name", Reason: ReasonUnmatched, Diff: nil}},
-				Added:        nil, // 'existing-id' is not Added because it was in oldState too
-				QueryChanged: false,
-				Modified:     nil,
-				Moves:        nil,
-				Splits:       nil,
-				Deleted:      nil,
+				SnapshotOrigin: OriginLive,
+				Removed:        []FeatureRemoved{{ID: "old-id", Name: "Old Name", Reason: ReasonUnmatched, Diff: nil}},
+				Added:          nil, // 'existing-id' is not Added because it was in oldState too
+				QueryChanged:   false,
+				Modified:       nil,
+				Moves:          nil,
+				Splits:         nil,
+				Deleted:        nil,
+				QueryErrors:    nil,
 			},
 			oldState: map[string]comparables.Feature{
 				"old-id":      newBaseFeature("old-id", "Old Name", "limited"),
@@ -648,8 +684,9 @@ func TestReconcileHistory(t *testing.T) {
 			},
 			mockErrors: nil,
 			expectedDiff: &FeatureDiff{
-				Removed: nil,
-				Added:   nil,
+				SnapshotOrigin: OriginLive,
+				Removed:        nil,
+				Added:          nil,
 				Moves: []FeatureMoved{
 					{
 						FromID:     "old-id",
@@ -663,6 +700,7 @@ func TestReconcileHistory(t *testing.T) {
 				Modified:     nil,
 				Splits:       nil,
 				Deleted:      nil,
+				QueryErrors:  nil,
 			},
 			wantErr: false,
 		},

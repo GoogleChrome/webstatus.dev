@@ -20,7 +20,6 @@ import (
 	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/backendtypes"
-	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 	"github.com/GoogleChrome/webstatus.dev/lib/workertypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/workertypes/comparables"
 )
@@ -33,12 +32,13 @@ var (
 
 // FeatureFetcher abstracts the external API.
 type FeatureFetcher interface {
-	FetchFeatures(ctx context.Context, query string) ([]backend.Feature, error)
+	FetchFeatures(ctx context.Context, query string) (*workertypes.FetchFeaturesResult, error)
 	GetFeature(ctx context.Context, featureID string) (*backendtypes.GetFeatureResult, error)
 }
 
 type StateCompareWorkflow[D any] interface {
-	CalculateDiff(oldSnapshot, newSnapshot map[string]comparables.Feature)
+	CalculateDiff(oldSnapshot, newSnapshot map[string]comparables.Feature, errs comparables.QueryErrors,
+		origin comparables.SnapshotOrigin)
 	ReconcileHistory(ctx context.Context, oldSnapshot, newSnapshot map[string]comparables.Feature) error
 	HasRemovedFeatures() bool
 	HasChanges() bool
@@ -64,12 +64,13 @@ type StateAdapter interface {
 		snapshot map[string]comparables.Feature,
 		id string,
 		signature string,
+		queryErrors []workertypes.SummaryQueryError,
 		isEmpty bool,
 		err error,
 	)
 
 	// Serialize creates a new state blob from the internal feature snapshot.
-	Serialize(id, searchID, eventID, query string, timestamp time.Time,
+	Serialize(id, searchID, eventID, query string, queryErrors []workertypes.SummaryQueryError, timestamp time.Time,
 		snapshot map[string]comparables.Feature) ([]byte, error)
 }
 

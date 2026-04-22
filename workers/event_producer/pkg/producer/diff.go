@@ -35,7 +35,7 @@ var ErrInvalidFormat = errors.New("invalid format")
 
 // FeatureFetcher abstracts the external API.
 type FeatureFetcher interface {
-	FetchFeatures(ctx context.Context, query string) ([]backend.Feature, error)
+	FetchFeatures(ctx context.Context, query string) (*workertypes.FetchFeaturesResult, error)
 	GetFeature(ctx context.Context, featureID string) (*backendtypes.GetFeatureResult, error)
 }
 
@@ -43,15 +43,15 @@ type migratorFunc func(bytes []byte) ([]byte, error)
 
 // stateConverter is a generic function type that defines how to convert a
 // versioned state snapshot of type S into the canonical diffing format.
-type stateConverter[S any] func(state *S) (map[string]comparables.Feature, string)
+type stateConverter[S any] func(state *S) (map[string]comparables.Feature, string, []workertypes.SummaryQueryError)
 
 // stateSerializerFunc defines how to create a versioned state snapshot `S`
 // from the canonical feature map and serialize it into raw bytes.
-type stateSerializerFunc[S any] func(id, searchID, eventID, query string,
+type stateSerializerFunc[S any] func(id, searchID, eventID, query string, queryErrors []workertypes.SummaryQueryError,
 	snapshot map[string]comparables.Feature, timestamp time.Time) ([]byte, error)
 
 // v1StateSerializerFunc implements StateSerializerFunc for v1.FeatureListSnapshot.
-func v1StateSerializerFunc(id, searchID, eventID, query string,
+func v1StateSerializerFunc(id, searchID, eventID, query string, queryErrors []workertypes.SummaryQueryError,
 	snapshot map[string]comparables.Feature, timestamp time.Time) ([]byte, error) {
 	// Convert the canonical comparables.Feature map back to v1.Feature map
 	// This is the inverse of convertV1SnapshotToComparable logic.
@@ -60,11 +60,38 @@ func v1StateSerializerFunc(id, searchID, eventID, query string,
 		v1Features[id] = convertComparableToV1Feature(comparableFeature)
 	}
 
+	v1QueryErrors := make([]featurelistv1.QueryError, 0, len(queryErrors))
+	for _, e := range queryErrors {
+		var code featurelistv1.QueryErrorCode
+		switch e.Code {
+		case workertypes.SummaryQueryErrorCodeSavedSearchNotFound:
+			code = featurelistv1.ErrorCodeSavedSearchNotFound
+		case workertypes.SummaryQueryErrorCodeHotlistNotFound:
+			code = featurelistv1.ErrorCodeHotlistNotFound
+		case workertypes.SummaryQueryErrorCodeSavedSearchCycleDetected:
+			code = featurelistv1.ErrorCodeSavedSearchCycleDetected
+		case workertypes.SummaryQueryErrorCodeMaxDepthExceeded:
+			code = featurelistv1.ErrorCodeSavedSearchMaxDepthExceeded
+		case workertypes.SummaryQueryErrorCodeQueryGrammar:
+			code = featurelistv1.ErrorCodeQueryGrammar
+		case workertypes.SummaryQueryErrorCodeFeatureNotFound:
+			code = featurelistv1.ErrorCodeFeatureNotFound
+		case workertypes.SummaryQueryErrorCodeInvalidQuery:
+			code = featurelistv1.ErrorCodeInvalidQuery
+		case workertypes.SummaryQueryErrorCodeUnknown:
+			code = featurelistv1.ErrorCodeUnknown
+		default:
+			code = featurelistv1.ErrorCodeUnknown
+		}
+		v1QueryErrors = append(v1QueryErrors, featurelistv1.QueryError{Code: code})
+	}
+
 	payload := featurelistv1.FeatureListSnapshot{
 		Metadata: featurelistv1.StateMetadata{
 			GeneratedAt:    timestamp,
 			SearchID:       searchID,
 			QuerySignature: query,
+			QueryErrors:    v1QueryErrors,
 			ID:             id,
 			EventID:        eventID,
 		},
@@ -103,33 +130,36 @@ type snapshot interface {
 
 // Load implements the differ.StateAdapter interface.
 func (a *genericStateAdapter[S]) Load(bytes []byte) (
-	map[string]comparables.Feature, string, string, bool, error,
+	map[string]comparables.Feature, string, string, []workertypes.SummaryQueryError, bool, error,
 ) {
 	if len(bytes) == 0 {
-		return nil, "", "", true, nil
+		return nil, "", "", nil, true, nil
 	}
 	migratedBytes, err := a.migrator(bytes)
 	if err != nil {
-		return nil, "", "", false, err
+		return nil, "", "", nil, false, err
 	}
 
 	// 1. Unmarshal into the generic type S.
 	// We declare a variable of type S, and Go's generics ensure it's the correct concrete struct.
 	var snapshot S
 	if err := json.Unmarshal(migratedBytes, &snapshot); err != nil {
-		return nil, "", "", false, errors.Join(err, ErrInvalidFormat)
+		return nil, "", "", nil, false, errors.Join(err, ErrInvalidFormat)
 	}
 
 	// 2. Use the injected converter function to perform the translation.
-	compMap, signature := a.converter(&snapshot)
+	compMap, signature, queryErrors := a.converter(&snapshot)
 
 	// 3. Return the canonical data.
-	return compMap, snapshot.ID(), signature, false, nil
+	return compMap, snapshot.ID(), signature, queryErrors, false, nil
 }
 
 func (a *genericStateAdapter[S]) Serialize(id, searchID, eventID, query string,
-	timestamp time.Time, snapshot map[string]comparables.Feature) ([]byte, error) {
-	return a.serializer(id, searchID, eventID, query, snapshot, timestamp)
+	queryErrors []workertypes.SummaryQueryError,
+	timestamp time.Time,
+	snapshot map[string]comparables.Feature,
+) ([]byte, error) {
+	return a.serializer(id, searchID, eventID, query, queryErrors, snapshot, timestamp)
 }
 
 // V1DiffSerializer is a concrete implementation for serializing V1 diffs.
@@ -162,13 +192,43 @@ func (s *V1DiffSerializer) Serialize(
 }
 
 // convertV1SnapshotToComparable matches the StateConverter[featurelistv1.FeatureListSnapshot] signature.
-func convertV1SnapshotToComparable(state *featurelistv1.FeatureListSnapshot) (map[string]comparables.Feature, string) {
+func convertV1SnapshotToComparable(
+	state *featurelistv1.FeatureListSnapshot,
+) (map[string]comparables.Feature, string, []workertypes.SummaryQueryError) {
 	comparableMap := make(map[string]comparables.Feature, len(state.Data.Features))
 	for id, v1Feature := range state.Data.Features {
 		comparableMap[id] = convertV1FeatureToComparable(v1Feature)
 	}
 
-	return comparableMap, state.Metadata.QuerySignature
+	var qErrs []workertypes.SummaryQueryError
+	if len(state.Metadata.QueryErrors) > 0 {
+		for _, e := range state.Metadata.QueryErrors {
+			var code workertypes.SummaryQueryErrorCode
+			switch e.Code {
+			case featurelistv1.ErrorCodeSavedSearchNotFound:
+				code = workertypes.SummaryQueryErrorCodeSavedSearchNotFound
+			case featurelistv1.ErrorCodeHotlistNotFound:
+				code = workertypes.SummaryQueryErrorCodeHotlistNotFound
+			case featurelistv1.ErrorCodeSavedSearchCycleDetected:
+				code = workertypes.SummaryQueryErrorCodeSavedSearchCycleDetected
+			case featurelistv1.ErrorCodeSavedSearchMaxDepthExceeded:
+				code = workertypes.SummaryQueryErrorCodeMaxDepthExceeded
+			case featurelistv1.ErrorCodeQueryGrammar:
+				code = workertypes.SummaryQueryErrorCodeQueryGrammar
+			case featurelistv1.ErrorCodeFeatureNotFound:
+				code = workertypes.SummaryQueryErrorCodeFeatureNotFound
+			case featurelistv1.ErrorCodeInvalidQuery:
+				code = workertypes.SummaryQueryErrorCodeInvalidQuery
+			case featurelistv1.ErrorCodeUnknown:
+				code = workertypes.SummaryQueryErrorCodeUnknown
+			default:
+				code = workertypes.SummaryQueryErrorCodeUnknown
+			}
+			qErrs = append(qErrs, workertypes.SummaryQueryError{Code: code})
+		}
+	}
+
+	return comparableMap, state.Metadata.QuerySignature, qErrs
 }
 
 func NewDiffer(client FeatureFetcher) *differ.FeatureDiffer[featurelistdiffv1.FeatureDiff] {

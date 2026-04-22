@@ -18,6 +18,7 @@ linters:
   enable:
     - containedctx
     - copyloopvar
+    - depguard
     - dogsled
     - dupl
     - errcheck
@@ -61,6 +62,27 @@ linters:
       check:
         - switch
         - map
+    depguard:
+      rules:
+        differ_restrictions:
+          files:
+            - '**/workers/event_producer/pkg/differ/**.go'
+          deny:
+            - pkg: 'github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters'
+              desc: 'The differ must be decoupled from specific backend adapters.'
+        worker_restrictions:
+          files:
+            - '**/workers/*/pkg/**.go'
+          deny:
+            - pkg: 'github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters'
+              desc: 'Worker core logic must be decoupled from specific backend adapters.'
+        workertypes_restrictions:
+          files:
+            - '**/lib/workertypes/**.go'
+          deny:
+            - pkg: 'github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters'
+              desc: 'workertypes must not depend on database adapters.'
+
   exclusions:
     generated: lax
     presets:

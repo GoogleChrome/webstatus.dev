@@ -193,8 +193,9 @@ func TestSlackSender_Send_Golden(t *testing.T) {
 	widelyDate := time.Date(2025, 12, 27, 0, 0, 0, 0, time.UTC)
 
 	summary := workertypes.EventSummary{
-		SchemaVersion: "v1",
-		Text:          "11 features changed",
+		SchemaVersion:  "v1",
+		SnapshotOrigin: workertypes.OriginLive,
+		Text:           "11 features changed",
 		Categories: workertypes.SummaryCategories{
 			Updated:         5,
 			Added:           2,
@@ -207,7 +208,8 @@ func TestSlackSender_Send_Golden(t *testing.T) {
 			UpdatedImpl:     0,
 			UpdatedRename:   0,
 		},
-		Truncated: false,
+		Truncated:   false,
+		QueryErrors: nil,
 		Highlights: []workertypes.SummaryHighlight{
 			{
 				Type:        workertypes.SummaryHighlightTypeChanged,
@@ -573,6 +575,119 @@ func TestSlackSender_Send_Golden(t *testing.T) {
 	}
 }
 
+func TestSlackSender_Send_QueryError_Golden(t *testing.T) {
+	summary := workertypes.EventSummary{
+		SchemaVersion:  "v1",
+		Text:           "Query failed",
+		SnapshotOrigin: workertypes.OriginFallbackPrevious,
+		Categories: workertypes.SummaryCategories{
+			QueryChanged:    0,
+			Added:           0,
+			Removed:         0,
+			Deleted:         0,
+			Moved:           0,
+			Split:           0,
+			Updated:         0,
+			UpdatedImpl:     0,
+			UpdatedRename:   0,
+			UpdatedBaseline: 0,
+		},
+		Truncated: false,
+		QueryErrors: []workertypes.SummaryQueryError{
+			{Code: workertypes.SummaryQueryErrorCodeSavedSearchNotFound},
+		},
+		Highlights: nil,
+	}
+	summaryBytes, _ := json.Marshal(summary)
+
+	job := workertypes.IncomingWebhookDeliveryJob{
+		WebhookEventID: "",
+		WebhookDeliveryJob: workertypes.WebhookDeliveryJob{
+			SubscriptionID: "",
+			WebhookType:    workertypes.WebhookTypeSlack,
+			ChannelID:      "",
+			Triggers:       nil,
+			SummaryRaw:     summaryBytes,
+			WebhookURL:     "https://hooks.slack.com/services/T00/B00/XXX",
+			Metadata: workertypes.DeliveryMetadata{
+				EventID:     "",
+				SearchID:    "",
+				SearchName:  "My CSS Search",
+				Query:       "group:css",
+				Frequency:   workertypes.FrequencyWeekly,
+				GeneratedAt: time.Time{},
+			},
+		},
+	}
+
+	var capturedBody []byte
+	mockHTTP := &mockHTTPClient{
+		doFunc: func(req *http.Request) (*http.Response, error) {
+			var err error
+			capturedBody, err = io.ReadAll(req.Body)
+
+			return &http.Response{
+				StatusCode:       http.StatusOK,
+				Body:             io.NopCloser(bytes.NewBufferString("ok")),
+				Status:           "",
+				Proto:            "",
+				ProtoMajor:       0,
+				ProtoMinor:       0,
+				Header:           nil,
+				ContentLength:    0,
+				TransferEncoding: nil,
+				Close:            false,
+				Uncompressed:     false,
+				Trailer:          nil,
+				Request:          nil,
+				TLS:              nil,
+			}, err
+		},
+	}
+
+	sender, err := newSlackSender("https://webstatus.dev", mockHTTP, job)
+	if err != nil {
+		t.Fatalf("failed to create sender: %v", err)
+	}
+
+	err = sender.Send(context.Background())
+	if err != nil {
+		t.Fatalf("Send failed: %v", err)
+	}
+
+	goldenFile := filepath.Join("testdata", "slack_payload_query_error.golden.json")
+
+	if *updateGolden {
+		var prettyJSON bytes.Buffer
+		if err := json.Indent(&prettyJSON, capturedBody, "", "  "); err != nil {
+			t.Fatalf("failed to indent JSON: %v", err)
+		}
+		if err := os.MkdirAll("testdata", 0755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(goldenFile, prettyJSON.Bytes(), 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	expected, err := os.ReadFile(goldenFile)
+	if err != nil {
+		t.Fatalf("failed to read golden file: %v", err)
+	}
+
+	var expectedPayload, actualPayload map[string]any
+	if err := json.Unmarshal(expected, &expectedPayload); err != nil {
+		t.Fatalf("failed to decode expected: %v", err)
+	}
+	if err := json.Unmarshal(capturedBody, &actualPayload); err != nil {
+		t.Fatalf("failed to decode actual: %v", err)
+	}
+
+	if diff := cmp.Diff(expectedPayload, actualPayload); diff != "" {
+		t.Errorf("Payload mismatch (-want +got):\n%s", diff)
+	}
+}
+
 //go:fix inline
 func TestSlackPayloadBuilder_VisitV1_Filter(t *testing.T) {
 	builder := &slackPayloadBuilder{
@@ -580,10 +695,12 @@ func TestSlackPayloadBuilder_VisitV1_Filter(t *testing.T) {
 		query:           "group:css",
 		resultsURL:      "https://webstatus.dev/features?q=group:css",
 		summary: workertypes.EventSummary{
-			SchemaVersion: "v1",
-			Text:          "",
-			Truncated:     false,
-			Highlights:    nil,
+			SchemaVersion:  "v1",
+			SnapshotOrigin: workertypes.OriginLive,
+			Text:           "",
+			Truncated:      false,
+			QueryErrors:    nil,
+			Highlights:     nil,
 			Categories: workertypes.SummaryCategories{
 				QueryChanged:    0,
 				Added:           0,
@@ -597,6 +714,7 @@ func TestSlackPayloadBuilder_VisitV1_Filter(t *testing.T) {
 				UpdatedBaseline: 0,
 			},
 		},
+		queryErrors:               nil,
 		baselineNewlyChanges:      nil,
 		baselineWidelyChanges:     nil,
 		baselineRegressionChanges: nil,
@@ -613,7 +731,8 @@ func TestSlackPayloadBuilder_VisitV1_Filter(t *testing.T) {
 	}
 
 	summary := workertypes.EventSummary{
-		SchemaVersion: "v1",
+		SchemaVersion:  "v1",
+		SnapshotOrigin: workertypes.OriginLive,
 		Categories: workertypes.SummaryCategories{
 			QueryChanged:    0,
 			Added:           0,
@@ -626,8 +745,9 @@ func TestSlackPayloadBuilder_VisitV1_Filter(t *testing.T) {
 			UpdatedRename:   0,
 			UpdatedBaseline: 0,
 		},
-		Text:      "Test summary",
-		Truncated: false,
+		Text:        "Test summary",
+		Truncated:   false,
+		QueryErrors: nil,
 		Highlights: []workertypes.SummaryHighlight{
 			{
 				Type:        workertypes.SummaryHighlightTypeChanged,
