@@ -267,19 +267,11 @@ func TestUpdateNotificationChannel_Restrictions(t *testing.T) {
 				updateNotificationChannelCfg: updateCfg,
 				t:                            t,
 			}
-			myServer := Server{
-				rssRenderer:             NewRSSRenderer(),
-				wptMetricsStorer:        mockStorer,
-				baseURL:                 getTestBaseURL(t),
-				metadataStorer:          nil,
-				operationResponseCaches: nil,
-				userGitHubClientFactory: nil,
-				eventPublisher:          nil,
-			}
+			myServer := setupTestServer(t, withCustomStorer(mockStorer))
 
 			assertTestServerRequest(
 				t,
-				&myServer,
+				myServer,
 				req,
 				expectedResponse,
 				withAuthMiddleware(mockAuthMiddleware(testUser)),

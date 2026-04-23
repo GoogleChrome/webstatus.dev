@@ -122,16 +122,12 @@ func TestGetFeatureMetadata(t *testing.T) {
 				t:                         t,
 			}
 			mockCacher := NewMockRawBytesDataCacher(t, tc.expectedCacheCalls, tc.expectedGetCalls)
-			myServer := Server{
-				rssRenderer:             NewRSSRenderer(),
-				wptMetricsStorer:        mockStorer,
-				metadataStorer:          mockMetadataStorer,
-				userGitHubClientFactory: nil,
-				operationResponseCaches: initOperationResponseCaches(mockCacher, getTestRouteCacheOptions()),
-				baseURL:                 getTestBaseURL(t),
-				eventPublisher:          nil,
-			}
-			assertTestServerRequest(t, &myServer, tc.request, tc.expectedResponse)
+			myServer := setupTestServer(t,
+				withCustomStorer(mockStorer),
+				withCustomMetadataStorer(mockMetadataStorer),
+				withCustomCaches(initOperationResponseCaches(mockCacher, getTestRouteCacheOptions())),
+			)
+			assertTestServerRequest(t, myServer, tc.request, tc.expectedResponse)
 			mockCacher.AssertExpectations()
 			// TODO: Start tracking call count and assert call count.
 		})

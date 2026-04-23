@@ -197,16 +197,11 @@ func TestListMissingOneImplementationFeatures(t *testing.T) {
 				t:                             t,
 			}
 			mockCacher := NewMockRawBytesDataCacher(t, nil, nil)
-			myServer := Server{
-				rssRenderer:             NewRSSRenderer(),
-				wptMetricsStorer:        mockStorer,
-				metadataStorer:          nil,
-				userGitHubClientFactory: nil,
-				operationResponseCaches: initOperationResponseCaches(mockCacher, getTestRouteCacheOptions()),
-				eventPublisher:          nil,
-				baseURL:                 getTestBaseURL(t),
-			}
-			assertTestServerRequest(t, &myServer, tc.request, tc.expectedResponse)
+			myServer := setupTestServer(t,
+				withCustomStorer(mockStorer),
+				withCustomCaches(initOperationResponseCaches(mockCacher, getTestRouteCacheOptions())),
+			)
+			assertTestServerRequest(t, myServer, tc.request, tc.expectedResponse)
 			assertMocksExpectations(t, tc.expectedCallCount, mockStorer.callCountListMissingOneImplFeatures,
 				"ListMissingOneImplementationFeatures", mockCacher)
 		})

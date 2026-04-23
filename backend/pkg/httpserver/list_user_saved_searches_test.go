@@ -181,16 +181,8 @@ func TestListUserSavedSearches(t *testing.T) {
 				listUserSavedSearchesCfg: tc.cfg,
 				t:                        t,
 			}
-			myServer := Server{
-				rssRenderer:             NewRSSRenderer(),
-				wptMetricsStorer:        mockStorer,
-				metadataStorer:          nil,
-				userGitHubClientFactory: nil,
-				operationResponseCaches: nil,
-				baseURL:                 getTestBaseURL(t),
-				eventPublisher:          nil,
-			}
-			assertTestServerRequest(t, &myServer, tc.request, tc.expectedResponse,
+			myServer := setupTestServer(t, withCustomStorer(mockStorer))
+			assertTestServerRequest(t, myServer, tc.request, tc.expectedResponse,
 				[]testServerOption{tc.authMiddlewareOption}...)
 			assertMocksExpectations(t, tc.expectedCallCount, mockStorer.callCountListUserSavedSearches,
 				"ListUserSavedSearches", nil)

@@ -217,15 +217,7 @@ func TestGetSubscriptionRSS(t *testing.T) {
 			mockStorer.listSavedSearchNotificationEventsCfg = tc.eventsCfg
 			mockStorer.t = t
 
-			myServer := Server{
-				rssRenderer:             NewRSSRenderer(),
-				wptMetricsStorer:        &mockStorer,
-				metadataStorer:          nil,
-				userGitHubClientFactory: nil,
-				eventPublisher:          nil,
-				operationResponseCaches: nil,
-				baseURL:                 getTestBaseURL(t),
-			}
+			myServer := setupTestServer(t, withCustomStorer(&mockStorer))
 
 			req := httptest.NewRequestWithContext(
 				context.Background(),
@@ -235,7 +227,7 @@ func TestGetSubscriptionRSS(t *testing.T) {
 			)
 
 			// Fix createOpenAPIServerServer call
-			srv := createOpenAPIServerServer("", &myServer, nil, noopMiddleware)
+			srv := createOpenAPIServerServer("", myServer, nil, noopMiddleware)
 
 			w := httptest.NewRecorder()
 
