@@ -123,6 +123,7 @@ func TestGetFeatureMetadata(t *testing.T) {
 			}
 			mockCacher := NewMockRawBytesDataCacher(t, tc.expectedCacheCalls, tc.expectedGetCalls)
 			myServer := Server{
+				rssRenderer:             NewRSSRenderer(),
 				wptMetricsStorer:        mockStorer,
 				metadataStorer:          mockMetadataStorer,
 				userGitHubClientFactory: nil,

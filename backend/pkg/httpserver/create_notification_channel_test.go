@@ -227,6 +227,7 @@ func TestCreateNotificationChannel(t *testing.T) {
 				t:                            t,
 			}
 			myServer := Server{
+				rssRenderer:             NewRSSRenderer(),
 				wptMetricsStorer:        mockStorer,
 				baseURL:                 getTestBaseURL(t),
 				metadataStorer:          nil,

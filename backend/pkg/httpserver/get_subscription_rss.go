@@ -17,17 +17,23 @@ package httpserver
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"encoding/xml"
 	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
-	"net/url"
 	"strconv"
 	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/backendtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
+	"github.com/GoogleChrome/webstatus.dev/lib/workertypes"
+)
+
+const (
+	fallbackRSSItemTitle = "WebStatus Update"
+	errorRSSItemTitle    = "Error loading update"
 )
 
 // RSS struct for marshaling.
@@ -56,8 +62,13 @@ type GUID struct {
 	IsPermaLink string `xml:"isPermaLink,attr"`
 }
 
+type CDATA struct {
+	Text string `xml:",cdata"`
+}
+
 type Item struct {
-	Description string `xml:"description"`
+	Title       string `xml:"title"`
+	Description CDATA  `xml:"description"`
 	GUID        GUID   `xml:"guid"`
 	PubDate     string `xml:"pubDate"`
 }
@@ -117,7 +128,11 @@ func (s *Server) GetSubscriptionRSS(
 		}, nil
 	}
 
-	channelLink := s.baseURL.String() + "/features?q=" + url.QueryEscape(search.Query)
+	channelLinkURL := s.baseURL.JoinPath("features")
+	q := channelLinkURL.Query()
+	q.Set("q", search.Query)
+	channelLinkURL.RawQuery = q.Encode()
+	channelLink := channelLinkURL.String()
 
 	rss := RSS{
 		XMLName: xml.Name{Local: "rss", Space: ""},
@@ -163,8 +178,48 @@ func (s *Server) GetSubscriptionRSS(
 	}
 
 	for _, e := range events {
+		var summary workertypes.EventSummary
+		var description string
+		var title string
+		if err := json.Unmarshal(e.Summary, &summary); err != nil {
+			slog.ErrorContext(ctx, "failed to unmarshal summary", "event_id", e.ID, "error", err)
+
+			errorHTML := fmt.Sprintf(
+				"<p>Could not load details for this update. Please contact support with ID: %s</p>",
+				e.ID,
+			)
+
+			rss.Channel.Items = append(rss.Channel.Items, Item{
+				Title:       errorRSSItemTitle,
+				Description: CDATA{Text: errorHTML},
+				GUID: GUID{
+					Value:       e.ID,
+					IsPermaLink: "false",
+				},
+				PubDate: e.Timestamp.Format(time.RFC1123Z),
+			})
+
+			continue
+		}
+
+		richHTML, err := s.rssRenderer.RenderRSSDescription(summary)
+		if err != nil {
+			slog.ErrorContext(ctx, "failed to render RSS description", "event_id", e.ID, "error", err)
+			description = summary.Text
+			if description == "" {
+				description = "Detailed summary unavailable"
+			}
+		} else {
+			description = richHTML
+		}
+		title = summary.Text
+		if title == "" {
+			title = fallbackRSSItemTitle
+		}
+
 		rss.Channel.Items = append(rss.Channel.Items, Item{
-			Description: string(e.Summary),
+			Title:       title,
+			Description: CDATA{Text: description},
 			GUID: GUID{
 				Value:       e.ID,
 				IsPermaLink: "false",

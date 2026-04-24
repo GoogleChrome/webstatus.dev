@@ -113,6 +113,7 @@ func TestDeleteSubscription(t *testing.T) {
 				t:                                t,
 			}
 			myServer := Server{
+				rssRenderer:             NewRSSRenderer(),
 				wptMetricsStorer:        mockStorer,
 				metadataStorer:          nil,
 				userGitHubClientFactory: nil,

@@ -82,10 +82,12 @@ func TestGetSubscriptionRSS(t *testing.T) {
 						SnapshotType:  string(backend.SubscriptionFrequencyImmediate),
 						Timestamp:     time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC),
 						EventType:     "IMMEDIATE_DIFF",
-						Summary:       []byte(`"summary"`),
-						Reasons:       nil,
-						BlobPath:      "",
-						DiffBlobPath:  "",
+						Summary: []byte(
+							`{"schemaVersion":"v1","text":"Sample update","highlights":[{"type":"Added","feature_name":"Feature A"}]}`,
+						),
+						Reasons:      nil,
+						BlobPath:     "",
+						DiffBlobPath: "",
 					},
 				},
 				outputNextPageToken: nil,
@@ -99,6 +101,11 @@ func TestGetSubscriptionRSS(t *testing.T) {
 				"<guid isPermaLink=\"false\">event-1</guid>",
 				"<pubDate>Thu, 01 Jan 2026 12:00:00 +0000</pubDate>",
 				"<link>http://localhost:8080/features?q=query</link>",
+				"Sample update",
+				"Feature A",
+				"<![CDATA[",
+				"<atom:link rel=\"self\" href=\"http://localhost:8080/v1/subscriptions/sub-id/rss\"></atom:link>",
+				"<h4>Features Added</h4>",
 			},
 		},
 		{
@@ -145,10 +152,12 @@ func TestGetSubscriptionRSS(t *testing.T) {
 						SnapshotType:  string(backend.SubscriptionFrequencyImmediate),
 						Timestamp:     time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC),
 						EventType:     "IMMEDIATE_DIFF",
-						Summary:       []byte(`"summary"`),
-						Reasons:       nil,
-						BlobPath:      "",
-						DiffBlobPath:  "",
+						Summary: []byte(
+							`{"schemaVersion":"v1","text":"Sample update","highlights":[{"type":"Added","feature_name":"Feature A"}]}`,
+						),
+						Reasons:      nil,
+						BlobPath:     "",
+						DiffBlobPath: "",
 					},
 				},
 				outputNextPageToken: &[]string{"next-token"}[0],
@@ -165,6 +174,11 @@ func TestGetSubscriptionRSS(t *testing.T) {
 				`<atom:link rel="next" ` +
 					`href="http://localhost:8080/v1/subscriptions/sub-id/rss?page_size=100&amp;page_token=next-token">` +
 					`</atom:link>`,
+				"Sample update",
+				"Feature A",
+				"<![CDATA[",
+				"<atom:link rel=\"self\" href=\"http://localhost:8080/v1/subscriptions/sub-id/rss\"></atom:link>",
+				"<h4>Features Added</h4>",
 			},
 		},
 		{
@@ -204,6 +218,7 @@ func TestGetSubscriptionRSS(t *testing.T) {
 			mockStorer.t = t
 
 			myServer := Server{
+				rssRenderer:             NewRSSRenderer(),
 				wptMetricsStorer:        &mockStorer,
 				metadataStorer:          nil,
 				userGitHubClientFactory: nil,

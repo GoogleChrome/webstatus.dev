@@ -72,9 +72,15 @@ func TestGetSavedSearch(t *testing.T) {
 				getSavedSearchCfg: tc.cfg,
 				t:                 t,
 			}
-			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: nil, userGitHubClientFactory: nil,
+			myServer := Server{
+				rssRenderer:             NewRSSRenderer(),
+				wptMetricsStorer:        mockStorer,
+				metadataStorer:          nil,
+				userGitHubClientFactory: nil,
 				eventPublisher:          nil,
-				operationResponseCaches: nil, baseURL: getTestBaseURL(t)}
+				operationResponseCaches: nil,
+				baseURL:                 getTestBaseURL(t),
+			}
 			assertTestServerRequest(t, &myServer, tc.request, tc.expectedResponse,
 				[]testServerOption{tc.authMiddlewareOption}...)
 		})
