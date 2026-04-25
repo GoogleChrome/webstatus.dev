@@ -121,16 +121,8 @@ func TestGetNotificationChannel(t *testing.T) {
 				getNotificationChannelCfg: tc.cfg,
 				t:                         t,
 			}
-			myServer := Server{
-				rssRenderer:             NewRSSRenderer(),
-				wptMetricsStorer:        mockStorer,
-				baseURL:                 getTestBaseURL(t),
-				metadataStorer:          nil,
-				operationResponseCaches: nil,
-				userGitHubClientFactory: nil,
-				eventPublisher:          nil,
-			}
-			assertTestServerRequest(t, &myServer, tc.request, tc.expectedResponse,
+			myServer := setupTestServer(t, withCustomStorer(mockStorer))
+			assertTestServerRequest(t, myServer, tc.request, tc.expectedResponse,
 				[]testServerOption{tc.authMiddlewareOption}...)
 			assertMocksExpectations(t, tc.expectedCallCount, mockStorer.callCountGetNotificationChannel,
 				"GetNotificationChannel", nil)

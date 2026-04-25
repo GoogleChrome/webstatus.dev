@@ -139,16 +139,8 @@ func TestGetSubscription(t *testing.T) {
 				getSavedSearchSubscriptionCfg: tc.cfg,
 				t:                             t,
 			}
-			myServer := Server{
-				rssRenderer:             NewRSSRenderer(),
-				wptMetricsStorer:        mockStorer,
-				metadataStorer:          nil,
-				userGitHubClientFactory: nil,
-				operationResponseCaches: nil,
-				eventPublisher:          nil,
-				baseURL:                 getTestBaseURL(t),
-			}
-			assertTestServerRequest(t, &myServer, tc.request, tc.expectedResponse, tc.authMiddlewareOption)
+			myServer := setupTestServer(t, withCustomStorer(mockStorer))
+			assertTestServerRequest(t, myServer, tc.request, tc.expectedResponse, tc.authMiddlewareOption)
 			assertMocksExpectations(t,
 				tc.expectedCallCount,
 				mockStorer.callCountGetSavedSearchSubscription,

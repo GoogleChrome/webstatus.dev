@@ -425,16 +425,8 @@ func TestUpdateSavedSearch(t *testing.T) {
 				callCountPublishSearchConfigurationChanged: 0,
 				publishSearchConfigurationChangedCfg:       tc.publishCfg,
 			}
-			myServer := Server{
-				rssRenderer:             NewRSSRenderer(),
-				wptMetricsStorer:        mockStorer,
-				metadataStorer:          nil,
-				userGitHubClientFactory: nil,
-				operationResponseCaches: nil,
-				baseURL:                 getTestBaseURL(t),
-				eventPublisher:          mockPublisher,
-			}
-			assertTestServerRequest(t, &myServer, tc.request, tc.expectedResponse,
+			myServer := setupTestServer(t, withCustomStorer(mockStorer), withCustomEventPublisher(mockPublisher))
+			assertTestServerRequest(t, myServer, tc.request, tc.expectedResponse,
 				[]testServerOption{tc.authMiddlewareOption}...)
 		})
 	}

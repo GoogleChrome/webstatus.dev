@@ -255,25 +255,20 @@ func TestPingUser(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			authMiddlewareOption := withAuthMiddleware(tc.authMiddleware)
-			myServer := Server{
-				rssRenderer: NewRSSRenderer(),
+			myServer := setupTestServer(t,
 				// nolint:exhaustruct
-				wptMetricsStorer: &MockWPTMetricsStorer{t: t, syncUserProfileInfoCfg: tc.syncUserProfileInfoCfg},
-				metadataStorer:   nil,
-				userGitHubClientFactory: setupMockGitHubUserClient(
+				withCustomStorer(&MockWPTMetricsStorer{t: t, syncUserProfileInfoCfg: tc.syncUserProfileInfoCfg}),
+				withCustomGitHubClientFactory(setupMockGitHubUserClient(
 					t,
 					"foo",
 					tc.getCurrentUserCfg,
 					tc.listEmailsCfg,
-				),
-				operationResponseCaches: nil,
-				baseURL:                 getTestBaseURL(t),
-				eventPublisher:          nil,
-			}
+				)),
+			)
 
 			req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/v1/users/me/ping", tc.body)
 			req.Header.Set("Content-Type", "application/json")
-			assertTestServerRequest(t, &myServer, req, tc.expectedResponse, authMiddlewareOption)
+			assertTestServerRequest(t, myServer, req, tc.expectedResponse, authMiddlewareOption)
 		})
 	}
 }
