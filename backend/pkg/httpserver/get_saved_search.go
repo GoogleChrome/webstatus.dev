@@ -30,13 +30,14 @@ import (
 func (s *Server) GetSavedSearch(
 	ctx context.Context, req backend.GetSavedSearchRequestObject) (
 	backend.GetSavedSearchResponseObject, error) {
-	// At this point, the user should be authenticated and in the context.
-	// If for some reason the user is not in the context, treat it as an unauthenticated user
-	var userID *string
 	user, found := httpmiddlewares.AuthenticatedUserFromContext(ctx)
-	if found {
-		userID = &user.ID
+	if !found {
+		return backend.GetSavedSearch404JSONResponse{
+			Code:    http.StatusNotFound,
+			Message: "saved search not found",
+		}, nil
 	}
+	userID := &user.ID
 
 	search, err := s.wptMetricsStorer.GetSavedSearch(ctx, req.SearchId, userID)
 	if err != nil {
