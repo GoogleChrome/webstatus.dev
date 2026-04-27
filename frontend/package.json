@@ -46,7 +46,7 @@
     "eslint": "^10.1.0",
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-lit": "^2.2.1",
-    "eslint-plugin-promise": "^7.2.1",
+    "eslint-plugin-promise": "^7.3.0",
     "lit-analyzer": "^2.0.2",
     "openapi-typescript-helpers": "^0.1.0",
     "playwright": "^1.59.1",
