@@ -167,18 +167,6 @@ export class FeaturePage extends BaseChartsPage {
           gap: var(--content-padding-half);
           align-items: center;
         }
-        .chip.increased {
-          background: var(--chip-background-increased);
-          color: var(--chip-color-increased);
-        }
-        .chip.unchanged {
-          background: var(--chip-background-unchanged);
-          color: var(--chip-color-unchanged);
-        }
-        .chip.decreased {
-          background: var(--chip-background-decreased);
-          color: var(--chip-color-decreased);
-        }
 
         baseline-date {
           font-size: 0.8em;
@@ -537,35 +525,6 @@ export class FeaturePage extends BaseChartsPage {
     `;
   }
 
-  renderDeltaChip(
-    browser: components['parameters']['browserPathParam'],
-  ): TemplateResult {
-    const runs = this.featureSupport.get(browser);
-    if (runs === undefined || runs.length === 0) {
-      return html` <span class="chip small unchanged"></span> `;
-    }
-
-    // Runs are retrieved in descending chronological order.
-    const mostRecentRun = runs[0];
-    const oldestRun = runs[runs.length - 1];
-    const mostRecentPercent =
-      mostRecentRun.test_pass_count! / mostRecentRun.total_tests_count!;
-    const oldestPercent =
-      oldestRun.test_pass_count! / oldestRun.total_tests_count!;
-    const delta = (mostRecentPercent - oldestPercent) * 100.0;
-    let deltaStr = Number(delta).toFixed(1) + '%';
-    let deltaClass = 'unchanged';
-    if (delta > 0) {
-      deltaStr = '+' + deltaStr;
-      deltaClass = 'increased';
-    } else if (delta < 0) {
-      deltaClass = 'decreased';
-    } else {
-      deltaClass = 'unchanged';
-    }
-    return html` <span class="chip small ${deltaClass}">${deltaStr}</span> `;
-  }
-
   renderBrowserImpl(
     browserImpl?: components['schemas']['BrowserImplementation'],
   ): TemplateResult {
@@ -591,7 +550,11 @@ export class FeaturePage extends BaseChartsPage {
     icon: string,
   ): TemplateResult {
     const scorePart = this.feature
-      ? renderBrowserQuality(this.feature, {search: ''}, {browser: browser})
+      ? renderBrowserQuality(
+          this.feature,
+          {search: ''},
+          {browser: browser, fallbackText: 'N/A'},
+        )
       : html`<sl-skeleton effect="sheen"></sl-skeleton>`;
     const browserImpl = this.feature?.browser_implementations?.[browser];
 
@@ -599,7 +562,7 @@ export class FeaturePage extends BaseChartsPage {
       <sl-card class="halign-stretch wptScore">
         <img height="32" src="/public/img/${icon}" class="icon" />
         <div>${BROWSER_ID_TO_LABEL[browser]}</div>
-        <div class="score">${scorePart} ${this.renderDeltaChip(browser)}</div>
+        <div class="score">${scorePart}</div>
         ${this.renderBrowserImpl(browserImpl)}
       </sl-card>
     `;
