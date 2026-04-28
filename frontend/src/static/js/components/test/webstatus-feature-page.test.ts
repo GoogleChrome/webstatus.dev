@@ -253,27 +253,25 @@ describe('webstatus-feature-page', () => {
       expect(host.textContent?.trim()).to.equal('');
     });
 
-    it('renders the developer signal button', async () => {
+    it('renders the developer signal link', async () => {
       const signal = {upvotes: 10, link: 'http://example.com'};
       const actual = element.renderDeveloperSignal(signal);
       render(actual, hostElement);
       const host = await fixture(hostElement);
       const tooltip = host.querySelector('sl-tooltip');
-      const button = host.querySelector('sl-button');
+      const link = host.querySelector('a');
       const icon = host?.querySelector('sl-icon');
 
       expect(tooltip).to.not.be.null;
-      expect(button).to.not.be.null;
+      expect(link).to.not.be.null;
       expect(icon).to.not.be.null;
 
       expect(tooltip?.getAttribute('content')).to.equal(
         '10 developer upvotes. Need this feature across browsers? Click this and upvote it on GitHub.',
       );
-      expect(button?.getAttribute('href')).to.equal('http://example.com');
-      expect(button?.getAttribute('aria-label')).to.equal(
-        '10 developer upvotes',
-      );
-      expect(button?.textContent?.trim()).to.equal('10');
+      expect(link?.getAttribute('href')).to.equal('http://example.com');
+      expect(link?.getAttribute('aria-label')).to.equal('10 developer upvotes');
+      expect(link?.textContent?.trim()).to.equal('10 Upvotes');
       expect(icon?.getAttribute('name')).to.equal('hand-thumbs-up');
     });
 
@@ -283,38 +281,36 @@ describe('webstatus-feature-page', () => {
       render(actual, hostElement);
       const host = await fixture(hostElement);
       const tooltip = host.querySelector('sl-tooltip');
-      const button = host.querySelector('sl-button');
+      const link = host.querySelector('a');
 
       expect(tooltip).to.not.be.null;
-      expect(button).to.not.be.null;
+      expect(link).to.not.be.null;
 
       expect(tooltip?.getAttribute('content')).to.equal(
         '0 developer upvotes. Need this feature across browsers? Click this and upvote it on GitHub.',
       );
-      expect(button?.getAttribute('aria-label')).to.equal(
-        '0 developer upvotes',
-      );
-      expect(button?.textContent?.trim()).to.equal('0');
+      expect(link?.getAttribute('aria-label')).to.equal('0 developer upvotes');
+      expect(link?.textContent?.trim()).to.equal('0 Upvotes');
     });
 
-    it('renders the developer signal button with compact number', async () => {
+    it('renders the developer signal link with compact number', async () => {
       const signal = {upvotes: 12345, link: 'http://example.com'};
       const actual = element.renderDeveloperSignal(signal);
       render(actual, hostElement);
       const host = await fixture(hostElement);
       const tooltip = host.querySelector('sl-tooltip');
-      const button = host.querySelector('sl-button');
+      const link = host.querySelector('a');
 
       expect(tooltip).to.not.be.null;
-      expect(button).to.not.be.null;
+      expect(link).to.not.be.null;
 
       expect(tooltip?.getAttribute('content')).to.equal(
         '12,345 developer upvotes. Need this feature across browsers? Click this and upvote it on GitHub.',
       );
-      expect(button?.getAttribute('aria-label')).to.equal(
+      expect(link?.getAttribute('aria-label')).to.equal(
         '12,345 developer upvotes',
       );
-      expect(button?.textContent?.trim()).to.equal('12.3K');
+      expect(link?.textContent?.trim()).to.equal('12.3K Upvotes');
     });
   });
   describe('renderDiscouragedNotice', () => {
