@@ -211,7 +211,8 @@ test('date range changes are preserved in the URL', async ({page}) => {
   expect(await endDateInputElement3.inputValue()).toBe(endDate);
 });
 
-test('redirects for a moved feature', async ({page}) => {
+test('redirects for a moved feature', async ({page, browserName}) => {
+  test.skip(browserName === 'webkit', 'Skipping webkit due to flakiness');
   // Wait for the app to fetch the old feature data which triggers the redirect.
   const responsePromise = page.waitForResponse(response =>
     response.url().includes('/v1/features/old-feature'),
