@@ -16,6 +16,7 @@
 
 import {LitElement, TemplateResult, css, html, nothing} from 'lit';
 import {customElement, property, query, state} from 'lit/decorators.js';
+import {openShareDialog} from './webstatus-saved-search-share-dialog.js';
 import {APIClient} from '../contexts/api-client-context.js';
 import {UserContext} from '../contexts/firebase-user-context.js';
 import {
@@ -207,24 +208,15 @@ export class WebstatusSavedSearchControls extends LitElement {
     savedSearch: UserSavedSearch,
   ): TemplateResult {
     const isOwner = savedSearch.permissions?.role === BookmarkOwnerRole;
-    const shareableUrl = `${this._getOrigin()}${this._formatOverviewPageUrl(this.location, {q: `saved:${savedSearch.id}`})}`;
     return html`
-      <sl-copy-button
-        value="${shareableUrl}"
-        copy-label="Copy saved search URL to clipboard"
-        success-label="Copied"
-        error-label="Whoops, your browser doesn't support this!"
-        ><sl-icon-button
-          slot="copy-icon"
-          name="share"
-          label="Copy"
-        ></sl-icon-button
-        ><sl-icon-button
-          slot="success-icon"
-          name="share-fill"
-          label="Copy Success"
-        ></sl-icon-button>
-      </sl-copy-button>
+      <sl-icon-button
+        name="share"
+        label="Share"
+        @click=${() => {
+          const shareableUrl = `${this._getOrigin()}${this._formatOverviewPageUrl(this.location, {q: `saved:${savedSearch.id}`})}`;
+          void openShareDialog(savedSearch, shareableUrl);
+        }}
+      ></sl-icon-button>
       ${this.renderBookmarkControl(savedSearch, isOwner)}
       ${isOwner
         ? html`

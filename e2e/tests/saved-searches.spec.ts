@@ -77,7 +77,7 @@ const saveButtonLocator = (page: Page) =>
     .getByTestId('saved-search-save-button')
     .getByRole('button', {name: 'Save'});
 const shareButtonLocator = (page: Page) =>
-  controlsLocator(page).getByLabel('Copy', {exact: true});
+  controlsLocator(page).getByLabel('Share', {exact: true});
 const bookmarkEmptyIconLocator = (page: Page) =>
   controlsLocator(page).getByRole('button', {name: 'Bookmark', exact: true});
 const bookmarkFilledIconLocator = (page: Page) =>
@@ -404,11 +404,19 @@ test.describe('Saved Searches on Overview Page', () => {
     // Click the share icon
     await shareButtonLocator(page).click();
 
+    // Wait for the share dialog to appear
+    const dialog = page.getByRole('dialog', {name: 'Share bookmark'});
+    await expect(dialog).toBeVisible();
+    console.log('Dialog HTML:', await dialog.innerHTML());
+
+    // Click the "Copy link" button inside the dialog
+    await page.getByTestId('copy-link-button').click();
+
     // Verify clipboard content
     const clipboardText = await page.evaluate(() =>
       navigator.clipboard.readText(),
     );
-    expectUrlsEqual(clipboardText, page.url());
+    expectUrlsEqual(clipboardText, `${page.url()}&subscribe=true`);
   });
 
   test('Edit dialog opens automatically with edit_saved_search=true URL parameter', async ({

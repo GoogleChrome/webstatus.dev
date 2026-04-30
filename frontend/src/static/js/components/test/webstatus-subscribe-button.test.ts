@@ -82,6 +82,21 @@ describe('webstatus-subscribe-button', () => {
     expect(dialog?.open).to.be.true;
   });
 
+  it('opens dialog automatically when autoOpen is true and user is logged in', async () => {
+    const el = await fixture<SubscribeButton>(html`
+      <webstatus-subscribe-button
+        .userContext=${mockUserContext}
+        .savedSearchId=${'test-id'}
+        .autoOpen=${true}
+      ></webstatus-subscribe-button>
+    `);
+    const dialog = el.shadowRoot?.querySelector<ManageSubscriptionsDialog>(
+      'webstatus-manage-subscriptions-dialog',
+    );
+    expect(dialog).to.exist;
+    expect(dialog?.open).to.be.true;
+  });
+
   it('calls toaster on successful save', async () => {
     const toasterSpy = sinon.spy();
     const el = await fixture<SubscribeButton>(html`

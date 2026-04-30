@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import {LitElement, html, TemplateResult} from 'lit';
+import {LitElement, html, TemplateResult, PropertyValueMap} from 'lit';
 import {customElement, property, state} from 'lit/decorators.js';
 import {consume} from '@lit/context';
 import {
@@ -45,8 +45,23 @@ export class SubscribeButton extends LitElement {
   @property({attribute: false})
   toaster = toast;
 
+  @property({type: Boolean})
+  autoOpen = false;
+
   @state()
   private _isSubscriptionDialogOpen = false;
+
+  protected updated(changedProperties: PropertyValueMap<this>): void {
+    super.updated(changedProperties);
+    if (
+      (changedProperties.has('autoOpen') ||
+        changedProperties.has('userContext')) &&
+      this.autoOpen &&
+      this.userContext
+    ) {
+      this._isSubscriptionDialogOpen = true;
+    }
+  }
 
   render(): TemplateResult {
     if (!this.userContext || !this.savedSearchId) {

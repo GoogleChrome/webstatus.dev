@@ -30,6 +30,7 @@ import './webstatus-overview-data-loader.js';
 import './webstatus-overview-filters.js';
 import './webstatus-overview-pagination.js';
 import './webstatus-subscribe-button.js';
+import './webstatus-login-prompt-dialog.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
 import {TaskTracker} from '../utils/task-tracker.js';
 import {ApiError} from '../api/errors.js';
@@ -55,6 +56,7 @@ import {
   formatOverviewPageUrl,
   getEditSavedSearch,
   getOrigin,
+  getSubscribeToSavedSearch,
   QueryStringOverrides,
   updatePageUrl,
 } from '../utils/urls.js';
@@ -244,7 +246,7 @@ export class WebstatusOverviewContent extends LitElement {
   _updatePageUrl: (
     pathname: string,
     location: {search: string},
-    overrides: {edit_saved_search?: boolean},
+    overrides: QueryStringOverrides,
   ) => void = updatePageUrl;
   _formatOverviewPageUrl: (
     location?: {search: string},
@@ -255,6 +257,7 @@ export class WebstatusOverviewContent extends LitElement {
     _changedProperties: PropertyValueMap<this>,
   ): Promise<void> {
     if (
+      this.location &&
       this._getEditSavedSearch(this.location) &&
       !this.savedSearchEditor.isOpen() &&
       this.savedSearch
@@ -265,6 +268,15 @@ export class WebstatusOverviewContent extends LitElement {
         this.savedSearch.query,
       );
       this._updatePageUrl('', this.location, {edit_saved_search: false});
+    }
+
+    if (
+      this.location &&
+      getSubscribeToSavedSearch(this.location) &&
+      this.userContext &&
+      this.savedSearch
+    ) {
+      this._updatePageUrl('', this.location, {subscribe: false});
     }
   }
 
@@ -279,6 +291,9 @@ export class WebstatusOverviewContent extends LitElement {
         ? savedSearch
         : undefined;
     const config = this.subscribeButtonConfig;
+    const shouldSubscribe = this.location
+      ? getSubscribeToSavedSearch(this.location)
+      : false;
 
     return html` <div class="main">
         <div class="hbox halign-items-space-between header-line">
@@ -287,6 +302,7 @@ export class WebstatusOverviewContent extends LitElement {
             ? html`<webstatus-subscribe-button
                 .savedSearchId=${config.id}
                 .searchTitle=${config.title}
+                .autoOpen=${shouldSubscribe}
               ></webstatus-subscribe-button>`
             : nothing}
         </div>
@@ -323,6 +339,14 @@ export class WebstatusOverviewContent extends LitElement {
         .userContext=${this.userContext!}
         .savedSearch=${userSavedSearch?.value}
         .location=${this.location}
-      ></webstatus-saved-search-editor>`;
+      ></webstatus-saved-search-editor>
+      <webstatus-login-prompt-dialog
+        .open=${this.location &&
+        getSubscribeToSavedSearch(this.location) &&
+        this.userContext === null}
+        .savedSearchName=${config?.title || 'this search'}
+        @prompt-close=${() =>
+          this._updatePageUrl('', this.location, {subscribe: false})}
+      ></webstatus-login-prompt-dialog>`;
   }
 }

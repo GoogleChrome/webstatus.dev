@@ -141,7 +141,9 @@ describe('WebstatusSavedSearchControls', () => {
   });
 
   it('does not render active search controls when no savedSearch is provided', () => {
-    const shareButton = element.shadowRoot!.querySelector('sl-copy-button');
+    const shareButton = element.shadowRoot!.querySelector(
+      'sl-icon-button[name="share"]',
+    );
     const bookmarkButton = element.shadowRoot!.querySelector(
       'sl-icon-button[name^="star"]',
     );
@@ -182,7 +184,9 @@ describe('WebstatusSavedSearchControls', () => {
       const saveButton = element.shadowRoot!.querySelector(
         'sl-icon-button[name="floppy"]',
       );
-      const shareButton = element.shadowRoot!.querySelector('sl-copy-button');
+      const shareButton = element.shadowRoot!.querySelector(
+        'sl-icon-button[name="share"]',
+      );
       const bookmarkButton = element.shadowRoot!.querySelector(
         'sl-icon-button[name="star"]',
       );
@@ -205,13 +209,33 @@ describe('WebstatusSavedSearchControls', () => {
       expect(deleteButton).to.not.exist;
     });
 
-    it('configures share button correctly', () => {
-      const copyButton = element.shadowRoot!.querySelector('sl-copy-button');
-      const expectedUrl = `http://localhost:8080/features?q=saved%3A${mockSavedSearchViewerNotBookmarked.id}`;
-      expect(copyButton).to.have.attribute('value', expectedUrl);
-      expect(formatOverviewPageUrlStub).to.have.been.calledWith(mockLocation, {
-        q: `saved:${mockSavedSearchViewerNotBookmarked.id}`,
-      });
+    it('opens modal when share button is clicked and renders QR code', async () => {
+      const shareButton = element.shadowRoot!.querySelector<SlIconButton>(
+        'sl-icon-button[name="share"]',
+      )!;
+      shareButton.click();
+      await element.updateComplete;
+
+      // Wait for dialog to appear in body.
+      await waitUntil(
+        () =>
+          document.body.querySelector('webstatus-saved-search-share-dialog') !==
+          null,
+      );
+
+      const shareDialog = document.body.querySelector(
+        'webstatus-saved-search-share-dialog',
+      )!;
+      expect(shareDialog).to.exist;
+
+      const dialog = shareDialog.shadowRoot!.querySelector('sl-dialog');
+      expect(dialog).to.exist;
+
+      const qrCode = dialog!.querySelector('sl-qr-code');
+      expect(qrCode).to.exist;
+
+      const copyButton = dialog!.querySelector('sl-button[variant="primary"]');
+      expect(copyButton).to.exist;
     });
 
     it('calls handleBookmarkSavedSearch to bookmark when bookmark button is clicked', async () => {
@@ -332,7 +356,9 @@ describe('WebstatusSavedSearchControls', () => {
       const saveButton = element.shadowRoot!.querySelector(
         'sl-icon-button[name="floppy"]',
       );
-      const shareButton = element.shadowRoot!.querySelector('sl-copy-button');
+      const shareButton = element.shadowRoot!.querySelector(
+        'sl-icon-button[name="share"]',
+      );
       const bookmarkButton = element.shadowRoot!.querySelector(
         'sl-icon-button[name="star"]',
       );
@@ -446,7 +472,9 @@ describe('WebstatusSavedSearchControls', () => {
       const saveButton = element.shadowRoot!.querySelector(
         'sl-icon-button[name="floppy"]',
       );
-      const shareButton = element.shadowRoot!.querySelector('sl-copy-button');
+      const shareButton = element.shadowRoot!.querySelector(
+        'sl-icon-button[name="share"]',
+      );
       const bookmarkButton = element.shadowRoot!.querySelector(
         'sl-icon-button[name="star"]',
       );
@@ -469,10 +497,13 @@ describe('WebstatusSavedSearchControls', () => {
       expect(deleteButton).to.exist;
     });
 
-    it('configures share button correctly for owner', () => {
-      const copyButton = element.shadowRoot!.querySelector('sl-copy-button');
-      const expectedUrl = `http://localhost:8080/features?q=saved%3A${mockSavedSearchOwner.id}`;
-      expect(copyButton).to.have.attribute('value', expectedUrl);
+    it('configures share button correctly for owner', async () => {
+      const shareButton = element.shadowRoot!.querySelector<SlIconButton>(
+        'sl-icon-button[name="share"]',
+      )!;
+      shareButton.click();
+      await element.updateComplete;
+
       expect(formatOverviewPageUrlStub).to.have.been.calledWith(mockLocation, {
         q: `saved:${mockSavedSearchOwner.id}`,
       });

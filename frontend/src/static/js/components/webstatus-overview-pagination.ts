@@ -208,8 +208,10 @@ export class WebstatusOverviewPagination extends LitElement {
       return html``;
     }
 
-    this.start = getPaginationStart(this.location);
-    this.pageSize = getPageSize(this.location);
+    this.start = this.location ? getPaginationStart(this.location) : 0;
+    this.pageSize = this.location
+      ? getPageSize(this.location)
+      : DEFAULT_ITEMS_PER_PAGE;
     const prevUrl = this.formatUrlForRelativeOffset(-this.pageSize);
     const nextUrl = this.formatUrlForRelativeOffset(this.pageSize);
 
