@@ -31,8 +31,6 @@ import './webstatus-feature-badge.js';
 import {formatDeveloperUpvotesMessages} from '../utils/format.js';
 import {VendorPositions} from '../utils/vendor-position.js';
 
-const MISSING_VALUE = html``;
-
 type CellRenderer = {
   (
     feature: components['schemas']['Feature'],
@@ -41,6 +39,7 @@ type CellRenderer = {
       browser?: components['parameters']['browserPathParam'];
       channel?: components['parameters']['channelPathParam'];
       platform?: string;
+      fallbackText?: string;
     },
   ): TemplateResult | typeof nothing;
 };
@@ -445,7 +444,7 @@ export const renderAvailablity: CellRenderer = (
 };
 
 function renderMissingPercentage(): TemplateResult {
-  return html`<span class="missing percent">${MISSING_VALUE}</span>`;
+  return html`<span class="missing percent"></span>`;
 }
 
 function renderPercentage(score?: number): TemplateResult {
@@ -462,14 +461,16 @@ function renderPercentage(score?: number): TemplateResult {
 export const renderBrowserQuality: CellRenderer = (
   feature,
   _routerLocation,
-  {browser},
+  {browser, fallbackText},
 ) => {
   const score: number | undefined = feature.wpt?.stable?.[browser!]?.score;
   let percentage = renderPercentage(score);
   const browserImpl = feature.browser_implementations?.[browser!];
   const browserImplStatus = browserImpl?.status || 'unavailable';
-  if (browserImplStatus === 'unavailable') {
-    percentage = renderMissingPercentage();
+  if (browserImplStatus === 'unavailable' || score === undefined) {
+    percentage = fallbackText
+      ? html`<span class="percent">${fallbackText}</span>`
+      : renderMissingPercentage();
   }
   if (feature.spec && isJavaScriptFeature(feature.spec)) {
     percentage = renderJavaScriptFeatureValue();

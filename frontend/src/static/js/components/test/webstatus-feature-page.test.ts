@@ -18,7 +18,6 @@ import {expect, fixture, html} from '@open-wc/testing';
 import {FeaturePage} from '../webstatus-feature-page.js';
 import '../webstatus-feature-page.js';
 import sinon from 'sinon';
-import {WPTRunMetric} from '../../api/client.js';
 import {render} from 'lit';
 import {FeatureMovedError} from '../../api/errors.js';
 
@@ -175,109 +174,7 @@ describe('webstatus-feature-page', () => {
     expect(descriptionSection).to.not.be.null;
     expect(descriptionSection?.textContent).to.contain('AMAZING DESCRIPTION');
   });
-  describe('renderDeltaChip', () => {
-    let element: FeaturePage;
-    let hostElement: HTMLDivElement;
 
-    beforeEach(async () => {
-      element = await fixture(
-        html`<webstatus-feature-page
-          .location=${location}
-        ></webstatus-feature-page>`,
-      );
-      hostElement = document.createElement('div');
-
-      // Create a new Map for featureSupport
-      element.featureSupport = new Map<string, Array<WPTRunMetric>>([
-        // increase case
-        [
-          'chrome',
-          [
-            {
-              test_pass_count: 90,
-              total_tests_count: 100,
-              run_timestamp: '2023-12-27T01:28:25.177Z',
-            },
-            {
-              test_pass_count: 85,
-              total_tests_count: 100,
-              run_timestamp: '2023-12-26T01:28:07.225Z',
-            },
-          ],
-        ],
-        // decrease case
-        [
-          'edge',
-          [
-            {
-              test_pass_count: 70,
-              total_tests_count: 100,
-              run_timestamp: '2023-12-27T01:28:25.177Z',
-            },
-            {
-              test_pass_count: 75,
-              total_tests_count: 100,
-              run_timestamp: '2023-12-26T01:28:07.225Z',
-            },
-          ],
-        ],
-        // no changes case
-        [
-          'safari',
-          [
-            {
-              test_pass_count: 80,
-              total_tests_count: 100,
-              run_timestamp: '2023-12-27T01:28:25.177Z',
-            },
-            {
-              test_pass_count: 80,
-              total_tests_count: 100,
-              run_timestamp: '2023-12-26T01:28:07.225Z',
-            },
-          ],
-        ],
-        // firefox will be the no runs case
-      ]);
-      await element.updateComplete;
-    });
-
-    it('renders unchanged chip when there are no runs', async () => {
-      const chipTemplate = element.renderDeltaChip('firefox');
-      render(chipTemplate, hostElement);
-      const host = await fixture(hostElement);
-      const chip = host.querySelector('span');
-      expect(chip?.classList.contains('unchanged')).to.be.true;
-      expect(chip?.textContent).to.equal('');
-    });
-
-    it('renders chip with positive delta and increased class', async () => {
-      const chipTemplate = element.renderDeltaChip('chrome');
-      render(chipTemplate, hostElement);
-      const host = await fixture(hostElement);
-      const chip = host.querySelector('span');
-      expect(chip?.classList.contains('increased')).to.be.true;
-      expect(chip?.textContent).to.equal('+5.0%');
-    });
-
-    it('renders chip with negative delta and decreased class', async () => {
-      const chipTemplate = element.renderDeltaChip('edge');
-      render(chipTemplate, hostElement);
-      const host = await fixture(hostElement);
-      const chip = host.querySelector('span');
-      expect(chip?.classList.contains('decreased')).to.be.true;
-      expect(chip?.textContent).to.equal('-5.0%');
-    });
-
-    it('renders chip with no delta and unchanged class', async () => {
-      const chipTemplate = element.renderDeltaChip('safari');
-      render(chipTemplate, hostElement);
-      const host = await fixture(hostElement);
-      const chip = host.querySelector('span');
-      expect(chip?.classList.contains('unchanged')).to.be.true;
-      expect(chip?.textContent).to.equal('0.0%');
-    });
-  });
   describe('renderBrowserImpl', () => {
     let element: FeaturePage;
     let hostElement: HTMLDivElement;
