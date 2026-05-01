@@ -114,24 +114,106 @@ export class FeaturePage extends BaseChartsPage {
           align-items: center;
         }
 
+        .status-badge {
+          display: inline-flex;
+          align-items: center;
+          padding: 8px 20px;
+          border-radius: 50px;
+          font-family:
+            system-ui,
+            -apple-system,
+            sans-serif;
+          gap: 12px;
+          margin-left: var(--content-padding);
+        }
+
+        .status-badge.widely {
+          background-color: var(--chip-background-widely);
+          color: var(--chip-color-widely);
+        }
+
+        .status-badge.newly {
+          background-color: var(--chip-background-newly);
+          color: var(--chip-color-newly);
+        }
+
+        .status-badge.limited {
+          background-color: var(--chip-background-limited);
+          color: var(--chip-color-limited);
+        }
+
+        .status-badge.discouraged {
+          background-color: var(--color-red-bg);
+          color: var(--color-red-fg);
+        }
+
+        .dev-signal-link {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          text-decoration: none;
+          color: var(--link-color);
+          font-size: 14px;
+          margin-top: var(--content-padding-half);
+          margin-bottom: var(--content-padding-half);
+        }
+        .dev-signal-link:hover {
+          text-decoration: underline;
+        }
+        .dev-signal-link sl-icon {
+          font-size: 16px;
+        }
+
+        .vbox.name-description-vbox {
+          gap: var(--content-padding-quarter);
+        }
+
+        .feature-title-hbox {
+          gap: var(--content-padding-half);
+        }
+
+        .badge-icon {
+          width: 28px;
+          height: 28px;
+          flex-shrink: 0;
+        }
+
+        .badge-text {
+          display: flex;
+          flex-direction: column;
+        }
+
+        .badge-title {
+          font-weight: 600;
+          font-size: 18px;
+          line-height: 1.2;
+        }
+
+        .badge-subtitle {
+          font-size: 14px;
+          font-weight: 400;
+          opacity: 0.9;
+          line-height: 1.2;
+        }
+
         sl-card .card {
           height: 100%;
         }
 
-        .wptScore {
-          width: 22%;
-        }
-        .wptScore.baseline {
-          width: 22%;
+        .wpt-scores-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: var(--content-padding);
+          margin: 0;
         }
         @media (max-width: 1100px) {
-          .wptScore {
-            width: 32%;
+          .wpt-scores-grid {
+            grid-template-columns: repeat(2, 1fr);
           }
         }
         @media (max-width: 800px) {
-          .wptScore {
-            width: 60%;
+          .wpt-scores-grid {
+            grid-template-columns: 1fr;
           }
         }
 
@@ -395,16 +477,15 @@ export class FeaturePage extends BaseChartsPage {
 
     return html`
       <sl-tooltip content=${messages.message}>
-        <sl-button
+        <a
           href=${signal.link}
           target="_blank"
-          variant="default"
-          size="small"
+          class="dev-signal-link"
           aria-label="${messages.shortMessage}"
         >
-          <sl-icon slot="prefix" name="hand-thumbs-up"></sl-icon>
-          ${messages.shorthandNumber}
-        </sl-button>
+          <sl-icon name="hand-thumbs-up"></sl-icon>
+          <span>${messages.shorthandNumber} Upvotes</span>
+        </a>
       </sl-tooltip>
     `;
   }
@@ -509,14 +590,95 @@ export class FeaturePage extends BaseChartsPage {
     `;
   }
 
+  _renderCrossIcon(): TemplateResult {
+    return html`<svg
+      class="badge-icon"
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <line x1="18" y1="6" x2="6" y2="18"></line>
+      <line x1="6" y1="6" x2="18" y2="18"></line>
+    </svg>`;
+  }
+
+  _renderWarningIcon(): TemplateResult {
+    return html`<svg
+      class="badge-icon"
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <circle cx="12" cy="12" r="10"></circle>
+      <line x1="12" y1="8" x2="12" y2="12"></line>
+      <line x1="12" y1="16" x2="12.01" y2="16"></line>
+    </svg>`;
+  }
+
+  _renderCheckIcon(): TemplateResult {
+    return html`<svg
+      class="badge-icon"
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <polyline points="20 6 9 17 4 12"></polyline>
+    </svg>`;
+  }
+
+  renderBaselineBadge(): TemplateResult {
+    if (this.feature === undefined) return html``;
+    const status = this.feature?.baseline?.status;
+    if (status === undefined) return html``;
+
+    const chipConfig = getBaselineChipConfig(status, this.feature.discouraged);
+    const sinceDate = this.feature?.baseline?.low_date;
+
+    let badgeClass = 'limited';
+    let iconSvg = this._renderCrossIcon();
+
+    if (this.feature.discouraged) {
+      badgeClass = 'discouraged';
+      iconSvg = this._renderWarningIcon();
+    } else if (status === 'widely' || status === 'newly') {
+      badgeClass = status;
+      iconSvg = this._renderCheckIcon();
+    }
+
+    return html`
+      <div class="status-badge ${badgeClass}">
+        ${iconSvg}
+        <div class="badge-text">
+          <span class="badge-title">${chipConfig.word}</span>
+          ${sinceDate
+            ? html`<span class="badge-subtitle">since ${sinceDate}</span>`
+            : nothing}
+        </div>
+      </div>
+    `;
+  }
+
   renderNameDescriptionControls(): TemplateResult {
     return html`
       <div id="nameAndOffsiteLinks" class="hbox wrap">
-        <div class="vbox">
-          <div class="hbox valign-items-center">
+        <div class="vbox name-description-vbox">
+          <div class="hbox valign-items-center feature-title-hbox">
             <h1>${this.feature?.name || this.featureId}</h1>
-            ${this.renderDeveloperSignal(this.feature?.developer_signals)}
+            ${this.renderBaselineBadge()}
           </div>
+          ${this.renderDeveloperSignal(this.feature?.developer_signals)}
           ${this.renderDescription()}
         </div>
         <div class="spacer"></div>
@@ -568,36 +730,6 @@ export class FeaturePage extends BaseChartsPage {
     `;
   }
 
-  renderBaselineCardWhenPending(): TemplateResult {
-    return html`
-      <sl-card class="halign-stretch wptScore baseline">
-        <sl-skeleton effect="sheen" class="icon"></sl-skeleton>
-        <div>Baseline</div>
-        <div class="score"><sl-skeleton effect="sheen"></sl-skeleton></div>
-        <div class="avail"><sl-skeleton effect="sheen"></sl-skeleton></div>
-      </sl-card>
-    `;
-  }
-
-  renderBaselineCard(): TemplateResult {
-    if (this.feature === undefined) return this.renderBaselineCardWhenPending();
-    const status = this.feature?.baseline?.status;
-    if (status === undefined) return html``;
-
-    const chipConfig = getBaselineChipConfig(status, this.feature.discouraged);
-    const sinceDate = this.feature?.baseline?.low_date;
-    return html`
-      <sl-card class="halign-stretch wptScore baseline">
-        <img height="28" src="/public/img/${chipConfig.icon}" class="icon" />
-        <div>Baseline</div>
-        <div class="score">${chipConfig.word}</div>
-        ${sinceDate
-          ? html`<div class="avail">Baseline since ${sinceDate}</div>`
-          : nothing}
-      </sl-card>
-    `;
-  }
-
   renderDescription(): TemplateResult {
     if (this.featureMetadata?.description === undefined) {
       return html`${nothing}`;
@@ -641,18 +773,24 @@ export class FeaturePage extends BaseChartsPage {
   }
 
   renderWPTScores(): TemplateResult {
+    // List all desktop browsers first, then mobile browsers to align them in a 4-column grid rows.
+    const browsers = [
+      {id: 'chrome' as const, icon: 'chrome_32x32.png'},
+      {id: 'firefox' as const, icon: 'firefox_32x32.png'},
+      {id: 'safari' as const, icon: 'safari_32x32.png'},
+      {id: 'edge' as const, icon: 'edge_32x32.png'},
+      {id: 'chrome_android' as const, icon: 'chrome_32x32.png'},
+      {id: 'firefox_android' as const, icon: 'firefox_32x32.png'},
+      {id: 'safari_ios' as const, icon: 'safari_32x32.png'},
+    ];
+
     return html`
       <section id="wpt-scores">
         <h3>Web platform test scores</h3>
-        <div class="wptScores hbox wrap" style="margin:0">
-          ${this.renderOneWPTCard('chrome', 'chrome_32x32.png')}
-          ${this.renderOneWPTCard('edge', 'edge_32x32.png')}
-          ${this.renderOneWPTCard('firefox', 'firefox_32x32.png')}
-          ${this.renderOneWPTCard('safari', 'safari_32x32.png')}
-          ${this.renderOneWPTCard('chrome_android', 'chrome_32x32.png')}
-          ${this.renderOneWPTCard('firefox_android', 'firefox_32x32.png')}
-          ${this.renderOneWPTCard('safari_ios', 'safari_32x32.png')}
-          ${this.renderBaselineCard()}
+        <div class="wpt-scores-grid">
+          ${browsers.map(browser =>
+            this.renderOneWPTCard(browser.id, browser.icon),
+          )}
         </div>
       </section>
     `;

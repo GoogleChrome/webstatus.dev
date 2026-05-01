@@ -26,6 +26,7 @@ import {
 
 test.beforeEach(async ({page}) => {
   await setupFakeNow(page);
+  await page.setViewportSize({width: 1280, height: 1500});
 });
 
 const featureID = 'anchor-positioning';
@@ -51,8 +52,8 @@ test('matches the screenshot', async ({page}) => {
 test('matches the screenshot for a discouraged feature', async ({page}) => {
   await page.goto(`http://localhost:5555/features/${discouragedFeatureId}`);
 
-  // Wait specifically for the "Baseline since" text
-  await page.waitForSelector('sl-card.wptScore .avail >> text=Baseline since');
+  // Wait for the specific feature name header to be visible
+  await expect(page.locator('#nameAndOffsiteLinks h1')).toBeVisible();
 
   await waitForTabbedChartCompletion(
     page,
@@ -79,7 +80,7 @@ test('chart width resizes with window', async ({page}) => {
   await page.waitForTimeout(1000);
   const narrowWidth = 1000;
   const wideWidth = 1200;
-  const height = 1000;
+  const height = 1500;
   const chartContainer = page.locator(
     '#feature-wpt-implementation-progress-0-complete',
   );
