@@ -54,11 +54,9 @@ export class WebstatusOverviewDataLoader extends LitElement {
   savedSearch: CurrentSavedSearch;
 
   render(): TemplateResult {
-    const columns: ColumnKey[] = parseColumnsSpec(
-      getColumnsSpec(this.location),
-    );
     const location = this.location;
     if (!location) return html``;
+    const columns: ColumnKey[] = parseColumnsSpec(getColumnsSpec(location));
     const sortSpec = getSortSpec(location) || DEFAULT_SORT_SPEC;
     const groupCells = renderGroupCells(location, columns, sortSpec!);
     let headerCells: TemplateResult[] = [];

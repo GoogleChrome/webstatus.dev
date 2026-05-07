@@ -17,6 +17,7 @@
 import {WebstatusOverviewContent} from '../webstatus-overview-content.js';
 import '../webstatus-overview-content.js';
 import {expect, fixture, html} from '@open-wc/testing';
+import {WebstatusLoginPromptDialog} from '../webstatus-login-prompt-dialog.js';
 
 import {
   savedSearchHelpers,
@@ -50,6 +51,7 @@ describe('WebstatusOverviewContent', () => {
     element = await fixture<WebstatusOverviewContent>(html`
       <webstatus-overview-content></webstatus-overview-content>
     `);
+    element.location = {search: ''};
     element._getOrigin = () => 'http://localhost';
     sinon.stub(element, '_getEditSavedSearch').returns(false);
     sinon.stub(element, '_updatePageUrl');
@@ -279,6 +281,21 @@ describe('WebstatusOverviewContent', () => {
       await element.updateComplete;
 
       expect(openSpy).to.have.been.calledOnce;
+    });
+    it('automatically opens the login prompt when subscribe param is true and user is logged out', async () => {
+      element.location = {search: '?subscribe=true'};
+      element.userContext = null;
+      element.savedSearch = mockUserSearch;
+
+      element.requestUpdate();
+      await element.updateComplete;
+
+      const promptDialog =
+        element.shadowRoot?.querySelector<WebstatusLoginPromptDialog>(
+          'webstatus-login-prompt-dialog',
+        );
+      expect(promptDialog).to.exist;
+      expect(promptDialog?.open).to.be.true;
     });
   });
 

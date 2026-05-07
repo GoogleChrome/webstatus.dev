@@ -51,6 +51,10 @@ export function getEditSavedSearch(location: {search: string}): boolean {
   return Boolean(getQueryParam(location.search, 'edit_saved_search'));
 }
 
+export function getSubscribeToSavedSearch(location: {search: string}): boolean {
+  return Boolean(getQueryParam(location.search, 'subscribe'));
+}
+
 export interface DateRange {
   start?: Date;
   end?: Date;
@@ -85,6 +89,7 @@ export type QueryStringOverrides = {
   dateRange?: DateRange;
   column_options?: string[];
   edit_saved_search?: boolean;
+  subscribe?: boolean;
 };
 
 /* Given the router location object, return a query string with
@@ -159,6 +164,11 @@ function getContextualQueryStringParams(
     'edit_saved_search' in overrides ? overrides.edit_saved_search : undefined;
   if (editBookmark) {
     searchParams.set('edit_saved_search', '' + editBookmark);
+  }
+
+  const subscribe = 'subscribe' in overrides ? overrides.subscribe : undefined;
+  if (subscribe) {
+    searchParams.set('subscribe', '' + subscribe);
   }
 
   return searchParams.toString() ? '?' + searchParams.toString() : '';

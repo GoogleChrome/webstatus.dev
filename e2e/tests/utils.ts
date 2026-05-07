@@ -202,7 +202,7 @@ export async function loginAsUser(
   const popupPromise = page.waitForEvent('popup');
   await page.goto('http://localhost:5555/');
   await waitForSidebarLoaded(page);
-  await page.getByText('Log in').click();
+  await page.getByRole('banner').getByText('Log in').click();
   const popup = await popupPromise;
 
   await popup.waitForLoadState();
