@@ -16,7 +16,9 @@
 
 import {LitElement, TemplateResult, css, html} from 'lit';
 import {customElement, property} from 'lit/decorators.js';
+import {consume} from '@lit/context';
 import {UserSavedSearch} from '../utils/constants.js';
+import {themeContext, type Theme} from '../contexts/theme-context.js';
 import {Toast} from '../utils/toast.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
 
@@ -24,6 +26,10 @@ import {SHARED_STYLES} from '../css/shared-css.js';
 export class WebstatusSavedSearchShareDialog extends LitElement {
   @property({type: Object})
   savedSearch?: UserSavedSearch;
+
+  @consume({context: themeContext, subscribe: true})
+  @property({attribute: false})
+  theme?: Theme;
 
   @property({type: String})
   shareableUrl: string = '';
@@ -179,6 +185,10 @@ export class WebstatusSavedSearchShareDialog extends LitElement {
   }
 
   render(): TemplateResult {
+    const isDark = this.theme === 'dark';
+    const fill = isDark ? 'white' : 'black';
+    const background = isDark ? 'black' : 'white';
+
     return html`
       <sl-dialog
         label="Share bookmark"
@@ -191,8 +201,8 @@ export class WebstatusSavedSearchShareDialog extends LitElement {
             <sl-qr-code
               value="${this.effectiveUrl}"
               size="180"
-              fill="white"
-              background="black"
+              fill="${fill}"
+              background="${background}"
               radius="0"
               error-correction="H"
               @sl-after-render=${(e: CustomEvent) => {
@@ -231,7 +241,15 @@ export async function openShareDialog(
 ): Promise<WebstatusSavedSearchShareDialog> {
   if (!shareDialogEl) {
     shareDialogEl = new WebstatusSavedSearchShareDialog();
-    document.body.appendChild(shareDialogEl);
+    const app = document.querySelector('webstatus-app');
+    const servicesContainer = app?.shadowRoot?.querySelector(
+      'webstatus-services-container',
+    );
+    if (servicesContainer) {
+      servicesContainer.appendChild(shareDialogEl);
+    } else {
+      document.body.appendChild(shareDialogEl);
+    }
     await shareDialogEl.updateComplete;
   }
   await shareDialogEl.openWithContext(savedSearch, shareableUrl);
