@@ -481,10 +481,7 @@ export const renderBrowserQuality: CellRenderer = (
   if (didFeatureCrash(feature.wpt?.stable?.[browser!]?.metadata)) {
     percentage = renderFeatureCrash();
   }
-  return html`
-      ${percentage}
-    </div>
-  `;
+  return percentage;
 };
 
 export const renderBrowserQualityExp: CellRenderer = (
