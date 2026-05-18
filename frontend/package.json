@@ -45,7 +45,7 @@
     "cpy": "^13.2.1",
     "eslint": "^10.3.0",
     "eslint-plugin-import": "^2.32.0",
-    "eslint-plugin-lit": "^2.2.1",
+    "eslint-plugin-lit": "^2.3.1",
     "eslint-plugin-promise": "^7.3.0",
     "lit-analyzer": "^2.0.2",
     "openapi-typescript-helpers": "^0.1.0",
