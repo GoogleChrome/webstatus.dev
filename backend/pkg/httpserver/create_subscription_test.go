@@ -28,6 +28,12 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 )
 
+//go:fix inline
+//go:fix inline
+func ptr[T any](v T) *T {
+	return new(v)
+}
+
 func TestCreateSubscription(t *testing.T) {
 	now := time.Now()
 	channelIDStr := "channel-id"
@@ -101,7 +107,7 @@ func TestCreateSubscription(t *testing.T) {
 			}`),
 		},
 		{
-			name:                 "bad request - missing channel id",
+			name:                 "bad request - missing both channel_id and channel_type",
 			cfg:                  nil,
 			expectedCallCount:    0,
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
@@ -119,7 +125,8 @@ func TestCreateSubscription(t *testing.T) {
 				"code":400,
 				"message":"input validation errors",
 				"errors":{
-					"channel_id":"channel_id is required"
+					"channel_id":"must provide exactly one of 'channel_id' or 'channel_type'",
+					"channel_type":"must provide exactly one of 'channel_id' or 'channel_type'"
 				}
 			}`),
 		},
@@ -256,7 +263,7 @@ func TestValidateSubscriptionCreation(t *testing.T) {
 			want: nil,
 		},
 		{
-			name: "invalid channel id",
+			name: "missing both channel_id and channel_type",
 			input: &backend.Subscription{
 				ChannelId:     nil,
 				SavedSearchId: "search-id",
@@ -267,23 +274,25 @@ func TestValidateSubscriptionCreation(t *testing.T) {
 			},
 			want: &fieldValidationErrors{
 				fieldErrorMap: map[string]string{
-					"channel_id": errSubscriptionChannelIDRequired.Error(),
+					"channel_id":   "must provide exactly one of 'channel_id' or 'channel_type'",
+					"channel_type": "must provide exactly one of 'channel_id' or 'channel_type'",
 				},
 			},
 		},
 		{
-			name: "invalid saved search id",
+			name: "providing both channel_id and channel_type",
 			input: &backend.Subscription{
 				ChannelId:     &channelIDStr,
-				SavedSearchId: "",
+				ChannelType:   ptr(backend.SubscriptionChannelTypeRss),
+				SavedSearchId: "search-id",
 				Triggers: []backend.SubscriptionTriggerWritable{
 					backend.SubscriptionTriggerFeatureBrowserImplementationAnyComplete},
-				Frequency:   backend.SubscriptionFrequencyImmediate,
-				ChannelType: nil,
+				Frequency: backend.SubscriptionFrequencyImmediate,
 			},
 			want: &fieldValidationErrors{
 				fieldErrorMap: map[string]string{
-					"saved_search_id": errSubscriptionSavedSearchIDRequired.Error(),
+					"channel_id":   "must provide exactly one of 'channel_id' or 'channel_type'",
+					"channel_type": "must provide exactly one of 'channel_id' or 'channel_type'",
 				},
 			},
 		},
