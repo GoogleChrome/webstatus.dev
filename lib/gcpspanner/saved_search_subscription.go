@@ -43,6 +43,7 @@ type SavedSearchSubscription struct {
 type SavedSearchSubscriptionView struct {
 	SavedSearchSubscription
 	SavedSearchName string `spanner:"SavedSearchName"`
+	ChannelType     string `spanner:"ChannelType"`
 }
 
 type SubscriptionTrigger string
@@ -186,9 +187,11 @@ func (m savedSearchSubscriptionViewMapper) SelectOne(key string) spanner.Stateme
 	stmt := spanner.NewStatement(`
 	SELECT
 		sc.ID, sc.ChannelID, sc.SavedSearchID, ss.Name AS SavedSearchName,
-		sc.Triggers, sc.Frequency, sc.CreatedAt, sc.UpdatedAt
+		sc.Triggers, sc.Frequency, sc.CreatedAt, sc.UpdatedAt,
+		nc.Type AS ChannelType
 	FROM SavedSearchSubscriptions sc
 	JOIN SavedSearches ss ON sc.SavedSearchID = ss.ID
+	JOIN NotificationChannels nc ON sc.ChannelID = nc.ID
 	WHERE sc.ID = @id
 	LIMIT 1`)
 	parameters := map[string]any{
@@ -215,7 +218,8 @@ func (m savedSearchSubscriptionViewMapper) SelectList(req ListSavedSearchSubscri
 	}
 	query := fmt.Sprintf(`SELECT
 		sc.ID, sc.ChannelID, sc.SavedSearchID, ss.Name AS SavedSearchName,
-		sc.Triggers, sc.Frequency, sc.CreatedAt, sc.UpdatedAt
+		sc.Triggers, sc.Frequency, sc.CreatedAt, sc.UpdatedAt,
+		nc.Type AS ChannelType
 	FROM SavedSearchSubscriptions sc
 	JOIN NotificationChannels nc ON sc.ChannelID = nc.ID
 	JOIN SavedSearches ss ON sc.SavedSearchID = ss.ID
@@ -386,7 +390,7 @@ func (c *Client) createSavedSearchSubscription(
 		}
 
 		if !skipOwnershipCheck {
-			err = c.checkNotificationChannelOwnership(ctx, req.ChannelID, req.UserID, txn)
+			err = c.checkNotificationChannelOwnership(ctx, req.ChannelID, req.UserID, txn, true)
 			if err != nil {
 				return err
 			}
