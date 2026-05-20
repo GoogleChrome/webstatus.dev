@@ -50,6 +50,7 @@ func TestListSubscriptions(t *testing.T) {
 						{
 							Id:           "sub-id",
 							ChannelId:    "channel-id",
+							ChannelType:  backend.SubscriptionResponseChannelTypeRss,
 							Subscribable: backend.SavedSearchInfo{Id: "search-id", Name: "Feature name"},
 							Triggers: []backend.SubscriptionTriggerResponseItem{
 								{
@@ -80,6 +81,7 @@ func TestListSubscriptions(t *testing.T) {
 						{
 							"id":"sub-id",
 							"channel_id":"channel-id",
+							"channel_type":"rss",
 							"subscribable":{"id":"search-id","name":"Feature name"},
 							"triggers":[{"value":"trigger"}],
 							"frequency":"daily",
@@ -124,6 +126,7 @@ func TestListSubscriptions(t *testing.T) {
 						{
 							Id:           "sub-id-2",
 							ChannelId:    "channel-id-2",
+							ChannelType:  backend.SubscriptionResponseChannelTypeRss,
 							Subscribable: backend.SavedSearchInfo{Id: "search-id-2", Name: "Feature name 2"},
 							Triggers: []backend.SubscriptionTriggerResponseItem{
 								{
@@ -153,6 +156,7 @@ func TestListSubscriptions(t *testing.T) {
 						{
 							"id":"sub-id-2",
 							"channel_id":"channel-id-2",
+							"channel_type":"rss",
 							"subscribable":{"id":"search-id-2","name":"Feature name 2"},
 							"triggers":[{"value":"trigger-2"}],
 							"frequency":"weekly",

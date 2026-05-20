@@ -133,7 +133,11 @@ func validateSubscriptionCreation(input *backend.Subscription) *fieldValidationE
 
 	validateSubscriptionFrequency(&input.Frequency, true, fieldErrors)
 
-	validateSubscriptionChannelID(input.ChannelId, fieldErrors)
+	if input.ChannelId != nil {
+		validateSubscriptionChannelID(*input.ChannelId, fieldErrors)
+	} else {
+		fieldErrors.addFieldError("channel_id", errSubscriptionChannelIDRequired)
+	}
 
 	validateSubscriptionSavedSearchID(input.SavedSearchId, fieldErrors)
 

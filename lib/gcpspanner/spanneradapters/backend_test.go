@@ -34,6 +34,8 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
+const testChannel = "channel"
+
 // nolint: gochecknoglobals
 var (
 	nonNilInputPageToken = new("input-token")
@@ -468,7 +470,7 @@ func (c mockBackendSpannerClient) ListMetricsForFeatureIDBrowserAndChannel(
 	if ctx != context.Background() ||
 		featureID != "feature" ||
 		browser != "browser" ||
-		channel != "channel" ||
+		channel != testChannel ||
 		metric != gcpspanner.WPTSubtestView ||
 		!startAt.Equal(testStart) ||
 		!endAt.Equal(testEnd) ||
@@ -513,7 +515,7 @@ func (c mockBackendSpannerClient) ListMetricsOverTimeWithAggregatedTotals(
 	if ctx != context.Background() ||
 		!slices.Equal[[]string](featureIDs, []string{"feature1", "feature2"}) ||
 		browser != "browser" ||
-		channel != "channel" ||
+		channel != testChannel ||
 		metric != gcpspanner.WPTSubtestView ||
 		!startAt.Equal(testStart) ||
 		!endAt.Equal(testEnd) ||
@@ -785,7 +787,7 @@ func TestCreateSavedSearchSubscriptionMapsLimitError(t *testing.T) {
 	mock.mockCreateSavedSearchSubscriptionCfg = &mockCreateSavedSearchSubscriptionConfig{
 		expectedRequest: gcpspanner.CreateSavedSearchSubscriptionRequest{
 			UserID:        "user",
-			ChannelID:     "channel",
+			ChannelID:     testChannel,
 			SavedSearchID: "search",
 			Triggers:      []gcpspanner.SubscriptionTrigger{},
 			Frequency:     gcpspanner.SavedSearchSnapshotTypeImmediate,
@@ -795,11 +797,13 @@ func TestCreateSavedSearchSubscriptionMapsLimitError(t *testing.T) {
 	}
 
 	bk := NewBackend(mock)
+	channelID := testChannel
 	_, err := bk.CreateSavedSearchSubscription(context.Background(), "user", backend.Subscription{
-		ChannelId:     "channel",
+		ChannelId:     &channelID,
 		SavedSearchId: "search",
 		Triggers:      []backend.SubscriptionTriggerWritable{},
 		Frequency:     backend.SubscriptionFrequencyImmediate,
+		ChannelType:   nil,
 	})
 	if !errors.Is(err, backendtypes.ErrUserMaxSubscriptions) {
 		t.Errorf("expected ErrUserMaxSubscriptions, got %v", err)
@@ -4149,11 +4153,11 @@ func TestConvertFeatureResult(t *testing.T) {
 func TestCreateSavedSearchSubscription(t *testing.T) {
 	const (
 		userID        = "user123"
-		channelID     = "channel-id"
-		savedSearchID = "saved-search-id"
 		subID         = "sub-id"
+		savedSearchID = "search"
 	)
 	now := time.Now()
+	channelID := "channel-id"
 	testCases := []struct {
 		name          string
 		input         backend.Subscription
@@ -4165,11 +4169,12 @@ func TestCreateSavedSearchSubscription(t *testing.T) {
 		{
 			name: "success",
 			input: backend.Subscription{
-				ChannelId:     channelID,
+				ChannelId:     &channelID,
 				SavedSearchId: savedSearchID,
 				Triggers: []backend.SubscriptionTriggerWritable{
 					backend.SubscriptionTriggerFeatureBrowserImplementationAnyComplete},
-				Frequency: backend.SubscriptionFrequencyImmediate,
+				Frequency:   backend.SubscriptionFrequencyImmediate,
+				ChannelType: nil,
 			},
 			createCfg: &mockCreateSavedSearchSubscriptionConfig{
 				expectedRequest: gcpspanner.CreateSavedSearchSubscriptionRequest{
@@ -4213,20 +4218,22 @@ func TestCreateSavedSearchSubscription(t *testing.T) {
 						RawValue: nil,
 					},
 				},
-				Frequency: backend.SubscriptionFrequencyImmediate,
-				CreatedAt: now,
-				UpdatedAt: now,
+				Frequency:   backend.SubscriptionFrequencyImmediate,
+				CreatedAt:   now,
+				UpdatedAt:   now,
+				ChannelType: "",
 			},
 			expectedError: nil,
 		},
 		{
 			name: "create unauthorized",
 			input: backend.Subscription{
-				ChannelId:     channelID,
+				ChannelId:     &channelID,
 				SavedSearchId: savedSearchID,
 				Triggers: []backend.SubscriptionTriggerWritable{
 					backend.SubscriptionTriggerFeatureBrowserImplementationAnyComplete},
-				Frequency: backend.SubscriptionFrequencyImmediate,
+				Frequency:   backend.SubscriptionFrequencyImmediate,
+				ChannelType: nil,
 			},
 			createCfg: &mockCreateSavedSearchSubscriptionConfig{
 				expectedRequest: gcpspanner.CreateSavedSearchSubscriptionRequest{
@@ -4248,11 +4255,12 @@ func TestCreateSavedSearchSubscription(t *testing.T) {
 		{
 			name: "create error",
 			input: backend.Subscription{
-				ChannelId:     channelID,
+				ChannelId:     &channelID,
 				SavedSearchId: savedSearchID,
 				Triggers: []backend.SubscriptionTriggerWritable{
 					backend.SubscriptionTriggerFeatureBrowserImplementationAnyComplete},
-				Frequency: backend.SubscriptionFrequencyImmediate,
+				Frequency:   backend.SubscriptionFrequencyImmediate,
+				ChannelType: nil,
 			},
 			createCfg: &mockCreateSavedSearchSubscriptionConfig{
 				expectedRequest: gcpspanner.CreateSavedSearchSubscriptionRequest{
@@ -4349,9 +4357,10 @@ func TestListSavedSearchSubscriptions(t *testing.T) {
 								RawValue: nil,
 							},
 						},
-						Frequency: backend.SubscriptionFrequencyImmediate,
-						CreatedAt: now,
-						UpdatedAt: now,
+						Frequency:   backend.SubscriptionFrequencyImmediate,
+						CreatedAt:   now,
+						UpdatedAt:   now,
+						ChannelType: "",
 					},
 				},
 				Metadata: &backend.PageMetadata{
@@ -4443,9 +4452,10 @@ func TestGetSavedSearchSubscription(t *testing.T) {
 						RawValue: nil,
 					},
 				},
-				Frequency: backend.SubscriptionFrequencyImmediate,
-				CreatedAt: now,
-				UpdatedAt: now,
+				Frequency:   backend.SubscriptionFrequencyImmediate,
+				CreatedAt:   now,
+				UpdatedAt:   now,
+				ChannelType: "",
 			},
 			expectedError: nil,
 		},
@@ -4567,9 +4577,10 @@ func TestUpdateSavedSearchSubscription(t *testing.T) {
 					Id:   "savedsearch",
 					Name: "Feature name",
 				},
-				Frequency: backend.SubscriptionFrequencyImmediate,
-				CreatedAt: now,
-				UpdatedAt: now,
+				Frequency:   backend.SubscriptionFrequencyImmediate,
+				CreatedAt:   now,
+				UpdatedAt:   now,
+				ChannelType: "",
 			},
 			expectedError: nil,
 		},
@@ -4624,9 +4635,10 @@ func TestUpdateSavedSearchSubscription(t *testing.T) {
 						RawValue: nil,
 					},
 				},
-				Frequency: backend.SubscriptionFrequency(updatedFrequency),
-				CreatedAt: now,
-				UpdatedAt: now,
+				Frequency:   backend.SubscriptionFrequency(updatedFrequency),
+				CreatedAt:   now,
+				UpdatedAt:   now,
+				ChannelType: "",
 			},
 			expectedError: nil,
 		},
@@ -4770,6 +4782,7 @@ func assertUnknownTrigger(t *testing.T, itemIndex int,
 	}
 }
 
+//nolint:ireturn
 func TestSpannerTriggersToBackendTriggers(t *testing.T) {
 	testCases := []struct {
 		name          string

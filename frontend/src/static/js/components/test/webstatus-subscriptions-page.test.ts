@@ -44,6 +44,7 @@ describe('webstatus-subscriptions-page', () => {
       id: 'sub1',
       subscribable: {id: 'search1', name: 'Search 1'},
       channel_id: 'channel1',
+      channel_type: 'rss',
       frequency: 'weekly',
       triggers: [],
       created_at: new Date().toISOString(),

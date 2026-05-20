@@ -58,6 +58,7 @@ func TestUpdateSubscription(t *testing.T) {
 				output: &backend.SubscriptionResponse{
 					Id:           "sub-id",
 					ChannelId:    "channel-id",
+					ChannelType:  backend.SubscriptionResponseChannelTypeRss,
 					Subscribable: backend.SavedSearchInfo{Id: "search-id", Name: "Feature name"},
 					Triggers: []backend.SubscriptionTriggerResponseItem{
 						{
@@ -86,6 +87,7 @@ func TestUpdateSubscription(t *testing.T) {
 				`{
 					"id":"sub-id",
 					"channel_id":"channel-id",
+					"channel_type":"rss",
 					"subscribable":{"id":"search-id","name":"Feature name"},
 					"triggers": [{"value":"feature_browser_implementation_any_complete"}],
 					"frequency":"daily",

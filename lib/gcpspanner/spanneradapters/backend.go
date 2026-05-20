@@ -1935,9 +1935,13 @@ func toSpannerSubscriptionTrigger(trigger backend.SubscriptionTriggerWritable) g
 func (s *Backend) CreateSavedSearchSubscription(ctx context.Context,
 	userID string, req backend.Subscription) (*backend.SubscriptionResponse, error) {
 	spannerFreq := toSpannerSubscriptionFrequency(req.Frequency)
+	var channelID string
+	if req.ChannelId != nil {
+		channelID = *req.ChannelId
+	}
 	createReq := gcpspanner.CreateSavedSearchSubscriptionRequest{
 		UserID:        userID,
-		ChannelID:     req.ChannelId,
+		ChannelID:     channelID,
 		SavedSearchID: req.SavedSearchId,
 		Triggers:      backendTriggersToSpannerTriggers(req.Triggers),
 		Frequency:     spannerFreq,
@@ -2091,11 +2095,12 @@ func toBackendSubscription(sub *gcpspanner.SavedSearchSubscriptionView) *backend
 			Id:   sub.SavedSearchID,
 			Name: sub.SavedSearchName,
 		},
-		ChannelId: sub.ChannelID,
-		Triggers:  spannerTriggersToBackendTriggers(sub.Triggers),
-		Frequency: toBackendSubscriptionFrequency(sub.Frequency),
-		CreatedAt: sub.CreatedAt,
-		UpdatedAt: sub.UpdatedAt,
+		ChannelId:   sub.ChannelID,
+		ChannelType: "",
+		Triggers:    spannerTriggersToBackendTriggers(sub.Triggers),
+		Frequency:   toBackendSubscriptionFrequency(sub.Frequency),
+		CreatedAt:   sub.CreatedAt,
+		UpdatedAt:   sub.UpdatedAt,
 	}
 }
 
