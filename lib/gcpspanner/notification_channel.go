@@ -343,7 +343,7 @@ func (c *Client) CreateNotificationChannel(
 func (c *Client) countNotificationChannels(
 	ctx context.Context, userID string, txn *spanner.ReadWriteTransaction) (int64, error) {
 	stmt := spanner.Statement{
-		SQL: fmt.Sprintf("SELECT COUNT(*) FROM %s WHERE UserID = @userID", notificationChannelTable),
+		SQL: fmt.Sprintf("SELECT COUNT(*) FROM %s WHERE UserID = @userID AND Type != 'rss'", notificationChannelTable),
 		Params: map[string]any{
 			"userID": userID,
 		},
@@ -358,6 +358,65 @@ func (c *Client) countNotificationChannels(
 	err = row.Column(0, &count)
 
 	return count, err
+}
+
+// findOrCreateRSSChannel ensures a user has exactly one RSS channel.
+func (c *Client) findOrCreateRSSChannel(
+	ctx context.Context,
+	userID string,
+	txn *spanner.ReadWriteTransaction,
+) (string, error) {
+	stmt := spanner.Statement{
+		SQL: fmt.Sprintf(`SELECT ID FROM %s
+              WHERE UserID = @userID AND Type = 'rss' LIMIT 1`, notificationChannelTable),
+		Params: map[string]any{"userID": userID},
+	}
+	iter := txn.Query(ctx, stmt)
+	defer iter.Stop()
+
+	row, err := iter.Next()
+	if err == nil {
+		var id string
+		if err := row.Column(0, &id); err != nil {
+			return "", err
+		}
+
+		return id, nil
+	}
+	if !errors.Is(err, iterator.Done) {
+		return "", err
+	}
+
+	// Not found; create it.
+	req := CreateNotificationChannelRequest{
+		UserID:        userID,
+		Name:          "RSS Feed",
+		Type:          NotificationChannelTypeRSS,
+		EmailConfig:   nil,
+		WebhookConfig: nil,
+	}
+
+	newID, err := newEntityCreator[notificationChannelMapper](c).createWithTransaction(ctx, txn, req)
+	if err != nil {
+		return "", err
+	}
+
+	// Also create the initial state for the channel.
+	_, err = newEntityCreator[notificationChannelStateMapper](c).createWithTransaction(ctx, txn,
+		NotificationChannelState{
+			ChannelID:           *newID,
+			IsDisabledBySystem:  false,
+			ConsecutiveFailures: 0,
+			CreatedAt:           spanner.CommitTimestamp,
+			UpdatedAt:           spanner.CommitTimestamp,
+		}, WithID(*newID))
+	if err != nil {
+		return "", err
+	}
+
+	slog.InfoContext(ctx, "implicitly created RSS channel for user", "userID", userID, "channelID", *newID)
+
+	return *newID, nil
 }
 
 // GetNotificationChannel retrieves a notification channel if it belongs to the specified user.

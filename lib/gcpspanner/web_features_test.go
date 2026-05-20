@@ -891,6 +891,7 @@ func TestSyncWebFeatures_MultipleRedirectsToSameTarget(t *testing.T) {
 		SavedSearchID: smsA.SavedSearchID,
 		Triggers:      []SubscriptionTrigger{SubscriptionTriggerBrowserImplementationAnyComplete},
 		Frequency:     SavedSearchSnapshotTypeWeekly,
+		ChannelType:   nil,
 	})
 	if err != nil {
 		t.Fatalf("Failed to create subscription for feature-a: %v", err)
@@ -905,6 +906,7 @@ func TestSyncWebFeatures_MultipleRedirectsToSameTarget(t *testing.T) {
 		SavedSearchID: smsC.SavedSearchID,
 		Triggers:      []SubscriptionTrigger{SubscriptionTriggerBrowserImplementationAnyComplete},
 		Frequency:     SavedSearchSnapshotTypeWeekly,
+		ChannelType:   nil,
 	})
 	if err != nil {
 		t.Fatalf("Failed to create subscription for feature-c: %v", err)

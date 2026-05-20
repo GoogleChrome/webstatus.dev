@@ -1945,6 +1945,7 @@ func (s *Backend) CreateSavedSearchSubscription(ctx context.Context,
 		SavedSearchID: req.SavedSearchId,
 		Triggers:      backendTriggersToSpannerTriggers(req.Triggers),
 		Frequency:     spannerFreq,
+		ChannelType:   nil,
 	}
 
 	id, err := s.client.CreateSavedSearchSubscription(ctx, createReq)
