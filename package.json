@@ -15,7 +15,7 @@
   "devDependencies": {
     "@playwright/test": "^1.59.1",
     "@types/node": "^22.9.0",
-    "concurrently": "^9.2.1",
+    "concurrently": "^10.0.1",
     "eslint-plugin-n": "^18.0.1",
     "gts": "^7.0.0",
     "openapi-typescript": "7.13.0",
