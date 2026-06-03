@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"slices"
 	"time"
 
 	"cloud.google.com/go/spanner"
@@ -59,12 +60,15 @@ var (
 	// ErrSubscriptionLimitExceeded indicates that the user already has
 	// reached the limit of subscriptions that a given user can own.
 	ErrSubscriptionLimitExceeded = errors.New("subscription limit reached")
+	// ErrSubscriptionConflict indicates that a subscription already exists with a different configuration.
+	ErrSubscriptionConflict = errors.New("subscription already exists with different configuration")
 )
 
 // CreateSavedSearchSubscriptionRequest is the request to create a subscription.
 type CreateSavedSearchSubscriptionRequest struct {
 	UserID        string
 	ChannelID     string
+	ChannelType   *NotificationChannelType // Added for implicit resolution
 	SavedSearchID string
 	Triggers      []SubscriptionTrigger
 	Frequency     SavedSearchSnapshotType
@@ -309,9 +313,58 @@ func (c *Client) createSavedSearchSubscription(
 ) (*string, error) {
 	var id *string
 	_, err := c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
-		// 1. Check limit
-		var count int64
+		// 0. Resolve Channel ID if needed (Implicit Mode).
+		var skipOwnershipCheck bool
+		if req.ChannelID == "" && req.ChannelType != nil && *req.ChannelType == NotificationChannelTypeRSS {
+			resolvedChannelID, err := c.findOrCreateRSSChannel(ctx, req.UserID, txn)
+			if err != nil {
+				return err
+			}
+			req.ChannelID = resolvedChannelID
+			skipOwnershipCheck = true
+		}
+
+		// Check existing subscription for idempotency.
+		var existingSub SavedSearchSubscription
 		stmt := spanner.Statement{
+			SQL: `SELECT ID, Triggers, Frequency FROM SavedSearchSubscriptions 
+                  WHERE ChannelID = @channelID AND SavedSearchID = @savedSearchID LIMIT 1`,
+			Params: map[string]any{
+				"channelID":     req.ChannelID,
+				"savedSearchID": req.SavedSearchID,
+			},
+		}
+		iter := txn.Query(ctx, stmt)
+		defer iter.Stop()
+		row, err := iter.Next()
+		if err == nil {
+			if err := row.ToStruct(&existingSub); err != nil {
+				return err
+			}
+
+			// Compare configuration (order-insensitive for triggers).
+			reqTriggers := make([]SubscriptionTrigger, len(req.Triggers))
+			copy(reqTriggers, req.Triggers)
+			slices.Sort(reqTriggers)
+
+			existingTriggers := make([]SubscriptionTrigger, len(existingSub.Triggers))
+			copy(existingTriggers, existingSub.Triggers)
+			slices.Sort(existingTriggers)
+
+			if existingSub.Frequency == req.Frequency && slices.Equal(existingTriggers, reqTriggers) {
+				id = &existingSub.ID
+
+				return nil // Idempotent success.
+			}
+
+			return ErrSubscriptionConflict
+		} else if !errors.Is(err, iterator.Done) {
+			return err
+		}
+
+		// 1. Check limit.
+		var count int64
+		stmt = spanner.Statement{
 			SQL: `SELECT COUNT(*)
               FROM SavedSearchSubscriptions sc
               JOIN NotificationChannels nc ON sc.ChannelID = nc.ID
@@ -320,7 +373,7 @@ func (c *Client) createSavedSearchSubscription(
 				"userID": req.UserID,
 			},
 		}
-		row, err := txn.Query(ctx, stmt).Next()
+		row, err = txn.Query(ctx, stmt).Next()
 		if err != nil {
 			return err
 		}
@@ -332,9 +385,11 @@ func (c *Client) createSavedSearchSubscription(
 			return ErrSubscriptionLimitExceeded
 		}
 
-		err = c.checkNotificationChannelOwnership(ctx, req.ChannelID, req.UserID, txn)
-		if err != nil {
-			return err
+		if !skipOwnershipCheck {
+			err = c.checkNotificationChannelOwnership(ctx, req.ChannelID, req.UserID, txn)
+			if err != nil {
+				return err
+			}
 		}
 		newID, err := newEntityCreator[savedSearchSubscriptionMapper](c).createWithTransaction(ctx, txn, req, opts...)
 		if err != nil {

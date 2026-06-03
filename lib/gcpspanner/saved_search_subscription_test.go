@@ -17,6 +17,7 @@ package gcpspanner
 import (
 	"context"
 	"errors"
+	"fmt"
 	"slices"
 	"testing"
 	"time"
@@ -63,6 +64,7 @@ func TestCreateAndGetSavedSearchSubscription(t *testing.T) {
 		SavedSearchID: savedSearchID,
 		Triggers:      []SubscriptionTrigger{SubscriptionTriggerFeatureBaselineRegressionToLimited},
 		Frequency:     SavedSearchSnapshotTypeImmediate,
+		ChannelType:   nil,
 	}
 	subIDPtr, err := spannerClient.CreateSavedSearchSubscription(ctx, createReq)
 	if err != nil {
@@ -141,6 +143,7 @@ func TestGetSavedSearchSubscriptionFailsForWrongUser(t *testing.T) {
 		SavedSearchID: savedSearchID,
 		Triggers:      []SubscriptionTrigger{SubscriptionTriggerFeatureBaselineRegressionToLimited},
 		Frequency:     SavedSearchSnapshotTypeImmediate,
+		ChannelType:   nil,
 	}
 
 	subToUpdateIDPtr, err := spannerClient.CreateSavedSearchSubscription(ctx, baseCreateReq)
@@ -192,6 +195,7 @@ func TestUpdateSavedSearchSubscription(t *testing.T) {
 		SavedSearchID: savedSearchID,
 		Triggers:      []SubscriptionTrigger{SubscriptionTriggerFeatureBaselinePromoteToNewly},
 		Frequency:     SavedSearchSnapshotTypeImmediate,
+		ChannelType:   nil,
 	}
 
 	subToUpdateIDPtr, err := spannerClient.CreateSavedSearchSubscription(ctx, baseCreateReq)
@@ -265,6 +269,7 @@ func TestDeleteSavedSearchSubscription(t *testing.T) {
 		SavedSearchID: savedSearchID,
 		Triggers:      []SubscriptionTrigger{SubscriptionTriggerFeatureBaselinePromoteToNewly},
 		Frequency:     SavedSearchSnapshotTypeImmediate,
+		ChannelType:   nil,
 	}
 
 	subToDeleteIDPtr, err := spannerClient.CreateSavedSearchSubscription(ctx, baseCreateReq)
@@ -321,11 +326,23 @@ func TestListSavedSearchSubscriptions(t *testing.T) {
 		SavedSearchID: savedSearchID,
 		Triggers:      []SubscriptionTrigger{SubscriptionTriggerFeatureBaselinePromoteToNewly},
 		Frequency:     SavedSearchSnapshotTypeImmediate,
+		ChannelType:   nil,
 	}
 
 	// Create a few subscriptions to list
-	for range 3 {
-		_, err := spannerClient.CreateSavedSearchSubscription(ctx, baseCreateReq)
+	for i := range 3 {
+		savedSearchIDPtr, err := spannerClient.CreateNewUserSavedSearch(ctx, CreateUserSavedSearchRequest{
+			Name:        "Test Search",
+			Query:       fmt.Sprintf("is:widely_%d", i),
+			OwnerUserID: userID,
+			Description: nil,
+		})
+		if err != nil {
+			t.Fatalf("failed to create saved search %d: %v", i, err)
+		}
+		req := baseCreateReq
+		req.SavedSearchID = *savedSearchIDPtr
+		_, err = spannerClient.CreateSavedSearchSubscription(ctx, req)
 		if err != nil {
 			t.Fatalf("failed to create subscription for list test: %v", err)
 		}
@@ -381,6 +398,14 @@ func TestFindAllActivePushSubscriptions(t *testing.T) {
 		t.Fatalf("failed to create saved search: %v", err)
 	}
 	savedSearchID := *savedSearchIDPtr
+
+	savedSearchID2Ptr, err := spannerClient.CreateNewUserSavedSearch(ctx, CreateUserSavedSearchRequest{
+		Name: "Test Search 2", Query: "is:test2", OwnerUserID: userID, Description: nil,
+	})
+	if err != nil {
+		t.Fatalf("failed to create saved search 2: %v", err)
+	}
+	savedSearchID2 := *savedSearchID2Ptr
 
 	// Channel 1: Valid, active EMAIL channel
 	emailChannelReq := CreateNotificationChannelRequest{
@@ -449,6 +474,7 @@ func TestFindAllActivePushSubscriptions(t *testing.T) {
 			SubscriptionTriggerFeatureBaselinePromoteToNewly,
 			SubscriptionTriggerFeatureBaselinePromoteToWidely,
 		},
+		ChannelType: nil,
 	})
 	if err != nil {
 		t.Fatalf("failed to create sub 1: %v", err)
@@ -466,7 +492,8 @@ func TestFindAllActivePushSubscriptions(t *testing.T) {
 
 	// Subscription 3: Wrong frequency
 	_, err = spannerClient.CreateSavedSearchSubscription(ctx, CreateSavedSearchSubscriptionRequest{
-		UserID: userID, ChannelID: emailChannelID, SavedSearchID: savedSearchID, Frequency: "WEEKLY", Triggers: nil,
+		UserID: userID, ChannelID: emailChannelID, SavedSearchID: savedSearchID2, Frequency: "WEEKLY", Triggers: nil,
+		ChannelType: nil,
 	})
 	if err != nil {
 		t.Fatalf("failed to create sub 3: %v", err)
@@ -476,6 +503,7 @@ func TestFindAllActivePushSubscriptions(t *testing.T) {
 	_, err = spannerClient.CreateSavedSearchSubscription(ctx, CreateSavedSearchSubscriptionRequest{
 		UserID: userID, ChannelID: rssChannelID, SavedSearchID: savedSearchID,
 		Frequency: SavedSearchSnapshotTypeImmediate, Triggers: nil,
+		ChannelType: nil,
 	})
 	if err != nil {
 		t.Fatalf("failed to create sub 4: %v", err)
@@ -484,8 +512,9 @@ func TestFindAllActivePushSubscriptions(t *testing.T) {
 	// Subscription 5: Disabled channel
 	_, err = spannerClient.CreateSavedSearchSubscription(ctx, CreateSavedSearchSubscriptionRequest{
 		UserID: userID, ChannelID: disabledChannelID, SavedSearchID: savedSearchID,
-		Frequency: SavedSearchSnapshotTypeImmediate,
-		Triggers:  nil,
+		Frequency:   SavedSearchSnapshotTypeImmediate,
+		Triggers:    nil,
+		ChannelType: nil,
 	})
 	if err != nil {
 		t.Fatalf("failed to create sub 5: %v", err)
@@ -558,7 +587,182 @@ func TestCreateSavedSearchSubscriptionLimitExceeded(t *testing.T) {
 
 	userID := uuid.NewString()
 
-	// Pre-populate dependencies
+	// Create 5 channels to avoid hitting channel limit.
+	channelIDs := make([]string, 0, 5)
+	for i := range 5 {
+		channelReq := CreateNotificationChannelRequest{
+			UserID: userID,
+			Name:   fmt.Sprintf("Channel %d", i),
+			Type:   NotificationChannelTypeEmail,
+			EmailConfig: &EmailConfig{
+				Address:           fmt.Sprintf("test%d@example.com", i),
+				IsVerified:        true,
+				VerificationToken: nil,
+			},
+			WebhookConfig: nil,
+		}
+		channelIDPtr, err := spannerClient.CreateNotificationChannel(ctx, channelReq)
+		if err != nil {
+			t.Fatalf("failed to create channel %d: %v", i, err)
+		}
+		channelIDs = append(channelIDs, *channelIDPtr)
+	}
+
+	// Create 5 saved searches to avoid hitting saved search limit.
+	savedSearchIDs := make([]string, 0, 5)
+	for i := range 5 {
+		savedSearchIDPtr, err := spannerClient.CreateNewUserSavedSearch(ctx, CreateUserSavedSearchRequest{
+			Name:        fmt.Sprintf("Search %d", i),
+			Query:       fmt.Sprintf("is:widely_%d", i),
+			OwnerUserID: userID,
+			Description: nil,
+		})
+		if err != nil {
+			t.Fatalf("failed to create saved search %d: %v", i, err)
+		}
+		savedSearchIDs = append(savedSearchIDs, *savedSearchIDPtr)
+	}
+
+	// Create subscriptions up to the limit (25).
+	count := 0
+	for _, cid := range channelIDs {
+		for _, ssid := range savedSearchIDs {
+			if count >= 25 {
+				break
+			}
+			_, err := spannerClient.CreateSavedSearchSubscription(ctx, CreateSavedSearchSubscriptionRequest{
+				UserID:        userID,
+				ChannelID:     cid,
+				SavedSearchID: ssid,
+				Triggers:      []SubscriptionTrigger{SubscriptionTriggerFeatureBaselineRegressionToLimited},
+				Frequency:     SavedSearchSnapshotTypeImmediate,
+				ChannelType:   nil,
+			})
+			if err != nil {
+				t.Fatalf("failed to create subscription %d: %v", count, err)
+			}
+			count++
+		}
+	}
+
+	// Try to create one more.
+	// Create a 6th saved search to make it unique.
+	savedSearchIDPtr, err := spannerClient.CreateNewUserSavedSearch(ctx, CreateUserSavedSearchRequest{
+		Name:        "Search Limit",
+		Query:       "is:widely_limit",
+		OwnerUserID: userID,
+		Description: nil,
+	})
+	if err != nil {
+		t.Fatalf("failed to create saved search limit: %v", err)
+	}
+	_, err = spannerClient.CreateSavedSearchSubscription(ctx, CreateSavedSearchSubscriptionRequest{
+		UserID:        userID,
+		ChannelID:     channelIDs[0],
+		SavedSearchID: *savedSearchIDPtr,
+		Triggers:      []SubscriptionTrigger{SubscriptionTriggerFeatureBaselineRegressionToLimited},
+		Frequency:     SavedSearchSnapshotTypeImmediate,
+		ChannelType:   nil,
+	})
+	if !errors.Is(err, ErrSubscriptionLimitExceeded) {
+		t.Errorf("expected ErrSubscriptionLimitExceeded, got %v", err)
+	}
+}
+
+func TestCreateSavedSearchSubscriptionRSSResolution(t *testing.T) {
+	ctx := context.Background()
+	restartDatabaseContainer(t)
+
+	userID := uuid.NewString()
+
+	savedSearchIDPtr, err := spannerClient.CreateNewUserSavedSearch(ctx, CreateUserSavedSearchRequest{
+		Name:        "Test Search 1",
+		Query:       "is:widely",
+		OwnerUserID: userID,
+		Description: nil,
+	})
+	if err != nil {
+		t.Fatalf("failed to create saved search 1: %v", err)
+	}
+	savedSearchID1 := *savedSearchIDPtr
+
+	savedSearchID2Ptr, err := spannerClient.CreateNewUserSavedSearch(ctx, CreateUserSavedSearchRequest{
+		Name:        "Test Search 2",
+		Query:       "is:widely2",
+		OwnerUserID: userID,
+		Description: nil,
+	})
+	if err != nil {
+		t.Fatalf("failed to create saved search 2: %v", err)
+	}
+	savedSearchID2 := *savedSearchID2Ptr
+
+	// Create subscription with implicit RSS channel.
+	rssType := NotificationChannelTypeRSS
+	req1 := CreateSavedSearchSubscriptionRequest{
+		UserID:        userID,
+		ChannelID:     "",
+		ChannelType:   &rssType,
+		SavedSearchID: savedSearchID1,
+		Triggers:      []SubscriptionTrigger{SubscriptionTriggerFeatureBaselineRegressionToLimited},
+		Frequency:     SavedSearchSnapshotTypeImmediate,
+	}
+
+	subID1Ptr, err := spannerClient.CreateSavedSearchSubscription(ctx, req1)
+	if err != nil {
+		t.Fatalf("CreateSavedSearchSubscription failed for RSS: %v", err)
+	}
+	subID1 := *subID1Ptr
+
+	// Verify that an RSS channel was created.
+	sub1, err := spannerClient.GetSavedSearchSubscription(ctx, subID1, userID)
+	if err != nil {
+		t.Fatalf("GetSavedSearchSubscription failed: %v", err)
+	}
+	rssChannelID := sub1.ChannelID
+
+	// Verify it is indeed an RSS channel.
+	channel, err := spannerClient.GetNotificationChannel(ctx, rssChannelID, userID)
+	if err != nil {
+		t.Fatalf("GetNotificationChannel failed: %v", err)
+	}
+	if channel.Type != NotificationChannelTypeRSS {
+		t.Errorf("expected channel type to be RSS, got %s", channel.Type)
+	}
+
+	// Create another subscription with implicit RSS channel.
+	req2 := CreateSavedSearchSubscriptionRequest{
+		UserID:        userID,
+		ChannelID:     "",
+		ChannelType:   &rssType,
+		SavedSearchID: savedSearchID2,
+		Triggers:      []SubscriptionTrigger{SubscriptionTriggerFeatureBaselineRegressionToLimited},
+		Frequency:     SavedSearchSnapshotTypeImmediate,
+	}
+
+	subID2Ptr, err := spannerClient.CreateSavedSearchSubscription(ctx, req2)
+	if err != nil {
+		t.Fatalf("CreateSavedSearchSubscription failed for second RSS sub: %v", err)
+	}
+	subID2 := *subID2Ptr
+
+	sub2, err := spannerClient.GetSavedSearchSubscription(ctx, subID2, userID)
+	if err != nil {
+		t.Fatalf("GetSavedSearchSubscription failed: %v", err)
+	}
+
+	if sub2.ChannelID != rssChannelID {
+		t.Errorf("expected reused channel ID %s, got %s", rssChannelID, sub2.ChannelID)
+	}
+}
+
+func TestCreateSavedSearchSubscriptionIdempotency(t *testing.T) {
+	ctx := context.Background()
+	restartDatabaseContainer(t)
+
+	userID := uuid.NewString()
+
+	// Pre-populate dependencies.
 	channelReq := CreateNotificationChannelRequest{
 		UserID:        userID,
 		Name:          "Test",
@@ -583,30 +787,52 @@ func TestCreateSavedSearchSubscriptionLimitExceeded(t *testing.T) {
 	}
 	savedSearchID := *savedSearchIDPtr
 
-	// Create subscriptions up to the limit
-	limit := defaultMaxSubscriptionsPerUser
-	for i := range limit {
-		_, err := spannerClient.CreateSavedSearchSubscription(ctx, CreateSavedSearchSubscriptionRequest{
-			UserID:        userID,
-			ChannelID:     channelID,
-			SavedSearchID: savedSearchID,
-			Triggers:      []SubscriptionTrigger{SubscriptionTriggerFeatureBaselineRegressionToLimited},
-			Frequency:     SavedSearchSnapshotTypeImmediate,
-		})
-		if err != nil {
-			t.Fatalf("failed to create subscription %d: %v", i, err)
-		}
-	}
-
-	// Try to create one more
-	_, err = spannerClient.CreateSavedSearchSubscription(ctx, CreateSavedSearchSubscriptionRequest{
+	createReq := CreateSavedSearchSubscriptionRequest{
 		UserID:        userID,
 		ChannelID:     channelID,
 		SavedSearchID: savedSearchID,
-		Triggers:      []SubscriptionTrigger{SubscriptionTriggerFeatureBaselineRegressionToLimited},
-		Frequency:     SavedSearchSnapshotTypeImmediate,
-	})
-	if !errors.Is(err, ErrSubscriptionLimitExceeded) {
-		t.Errorf("expected ErrSubscriptionLimitExceeded, got %v", err)
+		Triggers: []SubscriptionTrigger{
+			SubscriptionTriggerFeatureBaselineRegressionToLimited,
+			SubscriptionTriggerFeatureBaselinePromoteToNewly,
+		},
+		Frequency:   SavedSearchSnapshotTypeImmediate,
+		ChannelType: nil,
+	}
+
+	subIDPtr, err := spannerClient.CreateSavedSearchSubscription(ctx, createReq)
+	if err != nil {
+		t.Fatalf("CreateSavedSearchSubscription failed: %v", err)
+	}
+	subID := *subIDPtr
+
+	// 1. Idempotent recreation (identical).
+	subID2Ptr, err := spannerClient.CreateSavedSearchSubscription(ctx, createReq)
+	if err != nil {
+		t.Fatalf("Idempotent recreation failed: %v", err)
+	}
+	if *subID2Ptr != subID {
+		t.Errorf("expected same ID %s, got %s", subID, *subID2Ptr)
+	}
+
+	// 2. Idempotent recreation (shuffled triggers).
+	createReqShuffled := createReq
+	createReqShuffled.Triggers = []SubscriptionTrigger{
+		SubscriptionTriggerFeatureBaselinePromoteToNewly,
+		SubscriptionTriggerFeatureBaselineRegressionToLimited,
+	}
+	subID3Ptr, err := spannerClient.CreateSavedSearchSubscription(ctx, createReqShuffled)
+	if err != nil {
+		t.Fatalf("Idempotent recreation with shuffled triggers failed: %v", err)
+	}
+	if *subID3Ptr != subID {
+		t.Errorf("expected same ID %s for shuffled triggers, got %s", subID, *subID3Ptr)
+	}
+
+	// 3. Conflict (different frequency).
+	createReqConflict := createReq
+	createReqConflict.Frequency = SavedSearchSnapshotTypeWeekly
+	_, err = spannerClient.CreateSavedSearchSubscription(ctx, createReqConflict)
+	if !errors.Is(err, ErrSubscriptionConflict) {
+		t.Errorf("expected ErrSubscriptionConflict, got %v", err)
 	}
 }

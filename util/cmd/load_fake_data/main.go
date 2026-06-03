@@ -870,6 +870,7 @@ func generateSubscriptions(ctx context.Context,
 			ChannelID:     channel.ID,
 			Frequency:     sub.Frequency,
 			Triggers:      sub.Triggers,
+			ChannelType:   nil,
 		}, sub.UUID)
 		if err != nil {
 			slog.ErrorContext(ctx, "failed to create subscription with UUID", "uuid", sub.UUID, "error", err)

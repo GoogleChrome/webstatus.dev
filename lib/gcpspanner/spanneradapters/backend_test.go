@@ -791,6 +791,7 @@ func TestCreateSavedSearchSubscriptionMapsLimitError(t *testing.T) {
 			SavedSearchID: "search",
 			Triggers:      []gcpspanner.SubscriptionTrigger{},
 			Frequency:     gcpspanner.SavedSearchSnapshotTypeImmediate,
+			ChannelType:   nil,
 		},
 		result:        nil,
 		returnedError: gcpspanner.ErrSubscriptionLimitExceeded,
@@ -4183,7 +4184,8 @@ func TestCreateSavedSearchSubscription(t *testing.T) {
 					SavedSearchID: savedSearchID,
 					Triggers: []gcpspanner.SubscriptionTrigger{
 						gcpspanner.SubscriptionTriggerBrowserImplementationAnyComplete},
-					Frequency: gcpspanner.SavedSearchSnapshotTypeImmediate,
+					Frequency:   gcpspanner.SavedSearchSnapshotTypeImmediate,
+					ChannelType: nil,
 				},
 				result:        new(subID),
 				returnedError: nil,
@@ -4243,7 +4245,8 @@ func TestCreateSavedSearchSubscription(t *testing.T) {
 					Triggers: []gcpspanner.SubscriptionTrigger{
 						gcpspanner.SubscriptionTriggerBrowserImplementationAnyComplete,
 					},
-					Frequency: gcpspanner.SavedSearchSnapshotTypeImmediate,
+					Frequency:   gcpspanner.SavedSearchSnapshotTypeImmediate,
+					ChannelType: nil,
 				},
 				result:        nil,
 				returnedError: gcpspanner.ErrMissingRequiredRole,
@@ -4270,7 +4273,8 @@ func TestCreateSavedSearchSubscription(t *testing.T) {
 					Triggers: []gcpspanner.SubscriptionTrigger{
 						gcpspanner.SubscriptionTriggerBrowserImplementationAnyComplete,
 					},
-					Frequency: gcpspanner.SavedSearchSnapshotTypeImmediate,
+					Frequency:   gcpspanner.SavedSearchSnapshotTypeImmediate,
+					ChannelType: nil,
 				},
 				result:        nil,
 				returnedError: errTest,
