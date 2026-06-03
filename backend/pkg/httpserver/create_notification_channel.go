@@ -36,8 +36,6 @@ func validateNotificationChannel(input *backend.CreateNotificationChannelRequest
 	var channelType string
 	if cfg, err := input.Config.AsWebhookConfig(); err == nil && cfg.Type == backend.Webhook {
 		channelType = string(cfg.Type)
-	} else if cfg, err := input.Config.AsRSSConfig(); err == nil && cfg.Type == backend.RSSConfigTypeRss {
-		channelType = string(cfg.Type)
 	}
 
 	switch backend.NotificationChannelResponseType(channelType) {
@@ -46,14 +44,15 @@ func validateNotificationChannel(input *backend.CreateNotificationChannelRequest
 		if err := httputils.ValidateSlackWebhookURL(cfg.Url); err != nil {
 			fieldErrors.addFieldError("config.url", err)
 		}
-	case backend.NotificationChannelResponseTypeRss:
-		// Valid! RSS channels currently have no configuration fields to validate.
-	case backend.NotificationChannelResponseTypeEmail:
-		fallthrough
+	case backend.NotificationChannelResponseTypeEmail, backend.NotificationChannelResponseTypeRss:
+		fieldErrors.addFieldError(
+			"config",
+			errors.New("invalid config: only webhook channels can be created manually"),
+		)
 	default:
 		fieldErrors.addFieldError(
 			"config",
-			errors.New("invalid config: only webhook or rss channels can be created manually"),
+			errors.New("invalid config: only webhook channels can be created manually"),
 		)
 	}
 

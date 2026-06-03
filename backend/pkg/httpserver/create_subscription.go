@@ -129,14 +129,19 @@ func validateSubscriptionSavedSearchID(savedSearchID string, fieldErrors *fieldV
 func validateSubscriptionCreation(input *backend.Subscription) *fieldValidationErrors {
 	fieldErrors := &fieldValidationErrors{fieldErrorMap: nil}
 
+	// Enforce XOR constraint for channel_id and channel_type.
+	if (input.ChannelId == nil && input.ChannelType == nil) || (input.ChannelId != nil && input.ChannelType != nil) {
+		err := errors.New("must provide exactly one of 'channel_id' or 'channel_type'")
+		fieldErrors.addFieldError("channel_id", err)
+		fieldErrors.addFieldError("channel_type", err)
+	}
+
 	validateSubscriptionTrigger(&input.Triggers, true, fieldErrors)
 
 	validateSubscriptionFrequency(&input.Frequency, true, fieldErrors)
 
 	if input.ChannelId != nil {
 		validateSubscriptionChannelID(*input.ChannelId, fieldErrors)
-	} else {
-		fieldErrors.addFieldError("channel_id", errSubscriptionChannelIDRequired)
 	}
 
 	validateSubscriptionSavedSearchID(input.SavedSearchId, fieldErrors)
