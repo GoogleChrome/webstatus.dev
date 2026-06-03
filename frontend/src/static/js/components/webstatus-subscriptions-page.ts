@@ -18,7 +18,7 @@ import {LitElement, html, TemplateResult, css} from 'lit';
 import {customElement, state, property} from 'lit/decorators.js';
 import {Task} from '@lit/task';
 import {consume} from '@lit/context';
-import {APIClient} from '../api/client.js';
+import {APIClient, CHANNEL_TYPE_RSS} from '../api/client.js';
 import {apiClientContext} from '../contexts/api-client-context.js';
 import {
   UserContext,
@@ -113,12 +113,12 @@ export class SubscriptionsPage extends LitElement {
     `;
   }
 
-  private _getChannelIcon(
-    type?: components['schemas']['NotificationChannel']['type'],
-  ): string {
+  private _getChannelIcon(type?: string): string {
     switch (type) {
       case 'email':
         return 'envelope';
+      case CHANNEL_TYPE_RSS:
+        return 'rss';
       default:
         return 'bell';
     }
@@ -247,12 +247,20 @@ export class SubscriptionsPage extends LitElement {
                 <strong>${sub.subscribable.name}</strong><br />
                 <small class="hbox channel-info">
                   <sl-icon
-                    name=${this._getChannelIcon(channel?.type)}
+                    name=${this._getChannelIcon(
+                      sub.channel_type ?? channel?.type,
+                    )}
                   ></sl-icon>
-                  <span>${channel?.name ?? sub.channel_id}</span> |
+                  <span
+                    >${sub.channel_type === CHANNEL_TYPE_RSS
+                      ? 'RSS'
+                      : (channel?.name ?? sub.channel_id)}</span
+                  >
+                  |
                   <span>${FREQUENCY_DISPLAY_NAMES[sub.frequency]}</span>
                 </small>
               </div>
+
               <div class="subscription-actions">
                 <sl-button
                   size="small"

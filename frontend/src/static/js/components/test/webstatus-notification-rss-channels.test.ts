@@ -18,26 +18,26 @@ import {assert, fixture, html} from '@open-wc/testing';
 import type {WebstatusNotificationRssChannels} from '../../components/webstatus-notification-rss-channels.js';
 import '../../components/webstatus-notification-rss-channels.js';
 import '../../components/webstatus-notification-panel.js';
+import type {components} from 'webstatus.dev-backend';
+import {APIClient} from '../../api/client.js';
 
 describe('webstatus-notification-rss-channels', () => {
-  it('displays "Coming soon" message', async () => {
+  it('displays "No RSS feeds configured." message', async () => {
     const el = await fixture<WebstatusNotificationRssChannels>(html`
       <webstatus-notification-rss-channels></webstatus-notification-rss-channels>
     `);
-
     const basePanel = el.shadowRoot!.querySelector(
       'webstatus-notification-panel',
     );
     assert.isNotNull(basePanel);
-
-    const comingSoonText = basePanel!.querySelector(
+    const noChannelsText = basePanel!.querySelector(
       '[slot="content"] p',
     ) as HTMLParagraphElement;
-    assert.isNotNull(comingSoonText);
-    assert.include(comingSoonText.textContent, 'Coming soon');
+    assert.isNotNull(noChannelsText);
+    assert.include(noChannelsText.textContent, 'No RSS feeds configured.');
   });
 
-  it('displays "Create RSS channel" button', async () => {
+  it('does not display "Create RSS channel" button', async () => {
     const el = await fixture<WebstatusNotificationRssChannels>(html`
       <webstatus-notification-rss-channels></webstatus-notification-rss-channels>
     `);
@@ -47,13 +47,64 @@ describe('webstatus-notification-rss-channels', () => {
     );
     assert.isNotNull(basePanel);
 
-    const createButton = basePanel!.querySelector(
-      '[slot="actions"] sl-button',
-    ) as HTMLButtonElement;
-    assert.isNotNull(createButton);
-    assert.include(
-      createButton.textContent!.trim().replace(/\s+/g, ' '),
-      'Create RSS channel',
+    const actionsSlot = basePanel!.querySelector('[slot="actions"]');
+    if (actionsSlot) {
+      const button = actionsSlot.querySelector('sl-button');
+      assert.isNull(button);
+    }
+  });
+
+  it('displays list of subscriptions', async () => {
+    const mockApiClient = {
+      getBaseUrl: () => 'http://localhost:8080',
+    } as unknown as APIClient;
+    const mockSubscriptions: components['schemas']['SubscriptionResponse'][] = [
+      {
+        id: 'sub-1',
+        channel_id: 'channel-1',
+        channel_type: 'rss',
+        frequency: 'immediate',
+        triggers: [],
+        subscribable: {
+          id: 'search-1',
+          name: 'My Search 1',
+        },
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+      {
+        id: 'sub-2',
+        channel_id: 'channel-2',
+        channel_type: 'rss',
+        frequency: 'weekly',
+        triggers: [],
+        subscribable: {
+          id: 'search-2',
+          name: 'My Search 2',
+        },
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+    ];
+
+    const el = await fixture<WebstatusNotificationRssChannels>(html`
+      <webstatus-notification-rss-channels
+        .subscriptions=${mockSubscriptions}
+        .apiClient=${mockApiClient}
+      ></webstatus-notification-rss-channels>
+    `);
+
+    const basePanel = el.shadowRoot!.querySelector(
+      'webstatus-notification-panel',
     );
+    assert.isNotNull(basePanel);
+
+    const channelItems = basePanel!.querySelectorAll('.channel-item');
+    assert.equal(channelItems.length, 2);
+
+    assert.include(channelItems[0].textContent, 'My Search 1');
+    assert.include(channelItems[0].textContent, '/v1/subscriptions/sub-1/rss');
+    assert.include(channelItems[1].textContent, 'My Search 2');
+    assert.include(channelItems[1].textContent, '/v1/subscriptions/sub-2/rss');
   });
 });

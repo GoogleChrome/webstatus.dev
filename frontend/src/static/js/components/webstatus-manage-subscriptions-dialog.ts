@@ -19,7 +19,7 @@ import {Task} from '@lit/task';
 import {LitElement, html, css, TemplateResult, nothing} from 'lit';
 import {customElement, property, query, state} from 'lit/decorators.js';
 import {apiClientContext} from '../contexts/api-client-context.js';
-import {APIClient} from '../api/client.js';
+import {APIClient, CHANNEL_TYPE_RSS} from '../api/client.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
 import {type components} from 'webstatus.dev-backend';
 import {
@@ -485,6 +485,32 @@ export class ManageSubscriptionsDialog extends LitElement {
               </div>
             `,
           )}
+          ${(() => {
+            const hasRSS = this._subscriptionsForSavedSearch.some(
+              s => s.channel_type === CHANNEL_TYPE_RSS,
+            );
+            const rssLabel = hasRSS ? 'RSS link' : 'Create RSS link';
+            return html`
+              <div
+                class="channel-item ${this._activeChannelId === CHANNEL_TYPE_RSS
+                  ? 'selected'
+                  : ''}"
+                @click=${() => this._handleChannelChange(CHANNEL_TYPE_RSS)}
+                role="radio"
+                aria-checked=${this._activeChannelId === CHANNEL_TYPE_RSS}
+                tabindex="0"
+              >
+                <sl-icon name="rss"></sl-icon>
+                <span>${rssLabel}</span>
+                ${hasRSS
+                  ? html`<sl-icon
+                      class="subscription-indicator"
+                      name="circle-fill"
+                    ></sl-icon>`
+                  : nothing}
+              </div>
+            `;
+          })()}
         </div>
 
         <div class="settings-panel">
@@ -600,9 +626,14 @@ export class ManageSubscriptionsDialog extends LitElement {
     this._actionState = {phase: 'saving'};
     try {
       const token = await this.userContext.user.getIdToken();
-      const existingSub = this._subscriptionsForSavedSearch.find(
-        s => s.channel_id === this._activeChannelId,
-      );
+      const existingSub =
+        this._activeChannelId === CHANNEL_TYPE_RSS
+          ? this._subscriptionsForSavedSearch.find(
+              s => s.channel_type === CHANNEL_TYPE_RSS,
+            )
+          : this._subscriptionsForSavedSearch.find(
+              s => s.channel_id === this._activeChannelId,
+            );
 
       if (existingSub) {
         // Update
@@ -626,12 +657,17 @@ export class ManageSubscriptionsDialog extends LitElement {
         await this.apiClient.updateSubscription(existingSub.id, token, updates);
       } else {
         // Create
-        await this.apiClient.createSubscription(token, {
+        const payload: components['schemas']['Subscription'] = {
           saved_search_id: this.savedSearchId,
-          channel_id: this._activeChannelId,
           frequency: this._selectedFrequency,
           triggers: this._selectedTriggers,
-        });
+        };
+        if (this._activeChannelId === CHANNEL_TYPE_RSS) {
+          payload.channel_type = CHANNEL_TYPE_RSS;
+        } else if (this._activeChannelId) {
+          payload.channel_id = this._activeChannelId;
+        }
+        await this.apiClient.createSubscription(token, payload);
       }
       this.dispatchEvent(new SubscriptionSaveSuccessEvent());
       this._actionState = {
@@ -744,12 +780,19 @@ export class ManageSubscriptionsDialog extends LitElement {
 
   private _switchChannel(channelId: string) {
     this._activeChannelId = channelId;
-    const sub = this._subscriptionsForSavedSearch.find(
-      s => s.channel_id === channelId,
-    );
+    const sub =
+      channelId === CHANNEL_TYPE_RSS
+        ? this._subscriptionsForSavedSearch.find(
+            s => s.channel_type === CHANNEL_TYPE_RSS,
+          )
+        : this._subscriptionsForSavedSearch.find(
+            s => s.channel_id === channelId,
+          );
     if (sub) {
       this._subscription = sub;
-      this._activeChannelId = sub.channel_id;
+      // Keep 'rss' as active ID if it was selected, otherwise use channel_id.
+      this._activeChannelId =
+        channelId === CHANNEL_TYPE_RSS ? CHANNEL_TYPE_RSS : sub.channel_id;
       this._selectedTriggers = sub.triggers
         .map(t => t.value)
         .filter(isSubscriptionTrigger);

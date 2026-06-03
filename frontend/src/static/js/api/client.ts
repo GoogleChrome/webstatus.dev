@@ -194,6 +194,8 @@ export const ALL_CHANNELS: ChannelsParameter[] = [
   EXPERIMENTAL_CHANNEL,
 ];
 
+export const CHANNEL_TYPE_RSS = 'rss';
+
 export const TEST_COUNT_METRIC_VIEW: components['schemas']['WPTMetricView'] =
   'test_counts';
 export const SUBTEST_COUNT_METRIC_VIEW: components['schemas']['WPTMetricView'] =
@@ -295,11 +297,17 @@ function base64urlEncode(str: string): string {
 
 export class APIClient {
   private readonly client: ReturnType<typeof createClient<paths>>;
+  private readonly baseUrl: string;
   constructor(baseUrl: string) {
+    this.baseUrl = baseUrl;
     this.client = createClient<paths>({
       baseUrl,
       ...fetchOptions,
     });
+  }
+
+  public getBaseUrl(): string {
+    return this.baseUrl;
   }
 
   // Internal client detail for constructing a FeatureResultOffsetCursor pagination token.

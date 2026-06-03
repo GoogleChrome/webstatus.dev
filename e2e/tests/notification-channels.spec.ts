@@ -60,7 +60,6 @@ test.describe('Notification Channels Page', () => {
     // Verify RSS panel content.
     const rssPanel = page.locator('webstatus-notification-rss-channels');
     await expect(rssPanel).toBeVisible();
-    await expect(rssPanel).toContainText('Coming soon');
 
     // Verify Webhook panel content.
     const webhookPanel = page.locator(
