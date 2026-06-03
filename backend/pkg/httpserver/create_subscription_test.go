@@ -30,6 +30,7 @@ import (
 
 func TestCreateSubscription(t *testing.T) {
 	now := time.Now()
+	channelIDStr := "channel-id"
 	testUser := &auth.User{
 		ID:           "test-user",
 		GitHubUserID: nil,
@@ -48,11 +49,12 @@ func TestCreateSubscription(t *testing.T) {
 			cfg: &MockCreateSavedSearchSubscriptionConfig{
 				expectedUserID: "test-user",
 				expectedSubscription: backend.Subscription{
-					ChannelId:     "channel-id",
+					ChannelId:     &channelIDStr,
 					SavedSearchId: "search-id",
 					Triggers: []backend.SubscriptionTriggerWritable{
 						backend.SubscriptionTriggerFeatureBrowserImplementationAnyComplete},
-					Frequency: "immediate",
+					Frequency:   "immediate",
+					ChannelType: nil,
 				},
 				output: &backend.SubscriptionResponse{
 					Id: "sub-id",
@@ -68,9 +70,10 @@ func TestCreateSubscription(t *testing.T) {
 							RawValue: nil,
 						},
 					},
-					Frequency: "immediate",
-					CreatedAt: now,
-					UpdatedAt: now,
+					Frequency:   "immediate",
+					CreatedAt:   now,
+					UpdatedAt:   now,
+					ChannelType: "",
 				},
 				err: nil,
 			},
@@ -90,6 +93,7 @@ func TestCreateSubscription(t *testing.T) {
 				"id":"sub-id",
 				"subscribable": {"id":"search-id", "name":"Feature name"},
 				"channel_id":"channel-id",
+				"channel_type":"",
 				"triggers": [{"value":"feature_browser_implementation_any_complete"}],
 				"frequency":"immediate",
 				"created_at":"`+now.Format(time.RFC3339Nano)+`",
@@ -124,11 +128,12 @@ func TestCreateSubscription(t *testing.T) {
 			cfg: &MockCreateSavedSearchSubscriptionConfig{
 				expectedUserID: "test-user",
 				expectedSubscription: backend.Subscription{
-					ChannelId:     "channel-id",
+					ChannelId:     &channelIDStr,
 					SavedSearchId: "search-id",
 					Triggers: []backend.SubscriptionTriggerWritable{
 						backend.SubscriptionTriggerFeatureBrowserImplementationAnyComplete},
-					Frequency: "immediate",
+					Frequency:   "immediate",
+					ChannelType: nil,
 				},
 				output: nil,
 				err:    backendtypes.ErrUserNotAuthorizedForAction,
@@ -154,11 +159,12 @@ func TestCreateSubscription(t *testing.T) {
 			cfg: &MockCreateSavedSearchSubscriptionConfig{
 				expectedUserID: "test-user",
 				expectedSubscription: backend.Subscription{
-					ChannelId:     "channel-id",
+					ChannelId:     &channelIDStr,
 					SavedSearchId: "search-id",
 					Triggers: []backend.SubscriptionTriggerWritable{
 						backend.SubscriptionTriggerFeatureBrowserImplementationAnyComplete},
-					Frequency: "immediate",
+					Frequency:   "immediate",
+					ChannelType: nil,
 				},
 				output: nil,
 				err:    backendtypes.ErrUserMaxSubscriptions,
@@ -184,11 +190,12 @@ func TestCreateSubscription(t *testing.T) {
 			cfg: &MockCreateSavedSearchSubscriptionConfig{
 				expectedUserID: "test-user",
 				expectedSubscription: backend.Subscription{
-					ChannelId:     "channel-id",
+					ChannelId:     &channelIDStr,
 					SavedSearchId: "search-id",
 					Triggers: []backend.SubscriptionTriggerWritable{
 						backend.SubscriptionTriggerFeatureBrowserImplementationAnyComplete},
-					Frequency: "immediate",
+					Frequency:   "immediate",
+					ChannelType: nil,
 				},
 				output: nil,
 				err:    fmt.Errorf("database error"),
@@ -230,6 +237,7 @@ func TestCreateSubscription(t *testing.T) {
 }
 
 func TestValidateSubscriptionCreation(t *testing.T) {
+	channelIDStr := "channel-id"
 	testCases := []struct {
 		name  string
 		input *backend.Subscription
@@ -238,22 +246,24 @@ func TestValidateSubscriptionCreation(t *testing.T) {
 		{
 			name: "valid subscription",
 			input: &backend.Subscription{
-				ChannelId:     "channel-id",
+				ChannelId:     &channelIDStr,
 				SavedSearchId: "search-id",
 				Triggers: []backend.SubscriptionTriggerWritable{
 					backend.SubscriptionTriggerFeatureBrowserImplementationAnyComplete},
-				Frequency: backend.SubscriptionFrequencyImmediate,
+				Frequency:   backend.SubscriptionFrequencyImmediate,
+				ChannelType: nil,
 			},
 			want: nil,
 		},
 		{
 			name: "invalid channel id",
 			input: &backend.Subscription{
-				ChannelId:     "",
-				SavedSearchId: "searchid",
+				ChannelId:     nil,
+				SavedSearchId: "search-id",
 				Triggers: []backend.SubscriptionTriggerWritable{
 					backend.SubscriptionTriggerFeatureBrowserImplementationAnyComplete},
-				Frequency: backend.SubscriptionFrequencyImmediate,
+				Frequency:   backend.SubscriptionFrequencyImmediate,
+				ChannelType: nil,
 			},
 			want: &fieldValidationErrors{
 				fieldErrorMap: map[string]string{
@@ -264,11 +274,12 @@ func TestValidateSubscriptionCreation(t *testing.T) {
 		{
 			name: "invalid saved search id",
 			input: &backend.Subscription{
-				ChannelId:     "channelid",
+				ChannelId:     &channelIDStr,
 				SavedSearchId: "",
 				Triggers: []backend.SubscriptionTriggerWritable{
 					backend.SubscriptionTriggerFeatureBrowserImplementationAnyComplete},
-				Frequency: backend.SubscriptionFrequencyImmediate,
+				Frequency:   backend.SubscriptionFrequencyImmediate,
+				ChannelType: nil,
 			},
 			want: &fieldValidationErrors{
 				fieldErrorMap: map[string]string{
@@ -279,11 +290,12 @@ func TestValidateSubscriptionCreation(t *testing.T) {
 		{
 			name: "invalid trigger",
 			input: &backend.Subscription{
-				ChannelId:     "channelid",
-				SavedSearchId: "searchid",
+				ChannelId:     &channelIDStr,
+				SavedSearchId: "search-id",
 				Triggers: []backend.SubscriptionTriggerWritable{
 					"invalid_trigger"},
-				Frequency: backend.SubscriptionFrequencyImmediate,
+				Frequency:   backend.SubscriptionFrequencyImmediate,
+				ChannelType: nil,
 			},
 			want: &fieldValidationErrors{
 				fieldErrorMap: map[string]string{
@@ -294,11 +306,12 @@ func TestValidateSubscriptionCreation(t *testing.T) {
 		{
 			name: "invalid frequency",
 			input: &backend.Subscription{
-				ChannelId:     "channelid",
-				SavedSearchId: "searchid",
+				ChannelId:     &channelIDStr,
+				SavedSearchId: "search-id",
 				Triggers: []backend.SubscriptionTriggerWritable{
 					backend.SubscriptionTriggerFeatureBrowserImplementationAnyComplete},
-				Frequency: "invalid_frequency",
+				Frequency:   "invalid_frequency",
+				ChannelType: nil,
 			},
 			want: &fieldValidationErrors{
 				fieldErrorMap: map[string]string{

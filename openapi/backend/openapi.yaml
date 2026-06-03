@@ -2104,6 +2104,17 @@ components:
           type: string
         channel_id:
           type: string
+          nullable: true
+          description: >
+            Explicit Mode: Provide a specific channel ID. Required for manual channels (Webhook/Email).
+            Mutually exclusive with 'channel_type'.
+        channel_type:
+          type: string
+          enum: [rss]
+          nullable: true
+          description: >
+            Implicit Mode: Provide a channel type. Used for system-managed channels (e.g., 'rss') where the system automatically resolves or creates the channel.
+            Mutually exclusive with 'channel_id'.
         frequency:
           $ref: '#/components/schemas/SubscriptionFrequency'
         triggers:
@@ -2112,7 +2123,6 @@ components:
             $ref: '#/components/schemas/SubscriptionTriggerWritable'
       required:
         - saved_search_id
-        - channel_id
         - frequency
         - triggers
     SavedSearchInfo:
@@ -2127,27 +2137,43 @@ components:
         - name
 
     SubscriptionResponse:
-      allOf:
-        - $ref: '#/components/schemas/GenericUpdatableUniqueModel'
-        - type: object
-          properties:
-            # We're calling this 'subscribable' to be generic for the future,
-            # even though it will only contain SavedSearchInfo for now.
-            subscribable:
-              $ref: '#/components/schemas/SavedSearchInfo'
-            channel_id:
-              type: string
-            frequency:
-              $ref: '#/components/schemas/SubscriptionFrequency'
-            triggers:
-              type: array
-              items:
-                $ref: '#/components/schemas/SubscriptionTriggerResponseItem'
-          required:
-            - triggers
-            - frequency
-            - subscribable
-            - channel_id
+      type: object
+      properties:
+        id:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        # We're calling this 'subscribable' to be generic for the future,
+        # even though it will only contain SavedSearchInfo for now.
+        subscribable:
+          $ref: '#/components/schemas/SavedSearchInfo'
+        channel_id:
+          type: string
+        channel_type:
+          type: string
+          enum: [email, webhook, rss]
+          description: >
+            Self-describing type to allow the UI to identify the delivery mode
+            without fetching the underlying channel.
+        frequency:
+          $ref: '#/components/schemas/SubscriptionFrequency'
+        triggers:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubscriptionTriggerResponseItem'
+      required:
+        - id
+        - created_at
+        - updated_at
+        - triggers
+        - frequency
+        - subscribable
+        - channel_id
+        - channel_type
     SubscriptionPage:
       type: object
       properties:
