@@ -552,6 +552,8 @@ func (s *Backend) GetNotificationChannel(ctx context.Context,
 	if err != nil {
 		if errors.Is(err, gcpspanner.ErrMissingRequiredRole) {
 			return nil, errors.Join(err, backendtypes.ErrUserNotAuthorizedForAction)
+		} else if errors.Is(err, gcpspanner.ErrNotificationChannelNotFound) {
+			return nil, errors.Join(err, backendtypes.ErrEntityDoesNotExist)
 		} else if errors.Is(err, gcpspanner.ErrQueryReturnedNoResults) {
 			return nil, errors.Join(err, backendtypes.ErrEntityDoesNotExist)
 		}
@@ -567,6 +569,8 @@ func (s *Backend) DeleteNotificationChannel(ctx context.Context, userID, channel
 	if err != nil {
 		if errors.Is(err, gcpspanner.ErrMissingRequiredRole) {
 			return errors.Join(err, backendtypes.ErrUserNotAuthorizedForAction)
+		} else if errors.Is(err, gcpspanner.ErrNotificationChannelNotFound) {
+			return errors.Join(err, backendtypes.ErrEntityDoesNotExist)
 		} else if errors.Is(err, gcpspanner.ErrQueryReturnedNoResults) {
 			return errors.Join(err, backendtypes.ErrEntityDoesNotExist)
 		}
@@ -670,6 +674,8 @@ func (s *Backend) UpdateNotificationChannel(
 	existing, err := s.client.GetNotificationChannel(ctx, channelID, userID)
 	if err != nil {
 		if errors.Is(err, gcpspanner.ErrQueryReturnedNoResults) {
+			return nil, errors.Join(err, backendtypes.ErrEntityDoesNotExist)
+		} else if errors.Is(err, gcpspanner.ErrNotificationChannelNotFound) {
 			return nil, errors.Join(err, backendtypes.ErrEntityDoesNotExist)
 		}
 
@@ -1948,6 +1954,11 @@ func (s *Backend) CreateSavedSearchSubscription(ctx context.Context,
 		ChannelType:   nil,
 	}
 
+	if req.ChannelType != nil {
+		t := gcpspanner.NotificationChannelType(*req.ChannelType)
+		createReq.ChannelType = &t
+	}
+
 	id, err := s.client.CreateSavedSearchSubscription(ctx, createReq)
 	if err != nil {
 		if errors.Is(err, gcpspanner.ErrMissingRequiredRole) {
@@ -2097,7 +2108,7 @@ func toBackendSubscription(sub *gcpspanner.SavedSearchSubscriptionView) *backend
 			Name: sub.SavedSearchName,
 		},
 		ChannelId:   sub.ChannelID,
-		ChannelType: "",
+		ChannelType: backend.SubscriptionResponseChannelType(sub.ChannelType),
 		Triggers:    spannerTriggersToBackendTriggers(sub.Triggers),
 		Frequency:   toBackendSubscriptionFrequency(sub.Frequency),
 		CreatedAt:   sub.CreatedAt,

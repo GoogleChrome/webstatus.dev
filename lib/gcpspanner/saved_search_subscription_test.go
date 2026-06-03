@@ -22,6 +22,7 @@ import (
 	"testing"
 	"time"
 
+	"cloud.google.com/go/spanner"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/google/uuid"
@@ -87,6 +88,7 @@ func TestCreateAndGetSavedSearchSubscription(t *testing.T) {
 			UpdatedAt:     time.Time{},
 		},
 		SavedSearchName: "Test Search",
+		ChannelType:     string(channelReq.Type),
 	}
 	if diff := cmp.Diff(expected, retrieved,
 		cmpopts.IgnoreFields(SavedSearchSubscriptionView{
@@ -100,6 +102,7 @@ func TestCreateAndGetSavedSearchSubscription(t *testing.T) {
 				UpdatedAt:     time.Time{},
 			},
 			SavedSearchName: "",
+			ChannelType:     "",
 		},
 			"SavedSearchSubscription.CreatedAt", "SavedSearchSubscription.UpdatedAt")); diff != "" {
 		t.Errorf("GetSavedSearchSubscription mismatch (-want +got):\n%s", diff)
@@ -722,12 +725,16 @@ func TestCreateSavedSearchSubscriptionRSSResolution(t *testing.T) {
 	rssChannelID := sub1.ChannelID
 
 	// Verify it is indeed an RSS channel.
-	channel, err := spannerClient.GetNotificationChannel(ctx, rssChannelID, userID)
+	var channelType string
+	row, err := spannerClient.Single().ReadRow(ctx, "NotificationChannels", spanner.Key{rssChannelID}, []string{"Type"})
 	if err != nil {
-		t.Fatalf("GetNotificationChannel failed: %v", err)
+		t.Fatalf("failed to read channel from Spanner: %v", err)
 	}
-	if channel.Type != NotificationChannelTypeRSS {
-		t.Errorf("expected channel type to be RSS, got %s", channel.Type)
+	if err := row.Column(0, &channelType); err != nil {
+		t.Fatalf("failed to get channel type: %v", err)
+	}
+	if channelType != string(NotificationChannelTypeRSS) {
+		t.Errorf("expected channel type to be RSS, got %s", channelType)
 	}
 
 	// Create another subscription with implicit RSS channel.

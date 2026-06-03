@@ -28,6 +28,11 @@ import (
 
 const notificationChannelTable = "NotificationChannels"
 
+var (
+	// ErrNotificationChannelNotFound indicates that the notification channel was not found or access is denied.
+	ErrNotificationChannelNotFound = errors.New("notification channel not found")
+)
+
 // EmailConfig represents the JSON structure for an email notification channel.
 type EmailConfig struct {
 	Address           string  `json:"address,omitempty"`
@@ -272,10 +277,18 @@ func loadSubscriptionConfigs(
 }
 
 func (c *Client) checkNotificationChannelOwnership(
-	ctx context.Context, channelID string, userID string, txn *spanner.ReadWriteTransaction,
+	ctx context.Context, channelID string, userID string, txn *spanner.ReadWriteTransaction, allowSystemChannels bool,
 ) error {
+	typeFilter := ""
+	if !allowSystemChannels {
+		typeFilter = " AND Type != 'rss'"
+	}
 	stmt := spanner.Statement{
-		SQL: fmt.Sprintf(`SELECT ID FROM %s WHERE ID = @channelID AND UserID = @userID`, notificationChannelTable),
+		SQL: fmt.Sprintf(
+			`SELECT ID FROM %s WHERE ID = @channelID AND UserID = @userID%s`,
+			notificationChannelTable,
+			typeFilter,
+		),
 		Params: map[string]any{
 			"channelID": channelID,
 			"userID":    userID,
@@ -287,9 +300,9 @@ func (c *Client) checkNotificationChannelOwnership(
 
 	_, err := iter.Next()
 	if err != nil {
-		// No row found. User does not have a role.
+		// No row found.
 		if errors.Is(err, iterator.Done) {
-			return errors.Join(ErrMissingRequiredRole, err)
+			return errors.Join(ErrNotificationChannelNotFound, err)
 		}
 		slog.ErrorContext(ctx, "failed to query user role", "error", err)
 
@@ -424,7 +437,7 @@ func (c *Client) GetNotificationChannel(
 	ctx context.Context, channelID string, userID string) (*NotificationChannel, error) {
 	var spannerChannel *spannerNotificationChannel
 	_, err := c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
-		err := c.checkNotificationChannelOwnership(ctx, channelID, userID, txn)
+		err := c.checkNotificationChannelOwnership(ctx, channelID, userID, txn, false)
 		if err != nil {
 			return err
 		}
@@ -491,7 +504,7 @@ func (m listNotificationChannelsMapper) SelectList(req ListNotificationChannelsR
 	query := fmt.Sprintf(`SELECT
 		ID, UserID, Name, Type, Config, CreatedAt, UpdatedAt
 	FROM NotificationChannels
-	WHERE UserID = @userID %s
+	WHERE UserID = @userID AND Type != 'rss' %s
 	ORDER BY UpdatedAt DESC, ID ASC
 	LIMIT @pageSize`, pageFilter)
 	stmt := spanner.NewStatement(query)
@@ -524,7 +537,7 @@ func (c *Client) ListNotificationChannels(
 func (c *Client) UpdateNotificationChannel(
 	ctx context.Context, req UpdateNotificationChannelRequest) error {
 	_, err := c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
-		err := c.checkNotificationChannelOwnership(ctx, req.ID, req.UserID, txn)
+		err := c.checkNotificationChannelOwnership(ctx, req.ID, req.UserID, txn, false)
 		if err != nil {
 			return err
 		}
@@ -547,7 +560,7 @@ func (m removeNotificationChannelMapper) GetKeyFromExternal(id string) string { 
 func (c *Client) DeleteNotificationChannel(
 	ctx context.Context, channelID string, userID string) error {
 	_, err := c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
-		err := c.checkNotificationChannelOwnership(ctx, channelID, userID, txn)
+		err := c.checkNotificationChannelOwnership(ctx, channelID, userID, txn, false)
 		if err != nil {
 			return err
 		}
