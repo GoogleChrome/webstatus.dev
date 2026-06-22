@@ -164,10 +164,10 @@ resource "google_cloud_run_v2_service" "service" {
         timeout_seconds       = 10
       }
       startup_probe {
-        initial_delay_seconds = 0
+        initial_delay_seconds = 5
         timeout_seconds       = 1
-        period_seconds        = 1 # Checked every 1s to minimize serialized boot delay to ~1s
-        failure_threshold     = 30 # Up to 30s budget to absorb cold-start spikes
+        period_seconds        = 3
+        failure_threshold     = 10
         tcp_socket {
           port = 4319
         }
@@ -339,4 +339,30 @@ resource "google_compute_managed_ssl_certificate" "lb_default" {
   managed {
     domains = var.domains
   }
+}
+
+# --- Telemetry IAM Permissions for Backend Service Account ---
+
+# Grant Cloud Trace Agent role to allow exporting traces directly or via OTel sidecar.
+resource "google_project_iam_member" "backend_trace_agent" {
+  provider = google.public_project
+  project  = var.projects.public
+  role     = "roles/cloudtrace.agent"
+  member   = "serviceAccount:${google_service_account.backend.email}"
+}
+
+# Grant Monitoring Metric Writer role to allow exporting metrics.
+resource "google_project_iam_member" "backend_metric_writer" {
+  provider = google.public_project
+  project  = var.projects.public
+  role     = "roles/monitoring.metricWriter"
+  member   = "serviceAccount:${google_service_account.backend.email}"
+}
+
+# Grant Logging Log Writer role to allow exporting structured logs.
+resource "google_project_iam_member" "backend_log_writer" {
+  provider = google.public_project
+  project  = var.projects.public
+  role     = "roles/logging.logWriter"
+  member   = "serviceAccount:${google_service_account.backend.email}"
 }

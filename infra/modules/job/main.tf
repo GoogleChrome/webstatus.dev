@@ -94,3 +94,29 @@ resource "google_project_iam_member" "datastore_user" {
   project = var.spanner_project_id
   member  = google_service_account.job_service_account.member
 }
+
+# --- Telemetry IAM Permissions for Ingestion Job Service Accounts ---
+
+# Grant Cloud Trace Agent role to allow exporting traces.
+resource "google_project_iam_member" "job_trace_agent" {
+  provider = google.internal_project
+  project  = var.spanner_project_id
+  role     = "roles/cloudtrace.agent"
+  member   = google_service_account.job_service_account.member
+}
+
+# Grant Monitoring Metric Writer role to allow exporting metrics.
+resource "google_project_iam_member" "job_metric_writer" {
+  provider = google.internal_project
+  project  = var.spanner_project_id
+  role     = "roles/monitoring.metricWriter"
+  member   = google_service_account.job_service_account.member
+}
+
+# Grant Logging Log Writer role to allow exporting structured logs.
+resource "google_project_iam_member" "job_log_writer" {
+  provider = google.internal_project
+  project  = var.spanner_project_id
+  role     = "roles/logging.logWriter"
+  member   = google_service_account.job_service_account.member
+}

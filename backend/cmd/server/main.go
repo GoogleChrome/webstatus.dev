@@ -180,7 +180,6 @@ func main() {
 		// Prepend the opentelemetry middleware
 		preRequestMiddlewares = slices.Insert(preRequestMiddlewares, 0, opentelemetry.NewOpenTelemetryChiMiddleware())
 	}
-	// FOO
 
 	var ghOptions []gh.ClientOption
 	if gitHubAPIBaseRawURL := os.Getenv("GITHUB_API_BASE_URL"); gitHubAPIBaseRawURL != "" {
