@@ -22,6 +22,7 @@ import (
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters"
+	"github.com/GoogleChrome/webstatus.dev/lib/opentelemetry"
 	"github.com/GoogleChrome/webstatus.dev/lib/workerpool"
 	"github.com/GoogleChrome/webstatus.dev/workflows/steps/services/web_features_mapping_consumer/pkg/data"
 	"github.com/GoogleChrome/webstatus.dev/workflows/steps/services/web_features_mapping_consumer/pkg/workflow"
@@ -34,6 +35,17 @@ const (
 
 func main() {
 	ctx := context.Background()
+
+	shutdown, err := opentelemetry.MaybeSetup(ctx)
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to setup opentelemetry", "error", err.Error())
+		os.Exit(1)
+	}
+	defer func() {
+		if err := shutdown(ctx); err != nil {
+			slog.ErrorContext(ctx, "unable to shutdown opentelemetry", "error", err)
+		}
+	}()
 
 	// Configuration and Client Setup
 	projectID := os.Getenv("PROJECT_ID")

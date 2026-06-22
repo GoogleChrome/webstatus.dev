@@ -70,6 +70,41 @@ resource "google_cloud_run_v2_worker_pool" "worker" {
         name  = "NOTIFICATION_TOPIC_ID"
         value = var.notification_topic_id
       }
+      env {
+        name  = "OTEL_SERVICE_NAME"
+        value = "event-producer"
+      }
+      env {
+        name  = "OTEL_GCP_PROJECT_ID"
+        value = var.otel_project_id
+      }
+      env {
+        name  = "OTEL_EXPORTER_OTLP_ENDPOINT"
+        value = var.otel_collector_endpoint
+      }
+    }
+    containers {
+      name  = "otel"
+      image = var.otel_collector_image
+      args  = ["--config=${var.otel_collector_config_mount_path}/config.yaml"]
+      env {
+        name  = "OTEL_COLLECTOR_REGION"
+        value = each.key
+      }
+      volume_mounts {
+        name       = "otel-config"
+        mount_path = var.otel_collector_config_mount_path
+      }
+    }
+    volumes {
+      name = "otel-config"
+      secret {
+        secret = var.otel_config_secret_id
+        items {
+          version = "latest"
+          path    = "config.yaml"
+        }
+      }
     }
   }
 }

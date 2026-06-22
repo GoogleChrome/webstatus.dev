@@ -46,13 +46,11 @@ resource "docker_registry_image" "backend_remote_image" {
 data "google_project" "host_project" {
 }
 
-module "otel_sidecar" {
-  source = "../modules/otel"
-  providers = {
-    google.project = google.public_project
-  }
-  docker_repository_details = var.docker_repository_details
-  service_account           = google_service_account.backend.member
+resource "google_secret_manager_secret_iam_member" "backend_otel_config_secret_access" {
+  provider  = google.internal_project
+  secret_id = var.otel_config_secret_id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.backend.email}"
 }
 
 resource "google_cloud_run_v2_service" "service" {
@@ -125,7 +123,7 @@ resource "google_cloud_run_v2_service" "service" {
       }
       env {
         name  = "OTEL_EXPORTER_OTLP_ENDPOINT"
-        value = "http://localhost:4318"
+        value = var.otel_collector_endpoint
       }
       env {
         name  = "OTEL_SERVICE_NAME"
@@ -150,7 +148,16 @@ resource "google_cloud_run_v2_service" "service" {
     }
     containers {
       name  = "otel"
-      image = module.otel_sidecar.otel_image
+      image = var.otel_collector_image
+      args  = ["--config=${var.otel_collector_config_mount_path}/config.yaml"]
+      env {
+        name  = "OTEL_COLLECTOR_REGION"
+        value = each.key
+      }
+      volume_mounts {
+        name       = "otel-config"
+        mount_path = var.otel_collector_config_mount_path
+      }
       liveness_probe {
         http_get {
           port = 4319
@@ -162,7 +169,7 @@ resource "google_cloud_run_v2_service" "service" {
         timeout_seconds       = 10
       }
       startup_probe {
-        initial_delay_seconds = 0
+        initial_delay_seconds = 5
         timeout_seconds       = 1
         period_seconds        = 3
         failure_threshold     = 10
@@ -178,6 +185,16 @@ resource "google_cloud_run_v2_service" "service" {
       }
       egress = "PRIVATE_RANGES_ONLY"
     }
+    volumes {
+      name = "otel-config"
+      secret {
+        secret = var.otel_config_secret_id
+        items {
+          version = "latest"
+          path    = "config.yaml"
+        }
+      }
+    }
     service_account = google_service_account.backend.email
   }
 
@@ -188,6 +205,7 @@ resource "google_cloud_run_v2_service" "service" {
 
   depends_on = [
     google_project_iam_member.gcp_datastore_user,
+    google_secret_manager_secret_iam_member.backend_otel_config_secret_access,
   ]
 
   deletion_protection = var.deletion_protection
@@ -326,4 +344,30 @@ resource "google_compute_managed_ssl_certificate" "lb_default" {
   managed {
     domains = var.domains
   }
+}
+
+# --- Telemetry IAM Permissions for Backend Service Account ---
+
+# Grant Cloud Trace Agent role to allow exporting traces directly or via OTel sidecar.
+resource "google_project_iam_member" "backend_trace_agent" {
+  provider = google.public_project
+  project  = var.projects.public
+  role     = "roles/cloudtrace.agent"
+  member   = "serviceAccount:${google_service_account.backend.email}"
+}
+
+# Grant Monitoring Metric Writer role to allow exporting metrics.
+resource "google_project_iam_member" "backend_metric_writer" {
+  provider = google.public_project
+  project  = var.projects.public
+  role     = "roles/monitoring.metricWriter"
+  member   = "serviceAccount:${google_service_account.backend.email}"
+}
+
+# Grant Logging Log Writer role to allow exporting structured logs.
+resource "google_project_iam_member" "backend_log_writer" {
+  provider = google.public_project
+  project  = var.projects.public
+  role     = "roles/logging.logWriter"
+  member   = "serviceAccount:${google_service_account.backend.email}"
 }

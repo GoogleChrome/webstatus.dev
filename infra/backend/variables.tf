@@ -110,3 +110,23 @@ variable "backend_api_url" {
 
 variable "pubsub_project_id" { type = string }
 variable "ingestion_topic_id" { type = string }
+
+variable "otel_config_secret_id" {
+  type        = string
+  description = "The Secret Manager secret ID containing the OTel collector configuration"
+}
+
+variable "otel_collector_image" {
+  type        = string
+  description = "The container image to use for the OTel collector sidecar"
+}
+
+variable "otel_collector_config_mount_path" {
+  type        = string
+  description = "The volume mount path for the OTel collector configuration"
+}
+
+variable "otel_collector_endpoint" {
+  type        = string
+  description = "The endpoint for the application to export OTLP metrics/traces to the local collector"
+}

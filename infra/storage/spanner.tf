@@ -13,12 +13,30 @@
 # limitations under the License.
 
 resource "google_spanner_instance" "main" {
-  project          = var.projects.internal
-  name             = "${var.env_id}-spanner"
-  config           = var.spanner_region_id
-  display_name     = "${var.env_id} Spanner"
-  processing_units = var.spanner_processing_units
-  force_destroy    = !var.deletion_protection
+  project       = var.projects.internal
+  name          = "${var.env_id}-spanner"
+  config        = var.spanner_region_id
+  display_name  = "${var.env_id} Spanner"
+  force_destroy = !var.deletion_protection
+
+  # If processing units are less than 1000 (fractional nodes), use static allocation.
+  # Otherwise, set to null and let autoscaling manage it.
+  processing_units = var.spanner_processing_units < 1000 ? var.spanner_processing_units : null
+
+  # Only enable autoscaling if we have at least 1 node (1000 PUs) to scale with.
+  dynamic "autoscaling_config" {
+    for_each = var.spanner_processing_units >= 1000 ? [1] : []
+    content {
+      autoscaling_limits {
+        min_processing_units = 1000
+        max_processing_units = var.spanner_processing_units
+      }
+      autoscaling_targets {
+        high_priority_cpu_utilization_percent = 65
+        storage_utilization_percent           = 80
+      }
+    }
+  }
 }
 
 resource "google_spanner_database" "database" {

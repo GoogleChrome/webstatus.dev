@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"runtime/debug"
 
 	"go.opentelemetry.io/otel/trace"
 )
@@ -52,6 +53,13 @@ func (t *spanContextLogHandler) Handle(ctx context.Context, record slog.Record) 
 		)
 		record.AddAttrs(
 			slog.Bool("logging.googleapis.com/trace_sampled", s.TraceFlags().IsSampled()),
+		)
+	}
+
+	// Automatically capture and append stack trace for ERROR level logs to trigger GCP Error Reporting
+	if record.Level >= slog.LevelError {
+		record.AddAttrs(
+			slog.String("stack_trace", string(debug.Stack())),
 		)
 	}
 
