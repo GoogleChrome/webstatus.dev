@@ -165,27 +165,22 @@ func main() {
 			}),
 	}
 
+	shutdown, err := opentelemetry.MaybeSetup(ctx)
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to setup opentelemetry", "error", err.Error())
+		os.Exit(1)
+	}
+	defer func() {
+		if err := shutdown(ctx); err != nil {
+			slog.ErrorContext(ctx, "unable to shutdown opentelemetry", "error", err)
+		}
+	}()
+
 	if os.Getenv("OTEL_SERVICE_NAME") != "" {
-		slog.InfoContext(ctx, "opentelemetry settings detected.")
-		otelProjectID := os.Getenv("OTEL_GCP_PROJECT_ID")
-		if otelProjectID == "" {
-			slog.ErrorContext(ctx, "missing project id for opentelemetry")
-			os.Exit(1)
-		}
-		shutdown, err := opentelemetry.SetupOpenTelemetry(ctx, otelProjectID)
-		if err != nil {
-			slog.ErrorContext(ctx, "failed to setup opentelemetry", "error", err.Error())
-			os.Exit(1)
-		}
-		defer func() {
-			err := shutdown(ctx)
-			if err != nil {
-				slog.ErrorContext(ctx, "unable to shutdown opentelemetry")
-			}
-		}()
-		// Prepend the opentelemtry middleware
+		// Prepend the opentelemetry middleware
 		preRequestMiddlewares = slices.Insert(preRequestMiddlewares, 0, opentelemetry.NewOpenTelemetryChiMiddleware())
 	}
+	// FOO
 
 	var ghOptions []gh.ClientOption
 	if gitHubAPIBaseRawURL := os.Getenv("GITHUB_API_BASE_URL"); gitHubAPIBaseRawURL != "" {

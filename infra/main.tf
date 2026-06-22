@@ -96,6 +96,9 @@ module "ingestion" {
   developer_signals_region_schedules    = var.developer_signals_region_schedules
   web_features_mapping_region_schedules = var.web_features_mapping_region_schedules
   notification_channel_ids              = var.notification_channel_ids
+  otel_config_secret_id                 = google_secret_manager_secret.otel_config.id
+  otel_project_id                       = var.projects.public
+  otel_collector_image                  = local.otel_collector_image
 }
 
 module "backend" {
@@ -124,8 +127,10 @@ module "backend" {
   firebase_settings = {
     tenant_id = module.auth.tenant_id
   }
-  pubsub_project_id  = var.projects.internal
-  ingestion_topic_id = module.pubsub.ingestion_topic_id
+  pubsub_project_id     = var.projects.internal
+  ingestion_topic_id    = module.pubsub.ingestion_topic_id
+  otel_config_secret_id = google_secret_manager_secret.otel_config.id
+  otel_collector_image  = local.otel_collector_image
 }
 
 module "frontend" {
@@ -207,4 +212,7 @@ module "workers" {
 
   email_service_account_email = var.email_service_account_email
   deletion_protection         = var.deletion_protection
+  otel_config_secret_id       = google_secret_manager_secret.otel_config.id
+  otel_project_id             = var.projects.public
+  otel_collector_image        = local.otel_collector_image
 }

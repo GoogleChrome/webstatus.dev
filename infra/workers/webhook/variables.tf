@@ -22,3 +22,18 @@ variable "manual_instance_count" { type = number }
 variable "regions" { type = set(string) }
 variable "deletion_protection" { type = bool }
 variable "frontend_base_url" { type = string }
+
+variable "otel_config_secret_id" {
+  type        = string
+  description = "The Secret Manager secret ID containing the OTel collector configuration"
+}
+
+variable "otel_project_id" {
+  type        = string
+  description = "The GCP project ID where telemetry traces/metrics will be exported"
+}
+
+variable "otel_collector_image" {
+  type        = string
+  description = "The container image to use for the OTel collector sidecar"
+}

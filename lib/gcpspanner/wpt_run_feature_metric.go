@@ -186,136 +186,73 @@ func (c *Client) convertExternalMetricsToSpannerMetrics(ctx context.Context,
 	return spannerMetrics, nil
 }
 
-// getLatestWPTRunFeatureMetricTimeStart retrieves the TimeStart of the latest metric for the given feature,
-// browser, and channel.
-func getLatestWPTRunFeatureMetricTimeStart(
-	ctx context.Context,
-	txn *spanner.ReadWriteTransaction,
-	metric SpannerWPTRunFeatureMetric) (*time.Time, error) {
-	stmt := spanner.NewStatement(`
-        SELECT wpfm.TimeStart
-        FROM LatestWPTRunFeatureMetrics l
-        JOIN WPTRunFeatureMetrics wpfm ON l.RunMetricID = wpfm.ID
-        WHERE l.WebFeatureID = @featureID
-        AND l.BrowserName = @browserName
-        AND l.Channel = @channel`)
-
-	stmt.Params = map[string]any{
-		"featureID":   metric.WebFeatureID,
-		"browserName": metric.BrowserName,
-		"channel":     metric.Channel,
-	}
-
-	iter := txn.Query(ctx, stmt)
-	defer iter.Stop()
-
-	row, err := iter.Next()
-	if err != nil {
-		if errors.Is(err, iterator.Done) {
-			// No row found, return zero time
-			return &time.Time{}, errors.Join(ErrQueryReturnedNoResults, err)
-		}
-		slog.ErrorContext(ctx, "error querying for latest run time", "error", err)
-
-		return nil, err
-	}
-
-	var timeStart time.Time
-	if err := row.Columns(&timeStart); err != nil {
-		slog.ErrorContext(ctx, "error extracting time start", "error", err)
-
-		return nil, err
-	}
-
-	return &timeStart, nil
-}
-
 // shouldUpsertLatestMetric determines whether the latest metric should be upserted based on timestamp comparison.
 func shouldUpsertLatestMetric(existingTimeStart *time.Time, newTimeStart time.Time) bool {
 	return existingTimeStart == nil || existingTimeStart.IsZero() || newTimeStart.After(*existingTimeStart)
 }
 
-// updateWPTRunFeatureMetric handles the insertion or update logic for the WPTRunFeatureMetrics table.
-// If a metric does not exist, it will insert a new metric.
-// If a metric exists, it will only update the following columns:
-//  1. TotalTests
-//  2. TestPass
-//  3. TestPassRate
-//  4. TotalSubtests
-//  5. SubtestPass
-//  6. SubtestPassRate
-func updateWPTRunFeatureMetric(
-	ctx context.Context,
-	txn *spanner.ReadWriteTransaction,
-	metric SpannerWPTRunFeatureMetric) (*spanner.Mutation, error) {
-	// Create a metric with the retrieved ID
-	stmt := spanner.NewStatement(`
-				SELECT
-					ID,
-					WebFeatureID,
-					TotalTests,
-					TestPass,
-					TestPassRate,
-					TotalSubtests,
-					SubtestPass,
-					SubtestPassRate,
-					FeatureRunDetails,
-					TimeStart,
-					Channel,
-					BrowserName
-				FROM WPTRunFeatureMetrics
-				WHERE ID = @id AND WebFeatureID = @webFeatureID
-				LIMIT 1`)
-	parameters := map[string]any{
-		"id":           metric.ID,
-		"webFeatureID": metric.WebFeatureID,
+// mergeAndCreateWPTRunFeatureMetricMutation merges the incoming metric with the existing one (if present)
+// and returns the Spanner mutation.
+func mergeAndCreateWPTRunFeatureMetricMutation(
+	metric SpannerWPTRunFeatureMetric,
+	existingMetric *SpannerWPTRunFeatureMetric,
+) (*spanner.Mutation, error) {
+	if existingMetric == nil {
+		// Act as if this is an insertion.
+		return spanner.InsertOrUpdateStruct(WPTRunFeatureMetricTable, metric)
 	}
-	stmt.Params = parameters
 
-	// Attempt to query for the row.
-	it := txn.Query(ctx, stmt)
-	defer it.Stop()
-	var m *spanner.Mutation
-	row, err := it.Next()
+	// Read the existing metric and merge the values.
+	merged := *existingMetric
+	// Only allow overriding of the test numbers.
+	merged.TestPass = cmp.Or[*int64](metric.TestPass, merged.TestPass, nil)
+	merged.TotalTests = cmp.Or[*int64](metric.TotalTests, merged.TotalTests, nil)
+	merged.TestPassRate = getPassRate(merged.TestPass, merged.TotalTests)
+	// Allow subtest metrics to be reset to nil.
+	merged.SubtestPass = metric.SubtestPass
+	merged.TotalSubtests = metric.TotalSubtests
+	merged.SubtestPassRate = getPassRate(merged.SubtestPass, merged.TotalSubtests)
+	// Allow feature run details to be reset
+	merged.FeatureRunDetails = metric.FeatureRunDetails
 
-	// nolint: nestif // TODO: fix in the future.
+	return spanner.InsertOrUpdateStruct(WPTRunFeatureMetricTable, merged)
+}
+
+// buildWPTRunFeatureMetricMutations creates the database mutations for a single WPT run metric,
+// merging with existing values and updating the latest metrics if newer.
+func buildWPTRunFeatureMetricMutations(
+	metric SpannerWPTRunFeatureMetric,
+	existingMetric *SpannerWPTRunFeatureMetric,
+	existingTimeStart *time.Time,
+) ([]*spanner.Mutation, error) {
+	var mutations []*spanner.Mutation
+
+	m0, err := mergeAndCreateWPTRunFeatureMetricMutation(metric, existingMetric)
 	if err != nil {
-		if errors.Is(err, iterator.Done) {
-			// No rows returned. Act as if this is an insertion.
-			var err error
-			m, err = spanner.InsertOrUpdateStruct(WPTRunFeatureMetricTable, metric)
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			// An unexpected error occurred.
-
-			return nil, err
-		}
-	} else {
-		// Read the existing metric and merge the values.
-		var existingMetric SpannerWPTRunFeatureMetric
-		err = row.ToStruct(&existingMetric)
-		if err != nil {
-			return nil, err
-		}
-		// Only allow overriding of the test numbers.
-		existingMetric.TestPass = cmp.Or[*int64](metric.TestPass, existingMetric.TestPass, nil)
-		existingMetric.TotalTests = cmp.Or[*int64](metric.TotalTests, existingMetric.TotalTests, nil)
-		existingMetric.TestPassRate = getPassRate(existingMetric.TestPass, existingMetric.TotalTests)
-		// Allow subtest metrics to be reset to nil.
-		existingMetric.SubtestPass = metric.SubtestPass
-		existingMetric.TotalSubtests = metric.TotalSubtests
-		existingMetric.SubtestPassRate = getPassRate(existingMetric.SubtestPass, existingMetric.TotalSubtests)
-		// Allow feature run details to be reset
-		existingMetric.FeatureRunDetails = metric.FeatureRunDetails
-		m, err = spanner.InsertOrUpdateStruct(WPTRunFeatureMetricTable, existingMetric)
-		if err != nil {
-			return nil, errors.Join(ErrInternalQueryFailure, err)
-		}
+		return nil, err
+	}
+	if m0 != nil {
+		mutations = append(mutations, m0)
 	}
 
-	return m, nil
+	// Update LatestWPTRunFeatureMetrics if newer
+	if shouldUpsertLatestMetric(existingTimeStart, metric.TimeStart) {
+		m1, err := spanner.InsertOrUpdateStruct(
+			LatestWPTRunFeatureMetricsTable,
+			SpannerLatestWPTRunFeatureMetric{
+				RunMetricID:  metric.ID,
+				WebFeatureID: metric.WebFeatureID,
+				BrowserName:  metric.BrowserName,
+				Channel:      metric.Channel,
+			},
+		)
+		if err != nil {
+			return nil, err
+		}
+		mutations = append(mutations, m1)
+	}
+
+	return mutations, nil
 }
 
 // UpsertWPTRunFeatureMetrics will upsert WPT Run metrics for a given WPT Run ID.
@@ -335,40 +272,71 @@ func (c *Client) UpsertWPTRunFeatureMetrics(
 	}
 
 	_, err = c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
+		// Extract browser, channel, and runID (they are all the same for this batch)
+		var runID string
+		var browserName, channel string
+		for i, metric := range spannerMetrics {
+			if i == 0 {
+				runID = metric.ID
+				browserName = metric.BrowserName
+				channel = metric.Channel
+
+				break
+			}
+		}
+
+		// 1. Batch read latest timestamps for this browser/channel (using comparable key)
+		latestTimeStartsRows, err := newAllByKeysEntityReader[
+			latestWPTRunFeatureMetricTimeStartsMapper,
+			latestTimeStartsKey,
+			webFeatureLatestTimeStart,
+		](c).readAllByKeysWithTransaction(ctx, latestTimeStartsKey{
+			BrowserName: browserName,
+			Channel:     channel,
+		}, txn)
+		if err != nil {
+			return errors.Join(ErrInternalQueryFailure, err)
+		}
+		// Convert to map for fast lookup
+		existingTimestamps := make(map[string]time.Time)
+		for _, row := range latestTimeStartsRows {
+			existingTimestamps[row.WebFeatureID] = row.TimeStart
+		}
+
+		// 2. Batch read ALL existing metrics for this run (using comparable string runID key)
+		existingMetricsRows, err := newAllByKeysEntityReader[
+			existingWPTRunFeatureMetricsMapper,
+			string,
+			SpannerWPTRunFeatureMetric,
+		](c).readAllByKeysWithTransaction(ctx, runID, txn)
+		if err != nil {
+			return errors.Join(ErrInternalQueryFailure, err)
+		}
+		// Convert to map for fast lookup
+		existingMetrics := make(map[string]SpannerWPTRunFeatureMetric)
+		for _, row := range existingMetricsRows {
+			existingMetrics[row.WebFeatureID] = row
+		}
+
 		mutations := []*spanner.Mutation{}
 		for _, metric := range spannerMetrics {
-			existingTimeStart, err := getLatestWPTRunFeatureMetricTimeStart(ctx, txn, metric)
-			if err != nil {
-				if !errors.Is(err, ErrQueryReturnedNoResults) { // Handle errors other than "not found"
-					return errors.Join(ErrInternalQueryFailure, err)
-				}
-				// No existing entry, proceed with insert (existingTimeStart will be zero time)
+			// Resolve existing metric from batch read
+			var existingMetric *SpannerWPTRunFeatureMetric
+			if em, found := existingMetrics[metric.WebFeatureID]; found {
+				existingMetric = &em
 			}
 
-			m0, err := updateWPTRunFeatureMetric(ctx, txn, metric)
+			// Resolve latest timestamp from batch read
+			var existingTimeStart *time.Time
+			if t, found := existingTimestamps[metric.WebFeatureID]; found {
+				existingTimeStart = &t
+			}
+
+			ms, err := buildWPTRunFeatureMetricMutations(metric, existingMetric, existingTimeStart)
 			if err != nil {
 				return errors.Join(ErrInternalQueryFailure, err)
 			}
-			if m0 != nil {
-				mutations = append(mutations, m0)
-			}
-
-			// Update LatestWPTRunFeatureMetrics if newer
-			if shouldUpsertLatestMetric(existingTimeStart, metric.TimeStart) {
-				m1, err := spanner.InsertOrUpdateStruct(
-					LatestWPTRunFeatureMetricsTable,
-					SpannerLatestWPTRunFeatureMetric{
-						RunMetricID:  metric.ID,
-						WebFeatureID: metric.WebFeatureID,
-						BrowserName:  metric.BrowserName,
-						Channel:      metric.Channel,
-					},
-				)
-				if err != nil {
-					return errors.Join(ErrInternalQueryFailure, err)
-				}
-				mutations = append(mutations, m1)
-			}
+			mutations = append(mutations, ms...)
 		}
 
 		// Buffer the mutation to be committed.
@@ -695,4 +663,59 @@ func (c *Client) getAllSpannerLatestWPTRunFeatureMetricIDsByWebFeatureID(
 		string,
 		SpannerLatestWPTRunFeatureMetric,
 	](c).readAllByKeys(ctx, webFeatureID)
+}
+
+// --- NEW MAPPERS AND STRUCTS FOR BATCH QUERIES ---
+
+type webFeatureLatestTimeStart struct {
+	WebFeatureID string    `spanner:"WebFeatureID"`
+	TimeStart    time.Time `spanner:"TimeStart"`
+}
+
+type latestTimeStartsKey struct {
+	BrowserName string
+	Channel     string
+}
+
+type latestWPTRunFeatureMetricTimeStartsMapper struct{}
+
+func (m latestWPTRunFeatureMetricTimeStartsMapper) SelectAllByKeys(keys latestTimeStartsKey) spanner.Statement {
+	stmt := spanner.NewStatement(`
+        SELECT l.WebFeatureID, wpfm.TimeStart
+        FROM LatestWPTRunFeatureMetrics l
+        JOIN WPTRunFeatureMetrics wpfm ON l.RunMetricID = wpfm.ID AND l.WebFeatureID = wpfm.WebFeatureID
+        WHERE l.BrowserName = @browserName
+        AND l.Channel = @channel`)
+	stmt.Params = map[string]any{
+		"browserName": keys.BrowserName,
+		"channel":     keys.Channel,
+	}
+
+	return stmt
+}
+
+type existingWPTRunFeatureMetricsMapper struct{}
+
+func (m existingWPTRunFeatureMetricsMapper) SelectAllByKeys(runID string) spanner.Statement {
+	stmt := spanner.NewStatement(`
+        SELECT
+            ID,
+            WebFeatureID,
+            TotalTests,
+            TestPass,
+            TestPassRate,
+            TotalSubtests,
+            SubtestPass,
+            SubtestPassRate,
+            FeatureRunDetails,
+            TimeStart,
+            Channel,
+            BrowserName
+        FROM WPTRunFeatureMetrics
+        WHERE ID = @runID`)
+	stmt.Params = map[string]any{
+		"runID": runID,
+	}
+
+	return stmt
 }

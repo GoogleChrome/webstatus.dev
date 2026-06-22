@@ -92,3 +92,18 @@ variable "chime_details" {
     from_address_secret_ref = string
   })
 }
+
+variable "otel_config_secret_id" {
+  type        = string
+  description = "The Secret Manager secret ID containing the OTel collector configuration"
+}
+
+variable "otel_project_id" {
+  type        = string
+  description = "The GCP project ID where telemetry traces/metrics will be exported"
+}
+
+variable "otel_collector_image" {
+  type        = string
+  description = "The container image to use for the OTel collector sidecar"
+}

@@ -34,8 +34,6 @@ resource "google_cloud_run_v2_worker_pool" "worker" {
   template {
     service_account = google_service_account.worker_sa.email
 
-
-
     containers {
       image = var.image_url
 
@@ -62,6 +60,32 @@ resource "google_cloud_run_v2_worker_pool" "worker" {
       env {
         name  = "WEBHOOK_TOPIC_ID"
         value = var.webhook_topic_id
+      }
+      env {
+        name  = "OTEL_SERVICE_NAME"
+        value = "push-delivery"
+      }
+      env {
+        name  = "OTEL_GCP_PROJECT_ID"
+        value = var.otel_project_id
+      }
+    }
+    containers {
+      name  = "otel"
+      image = var.otel_collector_image
+      volume_mounts {
+        name       = "otel-config"
+        mount_path = "/etc/otelcol"
+      }
+    }
+    volumes {
+      name = "otel-config"
+      secret {
+        secret = var.otel_config_secret_id
+        items {
+          version = "latest"
+          path    = "config.yaml"
+        }
       }
     }
   }

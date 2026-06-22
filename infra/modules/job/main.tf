@@ -36,6 +36,33 @@ resource "google_cloud_run_v2_job" "job" {
             value = env.value.value
           }
         }
+        env {
+          name  = "OTEL_SERVICE_NAME"
+          value = var.short_name
+        }
+        env {
+          name  = "OTEL_GCP_PROJECT_ID"
+          value = var.otel_project_id
+        }
+      }
+      containers {
+        name  = "otel"
+        image = var.otel_collector_image
+        volume_mounts {
+          name       = "otel-config"
+          mount_path = "/etc/otelcol"
+        }
+        # No probes for Cloud Run Jobs as they run to completion
+      }
+      volumes {
+        name = "otel-config"
+        secret {
+          secret = var.otel_config_secret_id
+          items {
+            version = "latest"
+            path    = "config.yaml"
+          }
+        }
       }
       service_account = google_service_account.job_service_account.email
     }
@@ -67,4 +94,3 @@ resource "google_project_iam_member" "datastore_user" {
   project = var.spanner_project_id
   member  = google_service_account.job_service_account.member
 }
-

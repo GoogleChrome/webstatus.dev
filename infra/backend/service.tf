@@ -46,13 +46,11 @@ resource "docker_registry_image" "backend_remote_image" {
 data "google_project" "host_project" {
 }
 
-module "otel_sidecar" {
-  source = "../modules/otel"
-  providers = {
-    google.project = google.public_project
-  }
-  docker_repository_details = var.docker_repository_details
-  service_account           = google_service_account.backend.member
+resource "google_secret_manager_secret_iam_member" "backend_otel_config_secret_access" {
+  provider  = google.internal_project
+  secret_id = var.otel_config_secret_id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.backend.email}"
 }
 
 resource "google_cloud_run_v2_service" "service" {
@@ -150,7 +148,11 @@ resource "google_cloud_run_v2_service" "service" {
     }
     containers {
       name  = "otel"
-      image = module.otel_sidecar.otel_image
+      image = var.otel_collector_image
+      volume_mounts {
+        name       = "otel-config"
+        mount_path = "/etc/otelcol"
+      }
       liveness_probe {
         http_get {
           port = 4319
@@ -164,8 +166,8 @@ resource "google_cloud_run_v2_service" "service" {
       startup_probe {
         initial_delay_seconds = 0
         timeout_seconds       = 1
-        period_seconds        = 3
-        failure_threshold     = 10
+        period_seconds        = 1 # Checked every 1s to minimize serialized boot delay to ~1s
+        failure_threshold     = 30 # Up to 30s budget to absorb cold-start spikes
         tcp_socket {
           port = 4319
         }
@@ -178,6 +180,16 @@ resource "google_cloud_run_v2_service" "service" {
       }
       egress = "PRIVATE_RANGES_ONLY"
     }
+    volumes {
+      name = "otel-config"
+      secret {
+        secret = var.otel_config_secret_id
+        items {
+          version = "latest"
+          path    = "config.yaml"
+        }
+      }
+    }
     service_account = google_service_account.backend.email
   }
 
@@ -188,6 +200,7 @@ resource "google_cloud_run_v2_service" "service" {
 
   depends_on = [
     google_project_iam_member.gcp_datastore_user,
+    google_secret_manager_secret_iam_member.backend_otel_config_secret_access,
   ]
 
   deletion_protection = var.deletion_protection

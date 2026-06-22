@@ -18,6 +18,7 @@ import (
 	"context"
 	"errors"
 	"log"
+	"os"
 
 	cloudtrace "github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace"
 	"go.opentelemetry.io/contrib/detectors/gcp"
@@ -101,4 +102,21 @@ func SetupOpenTelemetry(ctx context.Context, projectID string) (shutdown func(co
 	otel.SetMeterProvider(mp)
 
 	return shutdown, nil
+}
+
+// MaybeSetup OpenTelemetry if OTEL_SERVICE_NAME is set.
+// Returns a shutdown function and an error. If OTel is not enabled,
+// it returns a no-op shutdown function and nil error.
+func MaybeSetup(ctx context.Context) (func(context.Context) error, error) {
+	serviceName := os.Getenv("OTEL_SERVICE_NAME")
+	if serviceName == "" {
+		return func(context.Context) error { return nil }, nil
+	}
+
+	otelProjectID := os.Getenv("OTEL_GCP_PROJECT_ID")
+	if otelProjectID == "" {
+		return nil, errors.New("missing OTEL_GCP_PROJECT_ID for opentelemetry")
+	}
+
+	return SetupOpenTelemetry(ctx, otelProjectID)
 }

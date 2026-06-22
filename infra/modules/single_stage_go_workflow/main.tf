@@ -38,6 +38,9 @@ module "job" {
   does_process_write_to_datastore = var.does_process_write_to_datastore
   does_process_write_to_spanner   = var.does_process_write_to_spanner
   resource_limits                 = var.resource_job_limits
+  otel_config_secret_id           = var.otel_config_secret_id
+  otel_project_id                 = var.otel_project_id
+  otel_collector_image            = var.otel_collector_image
 }
 
 resource "google_service_account" "service_account" {

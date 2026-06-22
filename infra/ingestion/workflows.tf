@@ -59,6 +59,9 @@ module "web_features_workflow" {
       value = "262980h" # 30 years in hours (365.25*30*24)
     }
   ]
+  otel_config_secret_id = var.otel_config_secret_id
+  otel_project_id       = var.otel_project_id
+  otel_collector_image  = var.otel_collector_image
 }
 
 module "wpt_workflow" {
@@ -105,9 +108,12 @@ module "wpt_workflow" {
     },
     {
       name  = "DATA_WINDOW_DURATION"
-      value = "17520h" # 2 years
+      value = "720h" # 30 days
     }
   ]
+  otel_config_secret_id = var.otel_config_secret_id
+  otel_project_id       = var.otel_project_id
+  otel_collector_image  = var.otel_collector_image
 }
 
 module "bcd_workflow" {
@@ -144,6 +150,9 @@ module "bcd_workflow" {
       value = var.spanner_datails.instance
     }
   ]
+  otel_config_secret_id = var.otel_config_secret_id
+  otel_project_id       = var.otel_project_id
+  otel_collector_image  = var.otel_collector_image
 }
 
 module "chromium_enum_workflow" {
@@ -180,6 +189,9 @@ module "chromium_enum_workflow" {
       value = var.spanner_datails.instance
     }
   ]
+  otel_config_secret_id = var.otel_config_secret_id
+  otel_project_id       = var.otel_project_id
+  otel_collector_image  = var.otel_collector_image
 }
 
 module "uma_export_workflow" {
@@ -216,6 +228,9 @@ module "uma_export_workflow" {
       value = var.spanner_datails.instance
     }
   ]
+  otel_config_secret_id = var.otel_config_secret_id
+  otel_project_id       = var.otel_project_id
+  otel_collector_image  = var.otel_collector_image
 }
 
 module "developer_signals_workflow" {
@@ -252,6 +267,9 @@ module "developer_signals_workflow" {
       value = var.spanner_datails.instance
     }
   ]
+  otel_config_secret_id = var.otel_config_secret_id
+  otel_project_id       = var.otel_project_id
+  otel_collector_image  = var.otel_collector_image
 }
 
 module "web_features_mapping_workflow" {
@@ -288,4 +306,7 @@ module "web_features_mapping_workflow" {
       value = var.spanner_datails.instance
     }
   ]
+  otel_config_secret_id = var.otel_config_secret_id
+  otel_project_id       = var.otel_project_id
+  otel_collector_image  = var.otel_collector_image
 }
