@@ -26,18 +26,23 @@ module "job" {
     google.internal_project = google.internal_project
     google.public_project   = google.public_project
   }
-  env_id                          = var.env_id
-  regions                         = var.regions
-  env_vars                        = var.env_vars
-  image                           = module.image.remote_image
-  deletion_protection             = var.deletion_protection
-  full_name                       = var.full_name
-  short_name                      = var.short_name
-  timeout_seconds                 = var.timeout_seconds
-  spanner_project_id              = var.spanner_details.project_id
-  does_process_write_to_datastore = var.does_process_write_to_datastore
-  does_process_write_to_spanner   = var.does_process_write_to_spanner
-  resource_limits                 = var.resource_job_limits
+  env_id                           = var.env_id
+  regions                          = var.regions
+  env_vars                         = var.env_vars
+  image                            = module.image.remote_image
+  deletion_protection              = var.deletion_protection
+  full_name                        = var.full_name
+  short_name                       = var.short_name
+  timeout_seconds                  = var.timeout_seconds
+  spanner_project_id               = var.spanner_details.project_id
+  does_process_write_to_datastore  = var.does_process_write_to_datastore
+  does_process_write_to_spanner    = var.does_process_write_to_spanner
+  resource_limits                  = var.resource_job_limits
+  otel_config_secret_id            = var.otel_config_secret_id
+  otel_project_id                  = var.otel_project_id
+  otel_collector_image             = var.otel_collector_image
+  otel_collector_config_mount_path = var.otel_collector_config_mount_path
+  otel_collector_endpoint          = var.otel_collector_endpoint
 }
 
 resource "google_service_account" "service_account" {

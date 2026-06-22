@@ -36,6 +36,42 @@ resource "google_cloud_run_v2_job" "job" {
             value = env.value.value
           }
         }
+        env {
+          name  = "OTEL_SERVICE_NAME"
+          value = var.short_name
+        }
+        env {
+          name  = "OTEL_GCP_PROJECT_ID"
+          value = var.otel_project_id
+        }
+        env {
+          name  = "OTEL_EXPORTER_OTLP_ENDPOINT"
+          value = var.otel_collector_endpoint
+        }
+      }
+      containers {
+        name  = "otel"
+        image = var.otel_collector_image
+        args  = ["--config=${var.otel_collector_config_mount_path}/config.yaml"]
+        env {
+          name  = "OTEL_COLLECTOR_REGION"
+          value = var.regions[count.index]
+        }
+        volume_mounts {
+          name       = "otel-config"
+          mount_path = var.otel_collector_config_mount_path
+        }
+        # No probes for Cloud Run Jobs as they run to completion
+      }
+      volumes {
+        name = "otel-config"
+        secret {
+          secret = var.otel_config_secret_id
+          items {
+            version = "latest"
+            path    = "config.yaml"
+          }
+        }
       }
       service_account = google_service_account.job_service_account.email
     }
@@ -68,3 +104,28 @@ resource "google_project_iam_member" "datastore_user" {
   member  = google_service_account.job_service_account.member
 }
 
+# --- Telemetry IAM Permissions for Ingestion Job Service Accounts ---
+
+# Grant Cloud Trace Agent role to allow exporting traces.
+resource "google_project_iam_member" "job_trace_agent" {
+  provider = google.internal_project
+  project  = var.spanner_project_id
+  role     = "roles/cloudtrace.agent"
+  member   = google_service_account.job_service_account.member
+}
+
+# Grant Monitoring Metric Writer role to allow exporting metrics.
+resource "google_project_iam_member" "job_metric_writer" {
+  provider = google.internal_project
+  project  = var.spanner_project_id
+  role     = "roles/monitoring.metricWriter"
+  member   = google_service_account.job_service_account.member
+}
+
+# Grant Logging Log Writer role to allow exporting structured logs.
+resource "google_project_iam_member" "job_log_writer" {
+  provider = google.internal_project
+  project  = var.spanner_project_id
+  role     = "roles/logging.logWriter"
+  member   = google_service_account.job_service_account.member
+}
