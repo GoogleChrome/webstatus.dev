@@ -37,3 +37,8 @@ variable "otel_collector_image" {
   type        = string
   description = "The container image to use for the OTel collector sidecar"
 }
+
+variable "otel_collector_config_mount_path" {
+  type        = string
+  description = "The volume mount path for the OTel collector configuration"
+}

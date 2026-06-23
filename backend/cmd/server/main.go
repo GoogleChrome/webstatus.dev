@@ -59,6 +59,7 @@ func main() {
 		datastoreDB = &value
 	}
 	projectID := os.Getenv("PROJECT_ID")
+	slog.InfoContext(context.TODO(), "BOOT: Creating Datastore client...")
 	fs, err := gds.NewDatastoreClient(projectID, datastoreDB)
 	if err != nil {
 		slog.ErrorContext(context.TODO(), "failed to create datastore client", "error", err.Error())
@@ -69,6 +70,7 @@ func main() {
 
 	spannerDB := os.Getenv("SPANNER_DATABASE")
 	spannerInstance := os.Getenv("SPANNER_INSTANCE")
+	slog.InfoContext(ctx, "BOOT: Creating Spanner client...")
 	spannerClient, err := gcpspanner.NewSpannerClient(projectID, spannerInstance, spannerDB)
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to create spanner client", "error", err.Error())
@@ -106,6 +108,7 @@ func main() {
 	slog.InfoContext(ctx, "cache settings", "duration", cacheTTL, "prefix", cacheKeyPrefix,
 		"aggregatedFeaturesStatsTTL", aggregatedFeaturesStatsTTL)
 
+	slog.InfoContext(ctx, "BOOT: Creating Valkey cache...")
 	cache, err := valkeycache.NewValkeyDataCache[string, []byte](
 		cacheKeyPrefix,
 		valkeyHost,
@@ -165,16 +168,19 @@ func main() {
 			}),
 	}
 
+	slog.InfoContext(ctx, "BOOT: Running OTel setup...")
 	shutdown, err := opentelemetry.MaybeSetup(ctx)
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to setup opentelemetry", "error", err.Error())
 		os.Exit(1)
 	}
-	defer func() {
-		if err := shutdown(ctx); err != nil {
-			slog.ErrorContext(ctx, "unable to shutdown opentelemetry", "error", err)
-		}
-	}()
+	if shutdown != nil {
+		defer func() {
+			if err := shutdown(ctx); err != nil {
+				slog.ErrorContext(ctx, "unable to shutdown opentelemetry", "error", err)
+			}
+		}()
+	}
 
 	if os.Getenv("OTEL_SERVICE_NAME") != "" {
 		// Prepend the opentelemetry middleware

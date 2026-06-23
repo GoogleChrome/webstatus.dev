@@ -75,7 +75,7 @@ resource "google_cloud_run_v2_worker_pool" "worker" {
       image = var.otel_collector_image
       volume_mounts {
         name       = "otel-config"
-        mount_path = "/etc/otelcol"
+        mount_path = var.otel_collector_config_mount_path
       }
     }
     volumes {

@@ -151,7 +151,7 @@ resource "google_cloud_run_v2_service" "service" {
       image = var.otel_collector_image
       volume_mounts {
         name       = "otel-config"
-        mount_path = "/etc/otelcol"
+        mount_path = var.otel_collector_config_mount_path
       }
       liveness_probe {
         http_get {

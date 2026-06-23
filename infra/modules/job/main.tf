@@ -50,7 +50,7 @@ resource "google_cloud_run_v2_job" "job" {
         image = var.otel_collector_image
         volume_mounts {
           name       = "otel-config"
-          mount_path = "/etc/otelcol"
+          mount_path = var.otel_collector_config_mount_path
         }
         # No probes for Cloud Run Jobs as they run to completion
       }

@@ -99,6 +99,7 @@ module "ingestion" {
   otel_config_secret_id                 = google_secret_manager_secret.otel_config.id
   otel_project_id                       = var.projects.public
   otel_collector_image                  = local.otel_collector_image
+  otel_collector_config_mount_path      = local.otel_collector_config_mount_path
 }
 
 module "backend" {
@@ -129,8 +130,9 @@ module "backend" {
   }
   pubsub_project_id     = var.projects.internal
   ingestion_topic_id    = module.pubsub.ingestion_topic_id
-  otel_config_secret_id = google_secret_manager_secret.otel_config.id
-  otel_collector_image  = local.otel_collector_image
+  otel_config_secret_id            = google_secret_manager_secret.otel_config.id
+  otel_collector_image             = local.otel_collector_image
+  otel_collector_config_mount_path = local.otel_collector_config_mount_path
 }
 
 module "frontend" {
@@ -212,7 +214,8 @@ module "workers" {
 
   email_service_account_email = var.email_service_account_email
   deletion_protection         = var.deletion_protection
-  otel_config_secret_id       = google_secret_manager_secret.otel_config.id
-  otel_project_id             = var.projects.public
-  otel_collector_image        = local.otel_collector_image
+  otel_config_secret_id            = google_secret_manager_secret.otel_config.id
+  otel_project_id                  = var.projects.public
+  otel_collector_image             = local.otel_collector_image
+  otel_collector_config_mount_path = local.otel_collector_config_mount_path
 }

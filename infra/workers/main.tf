@@ -47,9 +47,10 @@ module "event_producer" {
   regions               = var.regions
 
   deletion_protection   = var.deletion_protection
-  otel_config_secret_id = var.otel_config_secret_id
-  otel_project_id       = var.otel_project_id
-  otel_collector_image  = var.otel_collector_image
+  otel_config_secret_id            = var.otel_config_secret_id
+  otel_project_id                  = var.otel_project_id
+  otel_collector_image             = var.otel_collector_image
+  otel_collector_config_mount_path = var.otel_collector_config_mount_path
 }
 
 # --- 2. Push Delivery ---
@@ -84,10 +85,11 @@ module "push_delivery" {
   manual_instance_count = var.worker_instance_count.push_delivery_count
   regions               = var.regions
 
-  deletion_protection   = var.deletion_protection
-  otel_config_secret_id = var.otel_config_secret_id
-  otel_project_id       = var.otel_project_id
-  otel_collector_image  = var.otel_collector_image
+  deletion_protection              = var.deletion_protection
+  otel_config_secret_id            = var.otel_config_secret_id
+  otel_project_id                  = var.otel_project_id
+  otel_collector_image             = var.otel_collector_image
+  otel_collector_config_mount_path = var.otel_collector_config_mount_path
 }
 
 # --- 3. Email Worker ---
@@ -128,9 +130,10 @@ module "email" {
   chime_env               = var.chime_details.env
   chime_bcc_secret_ref    = var.chime_details.bcc_secret_ref
   from_address_secret_ref = var.chime_details.from_address_secret_ref
-  otel_config_secret_id   = var.otel_config_secret_id
-  otel_project_id         = var.otel_project_id
-  otel_collector_image    = var.otel_collector_image
+  otel_config_secret_id            = var.otel_config_secret_id
+  otel_project_id                  = var.otel_project_id
+  otel_collector_image             = var.otel_collector_image
+  otel_collector_config_mount_path = var.otel_collector_config_mount_path
 }
 
 # --- 4. Webhook Worker ---
@@ -165,8 +168,9 @@ module "webhook" {
 
   frontend_base_url = var.frontend_base_url
 
-  deletion_protection   = var.deletion_protection
-  otel_config_secret_id = var.otel_config_secret_id
-  otel_project_id       = var.otel_project_id
-  otel_collector_image  = var.otel_collector_image
+  deletion_protection              = var.deletion_protection
+  otel_config_secret_id            = var.otel_config_secret_id
+  otel_project_id                  = var.otel_project_id
+  otel_collector_image             = var.otel_collector_image
+  otel_collector_config_mount_path = var.otel_collector_config_mount_path
 }

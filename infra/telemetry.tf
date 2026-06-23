@@ -19,6 +19,11 @@ locals {
   # Hardcoding this here allows upgrading the collector version across all services,
   # jobs, and workers in a single place.
   otel_collector_image = "us-docker.pkg.dev/cloud-ops-agents-artifacts/google-cloud-opentelemetry-collector/otelcol-google:0.151.0"
+
+  # The volume mount path for the OpenTelemetry collector configuration file.
+  # Swapping the collector image (e.g. upstream vs Google-managed) often requires
+  # changing this path. Define it here to keep it centralized.
+  otel_collector_config_mount_path = "/etc/otelcol-google"
 }
 
 # --- Shared OpenTelemetry Configuration Secret ---
