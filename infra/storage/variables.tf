@@ -37,6 +37,11 @@ variable "spanner_processing_units" {
   type = number
 }
 
+variable "spanner_edition" {
+  type    = string
+  default = "STANDARD"
+}
+
 variable "deletion_protection" {
   type = bool
 }

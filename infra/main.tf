@@ -65,6 +65,7 @@ module "storage" {
   spanner_region_id         = local.spanner_repository_region
   datastore_region_id       = var.datastore_region_id
   spanner_processing_units  = var.spanner_processing_units
+  spanner_edition           = var.spanner_edition
   docker_repository_region  = local.docker_repository_region
   projects                  = var.projects
   depends_on                = [module.services]
@@ -97,7 +98,7 @@ module "ingestion" {
   web_features_mapping_region_schedules = var.web_features_mapping_region_schedules
   notification_channel_ids              = var.notification_channel_ids
   otel_config_secret_id                 = google_secret_manager_secret.otel_config.id
-  otel_project_id                       = var.projects.public
+  otel_project_id                       = var.projects.internal
   otel_collector_image                  = local.otel_collector_image
   otel_collector_config_mount_path      = local.otel_collector_config_mount_path
   otel_collector_endpoint               = local.otel_collector_endpoint
@@ -217,7 +218,7 @@ module "workers" {
   email_service_account_email      = var.email_service_account_email
   deletion_protection              = var.deletion_protection
   otel_config_secret_id            = google_secret_manager_secret.otel_config.id
-  otel_project_id                  = var.projects.public
+  otel_project_id                  = var.projects.internal
   otel_collector_image             = local.otel_collector_image
   otel_collector_config_mount_path = local.otel_collector_config_mount_path
   otel_collector_endpoint          = local.otel_collector_endpoint
