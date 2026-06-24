@@ -5,6 +5,7 @@ projects = {
 }
 project_name             = "web-compass-staging"
 spanner_processing_units = 400
+spanner_edition          = "STANDARD"
 deletion_protection      = true
 secret_ids = {
   github_token = "jamestestGHtoken-readonly"
