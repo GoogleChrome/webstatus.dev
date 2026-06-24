@@ -29,6 +29,12 @@ variable "spanner_processing_units" {
   description = "Number of processing units for the Spanner instance"
 }
 
+variable "spanner_edition" {
+  type        = string
+  description = "The edition of the Spanner instance (STANDARD, ENTERPRISE, ENTERPRISE_PLUS)"
+  default     = "STANDARD"
+}
+
 variable "deletion_protection" {
   type        = bool
   description = "Protect applicable resources from deletion."
