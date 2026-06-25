@@ -18,6 +18,8 @@ import (
 	"context"
 	"errors"
 	"log"
+	"os"
+	"time"
 
 	cloudtrace "github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace"
 	"go.opentelemetry.io/contrib/detectors/gcp"
@@ -47,7 +49,11 @@ func SetupOpenTelemetry(ctx context.Context, projectID string) (shutdown func(co
 	}
 
 	// Identify your application using resource detection.
-	res, err := resource.New(ctx,
+	// Enforce a strict 5s timeout on resource detection to prevent Metadata Server
+	// hangs from blocking container startup and failing the Cloud Run probe.
+	detectCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	res, err := resource.New(detectCtx,
 		// Use the GCP resource detector to detect information about the GKE Cluster.
 		resource.WithDetectors(gcp.NewDetector()),
 		resource.WithTelemetrySDK(),
@@ -101,4 +107,21 @@ func SetupOpenTelemetry(ctx context.Context, projectID string) (shutdown func(co
 	otel.SetMeterProvider(mp)
 
 	return shutdown, nil
+}
+
+// MaybeSetup OpenTelemetry if OTEL_SERVICE_NAME is set.
+// Returns a shutdown function and an error. If OTel is not enabled,
+// it returns a no-op shutdown function and nil error.
+func MaybeSetup(ctx context.Context) (func(context.Context) error, error) {
+	serviceName := os.Getenv("OTEL_SERVICE_NAME")
+	if serviceName == "" {
+		return func(context.Context) error { return nil }, nil
+	}
+
+	otelProjectID := os.Getenv("OTEL_GCP_PROJECT_ID")
+	if otelProjectID == "" {
+		return nil, errors.New("missing OTEL_GCP_PROJECT_ID for opentelemetry")
+	}
+
+	return SetupOpenTelemetry(ctx, otelProjectID)
 }

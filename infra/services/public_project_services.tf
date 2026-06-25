@@ -62,3 +62,11 @@ resource "google_project_service" "public_trace" {
   disable_dependent_services = true
   disable_on_destroy         = false
 }
+
+resource "google_project_service" "public_secretmanager" {
+  provider = google.public_project
+  service  = "secretmanager.googleapis.com"
+
+  disable_dependent_services = true
+  disable_on_destroy         = false
+}

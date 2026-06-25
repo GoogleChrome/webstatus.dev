@@ -13,108 +13,125 @@
 # limitations under the License.
 
 receivers:
-  # Receive OTLP from our application
+  # Open two OTLP servers:
+  # - On port 4317, open an OTLP GRPC server
+  # - On port 4318, open an OTLP HTTP server
   otlp:
     protocols:
+      grpc:
+        endpoint: localhost:4317
       http:
-        endpoint: 0.0.0.0:4318
-  # Use the filelog receiver to read our log from its log file.
-  filelog:
-    start_at: beginning
-    include:
-      - '/var/log/app.log'
-    operators:
-      - type: json_parser
-        parse_to: body
-        timestamp:
-          parse_from: body.timestamp
-          layout: '%Y-%m-%dT%H:%M:%S.%fZ'
-        severity:
-          parse_from: body.severity
-          preset: none
-          # parse minimal set of severity strings that Cloud Logging explicitly supports
-          # https://cloud.google.com/logging/docs/reference/v2/rest/v2/LogEntry#LogSeverity
-          mapping:
-            debug: debug
-            info: info
-            info3: notice
-            warn: warning
-            error: error
-            fatal: critical
-            fatal3: alert
-            fatal4: emergency
-
-      # set trace_flags to SAMPLED if GCP attribute is set to true
-      - type: add
-        field: body.trace_flags
-        value: '01'
-        if: body["logging.googleapis.com/trace_sampled"] == true
-
-      # parse the trace context fields from GCP attributes
-      - type: regex_parser
-        parse_from: body["logging.googleapis.com/trace"]
-        parse_to: body
-        regex: (?P<trace_id>.*)
-        trace:
-          span_id:
-            parse_from: body["logging.googleapis.com/spanId"]
-
-      # Remove fields that are redundant from translation above
-      - type: remove
-        field: body.timestamp
-      - type: remove
-        field: body.trace_id
-      - type: remove
-        field: body.trace_flags
-      - type: remove
-        field: body.severity
-      - type: remove
-        field: body["logging.googleapis.com/trace"]
-      - type: remove
-        field: body["logging.googleapis.com/spanId"]
-      - type: remove
-        field: body["logging.googleapis.com/trace_sampled"]
-
-exporters:
-  # Export logs and traces using the standard googelcloud exporter
-  googlecloud:
-    project: ${env:GOOGLE_CLOUD_PROJECT}
-    log:
-      default_log_name: 'opentelemetry.io/collector-exported-log'
-  # Export metrics to Google Managed service for Prometheus
-  googlemanagedprometheus:
-    project: ${env:GOOGLE_CLOUD_PROJECT}
+        cors:
+          # This effectively allows any origin to make requests to the HTTP server.
+          allowed_origins:
+            - http://*
+            - https://*
+        endpoint: localhost:4318
 
 processors:
-  # Batch telemetry together to more efficiently send to GCP
+  # Regulate both the number of requests being made and the size of those requests.
   batch:
-    send_batch_max_size: 500
+    send_batch_max_size: 500 # Kept our tuned high-throughput size
     send_batch_size: 500
-    timeout: 1s
+    timeout: 1s # Kept our low-latency timeout
+
+  # Check the memory usage of the collector process to prevent Cloud Run OOM.
+  memory_limiter:
+    check_interval: 1s
+    limit_percentage: 65
+    spike_limit_percentage: 20
+
+  # Detect GCP resource metadata.
+  resourcedetection:
+    detectors: [gcp]
+    timeout: 10s
+
+  # Inject Cloud Run revision version and region into telemetry.
   resource:
     attributes:
       - key: service.version
-        value: ${env:K_REVISION}
+        value: ${env:K_REVISION:-latest}
         action: upsert
-  resourcedetection:
-    detectors: ['gcp']
+      - key: cloud.region
+        value: ${env:OTEL_COLLECTOR_REGION:-unknown}
+        action: upsert
+
+  # Rename Prometheus metrics labels to prevent collisions with GCP system labels.
+  transform/collision:
+    metric_statements:
+      - context: datapoint
+        statements:
+          - set(attributes["exported_location"], attributes["location"])
+          - delete_key(attributes, "location")
+          - set(attributes["exported_cluster"], attributes["cluster"])
+          - delete_key(attributes, "cluster")
+          - set(attributes["exported_namespace"], attributes["namespace"])
+          - delete_key(attributes, "namespace")
+          - set(attributes["exported_job"], attributes["job"])
+          - delete_key(attributes, "job")
+          - set(attributes["exported_instance"], attributes["instance"])
+          - delete_key(attributes, "instance")
+          - set(attributes["exported_project_id"], attributes["project_id"])
+          - delete_key(attributes, "project_id")
+
+  # Standardize project ID resource attribute.
+  transform/set_project_id:
+    error_mode: ignore
+    trace_statements:
+      - set(resource.attributes["gcp.project_id"], resource.attributes["gcp.project.id"]) where resource.attributes["gcp.project.id"] != nil
+      - set(resource.attributes["gcp.project_id"], resource.attributes["cloud.account.id"]) where resource.attributes["gcp.project_id"] == nil and resource.attributes["cloud.account.id"] != nil
+
+exporters:
+  # Export logs to Cloud Logging
+  googlecloud:
+    log:
+      default_log_name: opentelemetry-collector
+
+  # Export metrics to Google Managed Service for Prometheus.
+  googlemanagedprometheus:
+
+  # Export traces directly to Google Cloud Trace OTLP endpoint (high-performance).
+  otlp:
+    endpoint: telemetry.googleapis.com:443
+    compression: none
+    balancer_name: pick_first
+    auth:
+      authenticator: googleclientauth
 
 extensions:
+  # Opens health check endpoint on port 4319 (matching our Cloud Run probes).
   health_check:
     endpoint: 0.0.0.0:4319
+  googleclientauth:
 
 service:
-  extensions: [health_check]
+  extensions:
+    - health_check
+    - googleclientauth
   pipelines:
-    traces:
-      receivers: ['otlp']
-      processors: ['batch', 'resourcedetection']
-      exporters: ['googlecloud']
-    metrics:
-      receivers: ['otlp']
-      processors: ['batch', 'resourcedetection', 'resource']
-      exporters: ['googlemanagedprometheus']
     logs:
-      receivers: ['filelog']
-      processors: ['batch', 'resourcedetection']
-      exporters: ['googlecloud']
+      receivers: [otlp]
+      processors: [resourcedetection, memory_limiter, batch]
+      exporters: [googlecloud]
+    metrics/otlp:
+      receivers: [otlp]
+      processors:
+        [
+          resourcedetection,
+          transform/collision,
+          memory_limiter,
+          resource,
+          batch,
+        ]
+      exporters: [googlemanagedprometheus]
+    traces:
+      receivers: [otlp]
+      processors:
+        [
+          resourcedetection,
+          memory_limiter,
+          transform/set_project_id,
+          resource,
+          batch,
+        ]
+      exporters: [otlp]
