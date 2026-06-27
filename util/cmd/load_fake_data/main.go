@@ -238,7 +238,7 @@ func (h featuresHelper) Features() []gcpspanner.WebFeature {
 }
 
 func resetTestData(ctx context.Context, spannerClient *gcpspanner.Client, authClient *auth.Client) error {
-	slog.InfoContext(ctx, "Resetting test user saved searches and bookmarks...")
+	slog.InfoContext(ctx, "Resetting test user data...")
 	userIDs := make([]string, len(testUserEmails))
 	for idx, email := range testUserEmails {
 		userID, err := findUserIDByEmail(ctx, email, authClient)
@@ -257,6 +257,30 @@ func resetTestData(ctx context.Context, spannerClient *gcpspanner.Client, authCl
 		return nil
 	}
 
+	slog.InfoContext(ctx, "Resetting test user saved searches and bookmarks...")
+	if err := resetSavedSearches(ctx, spannerClient, userIDs); err != nil {
+		return err
+	}
+	slog.InfoContext(ctx, "Deleted saved searches for test users", "count", len(userIDs))
+
+	slog.InfoContext(ctx, "Resetting test user subscriptions...")
+	if err := resetSubscriptions(ctx, spannerClient, userIDs); err != nil {
+		return err
+	}
+	slog.InfoContext(ctx, "Test user subscriptions reset.")
+
+	slog.InfoContext(ctx, "Resetting test user notification channels...")
+	if err := resetNotificationChannels(ctx, spannerClient, userIDs); err != nil {
+		return err
+	}
+	slog.InfoContext(ctx, "Test user notification channels reset.")
+
+	slog.InfoContext(ctx, "Test user data reset complete.")
+
+	return nil
+}
+
+func resetSavedSearches(ctx context.Context, spannerClient *gcpspanner.Client, userIDs []string) error {
 	for _, userID := range userIDs {
 		page, err := spannerClient.ListUserSavedSearches(ctx, userID, 1000, nil)
 		if err != nil {
@@ -275,10 +299,11 @@ func resetTestData(ctx context.Context, spannerClient *gcpspanner.Client, authCl
 			}
 		}
 	}
-	slog.InfoContext(ctx, "Deleted saved searches for test users", "count", len(userIDs))
 
-	// Reset subscriptions for each test user.
-	slog.InfoContext(ctx, "Resetting test user subscriptions...")
+	return nil
+}
+
+func resetSubscriptions(ctx context.Context, spannerClient *gcpspanner.Client, userIDs []string) error {
 	for _, userID := range userIDs {
 		// We don't need to handle pagination here, assuming a test user won't have more than 1000 subscriptions.
 		req := gcpspanner.ListSavedSearchSubscriptionsRequest{
@@ -300,9 +325,39 @@ func resetTestData(ctx context.Context, spannerClient *gcpspanner.Client, authCl
 			}
 		}
 	}
-	slog.InfoContext(ctx, "Test user subscriptions reset.")
 
-	slog.InfoContext(ctx, "Test user data reset complete.")
+	return nil
+}
+
+func resetNotificationChannels(ctx context.Context, spannerClient *gcpspanner.Client, userIDs []string) error {
+	for _, userID := range userIDs {
+		if userID == "" {
+			continue
+		}
+
+		// List all channels for the user
+		channels, _, err := spannerClient.ListNotificationChannels(ctx, gcpspanner.ListNotificationChannelsRequest{
+			UserID:    userID,
+			PageSize:  1000,
+			PageToken: nil,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to list notification channels for user %s: %w", userID, err)
+		}
+
+		for _, channel := range channels {
+			// Only delete non-email channels.
+			if channel.Type == gcpspanner.NotificationChannelTypeEmail {
+				continue
+			}
+
+			err := spannerClient.DeleteNotificationChannel(ctx, channel.ID, userID)
+			if err != nil {
+				slog.WarnContext(ctx, "failed to delete notification channel, continuing",
+					"channelID", channel.ID, "userID", userID, "error", err)
+			}
+		}
+	}
 
 	return nil
 }

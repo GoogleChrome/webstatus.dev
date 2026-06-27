@@ -28,9 +28,14 @@ test.describe('Login Component States', () => {
   test('displays spinner and is disabled during profile sync', async ({
     page,
   }) => {
-    // Intercept the pingUser request to introduce a delay.
+    let resolvePing: (() => void) | undefined;
+    const pingPromise = new Promise<void>(resolve => {
+      resolvePing = resolve;
+    });
+
+    // Intercept the pingUser request and hold it.
     await page.route('**/v1/users/me/ping', async route => {
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Delay to ensure 'syncing' state is capturable
+      await pingPromise;
       await route.continue();
     });
 
@@ -57,6 +62,11 @@ test.describe('Login Component States', () => {
         mask: [page.locator('webstatus-page')],
       },
     );
+
+    // Resolve the ping to let the sync complete.
+    if (resolvePing) {
+      resolvePing();
+    }
 
     // Now, wait for the sync to complete and verify the final state.
     await expect(loginButton.locator('sl-spinner')).toBeHidden();

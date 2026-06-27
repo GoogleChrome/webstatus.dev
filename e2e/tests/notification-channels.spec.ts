@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import {test, expect} from '@playwright/test';
+import {test, expect, type Page} from '@playwright/test';
 import {
   loginAsUser,
   BASE_URL,
@@ -22,6 +22,14 @@ import {
   waitForSidebarLoaded,
   resetUserData,
 } from './utils';
+
+function waitForChannelsRefetch(page: Page) {
+  return page.waitForResponse(
+    response =>
+      response.url().includes('/v1/users/me/notification-channels') &&
+      response.request().method() === 'GET',
+  );
+}
 
 test('redirects unauthenticated user to home and shows toast', async ({
   page,
@@ -37,8 +45,19 @@ test.describe('Notification Channels Page', () => {
   test.beforeEach(async ({page}) => {
     await resetUserData();
     await loginAsUser(page, 'test user 1');
+
+    // Listen for the initial data load GET request
+    const initialLoad = page.waitForResponse(
+      response =>
+        response.url().includes('/v1/users/me/notification-channels') &&
+        response.request().method() === 'GET',
+    );
+
     await page.goto(`${BASE_URL}/settings/notification-channels`);
     await waitForSidebarLoaded(page);
+
+    // Wait for the initial load to complete
+    await initialLoad;
   });
 
   test.afterAll(async () => {
@@ -114,7 +133,13 @@ test.describe('Notification Channels Page', () => {
       .getByRole('textbox', {name: 'Slack Webhook URL'})
       .fill(webhookUrl);
 
+    // Setup refetch listener before click
+    const refetch = waitForChannelsRefetch(page);
+
     await dialog.getByRole('button', {name: 'Create', exact: true}).click();
+
+    // Wait for refetch to complete
+    await refetch;
 
     // Verify it's in the list.
     await expect(dialog.locator('sl-dialog')).not.toBeVisible();
@@ -123,6 +148,9 @@ test.describe('Notification Channels Page', () => {
     });
     await expect(channelItem).toBeVisible();
 
+    // Setup refetch listener before delete click
+    const deleteRefetch = waitForChannelsRefetch(page);
+
     await channelItem.locator('sl-button[label="Delete"]').click();
 
     const deleteDialog = webhookPanel.locator('sl-dialog[open]');
@@ -130,6 +158,9 @@ test.describe('Notification Channels Page', () => {
     await deleteDialog
       .getByRole('button', {name: 'Delete', exact: true})
       .click();
+
+    // Wait for deletion refetch
+    await deleteRefetch;
 
     // Verify it's gone.
     await expect(channelItem).not.toBeVisible();
@@ -165,7 +196,14 @@ test.describe('Notification Channels Page', () => {
     await dialog
       .getByRole('textbox', {name: 'Slack Webhook URL'})
       .fill(originalUrl);
+
+    // Setup refetch listener for initial creation
+    const createRefetch = waitForChannelsRefetch(page);
+
     await dialog.getByRole('button', {name: 'Create', exact: true}).click();
+
+    // Wait for creation refetch
+    await createRefetch;
 
     // Verify it was created.
     await expect(dialog.locator('sl-dialog')).not.toBeVisible();
@@ -193,7 +231,13 @@ test.describe('Notification Channels Page', () => {
       .getByRole('textbox', {name: 'Slack Webhook URL'})
       .fill(updatedUrl);
 
+    // Setup refetch listener for save
+    const saveRefetch = waitForChannelsRefetch(page);
+
     await dialog.getByRole('button', {name: 'Save', exact: true}).click();
+
+    // Wait for save refetch
+    await saveRefetch;
 
     // Verify it was updated.
     await expect(dialog.locator('sl-dialog')).not.toBeVisible();
@@ -209,9 +253,17 @@ test.describe('Notification Channels Page', () => {
 
     const deleteDialog = webhookPanel.locator('sl-dialog[open]');
     await expect(deleteDialog).toBeVisible();
+
+    // Setup refetch listener for delete
+    const deleteRefetch = waitForChannelsRefetch(page);
+
     await deleteDialog
       .getByRole('button', {name: 'Delete', exact: true})
       .click();
+
+    // Wait for deletion refetch
+    await deleteRefetch;
+
     await expect(updatedItem).not.toBeVisible();
   });
 });
