@@ -261,7 +261,14 @@ export async function freezeAnimations(page: Page) {
 }
 
 export async function goTo404Page(page: Page, query: string): Promise<void> {
+  const responsePromise = page.waitForResponse(
+    response =>
+      response.url().includes(`/v1/features/${query}`) &&
+      response.request().method() === 'GET',
+  );
   await page.goto(`${BASE_URL}/features/${query}`);
+  await responsePromise;
+
   await expect(page).toHaveURL(
     `${BASE_URL}/errors-404/feature-not-found?q=${query}`,
   );

@@ -214,12 +214,19 @@ test('date range changes are preserved in the URL', async ({page}) => {
 
 test('redirects for a moved feature', async ({page, browserName}) => {
   test.skip(browserName === 'webkit', 'Skipping webkit due to flakiness');
-  // Wait for the app to fetch the old feature data which triggers the redirect.
-  const responsePromise = page.waitForResponse(response =>
-    response.url().includes('/v1/features/old-feature'),
+  const oldResponsePromise = page.waitForResponse(
+    response =>
+      response.url().includes('/v1/features/old-feature') &&
+      response.request().method() === 'GET',
+  );
+  const newResponsePromise = page.waitForResponse(
+    response =>
+      response.url().includes('/v1/features/new-feature') &&
+      response.request().method() === 'GET',
   );
   await page.goto('http://localhost:5555/features/old-feature');
-  await responsePromise;
+  await oldResponsePromise;
+  await newResponsePromise;
 
   // Expect the URL to be updated to the new feature's URL.
   await expect(page).toHaveURL(
@@ -248,7 +255,14 @@ test('redirects for a moved feature', async ({page, browserName}) => {
 });
 
 test('shows gone page for a split feature', async ({page}) => {
+  // Wait for the API request to complete before checking for redirect.
+  const responsePromise = page.waitForResponse(
+    response =>
+      response.url().includes('/v1/features/before-split-feature') &&
+      response.request().method() === 'GET',
+  );
   await page.goto('http://localhost:5555/features/before-split-feature');
+  await responsePromise;
 
   // Expect to be redirected to the 'feature-gone-split' page.
   await expect(page).toHaveURL(
