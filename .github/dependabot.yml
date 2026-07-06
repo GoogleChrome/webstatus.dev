@@ -79,11 +79,6 @@ updates:
           - '<24'
 
   - package-ecosystem: 'docker'
-    directory: '/otel'
-    schedule:
-      interval: 'weekly'
-
-  - package-ecosystem: 'docker'
     directory: '/.dev/auth'
     schedule:
       interval: 'weekly'

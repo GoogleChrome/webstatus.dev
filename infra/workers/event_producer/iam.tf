@@ -13,12 +13,10 @@
 # limitations under the License.
 
 # 1. Spanner Database User
-resource "google_spanner_database_iam_member" "db_user" {
-  instance = var.spanner_instance_id
-  database = var.spanner_database_id
+resource "google_project_iam_member" "db_user" {
+  project  = var.project_id
   role     = "roles/spanner.databaseUser"
   member   = "serviceAccount:${google_service_account.worker_sa.email}"
-  project  = var.project_id
   provider = google.internal_project
 }
 
