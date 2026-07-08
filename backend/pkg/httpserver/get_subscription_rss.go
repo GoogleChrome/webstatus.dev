@@ -178,10 +178,12 @@ func (s *Server) GetSubscriptionRSS(
 	}
 
 	for _, e := range events {
-		var summary workertypes.EventSummary
+		var wrapper struct {
+			Summary workertypes.EventSummary `json:"summary"`
+		}
 		var description string
 		var title string
-		if err := json.Unmarshal(e.Summary, &summary); err != nil {
+		if err := json.Unmarshal(e.Summary, &wrapper); err != nil {
 			slog.ErrorContext(ctx, "failed to unmarshal summary", "event_id", e.ID, "error", err)
 
 			errorHTML := fmt.Sprintf(
@@ -199,6 +201,11 @@ func (s *Server) GetSubscriptionRSS(
 				PubDate: e.Timestamp.Format(time.RFC1123Z),
 			})
 
+			continue
+		}
+		summary := wrapper.Summary
+
+		if !rssShouldNotifyV1(sub.Triggers, summary) {
 			continue
 		}
 
@@ -247,4 +254,50 @@ func (s *Server) GetSubscriptionRSS(
 		Body:          bytes.NewReader(buf.Bytes()),
 		ContentLength: int64(buf.Len()),
 	}, nil
+}
+
+func rssShouldNotifyV1(triggers []backend.SubscriptionTriggerResponseItem, summary workertypes.EventSummary) bool {
+	hasChanges := summary.Categories.Added > 0 ||
+		summary.Categories.Removed > 0 ||
+		summary.Categories.Updated > 0 ||
+		summary.Categories.Moved > 0 ||
+		summary.Categories.Split > 0 ||
+		summary.Categories.QueryChanged > 0
+
+	if !hasChanges {
+		return false
+	}
+
+	if len(triggers) == 0 {
+		return false
+	}
+
+	for _, triggerItem := range triggers {
+		triggerVal, err := triggerItem.Value.AsSubscriptionTriggerWritable()
+		if err != nil {
+			continue
+		}
+
+		var jobTrigger workertypes.JobTrigger
+		switch triggerVal {
+		case backend.SubscriptionTriggerFeatureBaselineToNewly:
+			jobTrigger = workertypes.FeaturePromotedToNewly
+		case backend.SubscriptionTriggerFeatureBaselineToWidely:
+			jobTrigger = workertypes.FeaturePromotedToWidely
+		case backend.SubscriptionTriggerFeatureBaselineRegressionToLimited:
+			jobTrigger = workertypes.FeatureRegressedToLimited
+		case backend.SubscriptionTriggerFeatureBrowserImplementationAnyComplete:
+			jobTrigger = workertypes.BrowserImplementationAnyComplete
+		default:
+			continue
+		}
+
+		for _, h := range summary.Highlights {
+			if h.MatchesTrigger(jobTrigger) {
+				return true
+			}
+		}
+	}
+
+	return false
 }

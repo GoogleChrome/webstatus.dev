@@ -52,8 +52,15 @@ func TestGetSubscriptionRSS(t *testing.T) {
 					ChannelType: backend.SubscriptionResponseChannelTypeRss,
 					CreatedAt:   time.Time{},
 					Frequency:   backend.SubscriptionFrequencyImmediate,
-					Triggers:    nil,
-					UpdatedAt:   time.Time{},
+					Triggers: []backend.SubscriptionTriggerResponseItem{
+						{
+							RawValue: nil,
+							Value: backendtypes.AttemptToStoreSubscriptionTrigger(
+								backend.SubscriptionTriggerFeatureBaselineToNewly,
+							),
+						},
+					},
+					UpdatedAt: time.Time{},
 				},
 				err: nil,
 			},
@@ -84,7 +91,8 @@ func TestGetSubscriptionRSS(t *testing.T) {
 						Timestamp:     time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC),
 						EventType:     "IMMEDIATE_DIFF",
 						Summary: []byte(
-							`{"schemaVersion":"v1","text":"Sample update","highlights":[{"type":"Added","feature_name":"Feature A"}]}`,
+							`{"summary":{"schemaVersion":"v1","categories":{"added":1},"text":"Sample update",` +
+								`"highlights":[{"type":"Added","feature_name":"Feature A","baseline_change":{"to":{"status":"newly"}}}]}}`,
 						),
 						Reasons:      nil,
 						BlobPath:     "",
@@ -123,8 +131,15 @@ func TestGetSubscriptionRSS(t *testing.T) {
 					ChannelType: backend.SubscriptionResponseChannelTypeRss,
 					CreatedAt:   time.Time{},
 					Frequency:   backend.SubscriptionFrequencyImmediate,
-					Triggers:    nil,
-					UpdatedAt:   time.Time{},
+					Triggers: []backend.SubscriptionTriggerResponseItem{
+						{
+							RawValue: nil,
+							Value: backendtypes.AttemptToStoreSubscriptionTrigger(
+								backend.SubscriptionTriggerFeatureBaselineToNewly,
+							),
+						},
+					},
+					UpdatedAt: time.Time{},
 				},
 				err: nil,
 			},
@@ -155,7 +170,8 @@ func TestGetSubscriptionRSS(t *testing.T) {
 						Timestamp:     time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC),
 						EventType:     "IMMEDIATE_DIFF",
 						Summary: []byte(
-							`{"schemaVersion":"v1","text":"Sample update","highlights":[{"type":"Added","feature_name":"Feature A"}]}`,
+							`{"summary":{"schemaVersion":"v1","categories":{"added":1},"text":"Sample update",` +
+								`"highlights":[{"type":"Added","feature_name":"Feature A","baseline_change":{"to":{"status":"newly"}}}]}}`,
 						),
 						Reasons:      nil,
 						BlobPath:     "",

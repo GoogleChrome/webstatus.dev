@@ -205,10 +205,11 @@ func (s *Backend) ListSavedSearchNotificationEvents(
 	pageSize int,
 	pageToken *string,
 ) ([]backendtypes.SavedSearchNotificationEvent, *string, error) {
+	spannerSnapshotType := toSpannerSubscriptionFrequency(backend.SubscriptionFrequency(snapshotType))
 	notifEvents, nextPageToken, err := s.client.ListSavedSearchNotificationEvents(
 		ctx,
 		savedSearchID,
-		snapshotType,
+		string(spannerSnapshotType),
 		pageSize,
 		pageToken,
 	)
