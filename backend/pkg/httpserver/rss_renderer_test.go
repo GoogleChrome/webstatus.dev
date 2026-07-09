@@ -17,8 +17,6 @@ package httpserver
 import (
 	"bytes"
 	"testing"
-
-	"github.com/GoogleChrome/webstatus.dev/lib/workertypes"
 )
 
 func TestNewRSSRenderer(t *testing.T) {
@@ -36,42 +34,17 @@ func TestRenderRSSDescription(t *testing.T) {
 
 	testCases := []struct {
 		name             string
-		summary          workertypes.EventSummary
+		data             RSSItemData
 		expectedContains []string
 	}{
 		{
 			name: "Basic Summary with Added Feature",
-			summary: workertypes.EventSummary{
-				SchemaVersion: workertypes.VersionEventSummaryV1,
-				Text:          "1 new feature matched",
-				Categories: workertypes.SummaryCategories{
-					QueryChanged:    0,
-					Added:           0,
-					Removed:         0,
-					Deleted:         0,
-					Moved:           0,
-					Split:           0,
-					Updated:         0,
-					UpdatedImpl:     0,
-					UpdatedRename:   0,
-					UpdatedBaseline: 0,
-				},
-				Truncated:      false,
-				SnapshotOrigin: "",
-				QueryErrors:    nil,
-				Highlights: []workertypes.SummaryHighlight{
-					{
-						Type:           workertypes.SummaryHighlightTypeAdded,
-						FeatureID:      "feature-a",
-						FeatureName:    "Feature A",
-						Docs:           nil,
-						NameChange:     nil,
-						BaselineChange: nil,
-						BrowserChanges: nil,
-						Moved:          nil,
-						Split:          nil,
-					},
-				},
+			data: RSSItemData{
+				SummaryText: "1 new feature matched",
+				Added:       []string{"Feature A"},
+				Removed:     nil,
+				Other:       nil,
+				Truncated:   false,
 			},
 			expectedContains: []string{
 				"Feature A",
@@ -80,37 +53,12 @@ func TestRenderRSSDescription(t *testing.T) {
 		},
 		{
 			name: "Removed Feature",
-			summary: workertypes.EventSummary{
-				SchemaVersion: workertypes.VersionEventSummaryV1,
-				Text:          "1 feature removed",
-				Categories: workertypes.SummaryCategories{
-					QueryChanged:    0,
-					Added:           0,
-					Removed:         0,
-					Deleted:         0,
-					Moved:           0,
-					Split:           0,
-					Updated:         0,
-					UpdatedImpl:     0,
-					UpdatedRename:   0,
-					UpdatedBaseline: 0,
-				},
-				Truncated:      false,
-				SnapshotOrigin: "",
-				QueryErrors:    nil,
-				Highlights: []workertypes.SummaryHighlight{
-					{
-						Type:           workertypes.SummaryHighlightTypeRemoved,
-						FeatureID:      "feature-b",
-						FeatureName:    "Feature B",
-						Docs:           nil,
-						NameChange:     nil,
-						BaselineChange: nil,
-						BrowserChanges: nil,
-						Moved:          nil,
-						Split:          nil,
-					},
-				},
+			data: RSSItemData{
+				SummaryText: "1 feature removed",
+				Added:       nil,
+				Removed:     []string{"Feature B"},
+				Other:       nil,
+				Truncated:   false,
 			},
 			expectedContains: []string{
 				"Feature B",
@@ -119,37 +67,12 @@ func TestRenderRSSDescription(t *testing.T) {
 		},
 		{
 			name: "Other Update",
-			summary: workertypes.EventSummary{
-				SchemaVersion: workertypes.VersionEventSummaryV1,
-				Text:          "1 feature updated",
-				Categories: workertypes.SummaryCategories{
-					QueryChanged:    0,
-					Added:           0,
-					Removed:         0,
-					Deleted:         0,
-					Moved:           0,
-					Split:           0,
-					Updated:         0,
-					UpdatedImpl:     0,
-					UpdatedRename:   0,
-					UpdatedBaseline: 0,
-				},
-				Truncated:      false,
-				SnapshotOrigin: "",
-				QueryErrors:    nil,
-				Highlights: []workertypes.SummaryHighlight{
-					{
-						Type:           workertypes.SummaryHighlightTypeChanged,
-						FeatureID:      "feature-c",
-						FeatureName:    "Feature C",
-						Docs:           nil,
-						NameChange:     nil,
-						BaselineChange: nil,
-						BrowserChanges: nil,
-						Moved:          nil,
-						Split:          nil,
-					},
-				},
+			data: RSSItemData{
+				SummaryText: "1 feature updated",
+				Added:       nil,
+				Removed:     nil,
+				Other:       []string{"Feature C (Changed)"},
+				Truncated:   false,
 			},
 			expectedContains: []string{
 				"Feature C",
@@ -158,37 +81,12 @@ func TestRenderRSSDescription(t *testing.T) {
 		},
 		{
 			name: "HTML Escaping in Feature Name",
-			summary: workertypes.EventSummary{
-				SchemaVersion: workertypes.VersionEventSummaryV1,
-				Text:          "HTML escaping test",
-				Categories: workertypes.SummaryCategories{
-					QueryChanged:    0,
-					Added:           0,
-					Removed:         0,
-					Deleted:         0,
-					Moved:           0,
-					Split:           0,
-					Updated:         0,
-					UpdatedImpl:     0,
-					UpdatedRename:   0,
-					UpdatedBaseline: 0,
-				},
-				Truncated:      false,
-				SnapshotOrigin: "",
-				QueryErrors:    nil,
-				Highlights: []workertypes.SummaryHighlight{
-					{
-						Type:           workertypes.SummaryHighlightTypeAdded,
-						FeatureID:      "feature-html",
-						FeatureName:    "<link rel=\"dns-prefetch\">",
-						Docs:           nil,
-						NameChange:     nil,
-						BaselineChange: nil,
-						BrowserChanges: nil,
-						Moved:          nil,
-						Split:          nil,
-					},
-				},
+			data: RSSItemData{
+				SummaryText: "HTML escaping test",
+				Added:       []string{"<link rel=\"dns-prefetch\">"},
+				Removed:     nil,
+				Other:       nil,
+				Truncated:   false,
 			},
 			expectedContains: []string{
 				"&lt;link",
@@ -197,25 +95,12 @@ func TestRenderRSSDescription(t *testing.T) {
 		},
 		{
 			name: "Truncated Summary",
-			summary: workertypes.EventSummary{
-				SchemaVersion: workertypes.VersionEventSummaryV1,
-				Text:          "Summary text",
-				Categories: workertypes.SummaryCategories{
-					QueryChanged:    0,
-					Added:           0,
-					Removed:         0,
-					Deleted:         0,
-					Moved:           0,
-					Split:           0,
-					Updated:         0,
-					UpdatedImpl:     0,
-					UpdatedRename:   0,
-					UpdatedBaseline: 0,
-				},
-				Truncated:      true,
-				SnapshotOrigin: "",
-				QueryErrors:    nil,
-				Highlights:     []workertypes.SummaryHighlight{},
+			data: RSSItemData{
+				SummaryText: "Summary text",
+				Added:       nil,
+				Removed:     nil,
+				Other:       nil,
+				Truncated:   true,
 			},
 			expectedContains: []string{
 				"This summary has been truncated",
@@ -225,7 +110,7 @@ func TestRenderRSSDescription(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			output, err := renderer.RenderRSSDescription(tc.summary)
+			output, err := renderer.RenderRSSDescription(tc.data)
 			if err != nil {
 				t.Fatalf("RenderRSSDescription failed: %v", err)
 			}

@@ -52,8 +52,15 @@ func TestGetSubscriptionRSS(t *testing.T) {
 					ChannelType: backend.SubscriptionResponseChannelTypeRss,
 					CreatedAt:   time.Time{},
 					Frequency:   backend.SubscriptionFrequencyImmediate,
-					Triggers:    nil,
-					UpdatedAt:   time.Time{},
+					Triggers: []backend.SubscriptionTriggerResponseItem{
+						{
+							RawValue: nil,
+							Value: backendtypes.AttemptToStoreSubscriptionTrigger(
+								backend.SubscriptionTriggerFeatureBaselineToNewly,
+							),
+						},
+					},
+					UpdatedAt: time.Time{},
 				},
 				err: nil,
 			},
@@ -73,7 +80,7 @@ func TestGetSubscriptionRSS(t *testing.T) {
 			},
 			eventsCfg: &MockListSavedSearchNotificationEventsConfig{
 				expectedSavedSearchID: "search-id",
-				expectedSnapshotType:  string(backend.SubscriptionFrequencyImmediate),
+				expectedFrequency:     backend.SubscriptionFrequencyImmediate,
 				expectedPageSize:      100,
 				expectedPageToken:     nil,
 				output: []backendtypes.SavedSearchNotificationEvent{
@@ -84,7 +91,8 @@ func TestGetSubscriptionRSS(t *testing.T) {
 						Timestamp:     time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC),
 						EventType:     "IMMEDIATE_DIFF",
 						Summary: []byte(
-							`{"schemaVersion":"v1","text":"Sample update","highlights":[{"type":"Added","feature_name":"Feature A"}]}`,
+							`{"schemaVersion":"v1","categories":{"added":1},"text":"Sample update",` +
+								`"highlights":[{"type":"Added","feature_name":"Feature A","baseline_change":{"to":{"status":"newly"}}}]}`,
 						),
 						Reasons:      nil,
 						BlobPath:     "",
@@ -123,8 +131,15 @@ func TestGetSubscriptionRSS(t *testing.T) {
 					ChannelType: backend.SubscriptionResponseChannelTypeRss,
 					CreatedAt:   time.Time{},
 					Frequency:   backend.SubscriptionFrequencyImmediate,
-					Triggers:    nil,
-					UpdatedAt:   time.Time{},
+					Triggers: []backend.SubscriptionTriggerResponseItem{
+						{
+							RawValue: nil,
+							Value: backendtypes.AttemptToStoreSubscriptionTrigger(
+								backend.SubscriptionTriggerFeatureBaselineToNewly,
+							),
+						},
+					},
+					UpdatedAt: time.Time{},
 				},
 				err: nil,
 			},
@@ -144,7 +159,7 @@ func TestGetSubscriptionRSS(t *testing.T) {
 			},
 			eventsCfg: &MockListSavedSearchNotificationEventsConfig{
 				expectedSavedSearchID: "search-id",
-				expectedSnapshotType:  string(backend.SubscriptionFrequencyImmediate),
+				expectedFrequency:     backend.SubscriptionFrequencyImmediate,
 				expectedPageSize:      100,
 				expectedPageToken:     nil,
 				output: []backendtypes.SavedSearchNotificationEvent{
@@ -155,7 +170,8 @@ func TestGetSubscriptionRSS(t *testing.T) {
 						Timestamp:     time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC),
 						EventType:     "IMMEDIATE_DIFF",
 						Summary: []byte(
-							`{"schemaVersion":"v1","text":"Sample update","highlights":[{"type":"Added","feature_name":"Feature A"}]}`,
+							`{"schemaVersion":"v1","categories":{"added":1},"text":"Sample update",` +
+								`"highlights":[{"type":"Added","feature_name":"Feature A","baseline_change":{"to":{"status":"newly"}}}]}`,
 						),
 						Reasons:      nil,
 						BlobPath:     "",
@@ -181,6 +197,210 @@ func TestGetSubscriptionRSS(t *testing.T) {
 				"<![CDATA[",
 				"<atom:link rel=\"self\" href=\"http://localhost:8080/v1/subscriptions/sub-id/rss\"></atom:link>",
 				"<h4>Features Added</h4>",
+			},
+		},
+		{
+			name: "empty triggers exclude all events",
+			subCfg: &MockGetSavedSearchSubscriptionPublicConfig{
+				expectedSubscriptionID: "sub-id",
+				output: &backend.SubscriptionResponse{
+					Id: "sub-id",
+					Subscribable: backend.SavedSearchInfo{
+						Id:   "search-id",
+						Name: "",
+					},
+					ChannelId:   "channel-id",
+					ChannelType: backend.SubscriptionResponseChannelTypeRss,
+					CreatedAt:   time.Time{},
+					Frequency:   backend.SubscriptionFrequencyImmediate,
+					Triggers:    []backend.SubscriptionTriggerResponseItem{},
+					UpdatedAt:   time.Time{},
+				},
+				err: nil,
+			},
+			searchCfg: &MockGetSavedSearchPublicConfig{
+				expectedSavedSearchID: "search-id",
+				output: &backend.SavedSearchResponse{
+					Id:             "search-id",
+					Name:           "test search",
+					Query:          "query",
+					BookmarkStatus: nil,
+					CreatedAt:      time.Time{},
+					Description:    nil,
+					Permissions:    nil,
+					UpdatedAt:      time.Time{},
+				},
+				err: nil,
+			},
+			eventsCfg: &MockListSavedSearchNotificationEventsConfig{
+				expectedSavedSearchID: "search-id",
+				expectedFrequency:     backend.SubscriptionFrequencyImmediate,
+				expectedPageSize:      100,
+				expectedPageToken:     nil,
+				output: []backendtypes.SavedSearchNotificationEvent{
+					{
+						ID:            "event-1",
+						SavedSearchID: "search-id",
+						SnapshotType:  string(backend.SubscriptionFrequencyImmediate),
+						Timestamp:     time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC),
+						EventType:     "IMMEDIATE_DIFF",
+						Summary: []byte(
+							`{"schemaVersion":"v1","categories":{"added":1},"text":"Sample update",` +
+								`"highlights":[{"type":"Added","feature_name":"Feature A","baseline_change":{"to":{"status":"newly"}}}]}`,
+						),
+						Reasons:      nil,
+						BlobPath:     "",
+						DiffBlobPath: "",
+					},
+				},
+				outputNextPageToken: nil,
+				err:                 nil,
+			},
+			expectedStatusCode:  200,
+			expectedContentType: "application/rss+xml",
+			expectedBodyContains: []string{
+				"<title>WebStatus.dev - test search</title>",
+			},
+		},
+		{
+			name: "unmatched trigger exclude event",
+			subCfg: &MockGetSavedSearchSubscriptionPublicConfig{
+				expectedSubscriptionID: "sub-id",
+				output: &backend.SubscriptionResponse{
+					Id: "sub-id",
+					Subscribable: backend.SavedSearchInfo{
+						Id:   "search-id",
+						Name: "",
+					},
+					ChannelId:   "channel-id",
+					ChannelType: backend.SubscriptionResponseChannelTypeRss,
+					CreatedAt:   time.Time{},
+					Frequency:   backend.SubscriptionFrequencyImmediate,
+					Triggers: []backend.SubscriptionTriggerResponseItem{
+						{
+							RawValue: nil,
+							Value: backendtypes.AttemptToStoreSubscriptionTrigger(
+								backend.SubscriptionTriggerFeatureBaselineRegressionToLimited,
+							),
+						},
+					},
+					UpdatedAt: time.Time{},
+				},
+				err: nil,
+			},
+			searchCfg: &MockGetSavedSearchPublicConfig{
+				expectedSavedSearchID: "search-id",
+				output: &backend.SavedSearchResponse{
+					Id:             "search-id",
+					Name:           "test search",
+					Query:          "query",
+					BookmarkStatus: nil,
+					CreatedAt:      time.Time{},
+					Description:    nil,
+					Permissions:    nil,
+					UpdatedAt:      time.Time{},
+				},
+				err: nil,
+			},
+			eventsCfg: &MockListSavedSearchNotificationEventsConfig{
+				expectedSavedSearchID: "search-id",
+				expectedFrequency:     backend.SubscriptionFrequencyImmediate,
+				expectedPageSize:      100,
+				expectedPageToken:     nil,
+				output: []backendtypes.SavedSearchNotificationEvent{
+					{
+						ID:            "event-1",
+						SavedSearchID: "search-id",
+						SnapshotType:  string(backend.SubscriptionFrequencyImmediate),
+						Timestamp:     time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC),
+						EventType:     "IMMEDIATE_DIFF",
+						Summary: []byte(
+							`{"schemaVersion":"v1","categories":{"added":1},"text":"Sample update",` +
+								`"highlights":[{"type":"Added","feature_name":"Feature A","baseline_change":{"to":{"status":"newly"}}}]}`,
+						),
+						Reasons:      nil,
+						BlobPath:     "",
+						DiffBlobPath: "",
+					},
+				},
+				outputNextPageToken: nil,
+				err:                 nil,
+			},
+			expectedStatusCode:  200,
+			expectedContentType: "application/rss+xml",
+			expectedBodyContains: []string{
+				"<title>WebStatus.dev - test search</title>",
+			},
+		},
+		{
+			name: "malformed json returns error item",
+			subCfg: &MockGetSavedSearchSubscriptionPublicConfig{
+				expectedSubscriptionID: "sub-id",
+				output: &backend.SubscriptionResponse{
+					Id: "sub-id",
+					Subscribable: backend.SavedSearchInfo{
+						Id:   "search-id",
+						Name: "",
+					},
+					ChannelId:   "channel-id",
+					ChannelType: backend.SubscriptionResponseChannelTypeRss,
+					CreatedAt:   time.Time{},
+					Frequency:   backend.SubscriptionFrequencyImmediate,
+					Triggers: []backend.SubscriptionTriggerResponseItem{
+						{
+							RawValue: nil,
+							Value: backendtypes.AttemptToStoreSubscriptionTrigger(
+								backend.SubscriptionTriggerFeatureBaselineToNewly,
+							),
+						},
+					},
+					UpdatedAt: time.Time{},
+				},
+				err: nil,
+			},
+			searchCfg: &MockGetSavedSearchPublicConfig{
+				expectedSavedSearchID: "search-id",
+				output: &backend.SavedSearchResponse{
+					Id:             "search-id",
+					Name:           "test search",
+					Query:          "query",
+					BookmarkStatus: nil,
+					CreatedAt:      time.Time{},
+					Description:    nil,
+					Permissions:    nil,
+					UpdatedAt:      time.Time{},
+				},
+				err: nil,
+			},
+			eventsCfg: &MockListSavedSearchNotificationEventsConfig{
+				expectedSavedSearchID: "search-id",
+				expectedFrequency:     backend.SubscriptionFrequencyImmediate,
+				expectedPageSize:      100,
+				expectedPageToken:     nil,
+				output: []backendtypes.SavedSearchNotificationEvent{
+					{
+						ID:            "event-1",
+						SavedSearchID: "search-id",
+						SnapshotType:  string(backend.SubscriptionFrequencyImmediate),
+						Timestamp:     time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC),
+						EventType:     "IMMEDIATE_DIFF",
+						Summary: []byte(
+							`malformed json`,
+						),
+						Reasons:      nil,
+						BlobPath:     "",
+						DiffBlobPath: "",
+					},
+				},
+				outputNextPageToken: nil,
+				err:                 nil,
+			},
+			expectedStatusCode:  200,
+			expectedContentType: "application/rss+xml",
+			expectedBodyContains: []string{
+				"<title>WebStatus.dev - test search</title>",
+				"Could not load details for this update",
+				"event-1",
 			},
 		},
 		{

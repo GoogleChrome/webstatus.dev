@@ -16,10 +16,7 @@ package httpserver
 
 import (
 	"bytes"
-	"fmt"
 	"html/template"
-
-	"github.com/GoogleChrome/webstatus.dev/lib/workertypes"
 )
 
 const rssItemTemplate = `
@@ -68,30 +65,7 @@ func NewRSSRenderer() *RSSRenderer {
 	return &RSSRenderer{tmpl: tmpl}
 }
 
-func (r *RSSRenderer) RenderRSSDescription(summary workertypes.EventSummary) (string, error) {
-	data := RSSItemData{
-		SummaryText: summary.Text,
-		Truncated:   summary.Truncated,
-		Added:       []string{},
-		Removed:     []string{},
-		Other:       []string{},
-	}
-
-	// Map highlights to categories using Enums
-	for _, h := range summary.Highlights {
-		switch h.Type {
-		case workertypes.SummaryHighlightTypeAdded:
-			data.Added = append(data.Added, h.FeatureName)
-		case workertypes.SummaryHighlightTypeRemoved:
-			data.Removed = append(data.Removed, h.FeatureName)
-		case workertypes.SummaryHighlightTypeChanged,
-			workertypes.SummaryHighlightTypeMoved,
-			workertypes.SummaryHighlightTypeSplit,
-			workertypes.SummaryHighlightTypeDeleted:
-			data.Other = append(data.Other, fmt.Sprintf("%s (%s)", h.FeatureName, h.Type))
-		}
-	}
-
+func (r *RSSRenderer) RenderRSSDescription(data RSSItemData) (string, error) {
 	var buf bytes.Buffer
 	if err := r.tmpl.Execute(&buf, data); err != nil {
 		return "", err

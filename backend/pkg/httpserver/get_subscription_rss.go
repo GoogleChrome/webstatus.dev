@@ -17,7 +17,6 @@ package httpserver
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"encoding/xml"
 	"errors"
 	"fmt"
@@ -110,12 +109,12 @@ func (s *Server) GetSubscriptionRSS(
 		}, nil
 	}
 
-	snapshotType := string(sub.Frequency)
+	frequency := sub.Frequency
 	pageSize := getPageSizeOrDefault(request.Params.PageSize)
 	events, nextPageToken, err := s.wptMetricsStorer.ListSavedSearchNotificationEvents(
 		ctx,
 		search.Id,
-		snapshotType,
+		frequency,
 		pageSize,
 		request.Params.PageToken,
 	)
@@ -177,11 +176,22 @@ func (s *Server) GetSubscriptionRSS(
 		})
 	}
 
+	var jobTriggers []workertypes.JobTrigger
+	for _, triggerItem := range sub.Triggers {
+		triggerVal, err := triggerItem.Value.AsSubscriptionTriggerWritable()
+		if err != nil {
+			continue
+		}
+		if jobTrigger, ok := workertypes.ToJobTrigger(triggerVal); ok {
+			jobTriggers = append(jobTriggers, jobTrigger)
+		}
+	}
+
 	for _, e := range events {
-		var summary workertypes.EventSummary
+		visitor := newRSSVisitor(jobTriggers)
 		var description string
 		var title string
-		if err := json.Unmarshal(e.Summary, &summary); err != nil {
+		if err := workertypes.ParseEventSummary(e.Summary, visitor); err != nil {
 			slog.ErrorContext(ctx, "failed to unmarshal summary", "event_id", e.ID, "error", err)
 
 			errorHTML := fmt.Sprintf(
@@ -202,17 +212,21 @@ func (s *Server) GetSubscriptionRSS(
 			continue
 		}
 
-		richHTML, err := s.rssRenderer.RenderRSSDescription(summary)
+		if !visitor.HasContent() {
+			continue
+		}
+
+		richHTML, err := s.rssRenderer.RenderRSSDescription(visitor.data)
 		if err != nil {
 			slog.ErrorContext(ctx, "failed to render RSS description", "event_id", e.ID, "error", err)
-			description = summary.Text
+			description = visitor.data.SummaryText
 			if description == "" {
 				description = "Detailed summary unavailable"
 			}
 		} else {
 			description = richHTML
 		}
-		title = summary.Text
+		title = visitor.data.SummaryText
 		if title == "" {
 			title = fallbackRSSItemTitle
 		}

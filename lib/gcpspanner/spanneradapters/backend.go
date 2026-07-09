@@ -198,17 +198,41 @@ func NewBackend(client BackendSpannerClient) *Backend {
 	return &Backend{client: client}
 }
 
+func extractSummaryBytes(summary spanner.NullJSON, eventID string) ([]byte, error) {
+	if !summary.Valid {
+		return nil, nil
+	}
+	if m, ok := summary.Value.(map[string]any); ok {
+		if innerSummary, exists := m["summary"]; exists {
+			summaryBytes, err := json.Marshal(innerSummary)
+			if err != nil {
+				return nil, fmt.Errorf("failed to marshal summary for event %s: %w", eventID, err)
+			}
+
+			return summaryBytes, nil
+		}
+	}
+	summaryBytes, err := json.Marshal(summary.Value)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal summary for event %s: %w", eventID, err)
+	}
+
+	return summaryBytes, nil
+}
+
 func (s *Backend) ListSavedSearchNotificationEvents(
+
 	ctx context.Context,
 	savedSearchID string,
-	snapshotType string,
+	frequency backend.SubscriptionFrequency,
 	pageSize int,
 	pageToken *string,
 ) ([]backendtypes.SavedSearchNotificationEvent, *string, error) {
+	spannerSnapshotType := toSpannerSubscriptionFrequency(frequency)
 	notifEvents, nextPageToken, err := s.client.ListSavedSearchNotificationEvents(
 		ctx,
 		savedSearchID,
-		snapshotType,
+		string(spannerSnapshotType),
 		pageSize,
 		pageToken,
 	)
@@ -219,11 +243,11 @@ func (s *Backend) ListSavedSearchNotificationEvents(
 	events := make([]backendtypes.SavedSearchNotificationEvent, 0, len(notifEvents))
 	for _, e := range notifEvents {
 		var summaryBytes []byte
+		var err error
 		if e.Summary.Valid {
-			var err error
-			summaryBytes, err = json.Marshal(e.Summary.Value)
+			summaryBytes, err = extractSummaryBytes(e.Summary, e.ID)
 			if err != nil {
-				return nil, nil, fmt.Errorf("failed to marshal summary for event %s: %w", e.ID, err)
+				return nil, nil, err
 			}
 		}
 

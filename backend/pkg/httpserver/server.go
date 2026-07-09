@@ -183,7 +183,7 @@ type WPTMetricsStorer interface {
 	ListSavedSearchNotificationEvents(
 		ctx context.Context,
 		savedSearchID string,
-		snapshotType string,
+		frequency backend.SubscriptionFrequency,
 		pageSize int,
 		pageToken *string,
 	) ([]backendtypes.SavedSearchNotificationEvent, *string, error)
