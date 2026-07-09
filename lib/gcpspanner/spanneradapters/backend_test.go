@@ -5291,3 +5291,32 @@ func TestExpandSavedSearches_Error(t *testing.T) {
 		})
 	}
 }
+
+func TestListSavedSearchNotificationEvents(t *testing.T) {
+	ctx := context.Background()
+	//nolint:exhaustruct
+	mockClient := &mockBackendSpannerClient{t: t}
+	backendObj := &Backend{client: mockClient}
+
+	// 1. Verify OpenAPI Immediate frequency translates to Spanner snapshot type.
+	mockClient.mockListSavedSearchNotificationEventsCfg = &mockListSavedSearchNotificationEventsConfig{
+		expectedSavedSearchID: "search-id",
+		expectedSnapshotType:  string(gcpspanner.SavedSearchSnapshotTypeImmediate),
+		expectedPageSize:      10,
+		expectedPageToken:     nil,
+		result:                []gcpspanner.SavedSearchNotificationEvent{},
+		outputNextPageToken:   nil,
+		returnedError:         nil,
+	}
+
+	_, _, err := backendObj.ListSavedSearchNotificationEvents(
+		ctx,
+		"search-id",
+		backend.SubscriptionFrequencyImmediate,
+		10,
+		nil,
+	)
+	if err != nil {
+		t.Errorf("expected no error, got %v", err)
+	}
+}

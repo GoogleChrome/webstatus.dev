@@ -204,7 +204,7 @@ type MockGetSavedSearchSubscriptionPublicConfig struct {
 
 type MockListSavedSearchNotificationEventsConfig struct {
 	expectedSavedSearchID string
-	expectedSnapshotType  string
+	expectedFrequency     backend.SubscriptionFrequency
 	expectedPageSize      int
 	expectedPageToken     *string
 	output                []backendtypes.SavedSearchNotificationEvent
@@ -799,7 +799,7 @@ func (m *MockWPTMetricsStorer) GetSavedSearchSubscriptionPublic(
 func (m *MockWPTMetricsStorer) ListSavedSearchNotificationEvents(
 	_ context.Context,
 	savedSearchID string,
-	snapshotType string,
+	frequency backend.SubscriptionFrequency,
 	pageSize int,
 	pageToken *string,
 ) ([]backendtypes.SavedSearchNotificationEvent, *string, error) {
@@ -814,11 +814,11 @@ func (m *MockWPTMetricsStorer) ListSavedSearchNotificationEvents(
 			savedSearchID,
 		)
 	}
-	if m.listSavedSearchNotificationEventsCfg.expectedSnapshotType != snapshotType {
+	if m.listSavedSearchNotificationEventsCfg.expectedFrequency != frequency {
 		m.t.Fatalf(
-			"unexpected snapshotType. want %s, got %s",
-			m.listSavedSearchNotificationEventsCfg.expectedSnapshotType,
-			snapshotType,
+			"unexpected frequency. want %v, got %v",
+			m.listSavedSearchNotificationEventsCfg.expectedFrequency,
+			frequency,
 		)
 	}
 	if m.listSavedSearchNotificationEventsCfg.expectedPageSize != pageSize {

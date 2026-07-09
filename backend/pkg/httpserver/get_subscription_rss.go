@@ -17,7 +17,6 @@ package httpserver
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"encoding/xml"
 	"errors"
 	"fmt"
@@ -110,12 +109,12 @@ func (s *Server) GetSubscriptionRSS(
 		}, nil
 	}
 
-	snapshotType := string(sub.Frequency)
+	frequency := sub.Frequency
 	pageSize := getPageSizeOrDefault(request.Params.PageSize)
 	events, nextPageToken, err := s.wptMetricsStorer.ListSavedSearchNotificationEvents(
 		ctx,
 		search.Id,
-		snapshotType,
+		frequency,
 		pageSize,
 		request.Params.PageToken,
 	)
@@ -177,13 +176,22 @@ func (s *Server) GetSubscriptionRSS(
 		})
 	}
 
-	for _, e := range events {
-		var wrapper struct {
-			Summary workertypes.EventSummary `json:"summary"`
+	var jobTriggers []workertypes.JobTrigger
+	for _, triggerItem := range sub.Triggers {
+		triggerVal, err := triggerItem.Value.AsSubscriptionTriggerWritable()
+		if err != nil {
+			continue
 		}
+		if jobTrigger, ok := workertypes.ToJobTrigger(triggerVal); ok {
+			jobTriggers = append(jobTriggers, jobTrigger)
+		}
+	}
+
+	for _, e := range events {
+		visitor := newRSSVisitor(jobTriggers)
 		var description string
 		var title string
-		if err := json.Unmarshal(e.Summary, &wrapper); err != nil {
+		if err := workertypes.ParseEventSummary(e.Summary, visitor); err != nil {
 			slog.ErrorContext(ctx, "failed to unmarshal summary", "event_id", e.ID, "error", err)
 
 			errorHTML := fmt.Sprintf(
@@ -203,23 +211,22 @@ func (s *Server) GetSubscriptionRSS(
 
 			continue
 		}
-		summary := wrapper.Summary
 
-		if !rssShouldNotifyV1(sub.Triggers, summary) {
+		if !visitor.HasContent() {
 			continue
 		}
 
-		richHTML, err := s.rssRenderer.RenderRSSDescription(summary)
+		richHTML, err := s.rssRenderer.RenderRSSDescription(visitor.data)
 		if err != nil {
 			slog.ErrorContext(ctx, "failed to render RSS description", "event_id", e.ID, "error", err)
-			description = summary.Text
+			description = visitor.data.SummaryText
 			if description == "" {
 				description = "Detailed summary unavailable"
 			}
 		} else {
 			description = richHTML
 		}
-		title = summary.Text
+		title = visitor.data.SummaryText
 		if title == "" {
 			title = fallbackRSSItemTitle
 		}
@@ -254,50 +261,4 @@ func (s *Server) GetSubscriptionRSS(
 		Body:          bytes.NewReader(buf.Bytes()),
 		ContentLength: int64(buf.Len()),
 	}, nil
-}
-
-func rssShouldNotifyV1(triggers []backend.SubscriptionTriggerResponseItem, summary workertypes.EventSummary) bool {
-	hasChanges := summary.Categories.Added > 0 ||
-		summary.Categories.Removed > 0 ||
-		summary.Categories.Updated > 0 ||
-		summary.Categories.Moved > 0 ||
-		summary.Categories.Split > 0 ||
-		summary.Categories.QueryChanged > 0
-
-	if !hasChanges {
-		return false
-	}
-
-	if len(triggers) == 0 {
-		return false
-	}
-
-	for _, triggerItem := range triggers {
-		triggerVal, err := triggerItem.Value.AsSubscriptionTriggerWritable()
-		if err != nil {
-			continue
-		}
-
-		var jobTrigger workertypes.JobTrigger
-		switch triggerVal {
-		case backend.SubscriptionTriggerFeatureBaselineToNewly:
-			jobTrigger = workertypes.FeaturePromotedToNewly
-		case backend.SubscriptionTriggerFeatureBaselineToWidely:
-			jobTrigger = workertypes.FeaturePromotedToWidely
-		case backend.SubscriptionTriggerFeatureBaselineRegressionToLimited:
-			jobTrigger = workertypes.FeatureRegressedToLimited
-		case backend.SubscriptionTriggerFeatureBrowserImplementationAnyComplete:
-			jobTrigger = workertypes.BrowserImplementationAnyComplete
-		default:
-			continue
-		}
-
-		for _, h := range summary.Highlights {
-			if h.MatchesTrigger(jobTrigger) {
-				return true
-			}
-		}
-	}
-
-	return false
 }
