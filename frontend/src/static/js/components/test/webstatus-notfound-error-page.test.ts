@@ -64,8 +64,9 @@ describe('webstatus-notfound-error-page', () => {
     `);
 
     expect(
-      component.shadowRoot?.querySelector('#error-detailed-message')
-        ?.textContent,
+      component.shadowRoot
+        ?.querySelector('#error-detailed-message')
+        ?.textContent.replace(/\s+/g, ' '),
     ).to.include('We could not find Feature ID: test-feature');
   });
 
