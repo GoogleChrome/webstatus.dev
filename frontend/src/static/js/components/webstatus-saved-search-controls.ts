@@ -189,18 +189,22 @@ export class WebstatusSavedSearchControls extends LitElement {
           name="${bookmarkStatusIcon}"
           label="${bookmarkTooltipLabel}"
           .disabled=${bookmarkButtonDisabled || inProgress}
-          @click=${ifDefined(isOwner)
-            ? undefined
-            : () =>
-                this.handleBookmarkSavedSearch(
-                  savedSearch,
-                  isBookmarkStatusActive,
-                )}
+          @click=${
+            ifDefined(isOwner)
+              ? undefined
+              : () =>
+                  this.handleBookmarkSavedSearch(
+                    savedSearch,
+                    isBookmarkStatusActive,
+                  )
+          }
         ></sl-icon-button>
       </sl-tooltip>
-      ${inProgress
-        ? html`<sl-spinner id="bookmark-task-spinner"></sl-spinner>`
-        : nothing}
+      ${
+        inProgress
+          ? html`<sl-spinner id="bookmark-task-spinner"></sl-spinner>`
+          : nothing
+      }
     `;
   }
 
@@ -218,29 +222,31 @@ export class WebstatusSavedSearchControls extends LitElement {
         }}
       ></sl-icon-button>
       ${this.renderBookmarkControl(savedSearch, isOwner)}
-      ${isOwner
-        ? html`
-            <sl-tooltip content="Edit current saved search">
-              <sl-icon-button
-                name="pencil"
-                label="Edit"
-                @click=${() =>
-                  this.openSavedSearch(
-                    'edit',
-                    this.savedSearch,
-                    this.overviewPageQueryInput?.value,
-                  )}
-              ></sl-icon-button>
-            </sl-tooltip>
-            <sl-tooltip content="Delete saved search">
-              <sl-icon-button
-                name="trash"
-                label="Delete"
-                @click=${() => this.openSavedSearch('delete', this.savedSearch)}
-              ></sl-icon-button>
-            </sl-tooltip>
-          `
-        : nothing}
+      ${
+        isOwner
+          ? html`
+              <sl-tooltip content="Edit current saved search">
+                <sl-icon-button
+                  name="pencil"
+                  label="Edit"
+                  @click=${() =>
+                    this.openSavedSearch(
+                      'edit',
+                      this.savedSearch,
+                      this.overviewPageQueryInput?.value,
+                    )}
+                ></sl-icon-button>
+              </sl-tooltip>
+              <sl-tooltip content="Delete saved search">
+                <sl-icon-button
+                  name="trash"
+                  label="Delete"
+                  @click=${() => this.openSavedSearch('delete', this.savedSearch)}
+                ></sl-icon-button>
+              </sl-tooltip>
+            `
+          : nothing
+      }
     `;
   }
 
@@ -262,9 +268,11 @@ export class WebstatusSavedSearchControls extends LitElement {
             }}
           ></sl-icon-button>
         </sl-tooltip>
-        ${this.savedSearch !== undefined
-          ? this.renderActiveSavedSearchControls(this.savedSearch)
-          : nothing}
+        ${
+          this.savedSearch !== undefined
+            ? this.renderActiveSavedSearchControls(this.savedSearch)
+            : nothing
+        }
       </div>
     `;
   }

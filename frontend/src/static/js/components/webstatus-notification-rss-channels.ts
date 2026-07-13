@@ -146,39 +146,43 @@ export class WebstatusNotificationRssChannels extends LitElement {
         <sl-icon name="rss" slot="icon"></sl-icon>
         <span slot="title">RSS Subscriptions</span>
         <div slot="content">
-          ${this.subscriptions.length === 0
-            ? html`<p class="empty-message">No RSS feeds configured.</p>`
-            : repeat(
-                this.subscriptions,
-                sub => sub.id,
-                sub => html`
-                  <div class="channel-item">
-                    <div class="channel-info">
-                      <span class="name">${sub.subscribable.name}</span>
-                      <span class="url"
-                        >${new URL(
-                          `${this.apiClient.getBaseUrl()}/v1/subscriptions/${sub.id}/rss`,
-                          window.location.origin,
-                        ).href}</span
-                      >
+          ${
+            this.subscriptions.length === 0
+              ? html`<p class="empty-message">No RSS feeds configured.</p>`
+              : repeat(
+                  this.subscriptions,
+                  sub => sub.id,
+                  sub => html`
+                    <div class="channel-item">
+                      <div class="channel-info">
+                        <span class="name">${sub.subscribable.name}</span>
+                        <span class="url"
+                          >${
+                            new URL(
+                              `${this.apiClient.getBaseUrl()}/v1/subscriptions/${sub.id}/rss`,
+                              window.location.origin,
+                            ).href
+                          }</span
+                        >
+                      </div>
+                      <div class="actions">
+                        <sl-button
+                          label="Delete"
+                          aria-label="Delete"
+                          size="small"
+                          variant="danger"
+                          outline
+                          circle
+                          .loading=${this._isDeletingId === sub.id}
+                          @click=${() => this._handleDeleteClick(sub)}
+                        >
+                          <sl-icon name="trash"></sl-icon>
+                        </sl-button>
+                      </div>
                     </div>
-                    <div class="actions">
-                      <sl-button
-                        label="Delete"
-                        aria-label="Delete"
-                        size="small"
-                        variant="danger"
-                        outline
-                        circle
-                        .loading=${this._isDeletingId === sub.id}
-                        @click=${() => this._handleDeleteClick(sub)}
-                      >
-                        <sl-icon name="trash"></sl-icon>
-                      </sl-button>
-                    </div>
-                  </div>
-                `,
-              )}
+                  `,
+                )
+          }
         </div>
       </webstatus-notification-panel>
 

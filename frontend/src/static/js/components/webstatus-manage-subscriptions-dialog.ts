@@ -464,9 +464,9 @@ export class ManageSubscriptionsDialog extends LitElement {
           ${this._notificationChannels.map(
             channel => html`
               <div
-                class="channel-item ${this._activeChannelId === channel.id
-                  ? 'selected'
-                  : ''}"
+                class="channel-item ${
+                  this._activeChannelId === channel.id ? 'selected' : ''
+                }"
                 @click=${() => this._handleChannelChange(channel.id)}
                 role="radio"
                 aria-checked=${this._activeChannelId === channel.id}
@@ -474,14 +474,16 @@ export class ManageSubscriptionsDialog extends LitElement {
               >
                 <sl-icon name=${this._getChannelIcon(channel.type)}></sl-icon>
                 <span>${channel.name}</span>
-                ${this._subscriptionsForSavedSearch.some(
-                  s => s.channel_id === channel.id,
-                )
-                  ? html`<sl-icon
-                      class="subscription-indicator"
-                      name="circle-fill"
-                    ></sl-icon>`
-                  : nothing}
+                ${
+                  this._subscriptionsForSavedSearch.some(
+                    s => s.channel_id === channel.id,
+                  )
+                    ? html`<sl-icon
+                        class="subscription-indicator"
+                        name="circle-fill"
+                      ></sl-icon>`
+                    : nothing
+                }
               </div>
             `,
           )}
@@ -492,9 +494,9 @@ export class ManageSubscriptionsDialog extends LitElement {
             const rssLabel = hasRSS ? 'RSS link' : 'Create RSS link';
             return html`
               <div
-                class="channel-item ${this._activeChannelId === CHANNEL_TYPE_RSS
-                  ? 'selected'
-                  : ''}"
+                class="channel-item ${
+                  this._activeChannelId === CHANNEL_TYPE_RSS ? 'selected' : ''
+                }"
                 @click=${() => this._handleChannelChange(CHANNEL_TYPE_RSS)}
                 role="radio"
                 aria-checked=${this._activeChannelId === CHANNEL_TYPE_RSS}
@@ -502,106 +504,114 @@ export class ManageSubscriptionsDialog extends LitElement {
               >
                 <sl-icon name="rss"></sl-icon>
                 <span>${rssLabel}</span>
-                ${hasRSS
-                  ? html`<sl-icon
-                      class="subscription-indicator"
-                      name="circle-fill"
-                    ></sl-icon>`
-                  : nothing}
+                ${
+                  hasRSS
+                    ? html`<sl-icon
+                        class="subscription-indicator"
+                        name="circle-fill"
+                      ></sl-icon>`
+                    : nothing
+                }
               </div>
             `;
           })()}
         </div>
 
         <div class="settings-panel">
-          ${this._activeChannelId
-            ? html`
-                <sl-card>
-                  <h3>Triggers</h3>
-                  <p>Get an update when a feature...</p>
-                  ${ManageSubscriptionsDialog._TRIGGER_CONFIG.map(
-                    trigger => html`
-                      <sl-checkbox
-                        .checked=${this._selectedTriggers.includes(
-                          trigger.value,
-                        )}
-                        @sl-change=${(e: CustomEvent) => {
-                          const checkbox = e.target;
-                          if (checkbox instanceof SlCheckbox) {
-                            if (checkbox.checked) {
-                              this._selectedTriggers = [
-                                ...this._selectedTriggers,
-                                trigger.value,
-                              ];
-                            } else {
-                              this._selectedTriggers =
-                                this._selectedTriggers.filter(
-                                  t => t !== trigger.value,
-                                );
+          ${
+            this._activeChannelId
+              ? html`
+                  <sl-card>
+                    <h3>Triggers</h3>
+                    <p>Get an update when a feature...</p>
+                    ${ManageSubscriptionsDialog._TRIGGER_CONFIG.map(
+                      trigger => html`
+                        <sl-checkbox
+                          .checked=${this._selectedTriggers.includes(
+                            trigger.value,
+                          )}
+                          @sl-change=${(e: CustomEvent) => {
+                            const checkbox = e.target;
+                            if (checkbox instanceof SlCheckbox) {
+                              if (checkbox.checked) {
+                                this._selectedTriggers = [
+                                  ...this._selectedTriggers,
+                                  trigger.value,
+                                ];
+                              } else {
+                                this._selectedTriggers =
+                                  this._selectedTriggers.filter(
+                                    t => t !== trigger.value,
+                                  );
+                              }
                             }
-                          }
-                        }}
-                        >...${trigger.label}</sl-checkbox
-                      >
-                    `,
-                  )}
-                </sl-card>
-
-                <sl-card>
-                  <h3>Frequency</h3>
-                  <sl-radio-group
-                    name="frequency"
-                    .value=${this._selectedFrequency}
-                    @sl-change=${(e: CustomEvent) => {
-                      const radioGroup = e.target;
-                      if (radioGroup instanceof SlRadioGroup) {
-                        const value = radioGroup.value;
-                        if (isSubscriptionFrequency(value)) {
-                          this._selectedFrequency = value;
-                        }
-                      }
-                    }}
-                  >
-                    ${FREQUENCY_CONFIG.map(
-                      f =>
-                        html`<sl-radio value=${f}
-                          >${FREQUENCY_DISPLAY_NAMES[f]}</sl-radio
-                        >`,
+                          }}
+                          >...${trigger.label}</sl-checkbox
+                        >
+                      `,
                     )}
-                  </sl-radio-group>
-                </sl-card>
-              `
-            : html`<sl-card>
-                <p>
-                  Please select a notification channel to configure its
-                  settings.
-                </p>
-              </sl-card>`}
+                  </sl-card>
+
+                  <sl-card>
+                    <h3>Frequency</h3>
+                    <sl-radio-group
+                      name="frequency"
+                      .value=${this._selectedFrequency}
+                      @sl-change=${(e: CustomEvent) => {
+                        const radioGroup = e.target;
+                        if (radioGroup instanceof SlRadioGroup) {
+                          const value = radioGroup.value;
+                          if (isSubscriptionFrequency(value)) {
+                            this._selectedFrequency = value;
+                          }
+                        }
+                      }}
+                    >
+                      ${FREQUENCY_CONFIG.map(
+                        f =>
+                          html`<sl-radio value=${f}
+                            >${FREQUENCY_DISPLAY_NAMES[f]}</sl-radio
+                          >`,
+                      )}
+                    </sl-radio-group>
+                  </sl-card>
+                `
+              : html`<sl-card>
+                  <p>
+                    Please select a notification channel to configure its
+                    settings.
+                  </p>
+                </sl-card>`
+          }
         </div>
       </div>
 
       <div slot="footer" class="footer-actions">
         <sl-button variant="text">Manage notification channels</sl-button>
         <div class="hbox" style="gap: var(--sl-spacing-small)">
-          ${!isNewSubscription
-            ? html`<sl-button
-                variant="danger"
-                outline
-                .loading=${this._actionState.phase === 'deleting'}
-                @click=${this._handleDelete}
-                >Delete Subscription</sl-button
-              >`
-            : nothing}
+          ${
+            !isNewSubscription
+              ? html`<sl-button
+                  variant="danger"
+                  outline
+                  .loading=${this._actionState.phase === 'deleting'}
+                  @click=${this._handleDelete}
+                  >Delete Subscription</sl-button
+                >`
+              : nothing
+          }
           <sl-button
             variant="primary"
-            ?disabled=${!this._activeChannelId ||
-            this._selectedTriggers.length === 0 ||
-            (!this.isDirty && !isNewSubscription)}
+            ?disabled=${
+              !this._activeChannelId ||
+              this._selectedTriggers.length === 0 ||
+              (!this.isDirty && !isNewSubscription)
+            }
             .loading=${this._actionState.phase === 'saving'}
             @click=${this._handleSave}
-            >${isNewSubscription
-              ? 'Create Subscription'
-              : 'Save preferences'}</sl-button
+            >${
+              isNewSubscription ? 'Create Subscription' : 'Save preferences'
+            }</sl-button
           >
         </div>
       </div>

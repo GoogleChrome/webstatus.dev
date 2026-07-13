@@ -298,19 +298,23 @@ export class WebstatusOverviewContent extends LitElement {
     return html` <div class="main">
         <div class="hbox halign-items-space-between header-line">
           <h1 class="halign-stretch" id="overview-title">${title}</h1>
-          ${config
-            ? html`<webstatus-subscribe-button
-                .savedSearchId=${config.id}
-                .searchTitle=${config.title}
-                .autoOpen=${shouldSubscribe}
-              ></webstatus-subscribe-button>`
-            : nothing}
+          ${
+            config
+              ? html`<webstatus-subscribe-button
+                  .savedSearchId=${config.id}
+                  .searchTitle=${config.title}
+                  .autoOpen=${shouldSubscribe}
+                ></webstatus-subscribe-button>`
+              : nothing
+          }
         </div>
-        ${description
-          ? html`<div class="hbox wrap" id="overview-description">
-              <h3>${description}</h3>
-            </div>`
-          : nothing}
+        ${
+          description
+            ? html`<div class="hbox wrap" id="overview-description">
+                <h3>${description}</h3>
+              </div>`
+            : nothing
+        }
         <div class="hbox">${this.renderCount()}</div>
         <br />
         <webstatus-overview-filters
@@ -341,9 +345,11 @@ export class WebstatusOverviewContent extends LitElement {
         .location=${this.location}
       ></webstatus-saved-search-editor>
       <webstatus-login-prompt-dialog
-        .open=${this.location &&
-        getSubscribeToSavedSearch(this.location) &&
-        this.userContext === null}
+        .open=${
+          this.location &&
+          getSubscribeToSavedSearch(this.location) &&
+          this.userContext === null
+        }
         .savedSearchName=${config?.title || 'this search'}
         @prompt-close=${() =>
           this._updatePageUrl('', this.location, {subscribe: false})}

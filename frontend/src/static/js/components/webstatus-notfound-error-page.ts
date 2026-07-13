@@ -162,11 +162,14 @@ export class WebstatusNotFoundErrorPage extends LitElement {
         <div id="error-status-code">404</div>
         <div id="error-headline">Page not found</div>
         <div id="error-detailed-message">
-          ${featureId
-            ? html`We could not find Feature ID: <strong>${featureId}</strong>`
-            : html`<span class="error-message"
-                >We couldn't find the page you're looking for.</span
-              >`}
+          ${
+            featureId
+              ? html`We could not find Feature ID:
+                  <strong>${featureId}</strong>`
+              : html`<span class="error-message"
+                  >We couldn't find the page you're looking for.</span
+                >`
+          }
         </div>
       </div>
     `;
@@ -194,17 +197,19 @@ export class WebstatusNotFoundErrorPage extends LitElement {
   ): TemplateResult {
     return html`
       <div id="error-actions">
-        ${showSearchMore && featureId
-          ? html`
-              <sl-button
-                id="error-action-search-btn"
-                variant="primary"
-                href="/?q=${featureId}"
-              >
-                Search for more similar features
-              </sl-button>
-            `
-          : ''}
+        ${
+          showSearchMore && featureId
+            ? html`
+                <sl-button
+                  id="error-action-search-btn"
+                  variant="primary"
+                  href="/?q=${featureId}"
+                >
+                  Search for more similar features
+                </sl-button>
+              `
+            : ''
+        }
         <sl-button id="error-action-home-btn" variant="primary" href="/">
           Go back home
         </sl-button>
@@ -227,23 +232,25 @@ export class WebstatusNotFoundErrorPage extends LitElement {
     return html`
       <div id="error-container">
         ${this._renderErrorHeader(featureId)}
-        ${featureId
-          ? this._similarResults?.render({
-              initial: () =>
-                html`<p class="loading-message">Preparing search...</p>`,
-              pending: () =>
-                html`<p class="loading-message">
-                  Loading similar features...
-                </p>`,
-              complete: features =>
-                html` ${this._renderSimilarFeatures(features)}
-                ${this._renderActionButtons(features?.length > 0, featureId)}`,
-              error: error =>
-                html`<p class="error-message">
-                  Oops, something went wrong: ${error}
-                </p>`,
-            })
-          : this._renderActionButtons(false)}
+        ${
+          featureId
+            ? this._similarResults?.render({
+                initial: () =>
+                  html`<p class="loading-message">Preparing search...</p>`,
+                pending: () =>
+                  html`<p class="loading-message">
+                    Loading similar features...
+                  </p>`,
+                complete: features =>
+                  html` ${this._renderSimilarFeatures(features)}
+                  ${this._renderActionButtons(features?.length > 0, featureId)}`,
+                error: error =>
+                  html`<p class="error-message">
+                    Oops, something went wrong: ${error}
+                  </p>`,
+              })
+            : this._renderActionButtons(false)
+        }
       </div>
     `;
   }

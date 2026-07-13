@@ -317,14 +317,16 @@ export class WebstatusSidebarMenu extends LitElement {
         <a class="saved-search-link" href="${savedSearchUrl}">
           <sl-icon name="${icon}"></sl-icon> ${savedSearch.name}
         </a>
-        ${savedSearchEditUrl
-          ? html` <sl-icon-button
-              name="pencil"
-              label="Edit"
-              class="saved-search-edit-link"
-              href="${savedSearchEditUrl}"
-            ></sl-icon-button>`
-          : nothing}
+        ${
+          savedSearchEditUrl
+            ? html` <sl-icon-button
+                name="pencil"
+                label="Edit"
+                class="saved-search-edit-link"
+                href="${savedSearchEditUrl}"
+              ></sl-icon-button>`
+            : nothing
+        }
       </sl-tree-item>
     `;
   }
@@ -417,26 +419,30 @@ export class WebstatusSidebarMenu extends LitElement {
             href="${navigationMap[NavigationItemKey.FEATURES].path}"
             >Features</a
           >
-          ${this.appBookmarkInfo?.globalSavedSearchesTask?.status ===
-            TaskStatus.INITIAL ||
-          this.appBookmarkInfo?.globalSavedSearchesTask?.status ===
-            TaskStatus.PENDING
-            ? html`
-                <sl-tree-item
-                  ><sl-skeleton effect="sheen"></sl-skeleton
-                ></sl-tree-item>
-                <sl-tree-item
-                  ><sl-skeleton effect="sheen"></sl-skeleton
-                ></sl-tree-item>
-              `
-            : nothing}
-          ${this.appBookmarkInfo?.globalSavedSearchesTask?.status ===
-          TaskStatus.COMPLETE
-            ? html`${this.appBookmarkInfo?.globalSavedSearches?.map(
-                (savedSearch, index) =>
-                  this.renderGlobalSavedSearch(savedSearch, index),
-              )}`
-            : nothing}
+          ${
+            this.appBookmarkInfo?.globalSavedSearchesTask?.status ===
+              TaskStatus.INITIAL ||
+            this.appBookmarkInfo?.globalSavedSearchesTask?.status ===
+              TaskStatus.PENDING
+              ? html`
+                  <sl-tree-item
+                    ><sl-skeleton effect="sheen"></sl-skeleton
+                  ></sl-tree-item>
+                  <sl-tree-item
+                    ><sl-skeleton effect="sheen"></sl-skeleton
+                  ></sl-tree-item>
+                `
+              : nothing
+          }
+          ${
+            this.appBookmarkInfo?.globalSavedSearchesTask?.status ===
+            TaskStatus.COMPLETE
+              ? html`${this.appBookmarkInfo?.globalSavedSearches?.map(
+                  (savedSearch, index) =>
+                    this.renderGlobalSavedSearch(savedSearch, index),
+                )}`
+              : nothing
+          }
         </sl-tree-item>
         <!-- commented out rather than merely hidden, to avoid breaking sl-tree
         <sl-tree-item id="{NavigationItemKey.STATISTICS}">

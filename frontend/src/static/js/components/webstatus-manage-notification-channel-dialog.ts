@@ -77,9 +77,9 @@ export class ManageNotificationChannelDialog extends LitElement {
   render() {
     return html`
       <sl-dialog
-        label="${this.mode === 'create' ? 'Create' : 'Edit'} ${this.type
-          .charAt(0)
-          .toUpperCase() + this.type.slice(1)} Channel"
+        label="${this.mode === 'create' ? 'Create' : 'Edit'} ${
+          this.type.charAt(0).toUpperCase() + this.type.slice(1)
+        } Channel"
         .open=${this.open}
         @sl-hide=${this._handleHide}
       >
@@ -95,9 +95,11 @@ export class ManageNotificationChannelDialog extends LitElement {
           variant="primary"
           @click=${this._handleSave}
           .loading=${this.loading}
-          .disabled=${this.mode === 'edit' &&
-          (!this._pendingUpdate ||
-            Object.keys(this._pendingUpdate.updates).length === 0)}
+          .disabled=${
+            this.mode === 'edit' &&
+            (!this._pendingUpdate ||
+              Object.keys(this._pendingUpdate.updates).length === 0)
+          }
         >
           ${this.mode === 'create' ? 'Create' : 'Save'}
         </sl-button>

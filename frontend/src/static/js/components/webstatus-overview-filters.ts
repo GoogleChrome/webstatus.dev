@@ -100,8 +100,7 @@ export class WebstatusOverviewFilters extends LitElement {
 
   // A function that returns an array of all features via apiClient.getAllFeatures
   allFeaturesFetcher:
-    | undefined
-    | (() => Promise<components['schemas']['Feature'][]>) = undefined;
+    undefined | (() => Promise<components['schemas']['Feature'][]>) = undefined;
 
   static get styles(): CSSResultGroup {
     return [
@@ -415,9 +414,11 @@ export class WebstatusOverviewFilters extends LitElement {
           <sl-icon slot="prefix" name="search"></sl-icon>
         </sl-button>
       </webstatus-typeahead>
-      ${this.userContext && this.apiClient
-        ? this.renderSavedSearchControls(this.userContext, this.apiClient)
-        : nothing}
+      ${
+        this.userContext && this.apiClient
+          ? this.renderSavedSearchControls(this.userContext, this.apiClient)
+          : nothing
+      }
     `;
   }
 

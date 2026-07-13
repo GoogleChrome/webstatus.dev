@@ -323,11 +323,13 @@ export class WebstatusGChart extends LitElement {
 
     return html`
       <div class="${chartContainerClasses}">
-        ${this.isRendering
-          ? html`<div class="loading-overlay">
-              <sl-spinner style="font-size: 3rem;"></sl-spinner>
-            </div>`
-          : nothing}
+        ${
+          this.isRendering
+            ? html`<div class="loading-overlay">
+                <sl-spinner style="font-size: 3rem;"></sl-spinner>
+              </div>`
+            : nothing
+        }
         <div id="${this.containerId!}"></div>
       </div>
     `;

@@ -485,26 +485,28 @@ describe('webstatus-sidebar-menu', () => {
       <webstatus-sidebar-menu
         .getLocation=${getCurrentLocationStub}
         .navigate=${navigateToUrlStub}
-        .appBookmarkInfo=${{
-          globalSavedSearches: testGlobalSavedSearches,
-          currentGlobalSavedSearch: testGlobalSavedSearches[0],
-          globalSavedSearchesTask: {
-            status: TaskStatus.COMPLETE,
-            data: testGlobalSavedSearches,
-            error: undefined,
-          },
-          currentLocation: mockLocation,
-          userSavedSearchesTask: {
-            status: TaskStatus.COMPLETE,
-            data: [],
-            error: undefined,
-          },
-          userSavedSearchTask: {
-            status: TaskStatus.COMPLETE,
-            data: undefined,
-            error: undefined,
-          },
-        } as AppBookmarkInfo}
+        .appBookmarkInfo=${
+          {
+            globalSavedSearches: testGlobalSavedSearches,
+            currentGlobalSavedSearch: testGlobalSavedSearches[0],
+            globalSavedSearchesTask: {
+              status: TaskStatus.COMPLETE,
+              data: testGlobalSavedSearches,
+              error: undefined,
+            },
+            currentLocation: mockLocation,
+            userSavedSearchesTask: {
+              status: TaskStatus.COMPLETE,
+              data: [],
+              error: undefined,
+            },
+            userSavedSearchTask: {
+              status: TaskStatus.COMPLETE,
+              data: undefined,
+              error: undefined,
+            },
+          } as AppBookmarkInfo
+        }
       ></webstatus-sidebar-menu>
     `);
 
