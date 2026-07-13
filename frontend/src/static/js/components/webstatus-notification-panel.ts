@@ -69,14 +69,16 @@ export class WebstatusNotificationPanel extends LitElement {
           </div>
         </div>
         <div class="card-body">
-          ${this.loading
-            ? html`
-                <div class="loading-skeleton">
-                  <sl-skeleton effect="sheen"></sl-skeleton>
-                  <sl-skeleton effect="sheen"></sl-skeleton>
-                </div>
-              `
-            : html`<slot name="content"></slot>`}
+          ${
+            this.loading
+              ? html`
+                  <div class="loading-skeleton">
+                    <sl-skeleton effect="sheen"></sl-skeleton>
+                    <sl-skeleton effect="sheen"></sl-skeleton>
+                  </div>
+                `
+              : html`<slot name="content"></slot>`
+          }
         </div>
       </div>
     `;

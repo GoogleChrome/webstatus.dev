@@ -123,8 +123,10 @@ export class WebstatusColumnsDialog extends LitElement {
                 <sl-checkbox
                   value=${option.columnOptionKey}
                   class="column-option"
-                  ?checked=${columns.includes(columnId) &&
-                  columnOptions.includes(option.columnOptionKey)}
+                  ?checked=${
+                    columns.includes(columnId) &&
+                    columnOptions.includes(option.columnOptionKey)
+                  }
                   >${option.nameInDialog}</sl-checkbox
                 >
               </sl-tree-item>

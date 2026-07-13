@@ -452,14 +452,16 @@ export class FeaturePage extends BaseChartsPage {
       <sl-button variant="default" href=${link} target="_blank">
         <sl-icon slot="suffix" name="box-arrow-up-right"></sl-icon>
         <div class="hbox logo-button">
-          ${logo
-            ? html`<img
-                src=${logo}
-                alt="${ifDefined(logoAlt)}"
-                width="24"
-                height="24"
-              />`
-            : nothing}
+          ${
+            logo
+              ? html`<img
+                  src=${logo}
+                  alt="${ifDefined(logoAlt)}"
+                  width="24"
+                  height="24"
+                />`
+              : nothing
+          }
           ${label}
         </div>
       </sl-button>
@@ -662,9 +664,11 @@ export class FeaturePage extends BaseChartsPage {
         ${iconSvg}
         <div class="badge-text">
           <span class="badge-title">${chipConfig.word}</span>
-          ${sinceDate
-            ? html`<span class="badge-subtitle">since ${sinceDate}</span>`
-            : nothing}
+          ${
+            sinceDate
+              ? html`<span class="badge-subtitle">since ${sinceDate}</span>`
+              : nothing
+          }
         </div>
       </div>
     `;
@@ -699,11 +703,13 @@ export class FeaturePage extends BaseChartsPage {
     const versionText = sinceVersion ? 'in version ' + sinceVersion : '';
 
     return html`
-      ${sinceDate
-        ? html`<div class="avail">
-            ${sincePhrase} ${sinceDate} ${versionText}
-          </div>`
-        : nothing}
+      ${
+        sinceDate
+          ? html`<div class="avail">
+              ${sincePhrase} ${sinceDate} ${versionText}
+            </div>`
+          : nothing
+      }
     `;
   }
 
@@ -876,8 +882,9 @@ export class FeaturePage extends BaseChartsPage {
             ${this.renderOffsiteLink('MDN', null)}
             ${this.renderOffsiteLink('CanIUse', canIUseLink)}
             <webstatus-subscribe-button
-              .savedSearchId=${this.feature?.system_managed_saved_search_id ??
-              ''}
+              .savedSearchId=${
+                this.feature?.system_managed_saved_search_id ?? ''
+              }
             >
             </webstatus-subscribe-button>
           </div>

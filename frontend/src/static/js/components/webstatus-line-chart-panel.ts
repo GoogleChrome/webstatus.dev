@@ -741,9 +741,11 @@ export abstract class WebstatusLineChartPanel<S> extends LitElement {
         id="${this.getPanelID()}-datapoint-details-complete"
         class="datapoint-details-panel"
       >
-        ${this._renderCustomPointSelectedSuccess === undefined
-          ? nothing
-          : this._renderCustomPointSelectedSuccess()}
+        ${
+          this._renderCustomPointSelectedSuccess === undefined
+            ? nothing
+            : this._renderCustomPointSelectedSuccess()
+        }
       </div>
     `;
   }

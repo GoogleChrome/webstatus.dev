@@ -429,9 +429,11 @@ export const renderAvailablity: CellRenderer = (
   return html`
     <div class="browser-impl-${browserImplStatus} browser-cell">
       <sl-tooltip
-        content=${browserImplVersion
-          ? `Since version ${browserImplVersion}`
-          : 'Not available'}
+        content=${
+          browserImplVersion
+            ? `Since version ${browserImplVersion}`
+            : 'Not available'
+        }
       >
         <img
           class="availability-icon"

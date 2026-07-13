@@ -218,56 +218,64 @@ export class WebstatusNotificationWebhookChannels extends LitElement {
           </sl-button>
         </div>
         <div slot="content">
-          ${this.channels.length === 0
-            ? html`<p class="empty-message">No webhook channels configured.</p>`
-            : repeat(
-                this.channels,
-                channel => channel.id,
-                channel => html`
-                  <div class="channel-item">
-                    <div class="channel-info">
-                      <span class="name">${channel.name}</span>
-                      <span class="url"
-                        >${channel.config.type === 'webhook'
-                          ? channel.config.url
-                          : ''}</span
-                      >
+          ${
+            this.channels.length === 0
+              ? html`<p class="empty-message">
+                  No webhook channels configured.
+                </p>`
+              : repeat(
+                  this.channels,
+                  channel => channel.id,
+                  channel => html`
+                    <div class="channel-item">
+                      <div class="channel-info">
+                        <span class="name">${channel.name}</span>
+                        <span class="url"
+                          >${
+                            channel.config.type === 'webhook'
+                              ? channel.config.url
+                              : ''
+                          }</span
+                        >
+                      </div>
+                      <div class="actions">
+                        ${
+                          channel.status === 'enabled'
+                            ? html`<sl-badge variant="success" pill
+                                >Enabled</sl-badge
+                              >`
+                            : html`<sl-badge variant="danger" pill
+                                >Disabled</sl-badge
+                              >`
+                        }
+                        <sl-button
+                          label="Edit"
+                          aria-label="Edit"
+                          size="small"
+                          variant="neutral"
+                          outline
+                          circle
+                          @click=${() => this._openEditDialog(channel)}
+                        >
+                          <sl-icon name="pencil"></sl-icon>
+                        </sl-button>
+                        <sl-button
+                          label="Delete"
+                          aria-label="Delete"
+                          size="small"
+                          variant="danger"
+                          outline
+                          circle
+                          .loading=${this._isDeletingId === channel.id}
+                          @click=${() => this._handleDeleteClick(channel)}
+                        >
+                          <sl-icon name="trash"></sl-icon>
+                        </sl-button>
+                      </div>
                     </div>
-                    <div class="actions">
-                      ${channel.status === 'enabled'
-                        ? html`<sl-badge variant="success" pill
-                            >Enabled</sl-badge
-                          >`
-                        : html`<sl-badge variant="danger" pill
-                            >Disabled</sl-badge
-                          >`}
-                      <sl-button
-                        label="Edit"
-                        aria-label="Edit"
-                        size="small"
-                        variant="neutral"
-                        outline
-                        circle
-                        @click=${() => this._openEditDialog(channel)}
-                      >
-                        <sl-icon name="pencil"></sl-icon>
-                      </sl-button>
-                      <sl-button
-                        label="Delete"
-                        aria-label="Delete"
-                        size="small"
-                        variant="danger"
-                        outline
-                        circle
-                        .loading=${this._isDeletingId === channel.id}
-                        @click=${() => this._handleDeleteClick(channel)}
-                      >
-                        <sl-icon name="trash"></sl-icon>
-                      </sl-button>
-                    </div>
-                  </div>
-                `,
-              )}
+                  `,
+                )
+          }
         </div>
       </webstatus-notification-panel>
 

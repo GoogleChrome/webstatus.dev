@@ -476,12 +476,14 @@ describe('webstatus-bookmarks-service', () => {
       const service = await fixture<WebstatusBookmarksService>(
         html`<webstatus-bookmarks-service
           .apiClient=${apiClientStub}
-          .userContext=${{
-            user: {
-              getIdToken: async () => 'test-token',
-            },
-            syncState: 'idle',
-          } as UserContext}
+          .userContext=${
+            {
+              user: {
+                getIdToken: async () => 'test-token',
+              },
+              syncState: 'idle',
+            } as UserContext
+          }
         ></webstatus-bookmarks-service>`,
       );
       expect(service.appBookmarkInfo.userSavedSearchesTask?.status).to.eq(
@@ -504,12 +506,14 @@ describe('webstatus-bookmarks-service', () => {
       const service = await fixture<WebstatusBookmarksService>(
         html`<webstatus-bookmarks-service
           .apiClient=${apiClientStub}
-          .userContext=${{
-            user: {
-              getIdToken: async () => 'test-token',
-            },
-            syncState: 'idle',
-          } as UserContext}
+          .userContext=${
+            {
+              user: {
+                getIdToken: async () => 'test-token',
+              },
+              syncState: 'idle',
+            } as UserContext
+          }
         ></webstatus-bookmarks-service>`,
       );
       expect(service.appBookmarkInfo.userSavedSearchesTask?.status).to.eq(
@@ -539,12 +543,14 @@ describe('webstatus-bookmarks-service', () => {
       const service = await fixture<WebstatusBookmarksService>(
         html`<webstatus-bookmarks-service
           .apiClient=${apiClientStub}
-          .userContext=${{
-            user: {
-              getIdToken: async () => 'test-token',
-            },
-            syncState: 'idle',
-          } as UserContext}
+          .userContext=${
+            {
+              user: {
+                getIdToken: async () => 'test-token',
+              },
+              syncState: 'idle',
+            } as UserContext
+          }
         ></webstatus-bookmarks-service>`,
       );
       expect(service.appBookmarkInfo.userSavedSearchesTask?.status).to.equal(

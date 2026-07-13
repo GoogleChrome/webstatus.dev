@@ -252,9 +252,11 @@ export class SubscriptionsPage extends LitElement {
                     )}
                   ></sl-icon>
                   <span
-                    >${sub.channel_type === CHANNEL_TYPE_RSS
-                      ? 'RSS'
-                      : (channel?.name ?? sub.channel_id)}</span
+                    >${
+                      sub.channel_type === CHANNEL_TYPE_RSS
+                        ? 'RSS'
+                        : (channel?.name ?? sub.channel_id)
+                    }</span
                   >
                   |
                   <span>${FREQUENCY_DISPLAY_NAMES[sub.frequency]}</span>
