@@ -53,6 +53,8 @@ linters:
     - unused
     - usestdlibvars
   settings:
+    goconst:
+      ignore-tests: true
     gomoddirectives:
       replace-local: true
     dupl:
@@ -95,6 +97,20 @@ linters:
       - third_party$
       - builtin$
       - examples$
+    rules:
+      # Exclude goconst for lib/gcpspanner because this package consists of over 100 files whose sole responsibility
+      # is executing Spanner SQL queries and DML with parameter maps (e.g., map[string]any{"startAt": startAt}).
+      # In Spanner SQL, placeholders must match @paramName inside raw multiline SQL query strings. Because raw SQL strings
+      # cannot interpolate Go constants cleanly without degrading readability, extracting parameter keys into constants
+      # (e.g. paramStartAt = "startAt") decouples the map key from the @startAt placeholder right next to it.
+      # Excluding goconst from lib/gcpspanner avoids brittle string whitelists and false positives on query parameter maps
+      # while keeping goconst strictly active across all application and worker packages.
+      # NOTE: Revisit this goconst path exclusion once point-lookup and exact key-set refactoring from spanner.Statement
+      # to native Key-Set reads (Columns() []string and spanner.Key) is completed (see GitHub issue #2605:
+      # https://github.com/GoogleChrome/webstatus.dev/issues/2605).
+      - path: lib/gcpspanner/.*\.go
+        linters:
+          - goconst
 formatters:
   enable:
     - gofmt

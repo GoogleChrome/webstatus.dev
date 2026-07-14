@@ -43,7 +43,7 @@ func (s *Server) GetSavedSearch(
 		if errors.Is(err, backendtypes.ErrEntityDoesNotExist) {
 			return backend.GetSavedSearch404JSONResponse{
 				Code:    http.StatusNotFound,
-				Message: "saved search not found",
+				Message: errMsgSavedSearchNotFound,
 			}, nil
 		}
 

@@ -45,7 +45,7 @@ func (s *Server) RemoveSavedSearch(
 		if errors.Is(err, backendtypes.ErrEntityDoesNotExist) {
 			return backend.RemoveSavedSearch404JSONResponse{
 				Code:    http.StatusNotFound,
-				Message: "saved search not found",
+				Message: errMsgSavedSearchNotFound,
 			}, nil
 		} else if errors.Is(err, backendtypes.ErrUserNotAuthorizedForAction) {
 			return backend.RemoveSavedSearch403JSONResponse{

@@ -50,10 +50,14 @@ const releasesPerBrowser = 50
 const runsPerBrowserPerChannel = 100
 const numberOfFeatures = 80
 
-// Feature Key used for feature page tests.
-const featurePageFeatureKey = "anchor-positioning"
-
-const discouragedFeatureKey = "discouraged"
+const (
+	featurePageFeatureKey = "anchor-positioning"
+	discouragedFeatureKey = "discouraged"
+	testUser1Email        = "test.user.1@example.com"
+	oldFeatureKey         = "old-feature"
+	beforeSplitFeatureKey = "before-split-feature"
+	parent1GroupKey       = "parent1"
+)
 
 // Allows us to regenerate the same values between runs.
 const seedValue = 1024
@@ -77,7 +81,7 @@ var (
 // List of test user emails whose data should be reset.
 // nolint: gochecknoglobals
 var testUserEmails = []string{
-	"test.user.1@example.com",
+	testUser1Email,
 	"test.user.2@example.com",
 	"test.user.3@example.com",
 	"fresh.user@example.com",
@@ -149,12 +153,12 @@ func getSpecialFeatureDetails() []struct {
 		// old-feature will be moved to new-feature
 		{
 			name: "Old Feature",
-			id:   "old-feature",
+			id:   oldFeatureKey,
 		},
 		// before-split-feature will be split into after-split-feature-1 and after-split-feature-2
 		{
 			name: "Before Split Feature",
-			id:   "before-split-feature",
+			id:   beforeSplitFeatureKey,
 		},
 		{
 			name: "Discouraged Feature",
@@ -166,7 +170,7 @@ func getSpecialFeatureDetails() []struct {
 func getMovedFeaturesDetails() []gcpspanner.MovedWebFeature {
 	return []gcpspanner.MovedWebFeature{
 		{
-			OriginalFeatureKey: "old-feature",
+			OriginalFeatureKey: oldFeatureKey,
 			NewFeatureKey:      "new-feature",
 		},
 	}
@@ -175,7 +179,7 @@ func getMovedFeaturesDetails() []gcpspanner.MovedWebFeature {
 func getSplitFeatureDetails() []gcpspanner.SplitWebFeature {
 	return []gcpspanner.SplitWebFeature{
 		{
-			OriginalFeatureKey: "before-split-feature",
+			OriginalFeatureKey: beforeSplitFeatureKey,
 			TargetFeatureKeys: []string{
 				"after-split-feature-1",
 				"after-split-feature-2",
@@ -186,8 +190,8 @@ func getSplitFeatureDetails() []gcpspanner.SplitWebFeature {
 
 func getWebFeaturesToRemoveDuringEvolution() []string {
 	return []string{
-		"old-feature",
-		"before-split-feature",
+		oldFeatureKey,
+		beforeSplitFeatureKey,
 	}
 }
 
@@ -622,7 +626,7 @@ func generateGroups(ctx context.Context,
 	groupKeyToInternalID := map[string]string{}
 	groups := []gcpspanner.Group{
 		{
-			GroupKey: "parent1",
+			GroupKey: parent1GroupKey,
 			Name:     "Parent 1",
 		},
 		{
@@ -643,7 +647,7 @@ func generateGroups(ctx context.Context,
 	}
 	featureKeyToGroupsMapping := make(map[string][]string)
 	childGroupKeyToParentGroupKey := map[string]string{
-		"child3": "parent1",
+		"child3": parent1GroupKey,
 	}
 
 	for _, feature := range features {
@@ -675,7 +679,7 @@ func generateSnapshots(ctx context.Context,
 	snapshotKeyToInternalID := map[string]string{}
 	snapshots := []gcpspanner.Snapshot{
 		{
-			SnapshotKey: "parent1",
+			SnapshotKey: parent1GroupKey,
 			Name:        "Parent 1",
 		},
 		{
@@ -733,14 +737,14 @@ func generateSavedSearches(ctx context.Context,
 		UUID        string
 	}{
 		{
-			Email:       "test.user.1@example.com",
+			Email:       testUser1Email,
 			Name:        "my first project query",
 			Query:       "baseline_status:newly",
 			Description: nil,
 			UUID:        "74bdb85f-59d3-43b0-8061-20d5818e8c97",
 		},
 		{
-			Email: "test.user.1@example.com",
+			Email: testUser1Email,
 			Name:  "I like queries",
 			Query: "baseline_status:limited OR available_on:chrome",
 			Description: new(
@@ -805,7 +809,7 @@ func generateSavedSearchBookmarks(ctx context.Context, spannerClient *gcpspanner
 	}{
 		{
 			UUID:  "bb85baf7-aa1e-42bf-ada0-cf9d2811dd42",
-			Email: "test.user.1@example.com",
+			Email: testUser1Email,
 		},
 	}
 	for _, bookmarkToInsert := range bookmarksToInsert {
@@ -863,7 +867,7 @@ func generateSubscriptions(ctx context.Context,
 		UUID          string
 	}{
 		{
-			Email:         "test.user.1@example.com",
+			Email:         testUser1Email,
 			SavedSearchID: "74bdb85f-59d3-43b0-8061-20d5818e8c97", // "my first project query"
 			Frequency:     gcpspanner.SavedSearchSnapshotTypeWeekly,
 			Triggers: []gcpspanner.SubscriptionTrigger{

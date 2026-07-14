@@ -2414,3 +2414,8 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
+    noAuth:
+      description: No authentication required. User can opt out of providing a bearer token.
+      type: apiKey
+      in: header
+      name: X-No-Auth

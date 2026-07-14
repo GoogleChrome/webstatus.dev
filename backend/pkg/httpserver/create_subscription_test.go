@@ -28,12 +28,6 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 )
 
-//go:fix inline
-//go:fix inline
-func ptr[T any](v T) *T {
-	return new(v)
-}
-
 func TestCreateSubscription(t *testing.T) {
 	now := time.Now()
 	channelIDStr := "channel-id"
@@ -245,6 +239,7 @@ func TestCreateSubscription(t *testing.T) {
 
 func TestValidateSubscriptionCreation(t *testing.T) {
 	channelIDStr := "channel-id"
+	channelTypeRss := backend.SubscriptionChannelTypeRss
 	testCases := []struct {
 		name  string
 		input *backend.Subscription
@@ -283,7 +278,7 @@ func TestValidateSubscriptionCreation(t *testing.T) {
 			name: "providing both channel_id and channel_type",
 			input: &backend.Subscription{
 				ChannelId:     &channelIDStr,
-				ChannelType:   ptr(backend.SubscriptionChannelTypeRss),
+				ChannelType:   &channelTypeRss,
 				SavedSearchId: "search-id",
 				Triggers: []backend.SubscriptionTriggerWritable{
 					backend.SubscriptionTriggerFeatureBrowserImplementationAnyComplete},

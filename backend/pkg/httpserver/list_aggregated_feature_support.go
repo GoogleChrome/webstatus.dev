@@ -83,11 +83,11 @@ func (s *Server) ListAggregatedFeatureSupport(
 	)
 	if err != nil {
 		if errors.Is(err, backendtypes.ErrInvalidPageToken) {
-			slog.WarnContext(ctx, "invalid page token", "token", request.Params.PageToken, "error", err)
+			slog.WarnContext(ctx, errMsgInvalidPageToken, "token", request.Params.PageToken, "error", err)
 
 			return backend.ListAggregatedFeatureSupport400JSONResponse{
 				Code:    400,
-				Message: "invalid page token",
+				Message: errMsgInvalidPageToken,
 			}, nil
 		}
 

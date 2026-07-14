@@ -169,7 +169,7 @@ func (s *Server) CreateSubscription(
 	if validationErr != nil {
 		return backend.CreateSubscription400JSONResponse{
 			Code:    http.StatusBadRequest,
-			Message: "input validation errors",
+			Message: errMsgInputValidationErrors,
 			Errors:  validationErr.fieldErrorMap,
 		}, nil
 	}

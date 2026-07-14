@@ -50,7 +50,7 @@ func (v *GetFeatureResultVisitor) VisitMovedFeature(_ context.Context, result ba
 	location := v.baseURL.JoinPath("v1", "features", result.NewFeatureID()).String()
 	v.resp = backend.GetFeature301Response{
 		Headers: backend.GetFeature301ResponseHeaders{
-			Location: location,
+			Location: &location,
 		},
 	}
 

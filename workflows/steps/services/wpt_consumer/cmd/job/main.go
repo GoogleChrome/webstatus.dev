@@ -32,7 +32,7 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/workerpool"
 	"github.com/GoogleChrome/webstatus.dev/lib/wptfyi"
 	"github.com/GoogleChrome/webstatus.dev/workflows/steps/services/wpt_consumer/pkg/workflow"
-	"github.com/google/go-github/v82/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/web-platform-tests/wpt.fyi/shared"
 )
 
@@ -88,7 +88,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	ghClient := github.NewClient(nil)
+	ghClient, err := github.NewClient()
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to create GitHub client", "error", err.Error())
+		os.Exit(1)
+	}
 	// Currently, keep it at 8. 4 browsers, 2 channels each.
 	numWorkers := 8
 

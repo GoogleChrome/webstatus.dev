@@ -411,7 +411,7 @@ go-update-tools: go-workspace-setup
 	pushd tools && \
 	go get -u github.com/cloudspannerecosystem/wrench@latest && \
 	go get -u github.com/google/addlicense@latest && \
-	go get github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen && \
+	go get -u github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest && \
 	popd
 
 go-update: go-workspace-setup

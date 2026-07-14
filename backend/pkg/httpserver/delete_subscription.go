@@ -43,7 +43,7 @@ func (s *Server) DeleteSubscription(
 			return backend.DeleteSubscription404JSONResponse(
 				backend.BasicErrorModel{
 					Code:    http.StatusNotFound,
-					Message: "subscription not found",
+					Message: errMsgSubscriptionNotFound,
 				},
 			), nil
 		} else if errors.Is(err, backendtypes.ErrUserNotAuthorizedForAction) {

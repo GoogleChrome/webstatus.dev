@@ -29,6 +29,12 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/workertypes"
 )
 
+const (
+	slackBlockTypeMrkdwn = "mrkdwn"
+	slackBlockKeyType    = "type"
+	slackBlockKeyText    = "text"
+)
+
 type SlackPayload struct {
 	Text   string `json:"text,omitempty"`
 	Blocks []any  `json:"blocks,omitempty"`
@@ -261,7 +267,10 @@ func (b *slackPayloadBuilder) buildPayload(searchName string) SlackPayload {
 	}
 	unsubscribeText := fmt.Sprintf("You can <%s|unsubscribe> on <%s/settings/subscriptions|webstatus.dev>",
 		unsubscribeURL, b.frontendBaseURL)
-	blocks = append(blocks, contextBlock(map[string]any{"type": "mrkdwn", "text": unsubscribeText}))
+	blocks = append(blocks, contextBlock(map[string]any{
+		slackBlockKeyType: slackBlockTypeMrkdwn,
+		slackBlockKeyText: unsubscribeText,
+	}))
 
 	return SlackPayload{
 		Text:   "",
@@ -466,33 +475,33 @@ func (b *slackPayloadBuilder) appendMovedFeatures(blocks []any) []any {
 
 func headerBlock(text string) map[string]any {
 	return map[string]any{
-		"type": "header",
-		"text": map[string]any{"type": "plain_text", "text": text, "emoji": true},
+		slackBlockKeyType: "header",
+		slackBlockKeyText: map[string]any{slackBlockKeyType: "plain_text", slackBlockKeyText: text, "emoji": true},
 	}
 }
 
 func sectionBlock(text string) map[string]any {
 	return map[string]any{
-		"type": "section",
-		"text": map[string]any{"type": "mrkdwn", "text": text},
+		slackBlockKeyType: "section",
+		slackBlockKeyText: map[string]any{slackBlockKeyType: slackBlockTypeMrkdwn, slackBlockKeyText: text},
 	}
 }
 
 func dividerBlock() map[string]any {
-	return map[string]any{"type": "divider"}
+	return map[string]any{slackBlockKeyType: "divider"}
 }
 
 func contextBlock(elements ...any) map[string]any {
 	return map[string]any{
-		"type":     "context",
-		"elements": elements,
+		slackBlockKeyType: "context",
+		"elements":        elements,
 	}
 }
 
 func contextImageText(imageURL, altText, text string) []any {
 	return []any{
-		map[string]any{"type": "image", "image_url": imageURL, "alt_text": altText},
-		map[string]any{"type": "mrkdwn", "text": text},
+		map[string]any{slackBlockKeyType: "image", "image_url": imageURL, "alt_text": altText},
+		map[string]any{slackBlockKeyType: slackBlockTypeMrkdwn, slackBlockKeyText: text},
 	}
 }
 

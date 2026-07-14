@@ -33,6 +33,9 @@ For a technical breakdown of the Lit component hierarchy, frontend identity flow
 - **DO** use specialized child components (the "Context Bridge" pattern) to consume global context if high-level components (like `WebstatusHeader`) don't reliably subscribe to context changes due to slotting or complex rendering lifecycles.
 - **DO** use Shoelace semantic CSS variables (e.g., `--sl-color-neutral-0`) for themeable properties to ensure cross-browser inheritance (Firefox/WebKit) without relying on unsupported selectors like `:host-context`.
 - **DON'T** directly use Shoelace variables (starting with `--sl-`) in component stylesheets. **DO** use custom variables defined in `_theme-css.ts` (e.g., `--color-background`, `--table-padding`) that act as a project-specific abstraction layer.
+- **DO** type `routerContext` cleanly as `createContext<Router | undefined>('router')` without referencing `AnyObject` (`Router<AnyObject, AnyObject>`), as `@vaadin/router` v2.0+ removed `AnyObject`.
+- **DON'T** use `// @ts-ignore` to silence TypeScript warnings around decorated Lit properties (`@provide({context: routerContext})`). Properly type the property/context so it passes `tsc --noEmit` without `@typescript-eslint/ban-ts-comment` warnings.
+- **DON'T** add redundant `as Type[]` assertions (`@typescript-eslint/no-unnecessary-type-assertion`) when assigning API data from `openapi-fetch` client helpers that already infer the paginated return type.
 
 ## Testing & Linting
 
