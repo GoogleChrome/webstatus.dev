@@ -1465,12 +1465,8 @@ func (s *entitySynchronizer[M, ExternalStruct, SpannerStruct, Key]) Sync(
 		"deletes", deletes)
 
 	// 3. APPLY UPSERTS: Apply all inserts and updates together.
-	if len(upsertMutations) < s.batchWriteThreshold {
-		err = s.applyAtomic(ctx, upsertMutations, tableName)
-	} else {
-		err = s.applyNonAtomic(ctx, upsertMutations, tableName)
-	}
-	if err != nil {
+	if err := s.applyMutations(
+		ctx, upsertMutations, tableName, mutationOperationUpsert); err != nil {
 		return err
 	}
 
@@ -1504,10 +1500,8 @@ func (s *entitySynchronizer[M, ExternalStruct, SpannerStruct, Key]) applyDeletes
 		return errors.Join(ErrSyncFailedToGetPreDeleteHooks, err)
 	}
 	for _, group := range mutationGroups {
-		slog.InfoContext(ctx, "Applying pre delete mutations via batch writer",
-			"count", len(group.mutations), "table", group.tableName)
-		err := s.applyNonAtomic(ctx, group.mutations, group.tableName)
-		if err != nil {
+		if err := s.applyMutations(
+			ctx, group.mutations, group.tableName, mutationOperationPreDelete); err != nil {
 			return err
 		}
 	}
@@ -1525,21 +1519,19 @@ func (s *entitySynchronizer[M, ExternalStruct, SpannerStruct, Key]) applyDeletes
 		return errors.Join(ErrSyncFailedToGetChildMutations, err)
 	}
 	for _, childKeyMutations := range childKeyMutationSet {
-		slog.InfoContext(ctx, "Applying child delete mutations via batch writer",
-			"count", len(childKeyMutations.mutations), "table", childKeyMutations.tableName)
-		err := s.applyNonAtomic(ctx, childKeyMutations.mutations, childKeyMutations.tableName)
-		if err != nil {
+		if err := s.applyMutations(
+			ctx,
+			childKeyMutations.mutations,
+			childKeyMutations.tableName,
+			mutationOperationChildDelete,
+		); err != nil {
 			return err
 		}
 	}
 
 	// Delete the parent entities.
-	slog.InfoContext(ctx,
-		"Applying parent delete mutations via batch writer",
-		"count", len(deleteMutations), "table", tableName)
-
-	err = s.applyNonAtomic(ctx, deleteMutations, tableName)
-	if err != nil {
+	if err := s.applyMutations(
+		ctx, deleteMutations, tableName, mutationOperationParentDelete); err != nil {
 		// See above comment about GetChildDeleteKeyMutations for possible fix.
 		slog.ErrorContext(ctx, "Failed to apply parent delete mutations", "error", err)
 
@@ -1549,14 +1541,41 @@ func (s *entitySynchronizer[M, ExternalStruct, SpannerStruct, Key]) applyDeletes
 	return nil
 }
 
-// applyAtomic applies all upsert mutations in a single, atomic transaction.
+type mutationOperation string
+
+const (
+	mutationOperationUpsert       mutationOperation = "upsert"
+	mutationOperationPreDelete    mutationOperation = "pre delete"
+	mutationOperationChildDelete  mutationOperation = "child delete"
+	mutationOperationParentDelete mutationOperation = "parent delete"
+)
+
+// applyMutations determines whether to use a single atomic transaction or
+// concurrent batched writes based on the number of mutations.
+func (s *entitySynchronizer[M, ExternalStruct, SpannerStruct, Key]) applyMutations(
+	ctx context.Context,
+	mutations []*spanner.Mutation,
+	tableName string,
+	operation mutationOperation) error {
+	if len(mutations) == 0 {
+		return nil
+	}
+	if len(mutations) < s.batchWriteThreshold {
+		return s.applyAtomic(ctx, mutations, tableName, operation)
+	}
+
+	return s.applyNonAtomic(ctx, mutations, tableName, operation)
+}
+
+// applyAtomic applies mutations in a single, atomic transaction.
 func (s *entitySynchronizer[M, ExternalStruct, SpannerStruct, Key]) applyAtomic(
 	ctx context.Context,
-	upsertMutations []*spanner.Mutation,
-	tableName string) error {
-	slog.InfoContext(ctx, "Applying upsert mutations via single atomic transaction",
-		"table", tableName, "count", len(upsertMutations))
-	_, err := s.Apply(ctx, upsertMutations)
+	mutations []*spanner.Mutation,
+	tableName string,
+	operation mutationOperation) error {
+	slog.InfoContext(ctx, fmt.Sprintf("Applying %s mutations via single atomic transaction", operation),
+		"table", tableName, "count", len(mutations))
+	_, err := s.Apply(ctx, mutations)
 	if err != nil {
 		return errors.Join(ErrSyncAtomicWriteFailed, err)
 	}
@@ -1564,13 +1583,14 @@ func (s *entitySynchronizer[M, ExternalStruct, SpannerStruct, Key]) applyAtomic(
 	return nil
 }
 
-// applyNonAtomic applies upsert mutations in batches.
+// applyNonAtomic applies mutations in batches via concurrent workers.
 func (s *entitySynchronizer[M, ExternalStruct, SpannerStruct, Key]) applyNonAtomic(
 	ctx context.Context,
 	mutations []*spanner.Mutation,
-	tableName string) error {
+	tableName string,
+	operation mutationOperation) error {
 	slog.WarnContext(ctx,
-		"Applying upsert mutations via non-atomic batch writer due to large mutation count",
+		fmt.Sprintf("Applying %s mutations via non-atomic batch writer due to large mutation count", operation),
 		"table", tableName, "count", len(mutations))
 
 	producerFn := func(mutationChan chan<- *spanner.Mutation) {

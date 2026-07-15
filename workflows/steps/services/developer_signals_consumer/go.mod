@@ -6,7 +6,7 @@ replace github.com/GoogleChrome/webstatus.dev/lib => ../../../../lib
 
 replace github.com/GoogleChrome/webstatus.dev/lib/gen => ../../../../lib/gen
 
-require github.com/GoogleChrome/webstatus.dev/lib v0.0.0-20260713195337-6c71d606226d
+require github.com/GoogleChrome/webstatus.dev/lib v0.0.0-20260715085327-f8709240bafb
 
 require (
 	cel.dev/expr v0.25.2 // indirect
@@ -15,7 +15,7 @@ require (
 	cloud.google.com/go/auth/oauth2adapt v0.2.8 // indirect
 	cloud.google.com/go/cloudtasks v1.18.0 // indirect
 	cloud.google.com/go/compute/metadata v0.9.0 // indirect
-	cloud.google.com/go/datastore v1.24.0 // indirect
+	cloud.google.com/go/datastore v1.25.0 // indirect
 	cloud.google.com/go/iam v1.12.0 // indirect
 	cloud.google.com/go/logging v1.19.0 // indirect
 	cloud.google.com/go/longrunning v1.2.0 // indirect
@@ -23,7 +23,7 @@ require (
 	cloud.google.com/go/secretmanager v1.20.0 // indirect
 	cloud.google.com/go/spanner v1.92.0 // indirect
 	cloud.google.com/go/trace v1.16.0 // indirect
-	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-20260713195337-6c71d606226d // indirect
+	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-20260715085327-f8709240bafb // indirect
 	github.com/GoogleCloudPlatform/grpc-gcp-go/grpcgcp v1.6.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.34.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace v1.34.0 // indirect
@@ -67,7 +67,7 @@ require (
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2 // indirect
 	github.com/sirupsen/logrus v1.9.4 // indirect
 	github.com/spiffe/go-spiffe/v2 v2.8.1 // indirect
-	github.com/web-platform-tests/wpt.fyi v0.0.0-20260713223710-7448f27c342a // indirect
+	github.com/web-platform-tests/wpt.fyi v0.0.0-20260714195540-37f3c47bb00b // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/contrib/bridges/prometheus v0.69.0 // indirect
