@@ -75,7 +75,7 @@ func (s *Server) CreateNotificationChannel(
 
 		return backend.CreateNotificationChannel500JSONResponse{
 			Code:    http.StatusInternalServerError,
-			Message: "internal server error",
+			Message: errMsgInternalServerError,
 		}, nil
 	}
 
@@ -83,7 +83,7 @@ func (s *Server) CreateNotificationChannel(
 	if validationErr != nil {
 		return backend.CreateNotificationChannel400JSONResponse{
 			Code:    http.StatusBadRequest,
-			Message: "input validation errors",
+			Message: errMsgInputValidationErrors,
 			Errors:  validationErr.fieldErrorMap,
 		}, nil
 	}

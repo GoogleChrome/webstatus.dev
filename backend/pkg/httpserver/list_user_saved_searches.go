@@ -39,7 +39,7 @@ func (s *Server) ListUserSavedSearches(
 
 		return backend.ListUserSavedSearches500JSONResponse{
 			Code:    http.StatusInternalServerError,
-			Message: "internal server error",
+			Message: errMsgInternalServerError,
 		}, nil
 	}
 	page, err := s.wptMetricsStorer.ListUserSavedSearches(
@@ -51,11 +51,11 @@ func (s *Server) ListUserSavedSearches(
 
 	if err != nil {
 		if errors.Is(err, backendtypes.ErrInvalidPageToken) {
-			slog.WarnContext(ctx, "invalid page token", "token", request.Params.PageToken, "error", err)
+			slog.WarnContext(ctx, errMsgInvalidPageToken, "token", request.Params.PageToken, "error", err)
 
 			return backend.ListUserSavedSearches400JSONResponse{
 				Code:    400,
-				Message: "invalid page token",
+				Message: errMsgInvalidPageToken,
 			}, nil
 		}
 

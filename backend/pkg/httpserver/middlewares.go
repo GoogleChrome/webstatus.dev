@@ -22,7 +22,6 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/auth"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 	"github.com/GoogleChrome/webstatus.dev/lib/httpmiddlewares"
-	"github.com/oapi-codegen/runtime/strictmiddleware/nethttp"
 )
 
 // UserCheckResult represents either a successful user retrieval or an error response.
@@ -48,7 +47,7 @@ func CheckAuthenticatedUser[T any](
 			User: nil,
 			Response: newErrorResponse(
 				http.StatusInternalServerError,
-				"internal server error",
+				errMsgInternalServerError,
 			),
 		}
 	}
@@ -90,7 +89,7 @@ func wrapPostRequestValidationMiddlewaresForOpenAPIHook(
 
 // authMiddlewareOpenAPIHook is a wrapper function for the auth middleware that ensures the authenticated user is
 // passed to the handler.
-func authMiddlewareOpenAPIHook(next nethttp.StrictHTTPHandlerFunc) nethttp.StrictHTTPHandlerFunc {
+func authMiddlewareOpenAPIHook(next backend.StrictHandlerFunc) backend.StrictHandlerFunc {
 	return func(ctx context.Context, w http.ResponseWriter, r *http.Request, req any) (any, error) {
 		// Get the authenticated user from the request context
 		user, ok := httpmiddlewares.AuthenticatedUserFromContext(r.Context())
@@ -107,8 +106,8 @@ func authMiddlewareOpenAPIHook(next nethttp.StrictHTTPHandlerFunc) nethttp.Stric
 // wrapPostRequestValidationMiddlewareForOpenAPIHook creates a wrapper function for a given middleware.
 // The wrapper function adapts the middleware to the signature expected by the OpenAPI generator.
 func wrapPostRequestValidationMiddlewareForOpenAPIHook(middleware func(http.Handler) http.Handler,
-	openAPIHook func(nethttp.StrictHTTPHandlerFunc) nethttp.StrictHTTPHandlerFunc) backend.StrictMiddlewareFunc {
-	return func(f nethttp.StrictHTTPHandlerFunc, _ string) nethttp.StrictHTTPHandlerFunc {
+	openAPIHook func(backend.StrictHandlerFunc) backend.StrictHandlerFunc) backend.StrictMiddlewareFunc {
+	return func(f backend.StrictHandlerFunc, _ string) backend.StrictHandlerFunc {
 
 		// This is the adapter function that gets called on each request.
 		return func(ctx context.Context, w http.ResponseWriter,

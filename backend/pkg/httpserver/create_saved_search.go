@@ -154,7 +154,7 @@ func (s *Server) CreateSavedSearch(ctx context.Context, request backend.CreateSa
 
 		return backend.CreateSavedSearch500JSONResponse{
 			Code:    http.StatusInternalServerError,
-			Message: "internal server error",
+			Message: errMsgInternalServerError,
 		}, nil
 	}
 
@@ -162,7 +162,7 @@ func (s *Server) CreateSavedSearch(ctx context.Context, request backend.CreateSa
 	if validationErr != nil {
 		return backend.CreateSavedSearch400JSONResponse{
 			Code:    http.StatusBadRequest,
-			Message: "input validation errors",
+			Message: errMsgInputValidationErrors,
 			Errors:  validationErr.fieldErrorMap,
 		}, nil
 	}

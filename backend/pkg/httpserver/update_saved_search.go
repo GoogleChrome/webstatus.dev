@@ -96,14 +96,14 @@ func (s *Server) UpdateSavedSearch(
 
 		return backend.UpdateSavedSearch500JSONResponse{
 			Code:    http.StatusInternalServerError,
-			Message: "internal server error",
+			Message: errMsgInternalServerError,
 		}, nil
 	}
 	validationErr := validateSavedSearchUpdate(request.Body)
 	if validationErr != nil {
 		return backend.UpdateSavedSearch400JSONResponse{
 			Code:    http.StatusBadRequest,
-			Message: "input validation errors",
+			Message: errMsgInputValidationErrors,
 			Errors:  validationErr.fieldErrorMap,
 		}, nil
 	}
@@ -136,7 +136,7 @@ func (s *Server) UpdateSavedSearch(
 		} else if errors.Is(err, backendtypes.ErrEntityDoesNotExist) {
 			return backend.UpdateSavedSearch404JSONResponse{
 				Code:    http.StatusNotFound,
-				Message: "saved search not found",
+				Message: errMsgSavedSearchNotFound,
 			}, nil
 		}
 		slog.ErrorContext(ctx, "unable to update user saved search", "error", err)

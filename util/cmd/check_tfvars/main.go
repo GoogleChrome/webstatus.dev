@@ -41,6 +41,13 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
+const (
+	kindObject    = "object"
+	kindMap       = "map"
+	kindList      = "list"
+	kindPrimitive = "primitive"
+)
+
 // TypeSchema defines the expected structure of a Terraform variable type.
 type TypeSchema struct {
 	Kind      string                 // "object", "map", "list", "primitive"
@@ -208,7 +215,7 @@ func parseTypeExpr(expr hcl.Expression) *TypeSchema {
 		return parseFunctionCallType(e)
 	case *hclsyntax.ScopeTraversalExpr:
 		//nolint:exhaustruct
-		return &TypeSchema{Kind: "primitive"}
+		return &TypeSchema{Kind: kindPrimitive}
 	default:
 		panic(fmt.Sprintf("unsupported type expression %T", expr))
 	}
@@ -219,14 +226,14 @@ func parseFunctionCallType(e *hclsyntax.FunctionCallExpr) *TypeSchema {
 		return nil
 	}
 	switch e.Name {
-	case "object":
+	case kindObject:
 		return parseObjectCons(e.Args[0])
-	case "map":
+	case kindMap:
 		//nolint:exhaustruct
-		return &TypeSchema{Kind: "map", ValueType: parseTypeExpr(e.Args[0])}
-	case "list", "set":
+		return &TypeSchema{Kind: kindMap, ValueType: parseTypeExpr(e.Args[0])}
+	case kindList, "set":
 		//nolint:exhaustruct
-		return &TypeSchema{Kind: "list", ValueType: parseTypeExpr(e.Args[0])}
+		return &TypeSchema{Kind: kindList, ValueType: parseTypeExpr(e.Args[0])}
 	}
 
 	return nil
@@ -249,7 +256,7 @@ func parseObjectCons(expr hcl.Expression) *TypeSchema {
 		}
 	}
 	//nolint:exhaustruct
-	return &TypeSchema{Kind: "object", Fields: fields}
+	return &TypeSchema{Kind: kindObject, Fields: fields}
 }
 
 func extractKey(expr hcl.Expression) string {
@@ -273,13 +280,13 @@ func validateValue(val cty.Value, schema *TypeSchema, path, filename string) err
 		return nil
 	}
 	switch schema.Kind {
-	case "object":
+	case kindObject:
 		return validateObjectValue(val, schema, path, filename)
-	case "map":
+	case kindMap:
 		return validateMapValue(val, schema, path, filename)
-	case "list":
+	case kindList:
 		return validateListValue(val, schema, path, filename)
-	case "primitive":
+	case kindPrimitive:
 		return nil
 	default:
 		panic(fmt.Sprintf("unsupported schema kind %s", schema.Kind))

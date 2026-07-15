@@ -267,7 +267,7 @@ export class WebstatusBookmarksService extends ServiceElement {
     },
     onComplete: data => {
       if (data) {
-        this._globalSavedSearches = data as GlobalSavedSearch[];
+        this._globalSavedSearches = data;
         // recheck if the current location corresponds to any global search
         this._currentGlobalSavedSearch = this.findCurrentSavedSearchByQuery(
           this._globalSavedSearches,

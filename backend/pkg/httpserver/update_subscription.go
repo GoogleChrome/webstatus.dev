@@ -103,7 +103,7 @@ func (s *Server) UpdateSubscription(
 	if validationErr != nil {
 		return backend.UpdateSubscription400JSONResponse{
 			Code:    http.StatusBadRequest,
-			Message: "input validation errors",
+			Message: errMsgInputValidationErrors,
 			Errors:  validationErr.fieldErrorMap,
 		}, nil
 	}
@@ -115,7 +115,7 @@ func (s *Server) UpdateSubscription(
 			return backend.UpdateSubscription404JSONResponse(
 				backend.BasicErrorModel{
 					Code:    http.StatusNotFound,
-					Message: "subscription not found",
+					Message: errMsgSubscriptionNotFound,
 				},
 			), nil
 		} else if errors.Is(err, backendtypes.ErrUserNotAuthorizedForAction) {

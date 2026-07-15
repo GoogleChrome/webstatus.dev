@@ -18,24 +18,24 @@
   // Features to add to the dev container. More info: https://containers.dev/features.
   "features": {
     "ghcr.io/devcontainers/features/go:1": {
-      "version": "1.26.1",
+      "version": "1.26.5",
       // Reminder: bump this whenever we bump the go version.
-      "golangciLintVersion": "2.11.1"
+      "golangciLintVersion": "2.12.2"
     },
     "ghcr.io/devcontainers/features/github-cli:1": {},
     "ghcr.io/devcontainers/features/docker-in-docker:2": {
       "moby": false
     },
     "ghcr.io/devcontainers/features/node:1": {
-      "version": "24.11.1"
+      "version": "26.5.0"
     },
     "ghcr.io/devcontainers/features/terraform:1": {
       // Get version from https://github.com/hashicorp/terraform/releases
-      "version": "1.14.6",
+      "version": "1.15.8",
       // We do not use terragrunt.
       "terragrunt": "none",
       // Get version from https://github.com/terraform-linters/tflint/releases
-      "tflint": "0.61.0"
+      "tflint": "0.63.1"
     },
     "ghcr.io/lukewiwa/features/shellcheck:0": {
       // Get version from https://github.com/koalaman/shellcheck/releases

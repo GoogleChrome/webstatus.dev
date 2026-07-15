@@ -30,6 +30,14 @@ The Go version must be kept in sync across:
 
 After updating the files, you should run `make go-update && make go-tidy` to ensure the `go.mod` dependencies are compatible with the new version.
 
+### Upgrading Go Workspace & Tools Dependencies (`tools/go.mod` vs `go.work`)
+
+Because `webstatus.dev` uses a multi-module workspace (`go.work`), `tools/go.mod` (`oapi-codegen`, `wrench`, `addlicense`) is included right inside the active workspace when `make go-workspace-setup` runs:
+
+- **Synchronized `tools` Upgrades**: When upgrading shared libraries (like `github.com/getkin/kin-openapi` or `runtime`), you **MUST** also update `tools/go.mod` (`github.com/oapi-codegen/oapi-codegen/v2`) to a compatible version. Otherwise, Go's Minimal Version Selection (MVS) will compile `tools` against the upgraded `kin-openapi` models and cause type mismatch errors (`mismatched types openapi3.MappingRef and string`).
+- **Makefile `@latest` Flags**: Ensure targets like `go-update-tools` use `go get -u ...@latest` for all tools so they do not lag behind when running updates.
+- **`golangci-lint` Configuration**: When bumping `golangci-lint` versions across v2 config format, ensure `goconst.ignore-tests: true` is preserved so table-driven test fixtures are not flagged. Note that we do NOT use brittle `ignore-string-values` whitelists for Spanner query parameter keys (`startAt`, `pageSize`, etc.); instead, we exclude `goconst` specifically for `lib/gcpspanner/.*\.go` under `linters.exclusions.rules` (`path: lib/gcpspanner/.*\.go`), because parameter keys naturally repeat across dozens of independent query methods matching raw SQL `@param` bindings.
+
 ### Upgrading Node.js
 
 The Node.js version must be kept in sync across:
@@ -55,6 +63,9 @@ Other DevContainer tools (Terraform, Skaffold, Shellcheck, GitHub CLI) are manag
 
 - Find the relevant feature under the `features` object and update its `"version"`.
 - If modifying Terraform, also ensure the `.terraform-version` file (if one exists) or CI checks match the new version.
+- **Lockfile Synchronization (`devcontainer-lock.json`)**: `.devcontainer/devcontainer-lock.json` is committed to version control to guarantee deterministic container builds across developers and CI (`.github/workflows/devcontainer.yml`) by locking exact OCI feature digests (`@sha256:...`) and resolved versions. Whenever you modify features or version constraints in `.devcontainer/devcontainer.json`, you **MUST** ensure `.devcontainer/devcontainer-lock.json` is updated and committed alongside `devcontainer.json`.
+  - To regenerate or update the lockfile locally, run `devcontainer up` / `devcontainer build` or `devcontainer features upgrade --workspace-folder .` using the DevContainer CLI.
+  - Always stage both files: `git add .devcontainer/devcontainer.json .devcontainer/devcontainer-lock.json`.
 
 ## Documentation Updates
 

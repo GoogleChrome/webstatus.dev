@@ -43,11 +43,11 @@ func (s *Server) ListGlobalSavedSearches(
 
 	if err != nil {
 		if errors.Is(err, backendtypes.ErrInvalidPageToken) {
-			slog.WarnContext(ctx, "invalid page token", "token", req.Params.PageToken, "error", err)
+			slog.WarnContext(ctx, errMsgInvalidPageToken, "token", req.Params.PageToken, "error", err)
 
 			return backend.ListGlobalSavedSearches400JSONResponse{
 				Code:    400,
-				Message: "invalid page token",
+				Message: errMsgInvalidPageToken,
 			}, nil
 		}
 

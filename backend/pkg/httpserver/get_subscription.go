@@ -43,7 +43,7 @@ func (s *Server) GetSubscription(
 			return backend.GetSubscription404JSONResponse(
 				backend.BasicErrorModel{
 					Code:    http.StatusNotFound,
-					Message: "subscription not found",
+					Message: errMsgSubscriptionNotFound,
 				},
 			), nil
 		} else if errors.Is(err, backendtypes.ErrUserNotAuthorizedForAction) {

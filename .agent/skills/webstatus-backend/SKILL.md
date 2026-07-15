@@ -58,11 +58,16 @@ We use a Hexagonal-style **Adapter Pattern** to decouple application logic from 
 - **DO** ensure `Merge` functions in mappers copy ALL fields, including `UpdatedAt`.
 - **DO** use `...WithTransaction` variants of helpers when inside a `ReadWriteTransaction`.
 - **DO** call `eventPublisher.PublishSearchConfigurationChanged` in handlers that modify user saved searches to trigger immediate notification dispatcher updates.
+- **DO** define `noAuth:` under `components.securitySchemes` in `openapi.yaml` whenever any operation specifies `noAuth: []` in its `security:` requirements. In `oapi-codegen v2.7+`, `<Scheme>ContextKey` types (`noAuthContextKey`) are generated strictly from `components.securitySchemes`; omitting `noAuth` causes `undefined: noAuthContextKey` build failures.
+- **DO** pass pointers (`*string`) when populating optional OpenAPI response header fields (like `Location` in `301` responses), as `oapi-codegen v2.7+` models optional response headers as pointer types.
+- **DO** type strict middleware closures using `backend.StrictHandlerFunc` and `backend.StrictMiddlewareFunc` directly from the generated package rather than importing from `github.com/oapi-codegen/runtime/strictmiddleware/nethttp`.
 
 ## Testing & Linting
 
 - **Precommit Suite**: Run `make precommit` to execute the full suite of Go tests, formatting, and linting.
 - **Linting**: Run `make go-lint` to lint all Go code using `golangci-lint`.
+  - **`goconst` & Spanner Queries**: In `.golangci.yaml`, `goconst` is explicitly excluded for `lib/gcpspanner/.*\.go` (`linters.exclusions.rules`). Because `lib/gcpspanner` consists of dozens of files whose sole job is executing SQL queries where parameter map keys (`map[string]any{"startAt": startAt}`) naturally repeat across methods to match raw SQL parameters (`@startAt`), excluding `goconst` on this path eliminates false positives cleanly without requiring a brittle `ignore-string-values` whitelist or forcing DRY constants across independent queries.
+  - For all other packages outside `lib/gcpspanner` (e.g. workers, API handlers), repeating magic strings (`"type"`, `"text"`, error messages) MUST be declared as package constants to satisfy `goconst`.
 - **Quick Test Iteration**: Because this project uses a multi-module workspace (`go.work`), to run tests quickly for a single package without running the whole suite, execute `go test` from _within_ the specific module directory, or provide the full module path:
   ```bash
   cd backend && go test -v ./pkg/...

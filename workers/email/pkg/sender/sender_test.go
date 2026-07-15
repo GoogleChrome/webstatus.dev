@@ -97,7 +97,11 @@ func testGeneratedAt() time.Time {
 	return time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
 }
 
-const testChannelID = "chan-1"
+const (
+	testChannelID      = "chan-1"
+	testSubscriptionID = "sub-1"
+	testRecipientEmail = "user@example.com"
+)
 
 func testMetadata() workertypes.DeliveryMetadata {
 	return workertypes.DeliveryMetadata{
@@ -122,11 +126,11 @@ func TestProcessMessage_Success(t *testing.T) {
 	ctx := context.Background()
 	job := workertypes.IncomingEmailDeliveryJob{
 		EmailDeliveryJob: workertypes.EmailDeliveryJob{
-			SubscriptionID: "sub-1",
+			SubscriptionID: testSubscriptionID,
 			Metadata:       testMetadata(),
-			RecipientEmail: "user@example.com",
+			RecipientEmail: testRecipientEmail,
 			SummaryRaw:     []byte("{}"),
-			ChannelID:      "chan-1",
+			ChannelID:      testChannelID,
 			Triggers: []workertypes.JobTrigger{
 				workertypes.BrowserImplementationAnyComplete,
 			},
@@ -157,7 +161,7 @@ func TestProcessMessage_Success(t *testing.T) {
 	if len(sender.sentCalls) != 1 {
 		t.Fatalf("Expected 1 email sent, got %d", len(sender.sentCalls))
 	}
-	if sender.sentCalls[0].to != "user@example.com" {
+	if sender.sentCalls[0].to != testRecipientEmail {
 		t.Errorf("Recipient mismatch: %s", sender.sentCalls[0].to)
 	}
 	if sender.sentCalls[0].id != testEmailEventID {
@@ -177,7 +181,7 @@ func TestProcessMessage_Success(t *testing.T) {
 	if stateManager.successCalls[0].channelID != testChannelID {
 		t.Errorf("Success recorded for wrong channel: %v", stateManager.successCalls[0])
 	}
-	if stateManager.successCalls[0].emailEventID != "job-id" {
+	if stateManager.successCalls[0].emailEventID != testEmailEventID {
 		t.Errorf("Success recorded for wrong event: %v", stateManager.successCalls[0])
 	}
 	if !stateManager.successCalls[0].timestamp.Equal(fakeNow()) {
@@ -189,14 +193,14 @@ func TestProcessMessage_RenderError(t *testing.T) {
 	ctx := context.Background()
 	job := workertypes.IncomingEmailDeliveryJob{
 		EmailDeliveryJob: workertypes.EmailDeliveryJob{
-			SubscriptionID: "sub-1",
+			SubscriptionID: testSubscriptionID,
 			Metadata:       testMetadata(),
-			RecipientEmail: "user@example.com",
+			RecipientEmail: testRecipientEmail,
 			SummaryRaw:     []byte("{}"),
-			ChannelID:      "chan-1",
+			ChannelID:      testChannelID,
 			Triggers:       nil,
 		},
-		EmailEventID: "job-id",
+		EmailEventID: testEmailEventID,
 	}
 
 	sender := new(mockEmailSender)
@@ -232,14 +236,14 @@ func TestProcessMessage_SendError(t *testing.T) {
 	ctx := context.Background()
 	job := workertypes.IncomingEmailDeliveryJob{
 		EmailDeliveryJob: workertypes.EmailDeliveryJob{
-			SubscriptionID: "sub-1",
+			SubscriptionID: testSubscriptionID,
 			Metadata:       testMetadata(),
-			RecipientEmail: "user@example.com",
+			RecipientEmail: testRecipientEmail,
 			SummaryRaw:     []byte("{}"),
-			ChannelID:      "chan-1",
+			ChannelID:      testChannelID,
 			Triggers:       nil,
 		},
-		EmailEventID: "job-id",
+		EmailEventID: testEmailEventID,
 	}
 
 	testCases := []struct {
@@ -290,7 +294,7 @@ func TestProcessMessage_SendError(t *testing.T) {
 			if stateManager.failureCalls[0].channelID != testChannelID {
 				t.Errorf("Recorded failure for wrong channel")
 			}
-			if stateManager.failureCalls[0].emailEventID != "job-id" {
+			if stateManager.failureCalls[0].emailEventID != testEmailEventID {
 				t.Errorf("Recorded failure for wrong event")
 			}
 			if tc.isPermanentUserError != stateManager.failureCalls[0].isPermanentUserError {

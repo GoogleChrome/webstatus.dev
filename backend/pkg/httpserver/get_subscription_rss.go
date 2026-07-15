@@ -83,13 +83,13 @@ func (s *Server) GetSubscriptionRSS(
 		if errors.Is(err, backendtypes.ErrEntityDoesNotExist) {
 			return backend.GetSubscriptionRSS404JSONResponse{
 				Code:    http.StatusNotFound,
-				Message: "Subscription not found",
+				Message: errMsgSubscriptionNotFound,
 			}, nil
 		}
 
 		return backend.GetSubscriptionRSS500JSONResponse{
 			Code:    http.StatusInternalServerError,
-			Message: "Internal server error",
+			Message: errMsgInternalServerError,
 		}, nil
 	}
 
@@ -98,14 +98,14 @@ func (s *Server) GetSubscriptionRSS(
 		if errors.Is(err, backendtypes.ErrEntityDoesNotExist) {
 			return backend.GetSubscriptionRSS404JSONResponse{
 				Code:    http.StatusNotFound,
-				Message: "Saved search not found",
+				Message: errMsgSavedSearchNotFound,
 			}, nil
 		}
 		slog.ErrorContext(ctx, "failed to get saved search", "error", err)
 
 		return backend.GetSubscriptionRSS500JSONResponse{
 			Code:    http.StatusInternalServerError,
-			Message: "Internal server error",
+			Message: errMsgInternalServerError,
 		}, nil
 	}
 
@@ -123,7 +123,7 @@ func (s *Server) GetSubscriptionRSS(
 
 		return backend.GetSubscriptionRSS500JSONResponse{
 			Code:    http.StatusInternalServerError,
-			Message: "Internal server error",
+			Message: errMsgInternalServerError,
 		}, nil
 	}
 
@@ -248,7 +248,7 @@ func (s *Server) GetSubscriptionRSS(
 
 		return backend.GetSubscriptionRSS500JSONResponse{
 			Code:    http.StatusInternalServerError,
-			Message: "Internal server error",
+			Message: errMsgInternalServerError,
 		}, nil
 	}
 
