@@ -5,12 +5,12 @@ go 1.26.4
 require (
 	cloud.google.com/go v0.123.0
 	cloud.google.com/go/spanner v1.92.0
-	github.com/GoogleChrome/webstatus.dev/lib v0.0.0-20260713195337-6c71d606226d
-	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-20260713195337-6c71d606226d
+	github.com/GoogleChrome/webstatus.dev/lib v0.0.0-20260715085327-f8709240bafb
+	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-20260715085327-f8709240bafb
 	github.com/brianvoe/gofakeit/v7 v7.15.0
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/hashicorp/hcl/v2 v2.24.0
-	github.com/web-platform-tests/wpt.fyi v0.0.0-20260713223710-7448f27c342a
+	github.com/web-platform-tests/wpt.fyi v0.0.0-20260714195540-37f3c47bb00b
 	github.com/zclconf/go-cty v1.19.0
 	golang.org/x/text v0.40.0
 )
@@ -49,7 +49,7 @@ require (
 	cloud.google.com/go/auth/oauth2adapt v0.2.8 // indirect
 	cloud.google.com/go/cloudtasks v1.18.0 // indirect
 	cloud.google.com/go/compute/metadata v0.9.0 // indirect
-	cloud.google.com/go/datastore v1.24.0 // indirect
+	cloud.google.com/go/datastore v1.25.0 // indirect
 	cloud.google.com/go/iam v1.12.0 // indirect
 	cloud.google.com/go/logging v1.19.0 // indirect
 	cloud.google.com/go/longrunning v1.2.0 // indirect

@@ -4,8 +4,8 @@ go 1.26.4
 
 require (
 	firebase.google.com/go/v4 v4.21.0
-	github.com/GoogleChrome/webstatus.dev/lib v0.0.0-20260713195337-6c71d606226d
-	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-20260713195337-6c71d606226d
+	github.com/GoogleChrome/webstatus.dev/lib v0.0.0-20260715085327-f8709240bafb
+	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-20260715085327-f8709240bafb
 	github.com/go-chi/cors v1.2.2
 	github.com/google/go-cmp v0.7.0
 	github.com/oapi-codegen/runtime v1.5.0
@@ -18,7 +18,7 @@ require (
 	cloud.google.com/go/auth/oauth2adapt v0.2.8 // indirect
 	cloud.google.com/go/cloudtasks v1.18.0 // indirect
 	cloud.google.com/go/compute/metadata v0.9.0 // indirect
-	cloud.google.com/go/datastore v1.24.0 // indirect
+	cloud.google.com/go/datastore v1.25.0 // indirect
 	cloud.google.com/go/firestore v1.23.0 // indirect
 	cloud.google.com/go/iam v1.12.0 // indirect
 	cloud.google.com/go/logging v1.19.0 // indirect
@@ -78,7 +78,7 @@ require (
 	github.com/sirupsen/logrus v1.9.4 // indirect
 	github.com/spiffe/go-spiffe/v2 v2.8.1 // indirect
 	github.com/valkey-io/valkey-go v1.0.76 // indirect
-	github.com/web-platform-tests/wpt.fyi v0.0.0-20260713223710-7448f27c342a // indirect
+	github.com/web-platform-tests/wpt.fyi v0.0.0-20260714195540-37f3c47bb00b // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/contrib/bridges/prometheus v0.69.0 // indirect

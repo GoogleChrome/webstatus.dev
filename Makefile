@@ -419,9 +419,9 @@ go-update: go-workspace-setup
 	readarray -t GO_MODULES <  <(go list -f {{.Dir}} -m); \
 	for GO_MODULE in $${GO_MODULES[@]}; \
 	do \
-		echo "********* go get -u ./... module: $${GO_MODULE} *********" ; \
+		echo "********* go get -u all module: $${GO_MODULE} *********" ; \
 		pushd $${GO_MODULE} && \
-		go get -u ./... && \
+		go get -u all && \
 		echo -e "\n" || exit 1; \
 		popd ; \
 	done
