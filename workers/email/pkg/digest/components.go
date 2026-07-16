@@ -134,6 +134,19 @@ const queryErrorBannerComponent = `{{- define "query_error_banner" -}}
 </div>
 {{- end -}}`
 
+const resolvedQueryErrorBannerComponent = `{{- define "resolved_query_error_banner" -}}
+<div style='{{- template "style_banner_wrapper" -}}{{- template "color_bg_success" -}}'>
+    <table width="100%" border="0" cellspacing="0" cellpadding="0" style="border-collapse: collapse; mso-table-lspace: 0pt; mso-table-rspace: 0pt;">
+        <tr>
+            <td align="left" valign="middle" style="padding: 12px;">
+                <span style='{{- template "style_text_banner_bold" -}}'>✅ Query Recovered:</span>
+                <span style='{{- template "style_text_banner_normal" -}}'> Tracking resumed cleanly from your baseline. Resolved issue: {{ queryErrorMessage . }}</span>
+            </td>
+        </tr>
+    </table>
+</div>
+{{- end -}}`
+
 const buttonComponent = `{{- define "button" -}}
 <div style='{{- template "style_button_wrapper" -}}'>
     <a href="{{.URL}}" style='{{- template "style_button_link" -}}'>
@@ -271,4 +284,5 @@ const EmailComponents = badgeComponent +
 	bannerComponents +
 	featureTitleRowComponent +
 	queryErrorBannerComponent +
+	resolvedQueryErrorBannerComponent +
 	browserStatusDetailComponent

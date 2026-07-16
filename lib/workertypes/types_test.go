@@ -69,9 +69,10 @@ func TestParseEventSummary(t *testing.T) {
 					UpdatedRename:   0,
 					UpdatedBaseline: 0,
 				},
-				Truncated:   false,
-				Highlights:  nil,
-				QueryErrors: nil,
+				Truncated:           false,
+				Highlights:          nil,
+				QueryErrors:         nil,
+				ResolvedQueryErrors: nil,
 			},
 			wantErr: false,
 		},
@@ -134,15 +135,16 @@ func TestGenerateJSONSummaryFeatureDiffV1(t *testing.T) {
 		{
 			name: "Empty",
 			diff: v1.FeatureDiff{
-				SnapshotOrigin: v1.OriginLive,
-				QueryChanged:   false,
-				Added:          nil,
-				Removed:        nil,
-				Modified:       nil,
-				Moves:          nil,
-				Splits:         nil,
-				Deleted:        nil,
-				QueryErrors:    nil,
+				SnapshotOrigin:      v1.OriginLive,
+				QueryChanged:        false,
+				Added:               nil,
+				Removed:             nil,
+				Modified:            nil,
+				Moves:               nil,
+				Splits:              nil,
+				Deleted:             nil,
+				QueryErrors:         nil,
+				ResolvedQueryErrors: nil,
 			},
 			expected: `{"schemaVersion":"v1","snapshotOrigin":"LIVE",` +
 				`"text":"No changes detected","truncated":false,"highlights":null}`,
@@ -201,7 +203,8 @@ func TestGenerateJSONSummaryFeatureDiffV1(t *testing.T) {
 				Deleted: []v1.FeatureDeleted{
 					{ID: "4", Name: "D", Reason: v1.ReasonDeleted},
 				},
-				QueryErrors: nil,
+				QueryErrors:         nil,
+				ResolvedQueryErrors: nil,
 				Moves: []v1.FeatureMoved{
 					{FromID: "4", ToID: "5", FromName: "D", ToName: "E", QueryMatch: v1.QueryMatchMatch},
 				},
@@ -748,5 +751,42 @@ func TestFilterHighlights(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestGenerateJSONSummary_QueryErrorsAndResolvedQueryErrors(t *testing.T) {
+	gen := FeatureDiffV1SummaryGenerator{}
+	diff := v1.FeatureDiff{
+		SnapshotOrigin: v1.OriginLive,
+		QueryChanged:   false,
+		Added:          nil,
+		Removed:        nil,
+		Modified:       nil,
+		Deleted:        nil,
+		Moves:          nil,
+		Splits:         nil,
+		QueryErrors: []v1.QueryError{
+			{Code: v1.ErrorCodeSavedSearchNotFound},
+		},
+		ResolvedQueryErrors: []v1.QueryError{
+			{Code: v1.ErrorCodeQueryGrammar},
+		},
+	}
+
+	bytes, err := gen.GenerateJSONSummary(diff)
+	if err != nil {
+		t.Fatalf("GenerateJSONSummary failed: %v", err)
+	}
+
+	var summary EventSummary
+	if err := json.Unmarshal(bytes, &summary); err != nil {
+		t.Fatalf("json.Unmarshal failed: %v", err)
+	}
+
+	if len(summary.QueryErrors) != 1 || summary.QueryErrors[0].Code != SummaryQueryErrorCodeSavedSearchNotFound {
+		t.Errorf("QueryErrors = %+v, want SavedSearchNotFound", summary.QueryErrors)
+	}
+	if len(summary.ResolvedQueryErrors) != 1 || summary.ResolvedQueryErrors[0].Code != SummaryQueryErrorCodeQueryGrammar {
+		t.Errorf("ResolvedQueryErrors = %+v, want QueryGrammar", summary.ResolvedQueryErrors)
 	}
 }

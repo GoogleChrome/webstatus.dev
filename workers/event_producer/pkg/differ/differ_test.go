@@ -138,15 +138,17 @@ func (m *mockDiffSerializer[D]) Serialize(id, searchID, eventID, newStateID,
 }
 
 type mockWorkflow[D any] struct {
-	calculateDiffCalled      bool
-	reconcileHistoryCalled   bool
-	setQueryChangedCalled    bool
-	hasRemovedFeaturesResult bool
-	hasChangesResult         bool
-	hasDataChangesResult     bool
-	getDiffResult            *D
-	summaryResult            []byte
-	summaryError             error
+	calculateDiffCalled          bool
+	reconcileHistoryCalled       bool
+	setQueryChangedCalled        bool
+	setResolvedQueryErrorsCalled bool
+	resolvedQueryErrors          comparables.QueryErrors
+	hasRemovedFeaturesResult     bool
+	hasChangesResult             bool
+	hasDataChangesResult         bool
+	getDiffResult                *D
+	summaryResult                []byte
+	summaryError                 error
 }
 
 func (m *mockWorkflow[D]) CalculateDiff(_, _ map[string]comparables.Feature, _ comparables.QueryErrors,
@@ -163,6 +165,10 @@ func (m *mockWorkflow[D]) HasChanges() bool         { return m.hasChangesResult 
 func (m *mockWorkflow[D]) HasDataChanges() bool     { return m.hasDataChangesResult }
 func (m *mockWorkflow[D]) SetQueryChanged(val bool) {
 	m.setQueryChangedCalled = val
+}
+func (m *mockWorkflow[D]) SetResolvedQueryErrors(errs comparables.QueryErrors) {
+	m.setResolvedQueryErrorsCalled = true
+	m.resolvedQueryErrors = errs
 }
 
 func (m *mockWorkflow[D]) GetDiff() *D {

@@ -40,12 +40,13 @@ func TestRenderRSSDescription(t *testing.T) {
 		{
 			name: "Basic Summary with Added Feature",
 			data: RSSItemData{
-				SummaryText: "1 new feature matched",
-				Added:       []string{"Feature A"},
-				Removed:     nil,
-				Other:       nil,
-				QueryErrors: nil,
-				Truncated:   false,
+				SummaryText:         "1 new feature matched",
+				Added:               []string{"Feature A"},
+				Removed:             nil,
+				Other:               nil,
+				QueryErrors:         nil,
+				ResolvedQueryErrors: nil,
+				Truncated:           false,
 			},
 			expectedContains: []string{
 				"Feature A",
@@ -55,12 +56,13 @@ func TestRenderRSSDescription(t *testing.T) {
 		{
 			name: "Removed Feature",
 			data: RSSItemData{
-				SummaryText: "1 feature removed",
-				Added:       nil,
-				Removed:     []string{"Feature B"},
-				Other:       nil,
-				QueryErrors: nil,
-				Truncated:   false,
+				SummaryText:         "1 feature removed",
+				Added:               nil,
+				Removed:             []string{"Feature B"},
+				Other:               nil,
+				QueryErrors:         nil,
+				ResolvedQueryErrors: nil,
+				Truncated:           false,
 			},
 			expectedContains: []string{
 				"Feature B",
@@ -70,12 +72,13 @@ func TestRenderRSSDescription(t *testing.T) {
 		{
 			name: "Other Update",
 			data: RSSItemData{
-				SummaryText: "1 feature updated",
-				Added:       nil,
-				Removed:     nil,
-				Other:       []string{"Feature C (Changed)"},
-				QueryErrors: nil,
-				Truncated:   false,
+				SummaryText:         "1 feature updated",
+				Added:               nil,
+				Removed:             nil,
+				Other:               []string{"Feature C (Changed)"},
+				QueryErrors:         nil,
+				ResolvedQueryErrors: nil,
+				Truncated:           false,
 			},
 			expectedContains: []string{
 				"Feature C",
@@ -85,12 +88,13 @@ func TestRenderRSSDescription(t *testing.T) {
 		{
 			name: "HTML Escaping in Feature Name",
 			data: RSSItemData{
-				SummaryText: "HTML escaping test",
-				Added:       []string{"<link rel=\"dns-prefetch\">"},
-				Removed:     nil,
-				Other:       nil,
-				QueryErrors: nil,
-				Truncated:   false,
+				SummaryText:         "HTML escaping test",
+				Added:               []string{"<link rel=\"dns-prefetch\">"},
+				Removed:             nil,
+				Other:               nil,
+				QueryErrors:         nil,
+				ResolvedQueryErrors: nil,
+				Truncated:           false,
 			},
 			expectedContains: []string{
 				"&lt;link",
@@ -100,12 +104,13 @@ func TestRenderRSSDescription(t *testing.T) {
 		{
 			name: "Truncated Summary",
 			data: RSSItemData{
-				SummaryText: "Summary text",
-				Added:       nil,
-				Removed:     nil,
-				Other:       nil,
-				QueryErrors: nil,
-				Truncated:   true,
+				SummaryText:         "Summary text",
+				Added:               nil,
+				Removed:             nil,
+				Other:               nil,
+				QueryErrors:         nil,
+				ResolvedQueryErrors: nil,
+				Truncated:           true,
 			},
 			expectedContains: []string{
 				"This summary has been truncated",
@@ -114,16 +119,33 @@ func TestRenderRSSDescription(t *testing.T) {
 		{
 			name: "Query Error Banner",
 			data: RSSItemData{
-				SummaryText: "Query failure",
-				Added:       nil,
-				Removed:     nil,
-				Other:       nil,
-				QueryErrors: []string{"Invalid query grammar"},
-				Truncated:   false,
+				SummaryText:         "Query failure",
+				Added:               nil,
+				Removed:             nil,
+				Other:               nil,
+				QueryErrors:         []string{"Invalid query grammar"},
+				ResolvedQueryErrors: nil,
+				Truncated:           false,
 			},
 			expectedContains: []string{
 				"Query Errors",
 				"Invalid query grammar",
+			},
+		},
+		{
+			name: "Resolved Query Error Banner",
+			data: RSSItemData{
+				SummaryText:         "Query recovered",
+				Added:               nil,
+				Removed:             nil,
+				Other:               nil,
+				QueryErrors:         nil,
+				ResolvedQueryErrors: []string{"Invalid query grammar"},
+				Truncated:           false,
+			},
+			expectedContains: []string{
+				"Query Recovered",
+				"Tracking resumed cleanly from your baseline. Resolved issue: Invalid query grammar", //nolint:lll // WONTFIX - test string
 			},
 		},
 	}

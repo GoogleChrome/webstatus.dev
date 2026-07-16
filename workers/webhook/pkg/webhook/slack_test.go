@@ -208,8 +208,9 @@ func TestSlackSender_Send_Golden(t *testing.T) {
 			UpdatedImpl:     0,
 			UpdatedRename:   0,
 		},
-		Truncated:   false,
-		QueryErrors: nil,
+		Truncated:           false,
+		QueryErrors:         nil,
+		ResolvedQueryErrors: nil,
 		Highlights: []workertypes.SummaryHighlight{
 			{
 				Type:        workertypes.SummaryHighlightTypeChanged,
@@ -596,7 +597,8 @@ func TestSlackSender_Send_QueryError_Golden(t *testing.T) {
 		QueryErrors: []workertypes.SummaryQueryError{
 			{Code: workertypes.SummaryQueryErrorCodeSavedSearchNotFound},
 		},
-		Highlights: nil,
+		ResolvedQueryErrors: nil,
+		Highlights:          nil,
 	}
 	summaryBytes, _ := json.Marshal(summary)
 
@@ -695,12 +697,13 @@ func TestSlackPayloadBuilder_VisitV1_Filter(t *testing.T) {
 		query:           "group:css",
 		resultsURL:      "https://webstatus.dev/features?q=group:css",
 		summary: workertypes.EventSummary{
-			SchemaVersion:  "v1",
-			SnapshotOrigin: workertypes.OriginLive,
-			Text:           "",
-			Truncated:      false,
-			QueryErrors:    nil,
-			Highlights:     nil,
+			SchemaVersion:       "v1",
+			SnapshotOrigin:      workertypes.OriginLive,
+			Text:                "",
+			Truncated:           false,
+			QueryErrors:         nil,
+			ResolvedQueryErrors: nil,
+			Highlights:          nil,
 			Categories: workertypes.SummaryCategories{
 				QueryChanged:    0,
 				Added:           0,
@@ -715,6 +718,7 @@ func TestSlackPayloadBuilder_VisitV1_Filter(t *testing.T) {
 			},
 		},
 		queryErrors:               nil,
+		resolvedQueryErrors:       nil,
 		baselineNewlyChanges:      nil,
 		baselineWidelyChanges:     nil,
 		baselineRegressionChanges: nil,
@@ -745,9 +749,10 @@ func TestSlackPayloadBuilder_VisitV1_Filter(t *testing.T) {
 			UpdatedRename:   0,
 			UpdatedBaseline: 0,
 		},
-		Text:        "Test summary",
-		Truncated:   false,
-		QueryErrors: nil,
+		Text:                "Test summary",
+		Truncated:           false,
+		QueryErrors:         nil,
+		ResolvedQueryErrors: nil,
 		Highlights: []workertypes.SummaryHighlight{
 			{
 				Type:        workertypes.SummaryHighlightTypeChanged,
@@ -800,5 +805,53 @@ func TestSlackPayloadBuilder_VisitV1_Filter(t *testing.T) {
 		t.Errorf("expected 1 browser change, got %d", len(builder.allBrowserChanges))
 	} else if builder.allBrowserChanges[0].FeatureID != "chrome-feat" {
 		t.Errorf("expected chrome-feat, got %s", builder.allBrowserChanges[0].FeatureID)
+	}
+}
+
+func TestSlackPayloadBuilder_VisitV1_ResolvedQueryError_Golden(t *testing.T) {
+	summary := workertypes.EventSummary{
+		SchemaVersion:  "v1",
+		Text:           "Search query recovered and tracking 2 features normally.",
+		SnapshotOrigin: workertypes.OriginLive,
+		Categories:     workertypes.NewEmptySummaryCategories(),
+		Truncated:      false,
+		QueryErrors:    nil,
+		ResolvedQueryErrors: []workertypes.SummaryQueryError{
+			{Code: workertypes.SummaryQueryErrorCodeQueryGrammar},
+		},
+		Highlights: nil,
+	}
+
+	builder := newSlackPayloadBuilder("http://localhost:5555", "group:css",
+		"http://localhost:5555/features?q=group:css", "sub-123", nil)
+	if err := builder.VisitV1(summary); err != nil {
+		t.Fatalf("VisitV1 failed: %v", err)
+	}
+
+	payload := builder.buildPayload("My CSS Search")
+
+	goldenFile := filepath.Join("testdata", "slack_payload_resolved_query_error.golden.json")
+
+	payloadBytes, err := json.MarshalIndent(payload, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if *updateGolden {
+		if err := os.MkdirAll("testdata", 0755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(goldenFile, payloadBytes, 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	expected, err := os.ReadFile(goldenFile)
+	if err != nil {
+		t.Fatalf("failed to read golden file: %v", err)
+	}
+
+	if diff := cmp.Diff(string(expected), string(payloadBytes)); diff != "" {
+		t.Errorf("Payload mismatch (-want +got):\n%s", diff)
 	}
 }

@@ -30,6 +30,7 @@ func newTestSummaryWithErrors(errCode workertypes.SummaryQueryErrorCode) workert
 		QueryErrors: []workertypes.SummaryQueryError{
 			{Code: errCode},
 		},
+		ResolvedQueryErrors: nil,
 		Categories: workertypes.SummaryCategories{
 			Updated:         0,
 			Added:           0,
@@ -111,5 +112,33 @@ func TestRSSVisitor_QueryErrors_RenderMessage(t *testing.T) {
 				t.Errorf("visitor.data.QueryErrors[0] = %q, want %q", visitor.data.QueryErrors[0], tc.wantMessage)
 			}
 		})
+	}
+}
+
+func TestRSSVisitor_ResolvedQueryErrors(t *testing.T) {
+	visitor := newRSSVisitor([]workertypes.JobTrigger{workertypes.FeaturePromotedToNewly})
+	summary := workertypes.EventSummary{
+		SchemaVersion:  workertypes.VersionEventSummaryV1,
+		SnapshotOrigin: workertypes.OriginLive,
+		Truncated:      false,
+		Highlights:     nil,
+		Text:           "Search query recovered",
+		QueryErrors:    nil,
+		ResolvedQueryErrors: []workertypes.SummaryQueryError{
+			{Code: workertypes.SummaryQueryErrorCodeQueryGrammar},
+		},
+		Categories: workertypes.NewEmptySummaryCategories(),
+	}
+
+	if err := visitor.VisitV1(summary); err != nil {
+		t.Fatalf("VisitV1 unexpected error: %v", err)
+	}
+	if !visitor.HasContent() {
+		t.Error("HasContent() = false, want true when ResolvedQueryErrors exist")
+	}
+	if len(visitor.data.ResolvedQueryErrors) != 1 ||
+		visitor.data.ResolvedQueryErrors[0] != workertypes.SummaryQueryErrorCodeQueryGrammar.Message() {
+		t.Errorf("data.ResolvedQueryErrors = %v, want [%s]",
+			visitor.data.ResolvedQueryErrors, workertypes.SummaryQueryErrorCodeQueryGrammar.Message())
 	}
 }

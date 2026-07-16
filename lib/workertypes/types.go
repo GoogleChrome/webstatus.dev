@@ -163,13 +163,42 @@ type UserError struct {
 
 // EventSummary matches the JSON structure stored in the database 'Summary' column.
 type EventSummary struct {
-	SchemaVersion  string              `json:"schemaVersion"`
-	Text           string              `json:"text"`
-	Categories     SummaryCategories   `json:"categories,omitzero"`
-	Truncated      bool                `json:"truncated"`
-	SnapshotOrigin SnapshotOrigin      `json:"snapshotOrigin,omitempty"`
-	QueryErrors    []SummaryQueryError `json:"queryErrors,omitempty"`
-	Highlights     []SummaryHighlight  `json:"highlights"`
+	SchemaVersion       string              `json:"schemaVersion"`
+	Text                string              `json:"text"`
+	Categories          SummaryCategories   `json:"categories,omitzero"`
+	Truncated           bool                `json:"truncated"`
+	SnapshotOrigin      SnapshotOrigin      `json:"snapshotOrigin,omitempty"`
+	QueryErrors         []SummaryQueryError `json:"queryErrors,omitempty"`
+	ResolvedQueryErrors []SummaryQueryError `json:"resolvedQueryErrors,omitempty"`
+	Highlights          []SummaryHighlight  `json:"highlights"`
+}
+
+func NewEmptySummaryCategories() SummaryCategories {
+	return SummaryCategories{
+		Updated:         0,
+		Added:           0,
+		Removed:         0,
+		Moved:           0,
+		Split:           0,
+		Deleted:         0,
+		UpdatedBaseline: 0,
+		QueryChanged:    0,
+		UpdatedImpl:     0,
+		UpdatedRename:   0,
+	}
+}
+
+func NewEmptyEventSummary() EventSummary {
+	return EventSummary{
+		SchemaVersion:       VersionEventSummaryV1,
+		Text:                "",
+		Categories:          NewEmptySummaryCategories(),
+		Truncated:           false,
+		SnapshotOrigin:      OriginUnknown,
+		QueryErrors:         nil,
+		ResolvedQueryErrors: nil,
+		Highlights:          nil,
+	}
 }
 
 func (h SummaryHighlight) MatchesTrigger(t JobTrigger) bool {
@@ -329,18 +358,12 @@ func ParseEventSummary(data []byte, v SummaryVisitor) error {
 
 type FeatureDiffV1SummaryGenerator struct{}
 
-// GenerateJSONEventSummaryFromFeatureDiffV1 generates and serializes.
-func (g FeatureDiffV1SummaryGenerator) GenerateJSONSummary(
-	d v1.FeatureDiff) ([]byte, error) {
-	var s EventSummary
-	s.SchemaVersion = VersionEventSummaryV1
-	s.SnapshotOrigin = SnapshotOrigin(d.SnapshotOrigin).Normalize()
-
-	s.Categories, s.Text = g.calculateCategoriesAndText(d)
-	s.Highlights, s.Truncated = g.generateHighlights(d)
-
-	summaryQueryErrors := make([]SummaryQueryError, 0, len(d.QueryErrors))
-	for _, e := range d.QueryErrors {
+func convertV1QueryErrorsToSummary(errs v1.QueryErrors) []SummaryQueryError {
+	if len(errs) == 0 {
+		return nil
+	}
+	result := make([]SummaryQueryError, 0, len(errs))
+	for _, e := range errs {
 		var code SummaryQueryErrorCode
 		switch e.Code {
 		case v1.ErrorCodeQueryGrammar:
@@ -362,9 +385,24 @@ func (g FeatureDiffV1SummaryGenerator) GenerateJSONSummary(
 		default:
 			code = SummaryQueryErrorCodeUnknown
 		}
-		summaryQueryErrors = append(summaryQueryErrors, SummaryQueryError{Code: code})
+		result = append(result, SummaryQueryError{Code: code})
 	}
-	s.QueryErrors = summaryQueryErrors
+
+	return result
+}
+
+// GenerateJSONEventSummaryFromFeatureDiffV1 generates and serializes.
+func (g FeatureDiffV1SummaryGenerator) GenerateJSONSummary(
+	d v1.FeatureDiff) ([]byte, error) {
+	var s EventSummary
+	s.SchemaVersion = VersionEventSummaryV1
+	s.SnapshotOrigin = SnapshotOrigin(d.SnapshotOrigin).Normalize()
+
+	s.Categories, s.Text = g.calculateCategoriesAndText(d)
+	s.Highlights, s.Truncated = g.generateHighlights(d)
+
+	s.QueryErrors = convertV1QueryErrorsToSummary(d.QueryErrors)
+	s.ResolvedQueryErrors = convertV1QueryErrorsToSummary(d.ResolvedQueryErrors)
 
 	b, err := json.Marshal(s)
 	if err != nil {

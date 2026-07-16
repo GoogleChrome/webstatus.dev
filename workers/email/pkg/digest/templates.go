@@ -27,6 +27,14 @@ const defaultEmailTemplate = `<!DOCTYPE html>
     <div style='{{- template "style_body_wrapper" -}}'>
         {{- template "intro_text" . -}}
 
+        {{- if .ResolvedQueryErrors -}}
+        <div style='{{- template "style_section_wrapper" -}}'>
+            {{- range .ResolvedQueryErrors -}}
+                {{- template "resolved_query_error_banner" .Code -}}
+            {{- end -}}
+        </div>
+        {{- end -}}
+
         {{- if .QueryErrors -}}
         <div style='{{- template "style_section_wrapper" -}}'>
             {{- range .QueryErrors -}}
