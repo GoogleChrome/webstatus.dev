@@ -24,22 +24,31 @@ type rssVisitor struct {
 	data     RSSItemData
 }
 
+func newEmptyRSSItemData() RSSItemData {
+	return RSSItemData{
+		SummaryText: "",
+		Added:       nil,
+		Removed:     nil,
+		Other:       nil,
+		QueryErrors: nil,
+		Truncated:   false,
+	}
+}
+
 func newRSSVisitor(triggers []workertypes.JobTrigger) *rssVisitor {
 	return &rssVisitor{
 		triggers: triggers,
-		data: RSSItemData{
-			SummaryText: "",
-			Added:       []string{},
-			Removed:     []string{},
-			Other:       []string{},
-			Truncated:   false,
-		},
+		data:     newEmptyRSSItemData(),
 	}
 }
 
 func (v *rssVisitor) VisitV1(summary workertypes.EventSummary) error {
+	v.data = newEmptyRSSItemData()
 	v.data.SummaryText = summary.Text
 	v.data.Truncated = summary.Truncated
+	for _, qe := range summary.QueryErrors {
+		v.data.QueryErrors = append(v.data.QueryErrors, qe.Code.Message())
+	}
 
 	// 1. Filter highlights against user triggers using shared workertypes helper
 	highlights := workertypes.FilterHighlights(summary.Highlights, v.triggers)
@@ -63,5 +72,8 @@ func (v *rssVisitor) VisitV1(summary workertypes.EventSummary) error {
 }
 
 func (v *rssVisitor) HasContent() bool {
-	return len(v.data.Added) > 0 || len(v.data.Removed) > 0 || len(v.data.Other) > 0
+	return len(v.data.QueryErrors) > 0 ||
+		len(v.data.Added) > 0 ||
+		len(v.data.Removed) > 0 ||
+		len(v.data.Other) > 0
 }

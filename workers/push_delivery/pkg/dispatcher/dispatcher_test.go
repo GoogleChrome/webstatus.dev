@@ -108,6 +108,31 @@ func createTestSummary(hasChanges bool) workertypes.EventSummary {
 	}
 }
 
+func createTestSummaryWithErrors(errCode workertypes.SummaryQueryErrorCode) workertypes.EventSummary {
+	categories := workertypes.SummaryCategories{
+		QueryChanged:    0,
+		Added:           0,
+		Deleted:         0,
+		Removed:         0,
+		Moved:           0,
+		Split:           0,
+		Updated:         0,
+		UpdatedImpl:     0,
+		UpdatedRename:   0,
+		UpdatedBaseline: 0,
+	}
+
+	return workertypes.EventSummary{
+		SchemaVersion:  workertypes.VersionEventSummaryV1,
+		SnapshotOrigin: workertypes.OriginLive,
+		Text:           "Error occurred",
+		Categories:     categories,
+		Truncated:      false,
+		QueryErrors:    []workertypes.SummaryQueryError{{Code: errCode}},
+		Highlights:     nil,
+	}
+}
+
 // mockParserFactory creates a SummaryParser that injects the given summary directly.
 func mockParserFactory(summary workertypes.EventSummary, err error) SummaryParser {
 	return func(_ []byte, v workertypes.SummaryVisitor) error {
@@ -649,6 +674,12 @@ func TestShouldNotifyV1(t *testing.T) {
 			triggers: []workertypes.JobTrigger{workertypes.FeaturePromotedToNewly},
 			summary:  createTestSummary(false),
 			want:     false,
+		},
+		{
+			name:     "query errors present should return true immediately regardless of triggers",
+			triggers: []workertypes.JobTrigger{workertypes.FeaturePromotedToWidely},
+			summary:  createTestSummaryWithErrors(workertypes.SummaryQueryErrorCodeQueryGrammar),
+			want:     true,
 		},
 		{
 			name:     "changes but no triggers should return false",

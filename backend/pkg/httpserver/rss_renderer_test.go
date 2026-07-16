@@ -44,6 +44,7 @@ func TestRenderRSSDescription(t *testing.T) {
 				Added:       []string{"Feature A"},
 				Removed:     nil,
 				Other:       nil,
+				QueryErrors: nil,
 				Truncated:   false,
 			},
 			expectedContains: []string{
@@ -58,6 +59,7 @@ func TestRenderRSSDescription(t *testing.T) {
 				Added:       nil,
 				Removed:     []string{"Feature B"},
 				Other:       nil,
+				QueryErrors: nil,
 				Truncated:   false,
 			},
 			expectedContains: []string{
@@ -72,6 +74,7 @@ func TestRenderRSSDescription(t *testing.T) {
 				Added:       nil,
 				Removed:     nil,
 				Other:       []string{"Feature C (Changed)"},
+				QueryErrors: nil,
 				Truncated:   false,
 			},
 			expectedContains: []string{
@@ -86,6 +89,7 @@ func TestRenderRSSDescription(t *testing.T) {
 				Added:       []string{"<link rel=\"dns-prefetch\">"},
 				Removed:     nil,
 				Other:       nil,
+				QueryErrors: nil,
 				Truncated:   false,
 			},
 			expectedContains: []string{
@@ -100,10 +104,26 @@ func TestRenderRSSDescription(t *testing.T) {
 				Added:       nil,
 				Removed:     nil,
 				Other:       nil,
+				QueryErrors: nil,
 				Truncated:   true,
 			},
 			expectedContains: []string{
 				"This summary has been truncated",
+			},
+		},
+		{
+			name: "Query Error Banner",
+			data: RSSItemData{
+				SummaryText: "Query failure",
+				Added:       nil,
+				Removed:     nil,
+				Other:       nil,
+				QueryErrors: []string{"Invalid query grammar"},
+				Truncated:   false,
+			},
+			expectedContains: []string{
+				"Query Errors",
+				"Invalid query grammar",
 			},
 		},
 	}

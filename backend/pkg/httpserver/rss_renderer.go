@@ -22,6 +22,12 @@ import (
 const rssItemTemplate = `
 <div>
     <p>{{.SummaryText}}</p>
+    {{if .QueryErrors}}
+    <h4>Query Errors</h4>
+    <ul>
+        {{range .QueryErrors}}<li>{{.}}</li>{{end}}
+    </ul>
+    {{end}}
     {{if .Added}}
     <h4>Features Added</h4>
     <ul>
@@ -51,6 +57,7 @@ type RSSItemData struct {
 	Added       []string
 	Removed     []string
 	Other       []string
+	QueryErrors []string
 	Truncated   bool
 }
 
