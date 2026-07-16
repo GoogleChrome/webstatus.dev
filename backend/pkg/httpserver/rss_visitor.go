@@ -20,48 +20,54 @@ import (
 )
 
 type rssVisitor struct {
-	triggers []workertypes.JobTrigger
-	data     RSSItemData
+	workertypes.BaseSummaryVisitor
+	data RSSItemData
+}
+
+func newEmptyRSSItemData() RSSItemData {
+	return RSSItemData{
+		SummaryText:         "",
+		Added:               nil,
+		Removed:             nil,
+		Other:               nil,
+		QueryErrors:         nil,
+		ResolvedQueryErrors: nil,
+		Truncated:           false,
+	}
 }
 
 func newRSSVisitor(triggers []workertypes.JobTrigger) *rssVisitor {
 	return &rssVisitor{
-		triggers: triggers,
-		data: RSSItemData{
-			SummaryText: "",
-			Added:       []string{},
-			Removed:     []string{},
-			Other:       []string{},
-			Truncated:   false,
-		},
+		BaseSummaryVisitor: workertypes.NewBaseSummaryVisitor(triggers),
+		data:               newEmptyRSSItemData(),
 	}
 }
 
 func (v *rssVisitor) VisitV1(summary workertypes.EventSummary) error {
-	v.data.SummaryText = summary.Text
-	v.data.Truncated = summary.Truncated
-
-	// 1. Filter highlights against user triggers using shared workertypes helper
-	highlights := workertypes.FilterHighlights(summary.Highlights, v.triggers)
-
-	// 2. Populate current RSS categories
-	for _, h := range highlights {
-		switch h.Type {
-		case workertypes.SummaryHighlightTypeAdded:
-			v.data.Added = append(v.data.Added, h.FeatureName)
-		case workertypes.SummaryHighlightTypeRemoved:
-			v.data.Removed = append(v.data.Removed, h.FeatureName)
-		case workertypes.SummaryHighlightTypeChanged,
-			workertypes.SummaryHighlightTypeMoved,
-			workertypes.SummaryHighlightTypeSplit,
-			workertypes.SummaryHighlightTypeDeleted:
-			v.data.Other = append(v.data.Other, fmt.Sprintf("%s (%s)", h.FeatureName, h.Type))
-		}
+	if err := v.BaseSummaryVisitor.VisitV1(summary); err != nil {
+		return err
+	}
+	v.data.SummaryText = v.Categorized.SummaryText
+	v.data.Truncated = v.Categorized.Truncated
+	for _, qe := range v.Categorized.QueryErrors {
+		v.data.QueryErrors = append(v.data.QueryErrors, qe.Code.Message())
+	}
+	for _, qe := range v.Categorized.ResolvedQueryErrors {
+		v.data.ResolvedQueryErrors = append(v.data.ResolvedQueryErrors, qe.Code.Message())
+	}
+	for _, h := range v.Categorized.Added {
+		v.data.Added = append(v.data.Added, h.FeatureName)
+	}
+	for _, h := range v.Categorized.Removed {
+		v.data.Removed = append(v.data.Removed, h.FeatureName)
+	}
+	for _, h := range v.Categorized.Other() {
+		v.data.Other = append(v.data.Other, fmt.Sprintf("%s (%s)", h.FeatureName, h.Type))
 	}
 
 	return nil
 }
 
 func (v *rssVisitor) HasContent() bool {
-	return len(v.data.Added) > 0 || len(v.data.Removed) > 0 || len(v.data.Other) > 0
+	return v.Categorized.HasContent()
 }

@@ -22,6 +22,19 @@ import (
 const rssItemTemplate = `
 <div>
     <p>{{.SummaryText}}</p>
+    {{if .ResolvedQueryErrors}}
+    <p>✅ <strong>Query Recovered:</strong> Tracking resumed cleanly from the new baseline
+    (0 new changes in this check).</p>
+    <ul>
+        {{range .ResolvedQueryErrors}}<li>Resolved: {{.}}</li>{{end}}
+    </ul>
+    {{end}}
+    {{if .QueryErrors}}
+    <h4>Query Errors</h4>
+    <ul>
+        {{range .QueryErrors}}<li>{{.}}</li>{{end}}
+    </ul>
+    {{end}}
     {{if .Added}}
     <h4>Features Added</h4>
     <ul>
@@ -47,11 +60,13 @@ const rssItemTemplate = `
 `
 
 type RSSItemData struct {
-	SummaryText string
-	Added       []string
-	Removed     []string
-	Other       []string
-	Truncated   bool
+	SummaryText         string
+	Added               []string
+	Removed             []string
+	Other               []string
+	QueryErrors         []string
+	ResolvedQueryErrors []string
+	Truncated           bool
 }
 
 type RSSRenderer struct {

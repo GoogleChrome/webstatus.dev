@@ -44,6 +44,7 @@ type StateCompareWorkflow[D any] interface {
 	HasChanges() bool
 	HasDataChanges() bool
 	SetQueryChanged(bool)
+	SetResolvedQueryErrors(comparables.QueryErrors)
 	GetDiff() *D
 	GenerateJSONSummary() ([]byte, error)
 }

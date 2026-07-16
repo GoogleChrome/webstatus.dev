@@ -88,24 +88,13 @@ func (s *slackSender) Send(ctx context.Context) error {
 			Blocks: nil,
 		}
 	} else {
-		builder := &slackPayloadBuilder{
-			frontendBaseURL:           s.frontendBaseURL,
-			query:                     query,
-			resultsURL:                resultsURL,
-			summary:                   summary,
-			queryErrors:               nil,
-			baselineNewlyChanges:      nil,
-			baselineWidelyChanges:     nil,
-			baselineRegressionChanges: nil,
-			allBrowserChanges:         nil,
-			addedFeatures:             nil,
-			removedFeatures:           nil,
-			deletedFeatures:           nil,
-			splitFeatures:             nil,
-			movedFeatures:             nil,
-			triggers:                  s.job.Triggers,
-			subscriptionID:            s.job.SubscriptionID,
-		}
+		builder := newSlackPayloadBuilder(
+			s.job.Triggers,
+			s.frontendBaseURL,
+			query,
+			resultsURL,
+			s.job.SubscriptionID,
+		)
 
 		if err := workertypes.ParseEventSummary(s.job.SummaryRaw, builder); err != nil {
 			return fmt.Errorf("%w: failed to parse event summary: %w", ErrPermanentWebhook, err)
@@ -147,11 +136,13 @@ func (s *slackSender) Send(ctx context.Context) error {
 }
 
 type slackPayloadBuilder struct {
-	frontendBaseURL string
-	query           string
-	resultsURL      string
-	summary         workertypes.EventSummary
-	queryErrors     []workertypes.SummaryQueryError
+	workertypes.BaseSummaryVisitor
+	frontendBaseURL     string
+	query               string
+	resultsURL          string
+	summary             workertypes.EventSummary
+	queryErrors         []workertypes.SummaryQueryError
+	resolvedQueryErrors []workertypes.SummaryQueryError
 
 	baselineNewlyChanges      []workertypes.SummaryHighlight
 	baselineWidelyChanges     []workertypes.SummaryHighlight
@@ -162,7 +153,6 @@ type slackPayloadBuilder struct {
 	deletedFeatures           []workertypes.SummaryHighlight
 	splitFeatures             []workertypes.SummaryHighlight
 	movedFeatures             []workertypes.SummaryHighlight
-	triggers                  []workertypes.JobTrigger
 	subscriptionID            string
 }
 
@@ -174,41 +164,55 @@ type browserChangeData struct {
 	Type        workertypes.SummaryHighlightType
 }
 
-func (b *slackPayloadBuilder) VisitV1(summary workertypes.EventSummary) error {
-	b.summary = summary
-	b.queryErrors = summary.QueryErrors
-
-	filtered := workertypes.FilterHighlights(summary.Highlights, b.triggers)
-	if len(filtered) != 0 {
-		summary.Highlights = filtered
+func newSlackPayloadBuilder(
+	triggers []workertypes.JobTrigger,
+	frontendBaseURL, query, resultsURL, subscriptionID string,
+) *slackPayloadBuilder {
+	return &slackPayloadBuilder{
+		BaseSummaryVisitor:        workertypes.NewBaseSummaryVisitor(triggers),
+		frontendBaseURL:           frontendBaseURL,
+		query:                     query,
+		resultsURL:                resultsURL,
+		subscriptionID:            subscriptionID,
+		summary:                   workertypes.NewEmptyEventSummary(),
+		queryErrors:               nil,
+		resolvedQueryErrors:       nil,
+		baselineNewlyChanges:      nil,
+		baselineWidelyChanges:     nil,
+		baselineRegressionChanges: nil,
+		allBrowserChanges:         nil,
+		addedFeatures:             nil,
+		removedFeatures:           nil,
+		deletedFeatures:           nil,
+		splitFeatures:             nil,
+		movedFeatures:             nil,
 	}
-
-	for _, h := range summary.Highlights {
-		b.processHighlight(h)
-	}
-
-	return nil
 }
 
-func (b *slackPayloadBuilder) processHighlight(highlight workertypes.SummaryHighlight) {
-	switch highlight.Type {
-	case workertypes.SummaryHighlightTypeMoved:
-		b.movedFeatures = append(b.movedFeatures, highlight)
-	case workertypes.SummaryHighlightTypeSplit:
-		b.splitFeatures = append(b.splitFeatures, highlight)
-	case workertypes.SummaryHighlightTypeAdded:
-		b.addedFeatures = append(b.addedFeatures, highlight)
-	case workertypes.SummaryHighlightTypeRemoved:
+func (b *slackPayloadBuilder) VisitV1(summary workertypes.EventSummary) error {
+	if err := b.BaseSummaryVisitor.VisitV1(summary); err != nil {
+		return err
+	}
+	b.summary = summary
+	b.queryErrors = b.Categorized.QueryErrors
+	b.resolvedQueryErrors = b.Categorized.ResolvedQueryErrors
+	b.addedFeatures = b.Categorized.Added
+	b.movedFeatures = b.Categorized.Moved
+	b.splitFeatures = b.Categorized.Split
+	b.deletedFeatures = b.Categorized.Deleted
+
+	for _, highlight := range b.Categorized.Removed {
 		if highlight.BaselineChange != nil || len(highlight.BrowserChanges) > 0 {
 			b.processChangedData(highlight)
 		} else {
 			b.removedFeatures = append(b.removedFeatures, highlight)
 		}
-	case workertypes.SummaryHighlightTypeDeleted:
-		b.deletedFeatures = append(b.deletedFeatures, highlight)
-	case workertypes.SummaryHighlightTypeChanged:
+	}
+	for _, highlight := range b.Categorized.Changed {
 		b.processChangedData(highlight)
 	}
+
+	return nil
 }
 
 func (b *slackPayloadBuilder) processChangedData(highlight workertypes.SummaryHighlight) {
@@ -254,6 +258,7 @@ func (b *slackPayloadBuilder) buildPayload(searchName string) SlackPayload {
 	blocks = append(blocks, dividerBlock())
 
 	blocks = b.appendQueryErrors(blocks)
+	blocks = b.appendResolvedQueryErrors(blocks)
 	blocks = b.appendBaselineChanges(blocks)
 	blocks = b.appendRegressions(blocks)
 	blocks = b.appendBrowserChanges(blocks)
@@ -301,6 +306,21 @@ func (b *slackPayloadBuilder) appendQueryErrors(blocks []any) []any {
 				msg = "Unknown query error"
 			}
 			blocks = append(blocks, sectionBlock("⚠️ *"+msg+"*"))
+		}
+		blocks = append(blocks, dividerBlock())
+	}
+
+	return blocks
+}
+
+func (b *slackPayloadBuilder) appendResolvedQueryErrors(blocks []any) []any {
+	if len(b.resolvedQueryErrors) > 0 {
+		blocks = append(
+			blocks,
+			sectionBlock("✅ *Query Recovered:* Tracking resumed cleanly from the new baseline (0 new changes in this check)."),
+		)
+		for _, err := range b.resolvedQueryErrors {
+			blocks = append(blocks, sectionBlock("• Resolved: *"+err.Code.Message()+"*"))
 		}
 		blocks = append(blocks, dividerBlock())
 	}

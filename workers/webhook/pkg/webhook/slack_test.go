@@ -24,6 +24,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -193,9 +194,10 @@ func TestSlackSender_Send_Golden(t *testing.T) {
 	widelyDate := time.Date(2025, 12, 27, 0, 0, 0, 0, time.UTC)
 
 	summary := workertypes.EventSummary{
-		SchemaVersion:  "v1",
-		SnapshotOrigin: workertypes.OriginLive,
-		Text:           "11 features changed",
+		SchemaVersion:       "v1",
+		SnapshotOrigin:      workertypes.OriginLive,
+		ResolvedQueryErrors: nil,
+		Text:                "11 features changed",
 		Categories: workertypes.SummaryCategories{
 			Updated:         5,
 			Added:           2,
@@ -592,7 +594,7 @@ func TestSlackSender_Send_QueryError_Golden(t *testing.T) {
 			UpdatedRename:   0,
 			UpdatedBaseline: 0,
 		},
-		Truncated: false,
+		ResolvedQueryErrors: nil, Truncated: false,
 		QueryErrors: []workertypes.SummaryQueryError{
 			{Code: workertypes.SummaryQueryErrorCodeSavedSearchNotFound},
 		},
@@ -690,49 +692,18 @@ func TestSlackSender_Send_QueryError_Golden(t *testing.T) {
 
 //go:fix inline
 func TestSlackPayloadBuilder_VisitV1_Filter(t *testing.T) {
-	builder := &slackPayloadBuilder{
-		frontendBaseURL: "https://webstatus.dev",
-		query:           "group:css",
-		resultsURL:      "https://webstatus.dev/features?q=group:css",
-		summary: workertypes.EventSummary{
-			SchemaVersion:  "v1",
-			SnapshotOrigin: workertypes.OriginLive,
-			Text:           "",
-			Truncated:      false,
-			QueryErrors:    nil,
-			Highlights:     nil,
-			Categories: workertypes.SummaryCategories{
-				QueryChanged:    0,
-				Added:           0,
-				Removed:         0,
-				Deleted:         0,
-				Moved:           0,
-				Split:           0,
-				Updated:         0,
-				UpdatedImpl:     0,
-				UpdatedRename:   0,
-				UpdatedBaseline: 0,
-			},
-		},
-		queryErrors:               nil,
-		baselineNewlyChanges:      nil,
-		baselineWidelyChanges:     nil,
-		baselineRegressionChanges: nil,
-		allBrowserChanges:         nil,
-		addedFeatures:             nil,
-		removedFeatures:           nil,
-		deletedFeatures:           nil,
-		splitFeatures:             nil,
-		movedFeatures:             nil,
-		triggers: []workertypes.JobTrigger{
-			workertypes.BrowserImplementationAnyComplete,
-		},
-		subscriptionID: "",
-	}
+	builder := newSlackPayloadBuilder(
+		[]workertypes.JobTrigger{workertypes.BrowserImplementationAnyComplete},
+		"https://webstatus.dev",
+		"group:css",
+		"https://webstatus.dev/features?q=group:css",
+		"",
+	)
 
 	summary := workertypes.EventSummary{
-		SchemaVersion:  "v1",
-		SnapshotOrigin: workertypes.OriginLive,
+		SchemaVersion:       "v1",
+		SnapshotOrigin:      workertypes.OriginLive,
+		ResolvedQueryErrors: nil,
 		Categories: workertypes.SummaryCategories{
 			QueryChanged:    0,
 			Added:           0,
@@ -800,5 +771,37 @@ func TestSlackPayloadBuilder_VisitV1_Filter(t *testing.T) {
 		t.Errorf("expected 1 browser change, got %d", len(builder.allBrowserChanges))
 	} else if builder.allBrowserChanges[0].FeatureID != "chrome-feat" {
 		t.Errorf("expected chrome-feat, got %s", builder.allBrowserChanges[0].FeatureID)
+	}
+}
+
+func TestSlackPayloadBuilder_VisitV1_ResolvedQueryError(t *testing.T) {
+	builder := newSlackPayloadBuilder(
+		nil,
+		"https://test.dev",
+		"group:css",
+		"https://test.dev/results",
+		"sub-123",
+	)
+
+	summary := workertypes.NewEmptyEventSummary()
+	summary.Text = "Query recovered"
+	summary.ResolvedQueryErrors = []workertypes.SummaryQueryError{{Code: workertypes.SummaryQueryErrorCodeQueryGrammar}}
+
+	if err := builder.VisitV1(summary); err != nil {
+		t.Fatalf("VisitV1 failed: %v", err)
+	}
+
+	payload := builder.buildPayload("All Features")
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		t.Fatalf("json.Marshal failed: %v", err)
+	}
+
+	payloadStr := string(payloadBytes)
+	if !strings.Contains(payloadStr, "Query Recovered:") {
+		t.Errorf("expected Slack payload blocks to contain 'Query Recovered:', got:\n%s", payloadStr)
+	}
+	if !strings.Contains(payloadStr, "Invalid query grammar") {
+		t.Errorf("expected Slack payload blocks to contain 'Invalid query grammar', got:\n%s", payloadStr)
 	}
 }

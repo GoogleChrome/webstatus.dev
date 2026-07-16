@@ -78,7 +78,7 @@
           "type": "image"
         },
         {
-          "text": "\u003chttps://webstatus.dev/features/regressed-feature|Regressed Feature\u003e _From Widely_",
+          "text": "\u003chttps://webstatus.dev/features/removed-details|Removed With Details\u003e _From Widely_",
           "type": "mrkdwn"
         }
       ],
@@ -92,7 +92,7 @@
           "type": "image"
         },
         {
-          "text": "\u003chttps://webstatus.dev/features/removed-details|Removed With Details\u003e _From Widely_",
+          "text": "\u003chttps://webstatus.dev/features/regressed-feature|Regressed Feature\u003e _From Widely_",
           "type": "mrkdwn"
         }
       ],
@@ -117,7 +117,7 @@
     },
     {
       "text": {
-        "text": "• Chrome: Available in 120 → *Unavailable* (\u003chttps://webstatus.dev/features/regressed-feature|Regressed Feature\u003e)\n• Safari iOS: *Became available in 17.2* (\u003chttps://webstatus.dev/features/content-visibility|content-visibility\u003e)\n• Chrome: *Became available* (\u003chttps://webstatus.dev/features/another-feature|another-feature\u003e)\n• Chrome: Available in 110 → *Unavailable* (\u003chttps://webstatus.dev/features/removed-details|Removed With Details\u003e)\n:warning: _This feature no longer matches your saved search._",
+        "text": "• Chrome: Available in 110 → *Unavailable* (\u003chttps://webstatus.dev/features/removed-details|Removed With Details\u003e)\n:warning: _This feature no longer matches your saved search._\n• Chrome: Available in 120 → *Unavailable* (\u003chttps://webstatus.dev/features/regressed-feature|Regressed Feature\u003e)\n• Safari iOS: *Became available in 17.2* (\u003chttps://webstatus.dev/features/content-visibility|content-visibility\u003e)\n• Chrome: *Became available* (\u003chttps://webstatus.dev/features/another-feature|another-feature\u003e)",
         "type": "mrkdwn"
       },
       "type": "section"

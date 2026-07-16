@@ -90,6 +90,21 @@ type SummaryCategories struct {
 	UpdatedBaseline int `json:"updated_baseline,omitzero"`
 }
 
+func NewEmptySummaryCategories() SummaryCategories {
+	return SummaryCategories{
+		QueryChanged:    0,
+		Added:           0,
+		Removed:         0,
+		Deleted:         0,
+		Moved:           0,
+		Split:           0,
+		Updated:         0,
+		UpdatedImpl:     0,
+		UpdatedRename:   0,
+		UpdatedBaseline: 0,
+	}
+}
+
 // SummaryQueryErrorCode defines the error codes for query errors in the summary.
 type SummaryQueryErrorCode string
 
@@ -163,13 +178,27 @@ type UserError struct {
 
 // EventSummary matches the JSON structure stored in the database 'Summary' column.
 type EventSummary struct {
-	SchemaVersion  string              `json:"schemaVersion"`
-	Text           string              `json:"text"`
-	Categories     SummaryCategories   `json:"categories,omitzero"`
-	Truncated      bool                `json:"truncated"`
-	SnapshotOrigin SnapshotOrigin      `json:"snapshotOrigin,omitempty"`
-	QueryErrors    []SummaryQueryError `json:"queryErrors,omitempty"`
-	Highlights     []SummaryHighlight  `json:"highlights"`
+	SchemaVersion       string              `json:"schemaVersion"`
+	Text                string              `json:"text"`
+	Categories          SummaryCategories   `json:"categories,omitzero"`
+	Truncated           bool                `json:"truncated"`
+	SnapshotOrigin      SnapshotOrigin      `json:"snapshotOrigin,omitempty"`
+	QueryErrors         []SummaryQueryError `json:"queryErrors,omitempty"`
+	ResolvedQueryErrors []SummaryQueryError `json:"resolvedQueryErrors,omitempty"`
+	Highlights          []SummaryHighlight  `json:"highlights"`
+}
+
+func NewEmptyEventSummary() EventSummary {
+	return EventSummary{
+		SchemaVersion:       VersionEventSummaryV1,
+		Text:                "",
+		Categories:          NewEmptySummaryCategories(),
+		Truncated:           false,
+		SnapshotOrigin:      OriginLive,
+		QueryErrors:         nil,
+		ResolvedQueryErrors: nil,
+		Highlights:          nil,
+	}
 }
 
 func (h SummaryHighlight) MatchesTrigger(t JobTrigger) bool {
@@ -339,8 +368,22 @@ func (g FeatureDiffV1SummaryGenerator) GenerateJSONSummary(
 	s.Categories, s.Text = g.calculateCategoriesAndText(d)
 	s.Highlights, s.Truncated = g.generateHighlights(d)
 
-	summaryQueryErrors := make([]SummaryQueryError, 0, len(d.QueryErrors))
-	for _, e := range d.QueryErrors {
+	s.QueryErrors = mapV1QueryErrorsToSummaryErrors(d.QueryErrors)
+	s.ResolvedQueryErrors = mapV1QueryErrorsToSummaryErrors(d.ResolvedQueryErrors)
+
+	b, err := json.Marshal(s)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrFailedToSerializeSummary, err)
+	}
+
+	return b, nil
+}
+func mapV1QueryErrorsToSummaryErrors(errs v1.QueryErrors) []SummaryQueryError {
+	if len(errs) == 0 {
+		return nil
+	}
+	res := make([]SummaryQueryError, 0, len(errs))
+	for _, e := range errs {
 		var code SummaryQueryErrorCode
 		switch e.Code {
 		case v1.ErrorCodeQueryGrammar:
@@ -362,16 +405,10 @@ func (g FeatureDiffV1SummaryGenerator) GenerateJSONSummary(
 		default:
 			code = SummaryQueryErrorCodeUnknown
 		}
-		summaryQueryErrors = append(summaryQueryErrors, SummaryQueryError{Code: code})
-	}
-	s.QueryErrors = summaryQueryErrors
-
-	b, err := json.Marshal(s)
-	if err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrFailedToSerializeSummary, err)
+		res = append(res, SummaryQueryError{Code: code})
 	}
 
-	return b, nil
+	return res
 }
 
 func pluralize(count int, singular, plural string) string {

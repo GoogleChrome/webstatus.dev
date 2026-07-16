@@ -98,13 +98,38 @@ func createTestSummary(hasChanges bool) workertypes.EventSummary {
 	}
 
 	return workertypes.EventSummary{
-		SchemaVersion:  "v1",
-		SnapshotOrigin: workertypes.OriginLive,
-		Text:           "Test Summary",
-		Categories:     categories,
-		Truncated:      false,
-		QueryErrors:    nil,
-		Highlights:     nil,
+		SchemaVersion:       "v1",
+		SnapshotOrigin:      workertypes.OriginLive,
+		Text:                "Test Summary",
+		Categories:          categories,
+		ResolvedQueryErrors: nil, Truncated: false,
+		QueryErrors: nil,
+		Highlights:  nil,
+	}
+}
+
+func createTestSummaryWithErrors(errCode workertypes.SummaryQueryErrorCode) workertypes.EventSummary {
+	categories := workertypes.SummaryCategories{
+		QueryChanged:    0,
+		Added:           0,
+		Deleted:         0,
+		Removed:         0,
+		Moved:           0,
+		Split:           0,
+		Updated:         0,
+		UpdatedImpl:     0,
+		UpdatedRename:   0,
+		UpdatedBaseline: 0,
+	}
+
+	return workertypes.EventSummary{
+		SchemaVersion:       workertypes.VersionEventSummaryV1,
+		SnapshotOrigin:      workertypes.OriginLive,
+		Text:                "Error occurred",
+		Categories:          categories,
+		ResolvedQueryErrors: nil, Truncated: false,
+		QueryErrors: []workertypes.SummaryQueryError{{Code: errCode}},
+		Highlights:  nil,
 	}
 }
 
@@ -651,6 +676,12 @@ func TestShouldNotifyV1(t *testing.T) {
 			want:     false,
 		},
 		{
+			name:     "query errors present should return true immediately regardless of triggers",
+			triggers: []workertypes.JobTrigger{workertypes.FeaturePromotedToWidely},
+			summary:  createTestSummaryWithErrors(workertypes.SummaryQueryErrorCodeQueryGrammar),
+			want:     true,
+		},
+		{
 			name:     "changes but no triggers should return false",
 			triggers: []workertypes.JobTrigger{},
 			summary:  createTestSummary(true),
@@ -736,5 +767,109 @@ func TestShouldNotifyV1(t *testing.T) {
 				t.Errorf("shouldNotifyV1() = %v, want %v", got, tc.want)
 			}
 		})
+	}
+}
+
+func createRecoveredSummary() workertypes.EventSummary {
+	s := new(workertypes.EventSummary)
+	s.SchemaVersion = workertypes.VersionEventSummaryV1
+	s.Text = "Search query recovered and tracking 2 features normally."
+	s.ResolvedQueryErrors = []workertypes.SummaryQueryError{{Code: workertypes.SummaryQueryErrorCodeQueryGrammar}}
+	s.Categories = *new(workertypes.SummaryCategories)
+
+	return *s
+}
+
+func TestShouldNotifyV1_ResolvedQueryErrors(t *testing.T) {
+	summaryRecovered := createRecoveredSummary()
+
+	testCases := []struct {
+		name     string
+		triggers []workertypes.JobTrigger
+		summary  workertypes.EventSummary
+		want     bool
+	}{
+		{
+			name:     "resolved query error should return true immediately with no triggers and 0 highlights",
+			triggers: []workertypes.JobTrigger{},
+			summary:  summaryRecovered,
+			want:     true,
+		},
+		{
+			name:     "resolved query error should return true immediately across email channel triggers",
+			triggers: []workertypes.JobTrigger{workertypes.FeaturePromotedToWidely},
+			summary:  summaryRecovered,
+			want:     true,
+		},
+		{
+			name:     "resolved query error should return true immediately across webhook channel triggers",
+			triggers: []workertypes.JobTrigger{workertypes.BrowserImplementationAnyComplete},
+			summary:  summaryRecovered,
+			want:     true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := shouldNotifyV1(tc.triggers, tc.summary)
+			if got != tc.want {
+				t.Errorf("shouldNotifyV1() = %v, want %v", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestProcessEvent_ResolvedQueryErrors_AllChannels(t *testing.T) {
+	emailSub := new(workertypes.EmailSubscriber)
+	emailSub.SubscriptionID = "sub-email-recovery"
+	emailSub.EmailAddress = "eng@google.com"
+	emailSub.ChannelID = "chan-email"
+	emailSub.Triggers = []workertypes.JobTrigger{workertypes.FeaturePromotedToNewly}
+
+	webhookSub := new(workertypes.WebhookSubscriber)
+	webhookSub.SubscriptionID = "sub-webhook-recovery"
+	webhookSub.WebhookURL = "https://hooks.slack.com/services/test"
+	webhookSub.WebhookType = workertypes.WebhookTypeSlack
+	webhookSub.ChannelID = "chan-slack"
+	webhookSub.Triggers = []workertypes.JobTrigger{workertypes.FeaturePromotedToWidely}
+
+	subSet := new(workertypes.SubscriberSet)
+	subSet.Emails = []workertypes.EmailSubscriber{*emailSub}
+	subSet.Webhooks = []workertypes.WebhookSubscriber{*webhookSub}
+
+	finder := new(mockSubscriptionFinder)
+	finder.findReturnSet = subSet
+
+	publisher := new(mockDeliveryPublisher)
+	d := NewDispatcher(finder, publisher)
+
+	recoveredSummary := createRecoveredSummary()
+	d.parser = mockParserFactory(recoveredSummary, nil)
+
+	metadata := new(workertypes.DispatchEventMetadata)
+	metadata.EventID = "event-recovery"
+	metadata.SearchID = "search-8520cfc1"
+	metadata.SearchName = "My CSS Features"
+	metadata.Query = "group:css"
+	metadata.Frequency = workertypes.FrequencyImmediate
+	metadata.GeneratedAt = time.Now()
+
+	rawPayload := []byte(`{"resolvedQueryErrors":[{"code":"query_grammar_invalid"}]}`)
+	if err := d.ProcessEvent(context.Background(), *metadata, rawPayload); err != nil {
+		t.Fatalf("ProcessEvent unexpected error: %v", err)
+	}
+
+	if len(publisher.emailJobs) != 1 {
+		t.Fatalf("expected exactly 1 email delivery job dispatched upon recovery, got %d", len(publisher.emailJobs))
+	}
+	if publisher.emailJobs[0].SubscriptionID != "sub-email-recovery" {
+		t.Errorf("expected subscription ID sub-email-recovery, got %s", publisher.emailJobs[0].SubscriptionID)
+	}
+
+	if len(publisher.webhookJobs) != 1 {
+		t.Fatalf("expected exactly 1 webhook delivery job dispatched upon recovery, got %d", len(publisher.webhookJobs))
+	}
+	if publisher.webhookJobs[0].SubscriptionID != "sub-webhook-recovery" {
+		t.Errorf("expected subscription ID sub-webhook-recovery, got %s", publisher.webhookJobs[0].SubscriptionID)
 	}
 }

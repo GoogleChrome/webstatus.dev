@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/generic"
+	"github.com/GoogleChrome/webstatus.dev/lib/workertypes/comparables"
 )
 
 // Change represents a value transition from Old to New.
@@ -125,15 +126,16 @@ const (
 )
 
 type FeatureDiff struct {
-	QueryChanged   bool              `json:"queryChanged,omitempty"`
-	QueryErrors    QueryErrors       `json:"queryErrors,omitempty"`
-	SnapshotOrigin SnapshotOrigin    `json:"snapshotOrigin,omitempty"`
-	Added          []FeatureAdded    `json:"added,omitempty"`
-	Removed        []FeatureRemoved  `json:"removed,omitempty"`
-	Deleted        []FeatureDeleted  `json:"deleted,omitempty"`
-	Modified       []FeatureModified `json:"modified,omitempty"`
-	Moves          []FeatureMoved    `json:"moves,omitempty"`
-	Splits         []FeatureSplit    `json:"splits,omitempty"`
+	QueryChanged        bool              `json:"queryChanged,omitempty"`
+	QueryErrors         QueryErrors       `json:"queryErrors,omitempty"`
+	ResolvedQueryErrors QueryErrors       `json:"resolvedQueryErrors,omitempty"`
+	SnapshotOrigin      SnapshotOrigin    `json:"snapshotOrigin,omitempty"`
+	Added               []FeatureAdded    `json:"added,omitempty"`
+	Removed             []FeatureRemoved  `json:"removed,omitempty"`
+	Deleted             []FeatureDeleted  `json:"deleted,omitempty"`
+	Modified            []FeatureModified `json:"modified,omitempty"`
+	Moves               []FeatureMoved    `json:"moves,omitempty"`
+	Splits              []FeatureSplit    `json:"splits,omitempty"`
 }
 
 func (d *FeatureDiff) MarshalJSON() ([]byte, error) {
@@ -144,6 +146,10 @@ func (d *FeatureDiff) MarshalJSON() ([]byte, error) {
 
 func (d *FeatureDiff) SetQueryChanged(changed bool) {
 	d.QueryChanged = changed
+}
+
+func (d *FeatureDiff) SetResolvedQueryErrors(resolved comparables.QueryErrors) {
+	d.ResolvedQueryErrors = mapComparablesQueryErrorsToV1(resolved)
 }
 
 // Sort orders all slices deterministically by Name (primary) and ID (secondary).

@@ -19,6 +19,7 @@ import (
 	"flag"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -35,9 +36,10 @@ func TestRenderDigest_Golden(t *testing.T) {
 
 	// Setup complex test data to exercise all templates
 	summary := workertypes.EventSummary{
-		SchemaVersion:  "v1",
-		SnapshotOrigin: workertypes.OriginLive,
-		Text:           "11 features changed",
+		SchemaVersion:       "v1",
+		SnapshotOrigin:      workertypes.OriginLive,
+		ResolvedQueryErrors: nil,
+		Text:                "11 features changed",
 		Categories: workertypes.SummaryCategories{
 			Updated:         5,
 			Added:           2,
@@ -448,9 +450,10 @@ func TestRenderDigest_Golden(t *testing.T) {
 
 func TestRenderDigest_QueryError_Golden(t *testing.T) {
 	summary := workertypes.EventSummary{
-		SchemaVersion:  "v1",
-		Text:           "Query failed",
-		SnapshotOrigin: workertypes.OriginFallbackPrevious,
+		SchemaVersion:       "v1",
+		Text:                "Query failed",
+		SnapshotOrigin:      workertypes.OriginFallbackPrevious,
+		ResolvedQueryErrors: nil,
 		Categories: workertypes.SummaryCategories{
 			QueryChanged:    0,
 			Added:           0,
@@ -544,5 +547,44 @@ func TestRenderDigest_InvalidJSON(t *testing.T) {
 
 	if err == nil {
 		t.Error("Expected error for invalid JSON, got nil")
+	}
+}
+
+func TestRenderDigest_ResolvedQueryError(t *testing.T) {
+	summary := workertypes.NewEmptyEventSummary()
+	summary.Text = "Query recovered"
+	summary.ResolvedQueryErrors = []workertypes.SummaryQueryError{{Code: workertypes.SummaryQueryErrorCodeQueryGrammar}}
+	summaryRaw, _ := json.Marshal(summary)
+
+	job := workertypes.IncomingEmailDeliveryJob{
+		EmailDeliveryJob: workertypes.EmailDeliveryJob{
+			SubscriptionID: "sub-123",
+			ChannelID:      "chan-123",
+			SummaryRaw:     summaryRaw,
+			RecipientEmail: "user@example.com",
+			Triggers:       nil,
+			Metadata: workertypes.DeliveryMetadata{
+				EventID:     "event-123",
+				SearchID:    "all",
+				SearchName:  "All Features",
+				Query:       "",
+				Frequency:   workertypes.FrequencyWeekly,
+				GeneratedAt: time.Now(),
+			},
+		},
+		EmailEventID: "event-123",
+	}
+
+	renderer, _ := NewHTMLRenderer("http://localhost:5555")
+	_, body, err := renderer.RenderDigest(job)
+	if err != nil {
+		t.Fatalf("RenderDigest failed: %v", err)
+	}
+
+	if !strings.Contains(body, "Query Recovered:") {
+		t.Errorf("expected email body to contain 'Query Recovered:', got:\n%s", body)
+	}
+	if !strings.Contains(body, "Invalid query grammar") {
+		t.Errorf("expected email body to contain 'Invalid query grammar', got:\n%s", body)
 	}
 }

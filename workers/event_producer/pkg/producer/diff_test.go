@@ -20,6 +20,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/blobtypes"
 	featurelistv1 "github.com/GoogleChrome/webstatus.dev/lib/blobtypes/featurelist/v1"
 	featurelistdiffv1 "github.com/GoogleChrome/webstatus.dev/lib/blobtypes/featurelistdiff/v1"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
@@ -158,6 +159,43 @@ func TestGenericStateAdapter_Load(t *testing.T) {
 	}
 }
 
+func TestGenericStateAdapter_Load_ProductionAnchor(t *testing.T) {
+	productionJSON := []byte(`{"apiVersion":"v1","data":{"features":{}},"kind":"FeatureListSnapshot",` +
+		`"metadata":{"id":"state_8520cfc1-dbfe-4a27-8ec0-c9c664649b73","generatedAt":"2026-04-22T22:15:23.848126555Z",` +
+		`"searchId":"all","querySignature":"","queryErrors":[{"code":"QUERY_GRAMMAR_INVALID"}],` +
+		`"eventId":"18357986599749476"}}`)
+
+	m := blobtypes.NewMigrator()
+	v1MigrationFunc := func(bytes []byte) ([]byte, error) {
+		return blobtypes.Apply[featurelistv1.FeatureListSnapshot](m, bytes)
+	}
+	adapter := newGenericStateAdapter(v1MigrationFunc, convertV1SnapshotToComparable, v1StateSerializerFunc)
+
+	gotSnapshot, gotID, gotSignature, gotQueryErrors, gotIsEmpty, err := adapter.Load(productionJSON)
+	if err != nil {
+		t.Fatalf("Load() unexpected error: %v", err)
+	}
+	if gotIsEmpty {
+		t.Errorf("Load() gotIsEmpty = true, want false for production anchor")
+	}
+	if gotID != "state_8520cfc1-dbfe-4a27-8ec0-c9c664649b73" {
+		t.Errorf("Load() gotID = %q, want %q", gotID, "state_8520cfc1-dbfe-4a27-8ec0-c9c664649b73")
+	}
+	if gotSignature != "" {
+		t.Errorf("Load() gotSignature = %q, want empty string", gotSignature)
+	}
+	if len(gotSnapshot) != 0 {
+		t.Errorf("Load() gotSnapshot len = %d, want 0", len(gotSnapshot))
+	}
+	if len(gotQueryErrors) != 1 {
+		t.Fatalf("Load() len(gotQueryErrors) = %d, want 1", len(gotQueryErrors))
+	}
+	if gotQueryErrors[0].Code != workertypes.SummaryQueryErrorCodeQueryGrammar {
+		t.Errorf("Load() gotQueryErrors[0].Code = %q, want %q",
+			gotQueryErrors[0].Code, workertypes.SummaryQueryErrorCodeQueryGrammar)
+	}
+}
+
 // TestV1DiffSerializer_Serialize tests the V1 diff serializer.
 func TestV1DiffSerializer_Serialize(t *testing.T) {
 	serializer := NewV1DiffSerializer()
@@ -171,7 +209,7 @@ func TestV1DiffSerializer_Serialize(t *testing.T) {
 		Modified:    nil,
 		Moves:       nil,
 		Splits:      nil,
-		QueryErrors: nil,
+		QueryErrors: nil, ResolvedQueryErrors: nil,
 	}
 	metadata := differ.DiffMetadata{
 		ID:              "diff-id1",

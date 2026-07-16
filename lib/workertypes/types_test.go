@@ -54,9 +54,10 @@ func TestParseEventSummary(t *testing.T) {
 			input:     `{"schemaVersion": "v1", "text": "Hello"}`,
 			wantVisit: true,
 			wantSummary: &EventSummary{
-				SchemaVersion:  "v1",
-				SnapshotOrigin: "",
-				Text:           "Hello",
+				SchemaVersion:       "v1",
+				SnapshotOrigin:      "",
+				ResolvedQueryErrors: nil,
+				Text:                "Hello",
 				Categories: SummaryCategories{
 					QueryChanged:    0,
 					Added:           0,
@@ -134,15 +135,16 @@ func TestGenerateJSONSummaryFeatureDiffV1(t *testing.T) {
 		{
 			name: "Empty",
 			diff: v1.FeatureDiff{
-				SnapshotOrigin: v1.OriginLive,
-				QueryChanged:   false,
-				Added:          nil,
-				Removed:        nil,
-				Modified:       nil,
-				Moves:          nil,
-				Splits:         nil,
-				Deleted:        nil,
-				QueryErrors:    nil,
+				SnapshotOrigin:      v1.OriginLive,
+				ResolvedQueryErrors: nil,
+				QueryChanged:        false,
+				Added:               nil,
+				Removed:             nil,
+				Modified:            nil,
+				Moves:               nil,
+				Splits:              nil,
+				Deleted:             nil,
+				QueryErrors:         nil,
 			},
 			expected: `{"schemaVersion":"v1","snapshotOrigin":"LIVE",` +
 				`"text":"No changes detected","truncated":false,"highlights":null}`,
@@ -151,8 +153,9 @@ func TestGenerateJSONSummaryFeatureDiffV1(t *testing.T) {
 		{
 			name: "Complex Update",
 			diff: v1.FeatureDiff{
-				SnapshotOrigin: v1.OriginLive,
-				QueryChanged:   true,
+				SnapshotOrigin:      v1.OriginLive,
+				ResolvedQueryErrors: nil,
+				QueryChanged:        true,
 				Added: []v1.FeatureAdded{
 					{ID: "1", Name: "A", Reason: v1.ReasonNewMatch, Docs: nil, QueryMatch: v1.QueryMatchMatch},
 					{ID: "2", Name: "B", Reason: v1.ReasonNewMatch, Docs: &v1.Docs{

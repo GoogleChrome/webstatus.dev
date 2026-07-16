@@ -200,6 +200,7 @@ type templateData struct {
 	Query                     string
 	SummaryText               string
 	QueryErrors               []workertypes.SummaryQueryError
+	ResolvedQueryErrors       []workertypes.SummaryQueryError
 	BaselineNewlyChanges      []workertypes.SummaryHighlight
 	BaselineWidelyChanges     []workertypes.SummaryHighlight
 	BaselineRegressionChanges []workertypes.SummaryHighlight
@@ -214,6 +215,30 @@ type templateData struct {
 	UnsubscribeURL            string
 }
 
+func newEmptyTemplateData() templateData {
+	return templateData{
+		Subject:                   "",
+		FullSubject:               "",
+		SearchName:                "",
+		Query:                     "",
+		SummaryText:               "",
+		QueryErrors:               nil,
+		ResolvedQueryErrors:       nil,
+		BaselineNewlyChanges:      nil,
+		BaselineWidelyChanges:     nil,
+		BaselineRegressionChanges: nil,
+		AllBrowserChanges:         nil,
+		AddedFeatures:             nil,
+		RemovedFeatures:           nil,
+		DeletedFeatures:           nil,
+		MovedFeatures:             nil,
+		SplitFeatures:             nil,
+		Truncated:                 false,
+		BaseURL:                   "",
+		UnsubscribeURL:            "",
+	}
+}
+
 // RenderDigest processes the delivery job and returns the subject and HTML body.
 func (r *HTMLRenderer) RenderDigest(job workertypes.IncomingEmailDeliveryJob) (string, string, error) {
 	// 1. Generate Subjects
@@ -221,11 +246,14 @@ func (r *HTMLRenderer) RenderDigest(job workertypes.IncomingEmailDeliveryJob) (s
 	fullSubject := r.generateSubject(job.Metadata.Frequency, job.Metadata.SearchName, job.Metadata.Query, false)
 
 	// 2. Prepare Template Data using the visitor
-	generator := new(templateDataGenerator)
-	generator.job = job
-	generator.baseURL = r.webStatusBaseURL
-	generator.subject = subject
-	generator.fullSubject = fullSubject
+	generator := &templateDataGenerator{
+		BaseSummaryVisitor: workertypes.NewBaseSummaryVisitor(job.Triggers),
+		job:                job,
+		baseURL:            r.webStatusBaseURL,
+		subject:            subject,
+		fullSubject:        fullSubject,
+		data:               newEmptyTemplateData(),
+	}
 
 	if err := workertypes.ParseEventSummary(job.SummaryRaw, generator); err != nil {
 		return "", "", fmt.Errorf("failed to parse event summary: %w", err)
@@ -242,6 +270,7 @@ func (r *HTMLRenderer) RenderDigest(job workertypes.IncomingEmailDeliveryJob) (s
 
 // templateDataGenerator implements workertypes.SummaryVisitor to prepare the data for the template.
 type templateDataGenerator struct {
+	workertypes.BaseSummaryVisitor
 	job         workertypes.IncomingEmailDeliveryJob
 	subject     string
 	fullSubject string
@@ -251,74 +280,44 @@ type templateDataGenerator struct {
 
 // VisitV1 is called when a V1 summary is parsed.
 func (g *templateDataGenerator) VisitV1(summary workertypes.EventSummary) error {
+	if err := g.BaseSummaryVisitor.VisitV1(summary); err != nil {
+		return err
+	}
+
 	g.data = templateData{
-		Subject:     g.subject,
-		FullSubject: g.fullSubject,
-		SearchName:  g.job.Metadata.SearchName,
-		Query:       g.job.Metadata.Query,
-		SummaryText: summary.Text,
-		QueryErrors: summary.QueryErrors,
-		Truncated:   summary.Truncated,
-		BaseURL:     g.baseURL,
-		UnsubscribeURL: fmt.Sprintf("%s/settings/subscriptions?unsubscribe=%s",
-			g.baseURL, g.job.SubscriptionID),
+		Subject:                   g.subject,
+		FullSubject:               g.fullSubject,
+		SearchName:                g.job.Metadata.SearchName,
+		Query:                     g.job.Metadata.Query,
+		SummaryText:               g.Categorized.SummaryText,
+		QueryErrors:               g.Categorized.QueryErrors,
+		ResolvedQueryErrors:       g.Categorized.ResolvedQueryErrors,
+		Truncated:                 g.Categorized.Truncated,
+		BaseURL:                   g.baseURL,
+		UnsubscribeURL:            fmt.Sprintf("%s/settings/subscriptions?unsubscribe=%s", g.baseURL, g.job.SubscriptionID),
 		BaselineNewlyChanges:      nil,
 		BaselineWidelyChanges:     nil,
 		BaselineRegressionChanges: nil,
 		AllBrowserChanges:         nil,
-		AddedFeatures:             nil,
+		AddedFeatures:             g.Categorized.Added,
 		RemovedFeatures:           nil,
-		DeletedFeatures:           nil,
-		SplitFeatures:             nil,
-		MovedFeatures:             nil,
-	}
-	// 2. Filter Content (Content Filtering)
-	// We only show highlights that match the user's specific triggers.
-	filteredHighlights := workertypes.FilterHighlights(summary.Highlights, g.job.Triggers)
-	if len(filteredHighlights) != 0 {
-		// As long as we have some filtered highlights, override it.
-		// This should be the common case unless there's some logic error.
-		summary.Highlights = filteredHighlights
+		DeletedFeatures:           g.Categorized.Deleted,
+		SplitFeatures:             g.Categorized.Split,
+		MovedFeatures:             g.Categorized.Moved,
 	}
 
-	g.categorizeHighlights(summary.Highlights)
-
-	return nil
-}
-
-func (g *templateDataGenerator) categorizeHighlights(highlights []workertypes.SummaryHighlight) {
-	for _, highlight := range highlights {
-		g.processHighlight(highlight)
-	}
-}
-
-func (g *templateDataGenerator) processHighlight(highlight workertypes.SummaryHighlight) {
-	g.routeHighlightToCategory(highlight)
-}
-
-func (g *templateDataGenerator) routeHighlightToCategory(highlight workertypes.SummaryHighlight) {
-	switch highlight.Type {
-	case workertypes.SummaryHighlightTypeMoved:
-		g.data.MovedFeatures = append(g.data.MovedFeatures, highlight)
-	case workertypes.SummaryHighlightTypeSplit:
-		g.data.SplitFeatures = append(g.data.SplitFeatures, highlight)
-	case workertypes.SummaryHighlightTypeAdded:
-		g.data.AddedFeatures = append(g.data.AddedFeatures, highlight)
-	case workertypes.SummaryHighlightTypeRemoved:
-		// Promotion Strategy:
-		// If a removed feature has significant changes (Baseline or Browser),
-		// we treat it as a "Change" so it appears in the specific sections (e.g. Baseline Newly)
-		// rather than the generic "Removed" list.
+	for _, highlight := range g.Categorized.Removed {
 		if highlight.BaselineChange != nil || len(highlight.BrowserChanges) > 0 {
 			g.processChangedData(highlight)
 		} else {
 			g.data.RemovedFeatures = append(g.data.RemovedFeatures, highlight)
 		}
-	case workertypes.SummaryHighlightTypeDeleted:
-		g.data.DeletedFeatures = append(g.data.DeletedFeatures, highlight)
-	case workertypes.SummaryHighlightTypeChanged:
+	}
+	for _, highlight := range g.Categorized.Changed {
 		g.processChangedData(highlight)
 	}
+
+	return nil
 }
 
 func (g *templateDataGenerator) processChangedData(highlight workertypes.SummaryHighlight) {

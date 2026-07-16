@@ -73,6 +73,22 @@ func (d *FeatureDiffer[D]) Run(ctx context.Context, searchID string, query strin
 	}
 	data.OldSnapshot = prevCtx.Snapshot
 
+	var resolvedErrors comparables.QueryErrors
+	for _, prevErr := range prevCtx.QueryErrors {
+		found := false
+		for _, currErr := range data.QueryErrors {
+			if prevErr.Code == currErr.Code {
+				found = true
+
+				break
+			}
+		}
+		if !found {
+			resolvedErrors = append(resolvedErrors, prevErr)
+		}
+	}
+	workflow.SetResolvedQueryErrors(resolvedErrors)
+
 	if len(data.QueryErrors) > 0 || (!plan.IsColdStart && data.TargetSnapshot != nil) {
 		workflow.CalculateDiff(data.OldSnapshot, data.TargetSnapshot, data.QueryErrors, data.SnapshotOrigin)
 	}
@@ -171,18 +187,20 @@ type previousContext struct {
 // --- Internal Helper: Planning ---
 
 type executionPlan struct {
-	IsColdStart   bool
-	QueryChanged  bool
-	CurrentQuery  string
-	PreviousQuery string
+	IsColdStart         bool
+	QueryChanged        bool
+	CurrentQuery        string
+	PreviousQuery       string
+	PreviousQueryErrors comparables.QueryErrors
 }
 
 func (d *FeatureDiffer[D]) determinePlan(currentQuery string, prev previousContext) executionPlan {
 	plan := executionPlan{
-		CurrentQuery:  currentQuery,
-		PreviousQuery: "",
-		IsColdStart:   false,
-		QueryChanged:  false,
+		CurrentQuery:        currentQuery,
+		PreviousQuery:       "",
+		PreviousQueryErrors: prev.QueryErrors,
+		IsColdStart:         false,
+		QueryChanged:        false,
 	}
 
 	if prev.IsEmpty {
@@ -236,6 +254,8 @@ func (d *FeatureDiffer[D]) executePlan(ctx context.Context, plan executionPlan) 
 		return data, nil
 	}
 
+	queryErrorsRecovered := len(plan.PreviousQueryErrors) > 0 && len(data.QueryErrors) == 0
+
 	if plan.QueryChanged {
 		result, err := d.client.FetchFeatures(ctx, plan.PreviousQuery)
 		// FetchFeatures returns err == nil for valid queries that failed on the user's end
@@ -253,6 +273,8 @@ func (d *FeatureDiffer[D]) executePlan(ctx context.Context, plan executionPlan) 
 				SnapshotOrigin: data.SnapshotOrigin,
 			}, nil
 		}
+	} else if queryErrorsRecovered {
+		data.TargetSnapshot = nil
 	} else {
 		data.TargetSnapshot = data.NewSnapshot
 	}

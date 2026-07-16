@@ -35,6 +35,14 @@ const defaultEmailTemplate = `<!DOCTYPE html>
         </div>
         {{- end -}}
 
+        {{- if .ResolvedQueryErrors -}}
+        <div style='{{- template "style_section_wrapper" -}}'>
+            {{- range .ResolvedQueryErrors -}}
+                {{- template "resolved_query_error_banner" .Code -}}
+            {{- end -}}
+        </div>
+        {{- end -}}
+
         {{- if .BaselineNewlyChanges -}}
         <div style='{{- template "style_section_wrapper" -}}'>
             {{- template "banner_baseline_newly" dict "LogoURL" (statusLogoURL "newly") -}}

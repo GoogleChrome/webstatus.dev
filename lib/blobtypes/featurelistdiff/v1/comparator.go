@@ -58,32 +58,7 @@ func (w *FeatureDiffWorkflow) CalculateDiff(oldMap, newMap map[string]comparable
 	default:
 		w.diff.SnapshotOrigin = OriginUnknown
 	}
-	qErrors := make(QueryErrors, 0, len(errs))
-	for _, e := range errs {
-		var v1Code QueryErrorCode
-		switch e.Code {
-		case comparables.ErrorCodeSavedSearchNotFound:
-			v1Code = ErrorCodeSavedSearchNotFound
-		case comparables.ErrorCodeHotlistNotFound:
-			v1Code = ErrorCodeHotlistNotFound
-		case comparables.ErrorCodeSavedSearchCycleDetected:
-			v1Code = ErrorCodeSavedSearchCycleDetected
-		case comparables.ErrorCodeSavedSearchMaxDepthExceeded:
-			v1Code = ErrorCodeSavedSearchMaxDepthExceeded
-		case comparables.ErrorCodeQueryGrammar:
-			v1Code = ErrorCodeQueryGrammar
-		case comparables.ErrorCodeFeatureNotFound:
-			v1Code = ErrorCodeFeatureNotFound
-		case comparables.ErrorCodeInvalidQuery:
-			v1Code = ErrorCodeInvalidQuery
-		case comparables.ErrorCodeUnknown:
-			v1Code = ErrorCodeUnknown
-		}
-		qErrors = append(qErrors, QueryError{
-			Code: v1Code,
-		})
-	}
-	w.diff.QueryErrors = qErrors
+	w.diff.QueryErrors = mapComparablesQueryErrorsToV1(errs)
 
 	if len(errs) > 0 {
 		return
@@ -495,3 +470,36 @@ func pointersEqualFn[T any](a, b *T, isEqual func(a, b T) bool) bool {
 }
 
 func timeEqual(a, b time.Time) bool { return a.Equal(b) }
+
+func mapComparablesQueryErrorsToV1(errs comparables.QueryErrors) QueryErrors {
+	if len(errs) == 0 {
+		return nil
+	}
+	qErrors := make(QueryErrors, 0, len(errs))
+	for _, e := range errs {
+		var v1Code QueryErrorCode
+		switch e.Code {
+		case comparables.ErrorCodeSavedSearchNotFound:
+			v1Code = ErrorCodeSavedSearchNotFound
+		case comparables.ErrorCodeHotlistNotFound:
+			v1Code = ErrorCodeHotlistNotFound
+		case comparables.ErrorCodeSavedSearchCycleDetected:
+			v1Code = ErrorCodeSavedSearchCycleDetected
+		case comparables.ErrorCodeSavedSearchMaxDepthExceeded:
+			v1Code = ErrorCodeSavedSearchMaxDepthExceeded
+		case comparables.ErrorCodeQueryGrammar:
+			v1Code = ErrorCodeQueryGrammar
+		case comparables.ErrorCodeFeatureNotFound:
+			v1Code = ErrorCodeFeatureNotFound
+		case comparables.ErrorCodeInvalidQuery:
+			v1Code = ErrorCodeInvalidQuery
+		case comparables.ErrorCodeUnknown:
+			v1Code = ErrorCodeUnknown
+		}
+		qErrors = append(qErrors, QueryError{
+			Code: v1Code,
+		})
+	}
+
+	return qErrors
+}
