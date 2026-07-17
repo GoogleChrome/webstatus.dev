@@ -73,6 +73,22 @@ func (d *FeatureDiffer[D]) Run(ctx context.Context, searchID string, query strin
 	}
 	data.OldSnapshot = prevCtx.Snapshot
 
+	var resolvedErrors comparables.QueryErrors
+	for _, prevErr := range prevCtx.QueryErrors {
+		found := false
+		for _, currErr := range data.QueryErrors {
+			if prevErr.Code == currErr.Code {
+				found = true
+
+				break
+			}
+		}
+		if !found {
+			resolvedErrors = append(resolvedErrors, prevErr)
+		}
+	}
+	workflow.SetResolvedQueryErrors(resolvedErrors)
+
 	if len(data.QueryErrors) > 0 || (!plan.IsColdStart && data.TargetSnapshot != nil) {
 		workflow.CalculateDiff(data.OldSnapshot, data.TargetSnapshot, data.QueryErrors, data.SnapshotOrigin)
 	}

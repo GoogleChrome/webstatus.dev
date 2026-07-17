@@ -46,17 +46,9 @@ import (
 //     3. Consider "Quiet Rollout": If your new field will be backfilled with "default/empty" values
 //     (like "Unavailable" or "Unknown") that users shouldn't be bothered about, add a check
 //     in the "Added" case to return no change for those specific values.
-func (w *FeatureDiffWorkflow) CalculateDiff(oldMap, newMap map[string]comparables.Feature,
-	errs comparables.QueryErrors, origin comparables.SnapshotOrigin) {
-	switch origin {
-	case comparables.OriginLive:
-		w.diff.SnapshotOrigin = OriginLive
-	case comparables.OriginFallbackPrevious:
-		w.diff.SnapshotOrigin = OriginFallbackPrevious
-	case comparables.OriginUnknown:
-		w.diff.SnapshotOrigin = OriginUnknown
-	default:
-		w.diff.SnapshotOrigin = OriginUnknown
+func convertQueryErrors(errs comparables.QueryErrors) QueryErrors {
+	if len(errs) == 0 {
+		return nil
 	}
 	qErrors := make(QueryErrors, 0, len(errs))
 	for _, e := range errs {
@@ -83,7 +75,23 @@ func (w *FeatureDiffWorkflow) CalculateDiff(oldMap, newMap map[string]comparable
 			Code: v1Code,
 		})
 	}
-	w.diff.QueryErrors = qErrors
+
+	return qErrors
+}
+
+func (w *FeatureDiffWorkflow) CalculateDiff(oldMap, newMap map[string]comparables.Feature,
+	errs comparables.QueryErrors, origin comparables.SnapshotOrigin) {
+	switch origin {
+	case comparables.OriginLive:
+		w.diff.SnapshotOrigin = OriginLive
+	case comparables.OriginFallbackPrevious:
+		w.diff.SnapshotOrigin = OriginFallbackPrevious
+	case comparables.OriginUnknown:
+		w.diff.SnapshotOrigin = OriginUnknown
+	default:
+		w.diff.SnapshotOrigin = OriginUnknown
+	}
+	w.diff.QueryErrors = convertQueryErrors(errs)
 
 	if len(errs) > 0 {
 		return

@@ -18,6 +18,7 @@ import (
 	"context"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/backendtypes"
+	"github.com/GoogleChrome/webstatus.dev/lib/workertypes/comparables"
 )
 
 // Implements StateCompareWorkflow interface.
@@ -58,6 +59,10 @@ func (w *FeatureDiffWorkflow) HasDataChanges() bool {
 
 func (w *FeatureDiffWorkflow) SetQueryChanged(changed bool) {
 	w.diff.QueryChanged = changed
+}
+
+func (w *FeatureDiffWorkflow) SetResolvedQueryErrors(errs comparables.QueryErrors) {
+	w.diff.SetResolvedQueryErrors(convertQueryErrors(errs))
 }
 
 func (w *FeatureDiffWorkflow) GenerateJSONSummary() ([]byte, error) {

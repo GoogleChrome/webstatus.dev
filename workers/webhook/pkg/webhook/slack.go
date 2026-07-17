@@ -88,24 +88,7 @@ func (s *slackSender) Send(ctx context.Context) error {
 			Blocks: nil,
 		}
 	} else {
-		builder := &slackPayloadBuilder{
-			frontendBaseURL:           s.frontendBaseURL,
-			query:                     query,
-			resultsURL:                resultsURL,
-			summary:                   summary,
-			queryErrors:               nil,
-			baselineNewlyChanges:      nil,
-			baselineWidelyChanges:     nil,
-			baselineRegressionChanges: nil,
-			allBrowserChanges:         nil,
-			addedFeatures:             nil,
-			removedFeatures:           nil,
-			deletedFeatures:           nil,
-			splitFeatures:             nil,
-			movedFeatures:             nil,
-			triggers:                  s.job.Triggers,
-			subscriptionID:            s.job.SubscriptionID,
-		}
+		builder := newSlackPayloadBuilder(s.frontendBaseURL, query, resultsURL, s.job.SubscriptionID, s.job.Triggers)
 
 		if err := workertypes.ParseEventSummary(s.job.SummaryRaw, builder); err != nil {
 			return fmt.Errorf("%w: failed to parse event summary: %w", ErrPermanentWebhook, err)
@@ -147,11 +130,12 @@ func (s *slackSender) Send(ctx context.Context) error {
 }
 
 type slackPayloadBuilder struct {
-	frontendBaseURL string
-	query           string
-	resultsURL      string
-	summary         workertypes.EventSummary
-	queryErrors     []workertypes.SummaryQueryError
+	frontendBaseURL     string
+	query               string
+	resultsURL          string
+	summary             workertypes.EventSummary
+	queryErrors         []workertypes.SummaryQueryError
+	resolvedQueryErrors []workertypes.SummaryQueryError
 
 	baselineNewlyChanges      []workertypes.SummaryHighlight
 	baselineWidelyChanges     []workertypes.SummaryHighlight
@@ -166,6 +150,29 @@ type slackPayloadBuilder struct {
 	subscriptionID            string
 }
 
+func newSlackPayloadBuilder(frontendBaseURL, query, resultsURL, subscriptionID string,
+	triggers []workertypes.JobTrigger) *slackPayloadBuilder {
+	return &slackPayloadBuilder{
+		frontendBaseURL:           frontendBaseURL,
+		query:                     query,
+		resultsURL:                resultsURL,
+		summary:                   workertypes.NewEmptyEventSummary(),
+		queryErrors:               nil,
+		resolvedQueryErrors:       nil,
+		baselineNewlyChanges:      nil,
+		baselineWidelyChanges:     nil,
+		baselineRegressionChanges: nil,
+		allBrowserChanges:         nil,
+		addedFeatures:             nil,
+		removedFeatures:           nil,
+		deletedFeatures:           nil,
+		splitFeatures:             nil,
+		movedFeatures:             nil,
+		triggers:                  triggers,
+		subscriptionID:            subscriptionID,
+	}
+}
+
 type browserChangeData struct {
 	Browser     workertypes.BrowserName
 	Change      *workertypes.Change[workertypes.BrowserValue]
@@ -177,6 +184,7 @@ type browserChangeData struct {
 func (b *slackPayloadBuilder) VisitV1(summary workertypes.EventSummary) error {
 	b.summary = summary
 	b.queryErrors = summary.QueryErrors
+	b.resolvedQueryErrors = summary.ResolvedQueryErrors
 
 	filtered := workertypes.FilterHighlights(summary.Highlights, b.triggers)
 	if len(filtered) != 0 {
@@ -254,6 +262,7 @@ func (b *slackPayloadBuilder) buildPayload(searchName string) SlackPayload {
 	blocks = append(blocks, dividerBlock())
 
 	blocks = b.appendQueryErrors(blocks)
+	blocks = b.appendResolvedQueryErrors(blocks)
 	blocks = b.appendBaselineChanges(blocks)
 	blocks = b.appendRegressions(blocks)
 	blocks = b.appendBrowserChanges(blocks)
@@ -281,26 +290,20 @@ func (b *slackPayloadBuilder) buildPayload(searchName string) SlackPayload {
 func (b *slackPayloadBuilder) appendQueryErrors(blocks []any) []any {
 	if len(b.queryErrors) > 0 {
 		for _, err := range b.queryErrors {
-			var msg string
-			switch err.Code {
-			case workertypes.SummaryQueryErrorCodeFeatureNotFound:
-				msg = "Feature not found"
-			case workertypes.SummaryQueryErrorCodeInvalidQuery:
-				msg = "Invalid query"
-			case workertypes.SummaryQueryErrorCodeSavedSearchNotFound:
-				msg = "Saved search not found"
-			case workertypes.SummaryQueryErrorCodeHotlistNotFound:
-				msg = "Hotlist not found"
-			case workertypes.SummaryQueryErrorCodeSavedSearchCycleDetected:
-				msg = "Saved search cycle detected"
-			case workertypes.SummaryQueryErrorCodeMaxDepthExceeded:
-				msg = "Saved search max depth exceeded"
-			case workertypes.SummaryQueryErrorCodeQueryGrammar:
-				msg = "Invalid query grammar"
-			case workertypes.SummaryQueryErrorCodeUnknown:
-				msg = "Unknown query error"
-			}
-			blocks = append(blocks, sectionBlock("⚠️ *"+msg+"*"))
+			blocks = append(blocks, sectionBlock("⚠️ *"+err.Code.Message()+"*"))
+		}
+		blocks = append(blocks, dividerBlock())
+	}
+
+	return blocks
+}
+
+func (b *slackPayloadBuilder) appendResolvedQueryErrors(blocks []any) []any {
+	if len(b.resolvedQueryErrors) > 0 {
+		for _, err := range b.resolvedQueryErrors {
+			text := fmt.Sprintf("✅ *Query Recovered:* Tracking resumed cleanly "+
+				"from your baseline. Resolved issue: %s", err.Code.Message())
+			blocks = append(blocks, sectionBlock(text))
 		}
 		blocks = append(blocks, dividerBlock())
 	}

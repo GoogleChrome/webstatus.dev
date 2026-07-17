@@ -26,12 +26,13 @@ type rssVisitor struct {
 
 func newEmptyRSSItemData() RSSItemData {
 	return RSSItemData{
-		SummaryText: "",
-		Added:       nil,
-		Removed:     nil,
-		Other:       nil,
-		QueryErrors: nil,
-		Truncated:   false,
+		SummaryText:         "",
+		Added:               nil,
+		Removed:             nil,
+		Other:               nil,
+		QueryErrors:         nil,
+		ResolvedQueryErrors: nil,
+		Truncated:           false,
 	}
 }
 
@@ -48,6 +49,9 @@ func (v *rssVisitor) VisitV1(summary workertypes.EventSummary) error {
 	v.data.Truncated = summary.Truncated
 	for _, qe := range summary.QueryErrors {
 		v.data.QueryErrors = append(v.data.QueryErrors, qe.Code.Message())
+	}
+	for _, qe := range summary.ResolvedQueryErrors {
+		v.data.ResolvedQueryErrors = append(v.data.ResolvedQueryErrors, qe.Code.Message())
 	}
 
 	// 1. Filter highlights against user triggers using shared workertypes helper
@@ -73,6 +77,7 @@ func (v *rssVisitor) VisitV1(summary workertypes.EventSummary) error {
 
 func (v *rssVisitor) HasContent() bool {
 	return len(v.data.QueryErrors) > 0 ||
+		len(v.data.ResolvedQueryErrors) > 0 ||
 		len(v.data.Added) > 0 ||
 		len(v.data.Removed) > 0 ||
 		len(v.data.Other) > 0

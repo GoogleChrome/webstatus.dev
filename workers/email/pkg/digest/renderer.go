@@ -200,6 +200,7 @@ type templateData struct {
 	Query                     string
 	SummaryText               string
 	QueryErrors               []workertypes.SummaryQueryError
+	ResolvedQueryErrors       []workertypes.SummaryQueryError
 	BaselineNewlyChanges      []workertypes.SummaryHighlight
 	BaselineWidelyChanges     []workertypes.SummaryHighlight
 	BaselineRegressionChanges []workertypes.SummaryHighlight
@@ -214,6 +215,30 @@ type templateData struct {
 	UnsubscribeURL            string
 }
 
+func newEmptyTemplateData() templateData {
+	return templateData{
+		Subject:                   "",
+		FullSubject:               "",
+		SearchName:                "",
+		Query:                     "",
+		SummaryText:               "",
+		QueryErrors:               nil,
+		ResolvedQueryErrors:       nil,
+		BaselineNewlyChanges:      nil,
+		BaselineWidelyChanges:     nil,
+		BaselineRegressionChanges: nil,
+		AllBrowserChanges:         nil,
+		AddedFeatures:             nil,
+		RemovedFeatures:           nil,
+		DeletedFeatures:           nil,
+		MovedFeatures:             nil,
+		SplitFeatures:             nil,
+		Truncated:                 false,
+		BaseURL:                   "",
+		UnsubscribeURL:            "",
+	}
+}
+
 // RenderDigest processes the delivery job and returns the subject and HTML body.
 func (r *HTMLRenderer) RenderDigest(job workertypes.IncomingEmailDeliveryJob) (string, string, error) {
 	// 1. Generate Subjects
@@ -221,11 +246,14 @@ func (r *HTMLRenderer) RenderDigest(job workertypes.IncomingEmailDeliveryJob) (s
 	fullSubject := r.generateSubject(job.Metadata.Frequency, job.Metadata.SearchName, job.Metadata.Query, false)
 
 	// 2. Prepare Template Data using the visitor
-	generator := new(templateDataGenerator)
-	generator.job = job
-	generator.baseURL = r.webStatusBaseURL
-	generator.subject = subject
-	generator.fullSubject = fullSubject
+	// 2. Prepare Template Data using the visitor
+	generator := &templateDataGenerator{
+		job:         job,
+		subject:     subject,
+		fullSubject: fullSubject,
+		baseURL:     r.webStatusBaseURL,
+		data:        newEmptyTemplateData(),
+	}
 
 	if err := workertypes.ParseEventSummary(job.SummaryRaw, generator); err != nil {
 		return "", "", fmt.Errorf("failed to parse event summary: %w", err)
@@ -251,27 +279,18 @@ type templateDataGenerator struct {
 
 // VisitV1 is called when a V1 summary is parsed.
 func (g *templateDataGenerator) VisitV1(summary workertypes.EventSummary) error {
-	g.data = templateData{
-		Subject:     g.subject,
-		FullSubject: g.fullSubject,
-		SearchName:  g.job.Metadata.SearchName,
-		Query:       g.job.Metadata.Query,
-		SummaryText: summary.Text,
-		QueryErrors: summary.QueryErrors,
-		Truncated:   summary.Truncated,
-		BaseURL:     g.baseURL,
-		UnsubscribeURL: fmt.Sprintf("%s/settings/subscriptions?unsubscribe=%s",
-			g.baseURL, g.job.SubscriptionID),
-		BaselineNewlyChanges:      nil,
-		BaselineWidelyChanges:     nil,
-		BaselineRegressionChanges: nil,
-		AllBrowserChanges:         nil,
-		AddedFeatures:             nil,
-		RemovedFeatures:           nil,
-		DeletedFeatures:           nil,
-		SplitFeatures:             nil,
-		MovedFeatures:             nil,
-	}
+	g.data = newEmptyTemplateData()
+	g.data.Subject = g.subject
+	g.data.FullSubject = g.fullSubject
+	g.data.SearchName = g.job.Metadata.SearchName
+	g.data.Query = g.job.Metadata.Query
+	g.data.SummaryText = summary.Text
+	g.data.QueryErrors = summary.QueryErrors
+	g.data.ResolvedQueryErrors = summary.ResolvedQueryErrors
+	g.data.Truncated = summary.Truncated
+	g.data.BaseURL = g.baseURL
+	g.data.UnsubscribeURL = fmt.Sprintf("%s/settings/subscriptions?unsubscribe=%s",
+		g.baseURL, g.job.SubscriptionID)
 	// 2. Filter Content (Content Filtering)
 	// We only show highlights that match the user's specific triggers.
 	filteredHighlights := workertypes.FilterHighlights(summary.Highlights, g.job.Triggers)

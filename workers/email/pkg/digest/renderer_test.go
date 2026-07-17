@@ -50,8 +50,9 @@ func TestRenderDigest_Golden(t *testing.T) {
 			UpdatedRename:   0,
 			UpdatedBaseline: 3,
 		},
-		Truncated:   false,
-		QueryErrors: nil,
+		Truncated:           false,
+		QueryErrors:         nil,
+		ResolvedQueryErrors: nil,
 		Highlights: []workertypes.SummaryHighlight{
 			{
 				// Case 1: Baseline Widely (with multiple docs)
@@ -467,7 +468,8 @@ func TestRenderDigest_QueryError_Golden(t *testing.T) {
 		QueryErrors: []workertypes.SummaryQueryError{
 			{Code: workertypes.SummaryQueryErrorCodeSavedSearchNotFound},
 		},
-		Highlights: nil,
+		ResolvedQueryErrors: nil,
+		Highlights:          nil,
 	}
 	summaryRaw, err := json.Marshal(summary)
 	if err != nil {
@@ -544,5 +546,73 @@ func TestRenderDigest_InvalidJSON(t *testing.T) {
 
 	if err == nil {
 		t.Error("Expected error for invalid JSON, got nil")
+	}
+}
+
+func TestRenderDigest_ResolvedQueryError_Golden(t *testing.T) {
+	summary := workertypes.EventSummary{
+		SchemaVersion:  "v1",
+		Text:           "Search query recovered and tracking 2 features normally.",
+		SnapshotOrigin: workertypes.OriginLive,
+		Categories:     workertypes.NewEmptySummaryCategories(),
+		Truncated:      false,
+		QueryErrors:    nil,
+		ResolvedQueryErrors: []workertypes.SummaryQueryError{
+			{Code: workertypes.SummaryQueryErrorCodeQueryGrammar},
+		},
+		Highlights: nil,
+	}
+	summaryRaw, err := json.Marshal(summary)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	job := workertypes.IncomingEmailDeliveryJob{
+		EmailDeliveryJob: workertypes.EmailDeliveryJob{
+			SummaryRaw:     summaryRaw,
+			RecipientEmail: "user@example.com",
+			SubscriptionID: "sub-123",
+			ChannelID:      "chan-1",
+			Metadata: workertypes.DeliveryMetadata{
+				SearchName:  "My CSS Search",
+				Query:       "group:css",
+				Frequency:   workertypes.FrequencyImmediate,
+				EventID:     "evt-recovery",
+				SearchID:    "s-1",
+				GeneratedAt: time.Now(),
+			},
+			Triggers: nil,
+		},
+		EmailEventID: "email-event-id",
+	}
+
+	renderer, err := NewHTMLRenderer("http://localhost:5555")
+	if err != nil {
+		t.Fatalf("NewHTMLRenderer failed: %v", err)
+	}
+
+	_, body, err := renderer.RenderDigest(job)
+	if err != nil {
+		t.Fatalf("RenderDigest failed: %v", err)
+	}
+
+	goldenFile := filepath.Join("testdata", "digest_resolved_query_error.golden.html")
+
+	if *updateGolden {
+		if err := os.MkdirAll("testdata", 0755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(goldenFile, []byte(body), 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	expected, err := os.ReadFile(goldenFile)
+	if err != nil {
+		t.Fatalf("failed to read golden file: %v", err)
+	}
+
+	if diff := cmp.Diff(string(expected), body); diff != "" {
+		t.Errorf("HTML mismatch (-want +got):\n%s", diff)
 	}
 }

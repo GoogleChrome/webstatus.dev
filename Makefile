@@ -349,7 +349,8 @@ ADDLICENSE_ARGS := -c "${COPYRIGHT_NAME}" \
 	-ignore 'antlr/.antlr/**' \
 	-ignore '.devcontainer/cache/**' \
 	-ignore 'workers/email/pkg/digest/testdata/digest.golden.html' \
-	-ignore 'workers/email/pkg/digest/testdata/digest_query_error.golden.html'
+	-ignore 'workers/email/pkg/digest/testdata/digest_query_error.golden.html' \
+	-ignore 'workers/email/pkg/digest/testdata/digest_resolved_query_error.golden.html'
 
 license-check: go-install-tools
 	go tool addlicense -check $(ADDLICENSE_ARGS) .
