@@ -10,6 +10,7 @@ docs/schema
 workers/email/pkg/digest/testdata/digest.golden.html
 workers/email/pkg/digest/testdata/digest_query_error.golden.html
 workers/email/pkg/digest/testdata/digest_resolved_query_error.golden.html
+workers/email/pkg/digest/testdata/digest_combined_errors_and_features.golden.html
 workers/webhook/pkg/webhook/testdata/slack_payload.golden.json
 workers/webhook/pkg/webhook/testdata/slack_payload_query_error.golden.json
 workers/webhook/pkg/webhook/testdata/slack_payload_resolved_query_error.golden.json
