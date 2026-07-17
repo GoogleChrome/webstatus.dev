@@ -21,29 +21,12 @@ import (
 )
 
 func newTestSummaryWithErrors(errCode workertypes.SummaryQueryErrorCode) workertypes.EventSummary {
-	return workertypes.EventSummary{
-		SchemaVersion:  workertypes.VersionEventSummaryV1,
-		SnapshotOrigin: workertypes.OriginLive,
-		Truncated:      false,
-		Highlights:     nil,
-		Text:           "Query grammar failure",
-		QueryErrors: []workertypes.SummaryQueryError{
-			{Code: errCode},
-		},
-		ResolvedQueryErrors: nil,
-		Categories: workertypes.SummaryCategories{
-			Updated:         0,
-			Added:           0,
-			Removed:         0,
-			Moved:           0,
-			Split:           0,
-			Deleted:         0,
-			UpdatedBaseline: 0,
-			QueryChanged:    0,
-			UpdatedImpl:     0,
-			UpdatedRename:   0,
-		},
-	}
+	summary := workertypes.NewEmptyEventSummary()
+	summary.SnapshotOrigin = workertypes.OriginLive
+	summary.Text = "Query grammar failure"
+	summary.SetQueryErrors([]workertypes.SummaryQueryError{{Code: errCode}})
+
+	return summary
 }
 
 func TestRSSVisitor_QueryErrors(t *testing.T) {
@@ -70,22 +53,22 @@ func TestRSSVisitor_QueryErrors_RenderMessage(t *testing.T) {
 		wantMessage string
 	}{
 		{
-			name:        "QueryGrammar error renders human-readable message",
+			name:        "QueryGrammar error",
 			errorCode:   workertypes.SummaryQueryErrorCodeQueryGrammar,
 			wantMessage: "Invalid query grammar",
 		},
 		{
-			name:        "SavedSearchNotFound error renders human-readable message",
+			name:        "SavedSearchNotFound error",
 			errorCode:   workertypes.SummaryQueryErrorCodeSavedSearchNotFound,
 			wantMessage: "Saved search not found",
 		},
 		{
-			name:        "MaxDepthExceeded error renders human-readable message",
+			name:        "MaxDepthExceeded error",
 			errorCode:   workertypes.SummaryQueryErrorCodeMaxDepthExceeded,
 			wantMessage: "Saved search max depth exceeded",
 		},
 		{
-			name:        "InvalidQuery error renders human-readable message",
+			name:        "InvalidQuery error",
 			errorCode:   workertypes.SummaryQueryErrorCodeInvalidQuery,
 			wantMessage: "Invalid query",
 		},
@@ -117,18 +100,10 @@ func TestRSSVisitor_QueryErrors_RenderMessage(t *testing.T) {
 
 func TestRSSVisitor_ResolvedQueryErrors(t *testing.T) {
 	visitor := newRSSVisitor([]workertypes.JobTrigger{workertypes.FeaturePromotedToNewly})
-	summary := workertypes.EventSummary{
-		SchemaVersion:  workertypes.VersionEventSummaryV1,
-		SnapshotOrigin: workertypes.OriginLive,
-		Truncated:      false,
-		Highlights:     nil,
-		Text:           "Search query recovered",
-		QueryErrors:    nil,
-		ResolvedQueryErrors: []workertypes.SummaryQueryError{
-			{Code: workertypes.SummaryQueryErrorCodeQueryGrammar},
-		},
-		Categories: workertypes.NewEmptySummaryCategories(),
-	}
+	summary := workertypes.NewEmptyEventSummary()
+	summary.SnapshotOrigin = workertypes.OriginLive
+	summary.Text = "Search query recovered"
+	summary.SetResolvedQueryErrors([]workertypes.SummaryQueryError{{Code: workertypes.SummaryQueryErrorCodeQueryGrammar}})
 
 	if err := visitor.VisitV1(summary); err != nil {
 		t.Fatalf("VisitV1 unexpected error: %v", err)
@@ -140,5 +115,174 @@ func TestRSSVisitor_ResolvedQueryErrors(t *testing.T) {
 		visitor.data.ResolvedQueryErrors[0] != workertypes.SummaryQueryErrorCodeQueryGrammar.Message() {
 		t.Errorf("data.ResolvedQueryErrors = %v, want [%s]",
 			visitor.data.ResolvedQueryErrors, workertypes.SummaryQueryErrorCodeQueryGrammar.Message())
+	}
+}
+
+func newTestHighlight(typ workertypes.SummaryHighlightType, id, name string) workertypes.SummaryHighlight {
+	return workertypes.SummaryHighlight{
+		Type:           typ,
+		FeatureID:      id,
+		FeatureName:    name,
+		Docs:           nil,
+		NameChange:     nil,
+		BaselineChange: nil,
+		BrowserChanges: nil,
+		Moved:          nil,
+		Split:          nil,
+	}
+}
+
+func TestRSSVisitor_FeatureCategories(t *testing.T) {
+	testCases := []struct {
+		name      string
+		highlight workertypes.SummaryHighlight
+		checkFunc func(*testing.T, *rssVisitor)
+	}{
+		{
+			name:      "Added feature",
+			highlight: newTestHighlight(workertypes.SummaryHighlightTypeAdded, "f-added", "Added Feature"),
+			checkFunc: func(t *testing.T, v *rssVisitor) {
+				if len(v.data.Added) != 1 || v.data.Added[0] != "Added Feature" {
+					t.Errorf("v.data.Added = %v, want ['Added Feature']", v.data.Added)
+				}
+			},
+		},
+		{
+			name:      "Removed feature",
+			highlight: newTestHighlight(workertypes.SummaryHighlightTypeRemoved, "f-removed", "Removed Feature"),
+			checkFunc: func(t *testing.T, v *rssVisitor) {
+				if len(v.data.Removed) != 1 || v.data.Removed[0] != "Removed Feature" {
+					t.Errorf("v.data.Removed = %v, want ['Removed Feature']", v.data.Removed)
+				}
+			},
+		},
+		{
+			name:      "Changed feature",
+			highlight: newTestHighlight(workertypes.SummaryHighlightTypeChanged, "f-changed", "Changed Feature"),
+			checkFunc: func(t *testing.T, v *rssVisitor) {
+				if len(v.data.Changed) != 1 || v.data.Changed[0] != "Changed Feature" {
+					t.Errorf("v.data.Changed = %v, want ['Changed Feature']", v.data.Changed)
+				}
+			},
+		},
+		{
+			name:      "Moved feature",
+			highlight: newTestHighlight(workertypes.SummaryHighlightTypeMoved, "f-moved", "Moved Feature"),
+			checkFunc: func(t *testing.T, v *rssVisitor) {
+				if len(v.data.Moved) != 1 || v.data.Moved[0] != "Moved Feature" {
+					t.Errorf("v.data.Moved = %v, want ['Moved Feature']", v.data.Moved)
+				}
+			},
+		},
+		{
+			name:      "Split feature",
+			highlight: newTestHighlight(workertypes.SummaryHighlightTypeSplit, "f-split", "Split Feature"),
+			checkFunc: func(t *testing.T, v *rssVisitor) {
+				if len(v.data.Split) != 1 || v.data.Split[0] != "Split Feature" {
+					t.Errorf("v.data.Split = %v, want ['Split Feature']", v.data.Split)
+				}
+			},
+		},
+		{
+			name:      "Deleted feature",
+			highlight: newTestHighlight(workertypes.SummaryHighlightTypeDeleted, "f-deleted", "Deleted Feature"),
+			checkFunc: func(t *testing.T, v *rssVisitor) {
+				if len(v.data.Deleted) != 1 || v.data.Deleted[0] != "Deleted Feature" {
+					t.Errorf("v.data.Deleted = %v, want ['Deleted Feature']", v.data.Deleted)
+				}
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			visitor := newRSSVisitor(nil)
+			summary := workertypes.NewEmptyEventSummary()
+			summary.AddHighlight(tc.highlight)
+
+			if err := visitor.VisitV1(summary); err != nil {
+				t.Fatalf("VisitV1 unexpected error: %v", err)
+			}
+			if !visitor.HasContent() {
+				t.Error("expected HasContent() to be true")
+			}
+			tc.checkFunc(t, visitor)
+		})
+	}
+}
+
+func TestRSSVisitor_CombinedErrorsAndFeatures(t *testing.T) {
+	visitor := newRSSVisitor(nil)
+	summary := workertypes.NewEmptyEventSummary()
+	summary.SnapshotOrigin = workertypes.OriginLive
+	summary.Text = "Combined errors and features"
+	summary.SetQueryErrors([]workertypes.SummaryQueryError{{Code: workertypes.SummaryQueryErrorCodeSavedSearchNotFound}})
+	summary.SetResolvedQueryErrors([]workertypes.SummaryQueryError{{Code: workertypes.SummaryQueryErrorCodeQueryGrammar}})
+	summary.AddHighlight(newTestHighlight(workertypes.SummaryHighlightTypeAdded, "f-added", "Subgrid"))
+
+	if err := visitor.VisitV1(summary); err != nil {
+		t.Fatalf("VisitV1 unexpected error: %v", err)
+	}
+	if !visitor.HasContent() {
+		t.Error("expected HasContent() to be true")
+	}
+	if len(visitor.data.QueryErrors) != 1 || len(visitor.data.ResolvedQueryErrors) != 1 || len(visitor.data.Added) != 1 {
+		t.Errorf("got QueryErrors=%d, ResolvedQueryErrors=%d, Added=%d; want 1 each",
+			len(visitor.data.QueryErrors), len(visitor.data.ResolvedQueryErrors), len(visitor.data.Added))
+	}
+}
+
+func TestRSSVisitor_TriggerFiltering(t *testing.T) {
+	// Subscription only wants FeaturePromotedToNewly
+	visitor := newRSSVisitor([]workertypes.JobTrigger{workertypes.FeaturePromotedToNewly})
+	summary := workertypes.NewEmptyEventSummary()
+	summary.AddHighlight(workertypes.SummaryHighlight{
+		Type:        workertypes.SummaryHighlightTypeAdded,
+		FeatureID:   "f-widely",
+		FeatureName: "Widely Available Feature",
+		BaselineChange: &workertypes.Change[workertypes.BaselineValue]{
+			To: workertypes.BaselineValue{Status: workertypes.BaselineStatusWidely},
+		},
+	})
+
+	if err := visitor.VisitV1(summary); err != nil {
+		t.Fatalf("VisitV1 unexpected error: %v", err)
+	}
+	if visitor.HasContent() {
+		t.Error("expected HasContent() to be false when highlight is filtered out by triggers")
+	}
+}
+
+func TestRSSVisitor_NilPointerGuards(t *testing.T) {
+	visitor := newRSSVisitor(nil)
+	summary := workertypes.NewEmptyEventSummary()
+	summary.AddHighlight(workertypes.SummaryHighlight{
+		Type:           workertypes.SummaryHighlightTypeMoved,
+		FeatureID:      "f-moved-nil",
+		FeatureName:    "Moved Feature With Nil Struct",
+		Moved:          nil, // nil pointer guard test
+		BaselineChange: nil,
+		BrowserChanges: nil,
+	})
+	summary.AddHighlight(workertypes.SummaryHighlight{
+		Type:           workertypes.SummaryHighlightTypeSplit,
+		FeatureID:      "f-split-nil",
+		FeatureName:    "Split Feature With Nil Struct",
+		Split:          nil, // nil pointer guard test
+		BaselineChange: nil,
+		BrowserChanges: nil,
+	})
+
+	if err := visitor.VisitV1(summary); err != nil {
+		t.Fatalf("VisitV1 unexpected error on nil pointer highlights: %v", err)
+	}
+	if !visitor.HasContent() {
+		t.Error("expected HasContent() to be true")
+	}
+	if len(visitor.data.Moved) != 1 || visitor.data.Moved[0] != "Moved Feature With Nil Struct" {
+		t.Errorf("visitor.data.Moved = %v, want ['Moved Feature With Nil Struct']", visitor.data.Moved)
+	}
+	if len(visitor.data.Split) != 1 || visitor.data.Split[0] != "Split Feature With Nil Struct" {
+		t.Errorf("visitor.data.Split = %v, want ['Split Feature With Nil Struct']", visitor.data.Split)
 	}
 }

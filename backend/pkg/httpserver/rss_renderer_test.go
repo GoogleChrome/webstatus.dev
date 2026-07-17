@@ -43,7 +43,10 @@ func TestRenderRSSDescription(t *testing.T) {
 				SummaryText:         "1 new feature matched",
 				Added:               []string{"Feature A"},
 				Removed:             nil,
-				Other:               nil,
+				Changed:             nil,
+				Moved:               nil,
+				Split:               nil,
+				Deleted:             nil,
 				QueryErrors:         nil,
 				ResolvedQueryErrors: nil,
 				Truncated:           false,
@@ -59,7 +62,10 @@ func TestRenderRSSDescription(t *testing.T) {
 				SummaryText:         "1 feature removed",
 				Added:               nil,
 				Removed:             []string{"Feature B"},
-				Other:               nil,
+				Changed:             nil,
+				Moved:               nil,
+				Split:               nil,
+				Deleted:             nil,
 				QueryErrors:         nil,
 				ResolvedQueryErrors: nil,
 				Truncated:           false,
@@ -70,19 +76,22 @@ func TestRenderRSSDescription(t *testing.T) {
 			},
 		},
 		{
-			name: "Other Update",
+			name: "Changed Update",
 			data: RSSItemData{
 				SummaryText:         "1 feature updated",
 				Added:               nil,
 				Removed:             nil,
-				Other:               []string{"Feature C (Changed)"},
+				Changed:             []string{"Feature C"},
+				Moved:               nil,
+				Split:               nil,
+				Deleted:             nil,
 				QueryErrors:         nil,
 				ResolvedQueryErrors: nil,
 				Truncated:           false,
 			},
 			expectedContains: []string{
 				"Feature C",
-				"Other Updates",
+				"Features Changed",
 			},
 		},
 		{
@@ -91,7 +100,10 @@ func TestRenderRSSDescription(t *testing.T) {
 				SummaryText:         "HTML escaping test",
 				Added:               []string{"<link rel=\"dns-prefetch\">"},
 				Removed:             nil,
-				Other:               nil,
+				Changed:             nil,
+				Moved:               nil,
+				Split:               nil,
+				Deleted:             nil,
 				QueryErrors:         nil,
 				ResolvedQueryErrors: nil,
 				Truncated:           false,
@@ -107,7 +119,10 @@ func TestRenderRSSDescription(t *testing.T) {
 				SummaryText:         "Summary text",
 				Added:               nil,
 				Removed:             nil,
-				Other:               nil,
+				Changed:             nil,
+				Moved:               nil,
+				Split:               nil,
+				Deleted:             nil,
 				QueryErrors:         nil,
 				ResolvedQueryErrors: nil,
 				Truncated:           true,
@@ -122,7 +137,10 @@ func TestRenderRSSDescription(t *testing.T) {
 				SummaryText:         "Query failure",
 				Added:               nil,
 				Removed:             nil,
-				Other:               nil,
+				Changed:             nil,
+				Moved:               nil,
+				Split:               nil,
+				Deleted:             nil,
 				QueryErrors:         []string{"Invalid query grammar"},
 				ResolvedQueryErrors: nil,
 				Truncated:           false,
@@ -138,7 +156,10 @@ func TestRenderRSSDescription(t *testing.T) {
 				SummaryText:         "Query recovered",
 				Added:               nil,
 				Removed:             nil,
-				Other:               nil,
+				Changed:             nil,
+				Moved:               nil,
+				Split:               nil,
+				Deleted:             nil,
 				QueryErrors:         nil,
 				ResolvedQueryErrors: []string{"Invalid query grammar"},
 				Truncated:           false,
@@ -163,5 +184,44 @@ func TestRenderRSSDescription(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestRenderRSSDescription_AllCategories(t *testing.T) {
+	data := RSSItemData{
+		SummaryText:         "Full feature summary",
+		Added:               []string{"Added Feature"},
+		Removed:             []string{"Removed Feature"},
+		Changed:             []string{"Changed Feature"},
+		Moved:               []string{"Moved Feature"},
+		Split:               []string{"Split Feature"},
+		Deleted:             []string{"Deleted Feature"},
+		QueryErrors:         []string{"Saved search not found"},
+		ResolvedQueryErrors: []string{"Invalid query grammar"},
+		Truncated:           true,
+	}
+
+	renderer := NewRSSRenderer()
+	output, err := renderer.RenderRSSDescription(data)
+	if err != nil {
+		t.Fatalf("RenderRSSDescription failed: %v", err)
+	}
+
+	expectedSections := []string{
+		"Query Recovered",
+		"Query Errors",
+		"Features Added",
+		"Features Removed",
+		"Features Changed",
+		"Features Moved/Renamed",
+		"Features Split",
+		"Features Deleted",
+		"Note: This summary has been truncated.",
+	}
+
+	for _, section := range expectedSections {
+		if !bytes.Contains([]byte(output), []byte(section)) {
+			t.Errorf("expected RSS description to contain %q, got: %s", section, output)
+		}
 	}
 }
