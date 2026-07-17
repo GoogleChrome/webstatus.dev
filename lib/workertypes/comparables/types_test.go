@@ -9,9 +9,6 @@
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 package comparables
 
 import (
@@ -24,6 +21,10 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/oapi-codegen/runtime/types"
 )
+
+func stringPtr(s string) *string {
+	return &s
+}
 
 func TestNewFeatureFromBackendFeature(t *testing.T) {
 	avail := backend.Available
@@ -51,7 +52,7 @@ func TestNewFeatureFromBackendFeature(t *testing.T) {
 					HighDate: nil,
 				},
 				BrowserImplementations: &map[string]backend.BrowserImplementation{
-					"chrome":  {Status: &avail, Date: &date, Version: new("version")},
+					"chrome":  {Status: &avail, Date: &date, Version: stringPtr("version")},
 					"firefox": {Status: &unavail, Date: nil, Version: nil},
 					"safari":  {Status: &avail, Date: nil, Version: nil},
 					"unknown": {Status: &avail, Date: nil, Version: nil}, // Should be ignored

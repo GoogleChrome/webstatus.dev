@@ -17,6 +17,7 @@ package httpserver
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"encoding/xml"
 	"errors"
 	"fmt"
@@ -188,10 +189,8 @@ func (s *Server) GetSubscriptionRSS(
 	}
 
 	for _, e := range events {
-		visitor := newRSSVisitor(jobTriggers)
-		var description string
-		var title string
-		if err := workertypes.ParseEventSummary(e.Summary, visitor); err != nil {
+		var summary workertypes.EventSummary
+		if err := json.Unmarshal([]byte(e.Summary), &summary); err != nil {
 			slog.ErrorContext(ctx, "failed to unmarshal summary", "event_id", e.ID, "error", err)
 
 			errorHTML := fmt.Sprintf(
@@ -209,6 +208,17 @@ func (s *Server) GetSubscriptionRSS(
 				PubDate: e.Timestamp.Format(time.RFC1123Z),
 			})
 
+			continue
+		}
+
+		var description string
+		var title string
+
+		visitor := newRSSVisitor(jobTriggers)
+		visitor.data.SummaryText = summary.Text
+		visitor.data.Truncated = summary.Truncated
+		if err := summary.Accept(visitor, jobTriggers); err != nil {
+			slog.ErrorContext(ctx, "failed to process RSS summary visitor", "event_id", e.ID, "error", err)
 			continue
 		}
 

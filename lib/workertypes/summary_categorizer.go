@@ -47,8 +47,26 @@ func NewEmptyCategorizedSummary() CategorizedSummary {
 }
 
 // CategorizedSummaryVisitor defines the strongly-typed contract for consuming
-// categorized summary elements. Delivery channels implement this interface to receive
-// filtered and promoted categories via double-dispatch.
+// categorized summary elements. Delivery channels (e.g. RSS, Email, Webhook, Slack)
+// implement this interface to receive filtered and promoted categories via double-dispatch.
+//
+// Documenting & Enforcing a Successfully Tested Renderer:
+// Standard delivery channel visitors MUST satisfy the following contract invariants and testing standards:
+//
+// Runtime Implementation Invariants:
+//  1. Nil & Empty Slice Safety: All Visit* methods MUST safely handle nil or empty ([]T{})
+//     slices without panicking or dereferencing nil pointers.
+//  2. Error Propagation: Rendering failures (e.g., template execution errors) MUST be returned
+//     as non-nil errors to allow BaseSummaryVisitor.Dispatch() to fail fast.
+//  3. State Isolation: Visitor instances must maintain state isolation across separate dispatch passes.
+//
+// 5-Part Unit Testing Blueprint (Symmetrical Test Parity Standard):
+// Package unit tests for new delivery channels MUST implement the 5 symmetrical test suites matching existing renderers:
+//  1. Test<Channel>_FeatureCategories: Table-driven tests covering all 6 categories (Added, Removed, Changed, Moved, Split, Deleted).
+//  2. Test<Channel>_QueryErrors_RenderMessage: Table-driven tests covering all SummaryQueryErrorCode enums.
+//  3. Test<Channel>_TriggerFiltering: Verifying highlight filtering by subscriber triggers.
+//  4. Test<Channel>_NilPointerGuards: Verifying zero panics when handling optional diff structs (Moved/Split = nil).
+//  5. Test<Channel>_Golden: Output regression testing using .golden snapshot files and cmp.Diff.
 type CategorizedSummaryVisitor interface {
 	VisitQueryErrors(errors []SummaryQueryError) error
 	VisitResolvedQueryErrors(errors []SummaryQueryError) error
@@ -62,6 +80,8 @@ type CategorizedSummaryVisitor interface {
 
 // BaseSummaryVisitor implements SummaryVisitor and centralizes highlight filtering,
 // category grouping, promotion logic, and double-dispatching.
+// BaseSummaryVisitor is stateful and is NOT safe for concurrent use across goroutines.
+// Create a new instance per EventSummary categorization pass.
 type BaseSummaryVisitor struct {
 	triggers []JobTrigger
 	target   CategorizedSummaryVisitor
@@ -109,8 +129,11 @@ func (v *BaseSummaryVisitor) Dispatch(target CategorizedSummaryVisitor) error {
 	return v.dispatch()
 }
 
-// routeHighlight assigns a highlight to its respective category in Summary,
-// promoting Removed highlights to Changed when active baseline or browser updates exist.
+// routeHighlight assigns a highlight to its respective category in Summary.
+// Note: Highlights with Type "Removed" represent features no longer matching query criteria.
+// If a Removed highlight also contains active baseline or browser implementation updates
+// (h.BaselineChange != nil || len(h.BrowserChanges) > 0), it is promoted to Changed so
+// UI renderers display the detailed browser status change rather than a pure query removal.
 func (v *BaseSummaryVisitor) routeHighlight(h SummaryHighlight) {
 	switch h.Type {
 	case SummaryHighlightTypeAdded:

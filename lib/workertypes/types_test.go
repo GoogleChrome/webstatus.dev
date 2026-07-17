@@ -25,6 +25,10 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
+func stringPtr(s string) *string {
+	return &s
+}
+
 // assertingVisitor used for TestParseEventSummary to verify visitor calls.
 type assertingVisitor struct {
 	t           *testing.T
@@ -159,7 +163,7 @@ func TestGenerateJSONSummaryFeatureDiffV1(t *testing.T) {
 				Added: []v1.FeatureAdded{
 					{ID: "1", Name: "A", Reason: v1.ReasonNewMatch, Docs: nil, QueryMatch: v1.QueryMatchMatch},
 					{ID: "2", Name: "B", Reason: v1.ReasonNewMatch, Docs: &v1.Docs{
-						MdnDocs: []v1.MdnDoc{{URL: "https://mdn.io/B", Title: new("B"), Slug: new("slug-b")}},
+						MdnDocs: []v1.MdnDoc{{URL: "https://mdn.io/B", Title: stringPtr("B"), Slug: stringPtr("slug-b")}},
 					}, QueryMatch: v1.QueryMatchMatch},
 				},
 				Removed: []v1.FeatureRemoved{

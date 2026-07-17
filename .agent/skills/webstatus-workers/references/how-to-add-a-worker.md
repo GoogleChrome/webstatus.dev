@@ -17,7 +17,15 @@ Push workers actively send notifications to users based on user-configured subsc
 2. **The New Worker (`workers/<new_worker>/`)**:
    - Create a new directory under `workers/`.
    - The worker must subscribe to its dedicated Pub/Sub topic (e.g., `webhook-delivery-sub-id`).
-   - It should consume the job payload, format the payload appropriately (e.g., into a JSON webhook payload), and perform the network request.
+   - **Formatting & Rendering (`CategorizedSummaryVisitor`)**: 
+     All notification renderers (Email, Webhooks/Slack, RSS, Discord, Web Push, etc.) MUST implement `workertypes.CategorizedSummaryVisitor` and receive summaries via `summary.Accept(visitor, triggers)`. This ensures core category filtering and baseline promotion logic are handled centrally by `lib/workertypes/summary_categorizer.go`.
+   - **Testing Standard (100% Test Parity Requirement)**:
+     New renderer packages MUST implement the 5-part symmetrical unit testing blueprint to match existing renderers (`slack_test.go`, `renderer_test.go`, `rss_visitor_test.go`):
+     1. `Test<Channel>_FeatureCategories` (table-driven for `Added`, `Removed`, `Changed`, `Moved`, `Split`, `Deleted`)
+     2. `Test<Channel>_QueryErrors_RenderMessage` (table-driven for all 4 `SummaryQueryErrorCode` enums)
+     3. `Test<Channel>_TriggerFiltering` (verifying highlight filtering by subscriber triggers)
+     4. `Test<Channel>_NilPointerGuards` (verifying zero panics when handling nil pointers on optional diff structs like `Moved` or `Split`)
+     5. `Test<Channel>_Golden` (output regression tests using `.golden` files and `cmp.Diff`)
    - **State Management:** It must use a `ChannelStateManager` to record delivery successes or failures back to Spanner.
    - **Error Handling:** Permanent errors (e.g., 404 Not Found on a webhook URL) should be ACKed and marked as a permanent failure in the DB. Transient errors (e.g., 500 Internal Server Error) should be NACKed via `errors.Join(event.ErrTransientFailure, err)` to trigger a Pub/Sub retry.
 
