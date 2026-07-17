@@ -21,7 +21,9 @@ import (
 	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/backendtypes"
+	v1 "github.com/GoogleChrome/webstatus.dev/lib/blobtypes/featurelistdiff/v1"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
+	"github.com/GoogleChrome/webstatus.dev/lib/generic"
 	"github.com/GoogleChrome/webstatus.dev/lib/workertypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/workertypes/comparables"
 	"github.com/google/go-cmp/cmp"
@@ -422,6 +424,43 @@ func TestRun(t *testing.T) {
 				}
 			},
 		},
+		{
+			name:               "Regression - All Query Recovery from QueryGrammar Error",
+			query:              "", // All Features query is empty string
+			previousStateBytes: []byte("old-state-with-error"),
+			setupMocks: func(adapter *mockStateAdapter, serializer *mockDiffSerializer[testDiff],
+				workflow *mockWorkflow[testDiff], fetcher *mockFetcher) {
+				adapter.loadReturns.isEmpty = false
+				adapter.loadReturns.signature = ""
+				adapter.loadReturns.snapshot = comparables.NewFeatureMapFromBackendFeatures(nil)
+				adapter.loadReturns.queryErrors = []workertypes.SummaryQueryError{
+					{Code: workertypes.SummaryQueryErrorCodeQueryGrammar},
+				}
+				fetcher.queryResults = map[string][]backend.Feature{
+					"": {featureA, featureB}, // Fix lands: empty query now returns all features cleanly
+				}
+				workflow.hasChangesResult = false
+				workflow.hasDataChangesResult = false
+				workflow.getDiffResult = &testDiff{Content: "Recovered all features"}
+				adapter.serializeReturns.bytes = []byte("recovered-state")
+				serializer.serializeReturns.bytes = []byte("recovered-diff")
+				workflow.summaryResult = []byte("recovered-summary")
+			},
+			wantResult: &DiffResult{
+				State:       BlobArtifact{ID: "state-id", Bytes: []byte("recovered-state")},
+				Diff:        BlobArtifact{ID: "event-456", Bytes: []byte("recovered-diff")},
+				Summary:     []byte("recovered-summary"),
+				Reasons:     nil,
+				GeneratedAt: fixedTime,
+			},
+			wantErr: nil,
+			verifyMocks: func(t *testing.T, _ *mockStateAdapter,
+				_ *mockDiffSerializer[testDiff], workflow *mockWorkflow[testDiff]) {
+				if workflow.calculateDiffCalled {
+					t.Error("expected CalculateDiff NOT to be called when TargetSnapshot is nil on error recovery")
+				}
+			},
+		},
 	}
 
 	for _, tc := range tests {
@@ -458,5 +497,100 @@ func TestRun(t *testing.T) {
 
 			tc.verifyMocks(t, adapter, serializer, workflow)
 		})
+	}
+}
+
+type mockSummaryGenerator struct{}
+
+func (m *mockSummaryGenerator) GenerateJSONSummary(_ v1.FeatureDiff) ([]byte, error) {
+	return []byte(`{"schemaVersion":"v1","text":"Tracking resumed cleanly."}`), nil
+}
+
+func createLiveFeature(id, name string) comparables.Feature {
+	f := new(comparables.Feature)
+	f.ID = id
+	f.Name = generic.SetOpt(name)
+
+	return *f
+}
+
+func TestCalculateDiff_ErrorRecovery_WithPoint1Fix(t *testing.T) {
+	workflow := v1.NewFeatureDiffWorkflow(nil, new(mockSummaryGenerator))
+
+	prevQueryErrors := comparables.QueryErrors{
+		{Code: comparables.ErrorCodeQueryGrammar},
+	}
+	currentQueryErrors := comparables.QueryErrors{}
+
+	oldSnapshot := map[string]comparables.Feature{}
+	newSnapshot := map[string]comparables.Feature{
+		"feat-1": createLiveFeature("feat-1", "Feature 1"),
+		"feat-2": createLiveFeature("feat-2", "Feature 2"),
+	}
+
+	var targetSnapshot map[string]comparables.Feature
+	if len(prevQueryErrors) > 0 && len(currentQueryErrors) == 0 {
+		targetSnapshot = nil
+	} else {
+		targetSnapshot = newSnapshot
+	}
+
+	if targetSnapshot != nil {
+		workflow.CalculateDiff(oldSnapshot, targetSnapshot, currentQueryErrors, comparables.OriginLive)
+	}
+
+	diff := workflow.GetDiff()
+	if len(diff.Added) != 0 {
+		t.Errorf("expected 0 Added highlights upon error recovery, got %d", len(diff.Added))
+	}
+	if workflow.HasChanges() {
+		t.Error("expected HasChanges() == false when TargetSnapshot is nil upon recovery")
+	}
+}
+
+func TestRun_RealWorkflow_QueryErrorRecovery_NoSpam(t *testing.T) {
+	adapter := new(mockStateAdapter)
+	serializer := new(mockDiffSerializer[v1.FeatureDiff])
+	fetcher := new(mockFetcher)
+
+	adapter.loadReturns.isEmpty = false
+	adapter.loadReturns.signature = "my-query"
+	adapter.loadReturns.snapshot = map[string]comparables.Feature{}
+	adapter.loadReturns.queryErrors = []workertypes.SummaryQueryError{
+		{Code: workertypes.SummaryQueryErrorCodeQueryGrammar},
+	}
+
+	fetcher.queryResults = map[string][]backend.Feature{
+		"my-query": {
+			makeFeature("feat-1", "Feature 1", "available"),
+			makeFeature("feat-2", "Feature 2", "available"),
+		},
+	}
+	adapter.serializeReturns.bytes = []byte("clean-recovered-state")
+	serializer.serializeReturns.bytes = []byte("recovered-diff-blob")
+
+	d := NewFeatureDiffer[v1.FeatureDiff](
+		fetcher,
+		func() StateCompareWorkflow[v1.FeatureDiff] {
+			return v1.NewFeatureDiffWorkflow(nil, new(mockSummaryGenerator))
+		},
+		adapter,
+		serializer,
+	)
+
+	res, err := d.Run(context.Background(), "search-123", "my-query", "event-789", []byte("old-state"))
+	if err != nil {
+		t.Fatalf("unexpected error running differ: %v", err)
+	}
+
+	if string(res.State.Bytes) != "clean-recovered-state" {
+		t.Errorf("expected clean state blob saved, got %s", string(res.State.Bytes))
+	}
+	if serializer.serializeCalledWith.diff == nil {
+		t.Fatalf("expected DiffSerializer to be called with a valid diff, got nil")
+	}
+	serializedDiff := serializer.serializeCalledWith.diff
+	if len(serializedDiff.Added) != 0 {
+		t.Errorf("expected exactly 0 Added features in serialized diff blob upon recovery, got %d", len(serializedDiff.Added))
 	}
 }

@@ -608,69 +608,118 @@ func (v *simpleRegularFeatureVisitor) VisitSplitFeature(_ context.Context, _ bac
 	return nil
 }
 
-func TestEventProducerDiffer_FetchFeatures(t *testing.T) {
-	mock := new(mockBackendAdapterForEventProducer)
-	feature1 := new(backend.Feature)
-	feature1.FeatureId = "f1"
-	feature1.Name = "Feature 1"
-	feature2 := new(backend.Feature)
-	feature2.FeatureId = "f2"
-	feature2.Name = "Feature 2"
-	mock.featuresSearchPages = []*backend.FeaturePage{
-		// First page
-		{
-			Data: []backend.Feature{
-				*feature1,
-			},
-			Metadata: backend.PageMetadataWithTotal{
-				NextPageToken: new("token-1"),
-				Total:         1000,
-			},
-		},
-		// Second page
-		{
-			Data: []backend.Feature{
-				*feature2,
-			},
-			Metadata: backend.PageMetadataWithTotal{
-				Total:         1000,
-				NextPageToken: nil, // End of iteration
+func newTestBackendFeature(id, name string) backend.Feature {
+	f := new(backend.Feature)
+	f.FeatureId = id
+	f.Name = name
 
-			},
+	return *f
+}
+
+func newMockBackendAdapterForEventProducer(pages []*backend.FeaturePage) *mockBackendAdapterForEventProducer {
+	mock := new(mockBackendAdapterForEventProducer)
+	mock.featuresSearchPages = pages
+
+	return mock
+}
+
+func TestEventProducerDiffer_FetchFeatures_Success(t *testing.T) {
+	testCases := []struct {
+		name             string
+		query            string
+		wantFeatureCount int
+		wantNilQueryNode bool
+	}{
+		{
+			name:             "Valid non-empty query parses and searches",
+			query:            "name:foo",
+			wantFeatureCount: 2,
+			wantNilQueryNode: false,
+		},
+		{
+			name:             "Empty query bypasses parseQuery and fetches all features",
+			query:            "",
+			wantFeatureCount: 2,
+			wantNilQueryNode: true,
+		},
+		{
+			name:             "Whitespace query bypasses parseQuery and fetches all features",
+			query:            "   ",
+			wantFeatureCount: 2,
+			wantNilQueryNode: true,
 		},
 	}
 
-	adapter := NewEventProducerDiffer(mock)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mock := newMockBackendAdapterForEventProducer([]*backend.FeaturePage{
+				{
+					Data: []backend.Feature{
+						newTestBackendFeature("f1", "Feature 1"),
+					},
+					Metadata: backend.PageMetadataWithTotal{
+						Total:         1000,
+						NextPageToken: new("token-1"),
+					},
+				},
+				{
+					Data: []backend.Feature{
+						newTestBackendFeature("f2", "Feature 2"),
+					},
+					Metadata: backend.PageMetadataWithTotal{
+						Total:         1000,
+						NextPageToken: nil,
+					},
+				},
+			})
 
-	// A simple query that parses successfully
-	query := "name:foo"
+			adapter := NewEventProducerDiffer(mock)
+			result, err := adapter.FetchFeatures(context.Background(), tc.query)
+			if err != nil {
+				t.Fatalf("FetchFeatures(%q) unexpected error: %v", tc.query, err)
+			}
+			if result.UserError != nil {
+				t.Fatalf("FetchFeatures(%q) unexpected user error: %v", tc.query, result.UserError)
+			}
+			if len(result.Features) != tc.wantFeatureCount {
+				t.Errorf("FetchFeatures(%q) expected %d features, got %d",
+					tc.query, tc.wantFeatureCount, len(result.Features))
+			}
+			if len(mock.FeaturesSearchReqs) == 0 {
+				t.Fatalf("FetchFeatures(%q) expected adapter calls, got 0", tc.query)
+			}
+			if tc.wantNilQueryNode && mock.FeaturesSearchReqs[0].QueryNode != nil {
+				t.Errorf("FetchFeatures(%q) expected nil QueryNode, got non-nil", tc.query)
+			}
+			if !tc.wantNilQueryNode && mock.FeaturesSearchReqs[0].QueryNode == nil {
+				t.Errorf("FetchFeatures(%q) expected non-nil QueryNode, got nil", tc.query)
+			}
+		})
+	}
+}
+
+func TestEventProducerDiffer_FetchFeatures_Malformed(t *testing.T) {
+	mock := newMockBackendAdapterForEventProducer(nil)
+	adapter := NewEventProducerDiffer(mock)
+	query := "id:(unclosed"
+
 	result, err := adapter.FetchFeatures(context.Background(), query)
 	if err != nil {
-		t.Fatalf("FetchFeatures() unexpected error: %v", err)
+		t.Fatalf("FetchFeatures(%q) unexpected error: %v", query, err)
 	}
-
-	if result.UserError != nil {
-		t.Fatalf("FetchFeatures() unexpected user error: %v", result.UserError)
+	if result.UserError == nil {
+		t.Fatalf("FetchFeatures(%q) expected UserError, got nil", query)
 	}
-
-	features := result.Features
-	if len(features) != 2 {
-		t.Errorf("Expected 2 features (across 2 pages), got %d", len(features))
+	if len(result.UserError.QueryErrors) == 0 {
+		t.Fatalf("FetchFeatures(%q) expected QueryErrors in UserError, got empty", query)
 	}
-	if features[0].FeatureId != "f1" || features[1].FeatureId != "f2" {
-		t.Error("Feature ID mismatch in results")
+	if result.UserError.QueryErrors[0].Code != workertypes.SummaryQueryErrorCodeQueryGrammar {
+		t.Errorf("FetchFeatures(%q) UserError code = %q, want %q",
+			query, result.UserError.QueryErrors[0].Code, workertypes.SummaryQueryErrorCodeQueryGrammar)
 	}
-
-	if len(mock.FeaturesSearchReqs) != 2 {
-		t.Errorf("Expected 2 calls to FeaturesSearch, got %d", len(mock.FeaturesSearchReqs))
-	}
-	// First call should have nil token
-	if mock.FeaturesSearchReqs[0].PageToken != nil {
-		t.Error("First page token should be nil")
-	}
-	// Second call should have token-1
-	if mock.FeaturesSearchReqs[1].PageToken == nil || *mock.FeaturesSearchReqs[1].PageToken != "token-1" {
-		t.Error("Second page token mismatch")
+	if len(mock.FeaturesSearchReqs) != 0 {
+		t.Errorf("FetchFeatures(%q) expected 0 calls to adapter on grammar error, got %d",
+			query, len(mock.FeaturesSearchReqs))
 	}
 }
 

@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
 	"cloud.google.com/go/spanner"
@@ -82,12 +83,16 @@ func parseQuery(query string) (*searchtypes.SearchNode, []workertypes.SummaryQue
 
 func (e *EventProducerDiffer) FetchFeatures(ctx context.Context, query string) (
 	*workertypes.FetchFeaturesResult, error) {
-	node, qErrs := parseQuery(query)
-	if qErrs != nil {
-		return &workertypes.FetchFeaturesResult{
-			Features:  nil,
-			UserError: &workertypes.UserError{QueryErrors: qErrs},
-		}, nil
+	var node *searchtypes.SearchNode
+	if strings.TrimSpace(query) != "" {
+		var qErrs []workertypes.SummaryQueryError
+		node, qErrs = parseQuery(query)
+		if qErrs != nil {
+			return &workertypes.FetchFeaturesResult{
+				Features:  nil,
+				UserError: &workertypes.UserError{QueryErrors: qErrs},
+			}, nil
+		}
 	}
 	var features []backend.Feature
 
