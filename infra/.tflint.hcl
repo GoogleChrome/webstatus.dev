@@ -15,12 +15,20 @@
 plugin "terraform" {
   enabled = true
   preset  = "all"
-  version = "0.14.1"
+  version = "0.15.0"
   source  = "github.com/terraform-linters/tflint-ruleset-terraform"
+  # Workaround for https://github.com/terraform-linters/tflint/issues/2591
+  # We still want to do some verification even if it is the legacy way.
+  # That is better than the alternatives of 1) not verifying at all or 2) downgrading to an older version.
+  signature = "pgp"
 }
 
 plugin "google" {
   enabled = true
-  version = "0.38.0"
+  version = "0.39.0"
   source  = "github.com/terraform-linters/tflint-ruleset-google"
+  # Workaround for https://github.com/terraform-linters/tflint/issues/2591
+  # We still want to do some verification even if it is the legacy way.
+  # That is better than the alternatives of 1) not verifying at all or 2) downgrading to an older version.
+  signature = "pgp"
 }
