@@ -43,6 +43,8 @@ frontend/.postinstall
 *.gen.go
 lib/gen/*/*/*.go
 lib/gen/*/*/*.ts
+lib/gen/antlrv4/ts-antlrv4/*.interp
+lib/gen/antlrv4/ts-antlrv4/*.tokens
 lib/gen/featuresearch/**
 
 # Ignore coverage files
