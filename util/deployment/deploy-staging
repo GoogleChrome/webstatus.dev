@@ -1,6 +1,36 @@
 #!/bin/bash
 set -e
 
+usage() {
+  echo "Usage: deploy-staging [-q] [-f] [-p] [-a]"
+  echo "  -q : Disable interactive prompts and run in non-interactive CI/CD mode"
+  echo "  -f : Force deployment without prompting or guardrail checks"
+  echo "  -p : Execute terraform plan only and exit"
+  echo "  -a : Execute terraform apply only and exit"
+}
+
+QUIET="${QUIET:-false}"
+FORCE_DEPLOY="${FORCE_DEPLOY:-false}"
+PLAN_ONLY="${PLAN_ONLY:-false}"
+APPLY_ONLY="${APPLY_ONLY:-false}"
+CI="${CI:-false}"
+CLOUD_BUILD="${CLOUD_BUILD:-false}"
+
+while getopts ':fqpah' flag; do
+  case "${flag}" in
+    f) FORCE_DEPLOY='true' ;;
+    q) QUIET='true' ;;
+    p) PLAN_ONLY='true' ;;
+    a) APPLY_ONLY='true' ;;
+    h|*) usage && exit 0 ;;
+  esac
+done
+
+# If CI or CLOUD_BUILD environment variables are true, default QUIET to true
+if [[ "${CI}" == "true" || "${CLOUD_BUILD}" == "true" ]]; then
+  QUIET="true"
+fi
+
 # Get the directory of the script
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -9,5 +39,11 @@ export GCP_PROJECT="web-compass-staging"
 export SPANNER_PROJECT="webstatus-dev-internal-staging"
 export WEBSITE_URL="https://website-webstatus-dev.corp.goog/"
 export API_URL="https://api-webstatus-dev.corp.goog/v1/features"
+export QUIET
+export FORCE_DEPLOY
+export PLAN_ONLY
+export APPLY_ONLY
+export CI
+export CLOUD_BUILD
 
-"$DIR/deploy-env"
+"$DIR/deploy-env" ${QUIET:+-q} ${FORCE_DEPLOY:+-f} ${PLAN_ONLY:+-p} ${APPLY_ONLY:+-a}

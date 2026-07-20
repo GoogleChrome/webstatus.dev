@@ -1,22 +1,79 @@
 #!/bin/bash
 set -e
 
-# Verify we are on the main branch
+usage() {
+  echo "Usage: deploy-production [-b] [-f] [-q] [-p] [-a]"
+  echo "  -b : Skip GitHub issue creation/update"
+  echo "  -f : Force deployment (bypass main branch check, uncommitted changes prompt, and verified-staging-latest guardrail)"
+  echo "  -q : Disable interactive prompts and run in non-interactive CI/CD mode"
+  echo "  -p : Execute terraform plan only and exit"
+  echo "  -a : Execute terraform apply only and exit"
+}
+
+QUIET="${QUIET:-false}"
+FORCE_DEPLOY="${FORCE_DEPLOY:-false}"
+SKIP_ISSUE_CREATION="${SKIP_ISSUE_CREATION:-false}"
+PLAN_ONLY="${PLAN_ONLY:-false}"
+APPLY_ONLY="${APPLY_ONLY:-false}"
+CI="${CI:-false}"
+CLOUD_BUILD="${CLOUD_BUILD:-false}"
+
+while getopts ':bfqpah' flag; do
+  case "${flag}" in
+    b) SKIP_ISSUE_CREATION='true' ;;
+    f) FORCE_DEPLOY='true' ;;
+    q) QUIET='true' ;;
+    p) PLAN_ONLY='true' ;;
+    a) APPLY_ONLY='true' ;;
+    h|*) usage && exit 0 ;;
+  esac
+done
+
+# If CI or CLOUD_BUILD environment variables are true, default QUIET to true
+if [[ "${CI}" == "true" || "${CLOUD_BUILD}" == "true" ]]; then
+  QUIET="true"
+fi
+
+# Verify we are on the main branch unless FORCE_DEPLOY is true
 BRANCH=$(git rev-parse --abbrev-ref HEAD)
-if [ "$BRANCH" != "main" ]; then
-  echo "Not on the main branch. Aborting deployment."
+if [[ "$BRANCH" != "main" && "$FORCE_DEPLOY" != "true" ]]; then
+  echo "Not on the main branch ($BRANCH). Aborting deployment (pass -f to force)."
   exit 1
 fi
 
 # Check for uncommitted changes
-if [ -n "$(git status --porcelain)" ]; then
+if [[ -n "$(git status --porcelain)" ]]; then
   echo "Uncommitted changes detected:"
   git status
-  read -p "Do you want to proceed with the deployment? (y/n) " -n 1 -r
-  echo
-  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    echo "Deployment aborted."
+  if [[ "${FORCE_DEPLOY}" == "true" ]]; then
+    echo "FORCE_DEPLOY=true: Proceeding with uncommitted changes."
+  elif [[ "${QUIET}" == "true" ]]; then
+    echo "Non-interactive CI/CD mode (-q) and uncommitted changes detected without -f. Aborting."
     exit 1
+  else
+    read -p "Do you want to proceed with the deployment? (y/n) " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+      echo "Deployment aborted."
+      exit 1
+    fi
+  fi
+fi
+
+# ---------------------------------------------------------------------------
+# Anti-Regression & Git Ancestry Guardrail (verified-staging-latest)
+# ---------------------------------------------------------------------------
+# Ensures the commit being deployed has successfully built and verified in staging.
+if git rev-parse -q --verify "refs/tags/verified-staging-latest" >/dev/null 2>&1; then
+  if ! git merge-base --is-ancestor verified-staging-latest HEAD 2>/dev/null; then
+    echo "WARNING: Commit $(git rev-parse --short HEAD) is not equal to or ahead of tag 'verified-staging-latest'."
+    echo "It has either not passed staging verification yet or represents an older historical commit."
+    if [[ "${FORCE_DEPLOY}" != "true" ]]; then
+      echo "Aborting production deployment to prevent regression. Pass -f to bypass this guardrail."
+      exit 1
+    else
+      echo "FORCE_DEPLOY=true (-f): Bypassing verified-staging-latest ancestry check."
+    fi
   fi
 fi
 
@@ -24,15 +81,32 @@ fi
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # Create the GitHub issue for this deployment if it doesn't already exist.
-"$DIR/create-deployment-issue"
+if [[ "${SKIP_ISSUE_CREATION}" != "true" ]]; then
+  "$DIR/create-deployment-issue" ${QUIET:+-q}
+fi
 
 export DEPLOY_ENV="prod"
 export GCP_PROJECT="web-compass-prod"
 export SPANNER_PROJECT="webstatus-dev-internal-prod"
 export WEBSITE_URL="https://webstatus.dev/"
 export API_URL="https://api.webstatus.dev/v1/features"
+export QUIET
+export FORCE_DEPLOY
+export SKIP_ISSUE_CREATION
+export PLAN_ONLY
+export APPLY_ONLY
+export CI
+export CLOUD_BUILD
 
-"$DIR/deploy-env"
+"$DIR/deploy-env" ${QUIET:+-q} ${FORCE_DEPLOY:+-f} ${PLAN_ONLY:+-p} ${APPLY_ONLY:+-a}
 
-echo "Remember to close the GitHub release issue."
-echo "https://github.com/GoogleChrome/webstatus.dev/issues?q=is%3Aissue+label%3Arelease+is%3Aopen"
+if [[ "${SKIP_ISSUE_CREATION}" != "true" ]]; then
+  echo "Closing GitHub release issue..."
+  OPEN_RELEASE_ISSUE=$(gh issue list --state open --label "release" --limit 1 --json number --repo "GoogleChrome/webstatus.dev" | jq -r '.[0].number // ""')
+  if [[ -n "${OPEN_RELEASE_ISSUE}" ]]; then
+    gh issue close "${OPEN_RELEASE_ISSUE}" --repo "GoogleChrome/webstatus.dev" -c "Deployment is now complete." || echo "WARNING: Failed to close GitHub issue #${OPEN_RELEASE_ISSUE}." >&2
+    echo "Successfully closed GitHub issue #${OPEN_RELEASE_ISSUE}."
+  else
+    echo "No open issue with label 'release' found to close."
+  fi
+fi

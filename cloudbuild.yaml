@@ -1,0 +1,165 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Cloud Build 2nd Gen runbook for webstatus.dev continuous staging and controlled production delivery.
+# Configured across triggers in project: interop-tooling-ops
+#
+# Triggers:
+# 1. trigger-webstatus-staging (_DEPLOY_ENV=staging)
+#    - Executes automatically on merges to main (^main$).
+#    - Builds & boots the project DevContainer via @devcontainers/cli and runs ./util/deployment/deploy-staging -q.
+#    - Upon verification, tags HEAD as verified-staging-latest and pushes to GitHub.
+#    - Chains directly to trigger-webstatus-prod (creating a PENDING production build awaiting approval).
+#
+# 2. trigger-webstatus-prod (_DEPLOY_ENV=prod)
+#    - Manual/Approved trigger locked to tag verified-staging-latest (or main if overridden).
+#    - Enforces Git ancestry anti-regression guardrail before executing ./util/deployment/deploy-production -q.
+
+substitutions:
+  _DEPLOY_ENV: "staging"
+  _FORCE_DEPLOY: "false"
+  _SKIP_ISSUE_CREATION: "false"
+
+steps:
+  # ---------------------------------------------------------------------------
+  # Step 1: Execute Deployment (Staging or Production) inside DevContainer via @devcontainers/cli
+  # ---------------------------------------------------------------------------
+  - id: 'deploy-env-service'
+    name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:latest'
+    entrypoint: 'bash'
+    secretEnv: ['GH_TOKEN']
+    env: ['CI=true', 'CLOUD_BUILD=true']
+    args:
+      - '-c'
+      - |
+        set -euo pipefail
+        echo "================================================================"
+        echo "Installing Docker & DevContainer CLI (@devcontainers/cli)"
+        echo "================================================================"
+        apt-get update -qq
+        apt-get install -y -qq docker.io nodejs npm jq golang-go
+
+        npm install -g @devcontainers/cli
+
+        # Move checkout into /workspace/webstatus.dev on host volume so Docker daemon resolves bind mount
+        mkdir -p /tmp/stage
+        shopt -s dotglob
+        mv /workspace/* /tmp/stage/
+        mkdir -p /workspace/webstatus.dev
+        mv /tmp/stage/* /workspace/webstatus.dev/
+        shopt -u dotglob
+
+        # Change workspace ownership to UID 1000 (devcontainer user 'vscode')
+        chown -R 1000:1000 /workspace/webstatus.dev
+        mkdir -p /workspace/webstatus.dev/.devcontainer/cache/go/go-build /workspace/webstatus.dev/.devcontainer/cache/go/pkg /workspace/webstatus.dev/.devcontainer/cache/node/.npm
+        chown -R 1000:1000 /workspace/webstatus.dev/.devcontainer/cache
+
+        echo "================================================================"
+        echo "Building and starting DevContainer environment..."
+        echo "================================================================"
+        sed -E 's#//.*##' /workspace/webstatus.dev/.devcontainer/devcontainer.json | jq '.runArgs += ["--network=host"] | .mounts += ["source=/root/.config/gcloud,target=/home/vscode/.config/gcloud,type=bind"]' > /tmp/devcontainer-ci.json
+        devcontainer up --workspace-folder /workspace/webstatus.dev --config /workspace/webstatus.dev/.devcontainer/devcontainer.json --override-config /tmp/devcontainer-ci.json
+
+        echo "================================================================"
+        echo "Executing deployment inside DevContainer for _DEPLOY_ENV=${_DEPLOY_ENV}"
+        echo "================================================================"
+        
+        FLAGS="-q"
+        if [[ "${_FORCE_DEPLOY}" == "true" ]]; then
+          FLAGS="$${FLAGS} -f"
+        fi
+        if [[ "${_SKIP_ISSUE_CREATION}" == "true" && "${_DEPLOY_ENV}" == "prod" ]]; then
+          FLAGS="$${FLAGS} -b"
+        fi
+
+        AUTH_TOKEN=$$(gcloud auth print-access-token --scopes="https://www.googleapis.com/auth/cloud-platform" 2>/dev/null || true)
+
+        META_FLAGS=""
+        if [[ -n "${GCE_METADATA_HOST:-}" ]]; then
+          META_FLAGS="$${META_FLAGS} --remote-env GCE_METADATA_HOST=$${GCE_METADATA_HOST}"
+        fi
+        if [[ -n "${GCE_METADATA_IP:-}" ]]; then
+          META_FLAGS="$${META_FLAGS} --remote-env GCE_METADATA_IP=$${GCE_METADATA_IP}"
+        fi
+
+        DEPLOY_SCRIPT="./util/deployment/deploy-${_DEPLOY_ENV}"
+        if [[ "${_DEPLOY_ENV}" != "staging" && "${_DEPLOY_ENV}" != "prod" ]]; then
+          echo "Error: Unknown _DEPLOY_ENV '${_DEPLOY_ENV}'. Must be 'staging' or 'prod'." >&2
+          exit 1
+        fi
+
+        echo "--- Phase 1/3: Validating infrastructure plan inside DevContainer (-p) ---"
+        devcontainer exec --workspace-folder /workspace/webstatus.dev $${META_FLAGS} --remote-env GOOGLE_OAUTH_ACCESS_TOKEN="$${AUTH_TOKEN}" --remote-env CLOUDSDK_AUTH_ACCESS_TOKEN="$${AUTH_TOKEN}" bash -l -c "$${DEPLOY_SCRIPT} -p $${FLAGS}"
+
+        echo "--- Phase 2/3: Applying Spanner schema migrations natively on outer Cloud Build host ---"
+        export SPANNER_PROJECT_ID="webstatus-dev-internal-${_DEPLOY_ENV}"
+        export SPANNER_INSTANCE_ID="${_DEPLOY_ENV}-spanner"
+        export SPANNER_DATABASE_ID="${_DEPLOY_ENV}-database"
+        (cd /workspace/webstatus.dev/tools && go tool wrench migrate up --directory ../infra/storage/spanner/migrations/)
+
+        echo "--- Phase 3/3: Applying infrastructure changes inside DevContainer (-a) ---"
+        devcontainer exec --workspace-folder /workspace/webstatus.dev $${META_FLAGS} --remote-env GOOGLE_OAUTH_ACCESS_TOKEN="$${AUTH_TOKEN}" --remote-env CLOUDSDK_AUTH_ACCESS_TOKEN="$${AUTH_TOKEN}" bash -l -c "$${DEPLOY_SCRIPT} -a $${FLAGS}"
+
+  # ---------------------------------------------------------------------------
+  # Step 2 (Staging Only): Tag verified-staging-latest and Chain to Production
+  # ---------------------------------------------------------------------------
+  - id: 'promote-and-chain-staging'
+    name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:latest'
+    entrypoint: 'bash'
+    secretEnv: ['GH_TOKEN']
+    env: ['CI=true', 'CLOUD_BUILD=true']
+    args:
+      - '-c'
+      - |
+        set -euo pipefail
+        if [[ "${_DEPLOY_ENV}" != "staging" ]]; then
+          echo "Skipping staging promotion step (_DEPLOY_ENV=${_DEPLOY_ENV})."
+          exit 0
+        fi
+
+        ORIGIN_URL=$$(git config --get remote.origin.url || true)
+        if [[ "$${ORIGIN_URL}" =~ github.com[:/]([^/]+)/([^/.git]+) ]]; then
+          GH_OWNER="$${BASH_REMATCH[1]}"
+          GH_REPO="$${BASH_REMATCH[2]}"
+        else
+          GH_OWNER="GoogleChrome"
+          GH_REPO="webstatus.dev"
+        fi
+
+        echo "Staging deployment completed successfully. Tagging HEAD ($$(git rev-parse --short HEAD)) as verified-staging-latest..."
+        git config user.name "interop-tooling-ops-bot"
+        git config user.email "interop-tooling-ops-bot@google.com"
+        git remote set-url origin "https://interop-tooling-ops-bot:$${GH_TOKEN}@github.com/$${GH_OWNER}/$${GH_REPO}.git"
+        git tag -f verified-staging-latest HEAD
+        git push -f origin verified-staging-latest
+
+        echo "Chaining deployment to trigger-webstatus-prod (creating PENDING build for sheriff approval)..."
+        MAIN_SHA=$$(git rev-parse HEAD)
+        gcloud builds triggers run trigger-webstatus-prod \
+          --project=interop-tooling-ops --region=us-central1 \
+          --sha="$${MAIN_SHA}" \
+          --substitutions=_DEPLOY_ENV=prod,_FORCE_DEPLOY=false,_SKIP_ISSUE_CREATION=false || {
+            echo "WARNING: Failed to trigger trigger-webstatus-prod. Ensure trigger exists and SA has roles/cloudbuild.builds.editor." >&2
+          }
+
+availableSecrets:
+  secretManager:
+    - versionName: projects/interop-tooling-ops/secrets/interop-bot-gh-token/versions/latest
+      env: 'GH_TOKEN'
+
+options:
+  machineType: 'E2_HIGHCPU_8'
+  logging: CLOUD_LOGGING_ONLY
+
+timeout: '7200s'

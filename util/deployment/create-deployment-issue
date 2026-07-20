@@ -1,6 +1,27 @@
 #!/bin/bash
 set -e
 
+usage() {
+  echo "Usage: create-deployment-issue [-q]"
+  echo "  -q : Disable interactive prompts and run in non-interactive CI/CD mode"
+}
+
+QUIET="${QUIET:-false}"
+CI="${CI:-false}"
+CLOUD_BUILD="${CLOUD_BUILD:-false}"
+
+while getopts ':fqh' flag; do
+  case "${flag}" in
+    q) QUIET='true' ;;
+    h|*) usage && exit 0 ;;
+  esac
+done
+
+# If CI or CLOUD_BUILD environment variables are true, default QUIET to true
+if [[ "${CI}" == "true" || "${CLOUD_BUILD}" == "true" ]]; then
+  QUIET="true"
+fi
+
 # Ensure we are in the project root
 if [ "$(git rev-parse --git-dir 2>/dev/null)" != ".git" ]; then
   echo "Please run this script from the root of the webstatus.dev repository."
@@ -9,6 +30,10 @@ fi
 
 echo "Checking GitHub CLI authentication status..."
 if ! gh auth status > /dev/null 2>&1; then
+  if [[ "${QUIET}" == "true" ]]; then
+    echo "Error: GitHub CLI is not authenticated in non-interactive CI/CD mode. Ensure GH_TOKEN or GITHUB_TOKEN environment variable is set." >&2
+    exit 1
+  fi
   echo "You are not logged into the GitHub CLI. Starting login process..."
   gh auth login
   # Re-check auth status after login attempt
@@ -19,13 +44,30 @@ if ! gh auth status > /dev/null 2>&1; then
 fi
 echo "Authenticated."
 
-PREVIOUS_SHORT_SHA=$(gh issue list --state=closed --label="release" --json title --repo "GoogleChrome/webstatus.dev" | jq -r '.[0].title' | awk '{print $NF}')
+PREVIOUS_SHORT_SHA=$(gh issue list --state=closed --label="release" --json title --repo "GoogleChrome/webstatus.dev" | jq -r '.[0].title // ""' | awk '{print $NF}')
+CHANGELOG=""
+
 if [ -z "$PREVIOUS_SHORT_SHA" ]; then
-  echo "Could not determine the previous release SHA. Please check closed release issues."
-  exit 1
+  if [[ "${QUIET}" == "true" ]]; then
+    echo "Could not determine the previous release SHA from closed issues. Generating recent 20 commits..."
+    CHANGELOG=$(git log -n 20 --oneline --format="- %C(auto) %h %s")
+    PREVIOUS_SHORT_SHA=$(git rev-parse --short HEAD~20 2>/dev/null || git rev-parse --short HEAD)
+  else
+    echo "Could not determine the previous release SHA. Please check closed release issues."
+    exit 1
+  fi
+else
+  if ! CHANGELOG=$(git log --oneline "$PREVIOUS_SHORT_SHA..HEAD" --format="- %C(auto) %h %s" 2>/dev/null); then
+    if [[ "${QUIET}" == "true" ]]; then
+      echo "Previous commit ($PREVIOUS_SHORT_SHA) not directly in DAG or shallow clone; generating recent 20 commits..."
+      CHANGELOG=$(git log -n 20 --oneline --format="- %C(auto) %h %s")
+    else
+      echo "Failed to run git log for $PREVIOUS_SHORT_SHA..HEAD."
+      exit 1
+    fi
+  fi
 fi
 
-CHANGELOG=$(git log --oneline "$PREVIOUS_SHORT_SHA..HEAD" --format="- %C(auto) %h %s")
 NEW_SHA=$(git rev-parse --short HEAD)
 
 DIRTY_PREFIX=""
@@ -67,8 +109,13 @@ echo "Title: $ISSUE_TITLE"
 echo "Body:"
 echo "$ISSUE_BODY"
 echo "---"
-echo "Press enter to create the issue, or Ctrl+C to cancel."
-read -r
+
+if [[ "${QUIET}" == "true" ]]; then
+  echo "Non-interactive CI/CD mode (-q): Creating GitHub issue automatically..."
+else
+  echo "Press enter to create the issue, or Ctrl+C to cancel."
+  read -r
+fi
 
 if ( ! gh issue create --title "$ISSUE_TITLE" --body "$ISSUE_BODY" --label "release" -R "GoogleChrome/webstatus.dev"); then
   echo "GitHub issue creation failed."
