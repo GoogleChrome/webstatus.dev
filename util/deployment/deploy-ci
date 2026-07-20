@@ -1,0 +1,165 @@
+#!/usr/bin/env bash
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+set -euo pipefail
+
+usage() {
+  echo "Usage: deploy-ci <staging|prod> [-f] [-b]"
+  echo "  staging|prod : Target environment to deploy"
+  echo "  -f           : Force deployment"
+  echo "  -b           : Skip GitHub issue creation/update (prod only)"
+}
+
+DEPLOY_ENV="${_DEPLOY_ENV:-${1:-}}"
+if [[ "${DEPLOY_ENV}" == "production" ]]; then
+  DEPLOY_ENV="prod"
+fi
+
+if [[ -z "${DEPLOY_ENV}" || ! "${DEPLOY_ENV}" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+  echo "Error: Target environment name required (e.g. staging, prod, pr-123)." >&2
+  usage
+  exit 1
+fi
+
+if [[ -n "${1:-}" && ! "${1:-}" =~ ^- ]]; then
+  shift
+fi
+
+FORCE_DEPLOY="${_FORCE_DEPLOY:-false}"
+SKIP_ISSUE_CREATION="${_SKIP_ISSUE_CREATION:-false}"
+PLAN_ONLY="${PLAN_ONLY:-false}"
+APPLY_ONLY="${APPLY_ONLY:-false}"
+
+while getopts ':fbqpah' flag; do
+  case "${flag}" in
+    f) FORCE_DEPLOY='true' ;;
+    b) SKIP_ISSUE_CREATION='true' ;;
+    q) ;;
+    p) PLAN_ONLY='true' ;;
+    a) APPLY_ONLY='true' ;;
+    h) usage && exit 0 ;;
+    *) usage >&2 && exit 1 ;;
+  esac
+done
+
+if [[ "${PLAN_ONLY}" == "true" && "${APPLY_ONLY}" == "true" ]]; then
+  echo "Error: -p (plan-only) and -a (apply-only) flags cannot be used together." >&2
+  exit 1
+fi
+
+FLAGS="-q"
+if [[ "${FORCE_DEPLOY}" == "true" ]]; then FLAGS="${FLAGS} -f"; fi
+if [[ "${SKIP_ISSUE_CREATION}" == "true" && "${DEPLOY_ENV}" == "prod" ]]; then FLAGS="${FLAGS} -b"; fi
+
+echo "================================================================"
+echo "Installing Docker, Go, & DevContainer CLI (@devcontainers/cli)..."
+echo "================================================================"
+export DEBIAN_FRONTEND=noninteractive
+apt-get update -qq
+apt-get install -y -qq docker.io nodejs npm jq golang-go
+npm install -g @devcontainers/cli json5
+
+# Ensure checkout is in /workspace/webstatus.dev on host volume so Docker daemon resolves bind mounts
+if [[ ! -d "/workspace/webstatus.dev/.git" ]]; then
+  echo "Moving checkout into /workspace/webstatus.dev for DevContainer bind mounts..."
+  mkdir -p /tmp/stage
+  shopt -s dotglob
+  mv /workspace/* /tmp/stage/ 2>/dev/null || true
+  mkdir -p /workspace/webstatus.dev
+  mv /tmp/stage/* /workspace/webstatus.dev/
+  shopt -u dotglob
+fi
+
+chown -R 1000:1000 /workspace/webstatus.dev
+mkdir -p /workspace/webstatus.dev/.devcontainer/cache/go/go-build /workspace/webstatus.dev/.devcontainer/cache/go/pkg /workspace/webstatus.dev/.devcontainer/cache/node/.npm
+chown -R 1000:1000 /workspace/webstatus.dev/.devcontainer/cache
+
+cd /workspace/webstatus.dev
+
+echo "================================================================"
+echo "Building and starting DevContainer environment..."
+echo "================================================================"
+trap 'rm -f /tmp/devcontainer-ci.json' EXIT
+json5 .devcontainer/devcontainer.json | jq '.runArgs += ["--network=host"] | .mounts += ["source=/root/.config/gcloud,target=/home/vscode/.config/gcloud,type=bind"]' > /tmp/devcontainer-ci.json
+devcontainer up --workspace-folder /workspace/webstatus.dev --config .devcontainer/devcontainer.json --override-config /tmp/devcontainer-ci.json
+
+echo "================================================================"
+echo "Executing CI/CD deployment for DEPLOY_ENV=${DEPLOY_ENV}..."
+echo "================================================================"
+
+AUTH_TOKEN=$(gcloud auth print-access-token --scopes="https://www.googleapis.com/auth/cloud-platform" 2>/dev/null) || {
+  echo "Error: Failed to obtain GCP access token via gcloud auth." >&2
+  exit 1
+}
+
+META_FLAGS=""
+if [[ -n "${GCE_METADATA_HOST:-}" ]]; then
+  META_FLAGS="${META_FLAGS} --remote-env GCE_METADATA_HOST=${GCE_METADATA_HOST}"
+fi
+if [[ -n "${GCE_METADATA_IP:-}" ]]; then
+  META_FLAGS="${META_FLAGS} --remote-env GCE_METADATA_IP=${GCE_METADATA_IP}"
+fi
+
+if [[ "${DEPLOY_ENV}" == "prod" ]]; then
+  DEPLOY_SCRIPT="./util/deployment/deploy-production"
+elif [[ -f "./util/deployment/deploy-${DEPLOY_ENV}" ]]; then
+  DEPLOY_SCRIPT="./util/deployment/deploy-${DEPLOY_ENV}"
+else
+  DEPLOY_SCRIPT="./util/deployment/deploy-env"
+fi
+
+if [[ "${APPLY_ONLY}" != "true" ]]; then
+  echo "--- Phase 1/4: Validating infrastructure plan inside DevContainer (-p) ---"
+  # shellcheck disable=SC2086
+  devcontainer exec --workspace-folder /workspace/webstatus.dev ${META_FLAGS} \
+    --remote-env GOOGLE_OAUTH_ACCESS_TOKEN="${AUTH_TOKEN}" \
+    --remote-env CLOUDSDK_AUTH_ACCESS_TOKEN="${AUTH_TOKEN}" \
+    --remote-env GH_TOKEN="${GH_TOKEN:-}" \
+    --remote-env GITHUB_TOKEN="${GH_TOKEN:-}" \
+    bash -l -c "${DEPLOY_SCRIPT} -p ${FLAGS}"
+fi
+
+if [[ "${PLAN_ONLY}" != "true" ]]; then
+  # ARCHITECTURAL NOTE: Why we run Spanner schema migrations natively on outer Cloud Build host:
+  # Running wrench inside the DevContainer over --network=host causes Google Cloud metadata queries
+  # (http://169.254.169.254) to fall back to the worker VM compute identity (cloudbuild-untrusted@...)
+  # which has restricted scopes (devstorage.read_only), throwing 403 "insufficient authentication scopes".
+  # By executing go tool wrench directly on the outer Cloud Build host container in Phase 2, wrench
+  # natively inherits Cloud Build's ambient step identity (sa-deploy-webstatus-*) without needing any
+  # custom JSON service account keys (adc.json) or token forwarding hacks.
+  echo "--- Phase 2/4: Applying Spanner schema migrations natively on outer Cloud Build host ---"
+  export SPANNER_PROJECT_ID="${SPANNER_PROJECT_ID:-webstatus-dev-internal-${DEPLOY_ENV}}"
+  export SPANNER_INSTANCE_ID="${SPANNER_INSTANCE_ID:-${DEPLOY_ENV}-spanner}"
+  export SPANNER_DATABASE_ID="${SPANNER_DATABASE_ID:-${DEPLOY_ENV}-database}"
+  (cd tools && go tool wrench migrate up --directory ../infra/storage/spanner/)
+fi
+
+if [[ "${PLAN_ONLY}" != "true" ]]; then
+  echo "--- Phase 3/4: Applying infrastructure changes inside DevContainer (-a) ---"
+  # shellcheck disable=SC2086
+  devcontainer exec --workspace-folder /workspace/webstatus.dev ${META_FLAGS} \
+    --remote-env GOOGLE_OAUTH_ACCESS_TOKEN="${AUTH_TOKEN}" \
+    --remote-env CLOUDSDK_AUTH_ACCESS_TOKEN="${AUTH_TOKEN}" \
+    --remote-env GH_TOKEN="${GH_TOKEN:-}" \
+    --remote-env GITHUB_TOKEN="${GH_TOKEN:-}" \
+    bash -l -c "${DEPLOY_SCRIPT} -a ${FLAGS}"
+fi
+
+if [[ "${DEPLOY_ENV}" == "staging" && "${PLAN_ONLY}" != "true" ]]; then
+  echo "--- Phase 4/4: Promoting staging tag & chaining production build ---"
+  ./util/deployment/promote-and-chain-staging "${DEPLOY_ENV}"
+fi
+
+echo "CI/CD deployment for ${DEPLOY_ENV} completed successfully."
