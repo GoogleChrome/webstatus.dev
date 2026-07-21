@@ -97,42 +97,21 @@ func createTestSummary(hasChanges bool) workertypes.EventSummary {
 		categories.Added = 1
 	}
 
-	return workertypes.EventSummary{
-		SchemaVersion:       "v1",
-		SnapshotOrigin:      workertypes.OriginLive,
-		Text:                "Test Summary",
-		Categories:          categories,
-		Truncated:           false,
-		QueryErrors:         nil,
-		ResolvedQueryErrors: nil,
-		Highlights:          nil,
-	}
+	summary := workertypes.NewEmptyEventSummary()
+	summary.SnapshotOrigin = workertypes.OriginLive
+	summary.Text = "Test Summary"
+	summary.Categories = categories
+
+	return summary
 }
 
 func createTestSummaryWithErrors(errCode workertypes.SummaryQueryErrorCode) workertypes.EventSummary {
-	categories := workertypes.SummaryCategories{
-		QueryChanged:    0,
-		Added:           0,
-		Deleted:         0,
-		Removed:         0,
-		Moved:           0,
-		Split:           0,
-		Updated:         0,
-		UpdatedImpl:     0,
-		UpdatedRename:   0,
-		UpdatedBaseline: 0,
-	}
+	summary := workertypes.NewEmptyEventSummary()
+	summary.SnapshotOrigin = workertypes.OriginLive
+	summary.Text = "Error occurred"
+	summary.SetQueryErrors([]workertypes.SummaryQueryError{{Code: errCode}})
 
-	return workertypes.EventSummary{
-		SchemaVersion:       workertypes.VersionEventSummaryV1,
-		SnapshotOrigin:      workertypes.OriginLive,
-		Text:                "Error occurred",
-		Categories:          categories,
-		Truncated:           false,
-		QueryErrors:         []workertypes.SummaryQueryError{{Code: errCode}},
-		ResolvedQueryErrors: nil,
-		Highlights:          nil,
-	}
+	return summary
 }
 
 // mockParserFactory creates a SummaryParser that injects the given summary directly.
@@ -205,22 +184,20 @@ func TestProcessEvent_Success(t *testing.T) {
 	summary := createTestSummary(true)
 	summary.Categories.UpdatedBaseline = 1
 	summary.Categories.Updated = 1
-	summary.Highlights = []workertypes.SummaryHighlight{
-		{
-			Type:        workertypes.SummaryHighlightTypeChanged,
-			FeatureID:   "test-feature-id",
-			FeatureName: "Test Feature",
-			Docs:        nil,
-			NameChange:  nil,
-			BaselineChange: &workertypes.Change[workertypes.BaselineValue]{
-				From: newBaselineValue(workertypes.BaselineStatusLimited),
-				To:   newBaselineValue(workertypes.BaselineStatusNewly),
-			},
-			BrowserChanges: nil,
-			Moved:          nil,
-			Split:          nil,
+	summary.AddHighlight(workertypes.SummaryHighlight{
+		Type:        workertypes.SummaryHighlightTypeChanged,
+		FeatureID:   "test-feature-id",
+		FeatureName: "Test Feature",
+		Docs:        nil,
+		NameChange:  nil,
+		BaselineChange: &workertypes.Change[workertypes.BaselineValue]{
+			From: newBaselineValue(workertypes.BaselineStatusLimited),
+			To:   newBaselineValue(workertypes.BaselineStatusNewly),
 		},
-	}
+		BrowserChanges: nil,
+		Moved:          nil,
+		Split:          nil,
+	})
 	parser := mockParserFactory(summary, nil)
 
 	d := NewDispatcher(finder, publisher)
@@ -315,22 +292,20 @@ func TestProcessEvent_Webhook_Success(t *testing.T) {
 	summary := createTestSummary(true)
 	summary.Categories.UpdatedBaseline = 1
 	summary.Categories.Updated = 1
-	summary.Highlights = []workertypes.SummaryHighlight{
-		{
-			Type:        workertypes.SummaryHighlightTypeChanged,
-			FeatureID:   "test-feature-id",
-			FeatureName: "Test Feature",
-			Docs:        nil,
-			NameChange:  nil,
-			BaselineChange: &workertypes.Change[workertypes.BaselineValue]{
-				From: newBaselineValue(workertypes.BaselineStatusLimited),
-				To:   newBaselineValue(workertypes.BaselineStatusNewly),
-			},
-			BrowserChanges: nil,
-			Moved:          nil,
-			Split:          nil,
+	summary.AddHighlight(workertypes.SummaryHighlight{
+		Type:        workertypes.SummaryHighlightTypeChanged,
+		FeatureID:   "test-feature-id",
+		FeatureName: "Test Feature",
+		Docs:        nil,
+		NameChange:  nil,
+		BaselineChange: &workertypes.Change[workertypes.BaselineValue]{
+			From: newBaselineValue(workertypes.BaselineStatusLimited),
+			To:   newBaselineValue(workertypes.BaselineStatusNewly),
 		},
-	}
+		BrowserChanges: nil,
+		Moved:          nil,
+		Split:          nil,
+	})
 	parser := mockParserFactory(summary, nil)
 
 	d := NewDispatcher(finder, publisher)
@@ -601,7 +576,7 @@ func newBrowserValue(status workertypes.BrowserStatus) workertypes.BrowserValue 
 
 func withBaselineHighlight(
 	s workertypes.EventSummary, from, to workertypes.BaselineStatus) workertypes.EventSummary {
-	s.Highlights = append(s.Highlights, workertypes.SummaryHighlight{
+	s.AddHighlight(workertypes.SummaryHighlight{
 		Type:        workertypes.SummaryHighlightTypeChanged,
 		FeatureID:   "test-feature-id",
 		FeatureName: "Test Feature",
@@ -623,7 +598,7 @@ func withBaselineHighlight(
 
 func withBrowserChangeHighlight(
 	s workertypes.EventSummary, from, to workertypes.BrowserStatus) workertypes.EventSummary {
-	s.Highlights = append(s.Highlights, workertypes.SummaryHighlight{
+	s.AddHighlight(workertypes.SummaryHighlight{
 		Type:           workertypes.SummaryHighlightTypeChanged,
 		FeatureID:      "test-feature-id",
 		FeatureName:    "Test Feature",
@@ -764,7 +739,10 @@ func TestShouldNotifyV1(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			got := shouldNotifyV1(tc.triggers, tc.summary)
+			got, err := shouldNotifyV1(tc.triggers, &tc.summary)
+			if err != nil {
+				t.Fatalf("shouldNotifyV1 unexpected error: %v", err)
+			}
 			if got != tc.want {
 				t.Errorf("shouldNotifyV1() = %v, want %v", got, tc.want)
 			}
@@ -773,16 +751,12 @@ func TestShouldNotifyV1(t *testing.T) {
 }
 
 func createRecoveredSummary() workertypes.EventSummary {
-	return workertypes.EventSummary{
-		SchemaVersion:       workertypes.VersionEventSummaryV1,
-		SnapshotOrigin:      workertypes.OriginLive,
-		Text:                "Search query recovered and tracking 2 features normally.",
-		Truncated:           false,
-		Categories:          workertypes.NewEmptySummaryCategories(),
-		QueryErrors:         nil,
-		ResolvedQueryErrors: []workertypes.SummaryQueryError{{Code: workertypes.SummaryQueryErrorCodeQueryGrammar}},
-		Highlights:          nil,
-	}
+	summary := workertypes.NewEmptyEventSummary()
+	summary.SnapshotOrigin = workertypes.OriginLive
+	summary.Text = "Search query recovered and tracking 2 features normally."
+	summary.SetResolvedQueryErrors([]workertypes.SummaryQueryError{{Code: workertypes.SummaryQueryErrorCodeQueryGrammar}})
+
+	return summary
 }
 
 func TestShouldNotifyV1_ResolvedQueryErrors(t *testing.T) {
@@ -816,7 +790,10 @@ func TestShouldNotifyV1_ResolvedQueryErrors(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			got := shouldNotifyV1(tc.triggers, tc.summary)
+			got, err := shouldNotifyV1(tc.triggers, &tc.summary)
+			if err != nil {
+				t.Fatalf("shouldNotifyV1 unexpected error: %v", err)
+			}
 			if got != tc.want {
 				t.Errorf("shouldNotifyV1() = %v, want %v", got, tc.want)
 			}
@@ -876,5 +853,15 @@ func TestProcessEvent_ResolvedQueryErrors_AllChannels(t *testing.T) {
 	}
 	if publisher.webhookJobs[0].SubscriptionID != "sub-webhook-recovery" {
 		t.Errorf("expected subscription ID sub-webhook-recovery, got %s", publisher.webhookJobs[0].SubscriptionID)
+	}
+}
+
+func TestShouldNotifyV1_NilSummary(t *testing.T) {
+	got, err := shouldNotifyV1([]workertypes.JobTrigger{workertypes.FeaturePromotedToNewly}, nil)
+	if err != nil {
+		t.Fatalf("shouldNotifyV1 unexpected error: %v", err)
+	}
+	if got != false {
+		t.Errorf("shouldNotifyV1(triggers, nil) = %v, want false", got)
 	}
 }
