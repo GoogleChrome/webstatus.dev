@@ -144,6 +144,23 @@
     },
     {
       "text": {
+        "text": "*No longer matches* \n_These features no longer match your saved search._",
+        "type": "mrkdwn"
+      },
+      "type": "section"
+    },
+    {
+      "text": {
+        "text": "• \u003chttps://webstatus.dev/features/removed-feature|Removed Feature\u003e",
+        "type": "mrkdwn"
+      },
+      "type": "section"
+    },
+    {
+      "type": "divider"
+    },
+    {
+      "text": {
         "text": "*Split* \n\u003chttps://webstatus.dev/features/feature-to-split|Feature To Split\u003e split into: \n• \u003chttps://webstatus.dev/features/sub-feature-1|Sub Feature 1\u003e\n• \u003chttps://webstatus.dev/features/sub-feature-2|Sub Feature 2\u003e :warning: _(No longer matches)_",
         "type": "mrkdwn"
       },
@@ -155,6 +172,23 @@
     {
       "text": {
         "text": "*Moved/Renamed* \nRenamed from Old Name to \u003chttps://webstatus.dev/features/new-cool-name|New Cool Name\u003e :warning: _(No longer matches)_",
+        "type": "mrkdwn"
+      },
+      "type": "section"
+    },
+    {
+      "type": "divider"
+    },
+    {
+      "text": {
+        "text": "*Deleted* \n_These features have been removed from the web platform._",
+        "type": "mrkdwn"
+      },
+      "type": "section"
+    },
+    {
+      "text": {
+        "text": "• \u003chttps://webstatus.dev/features/deleted-feature|Deleted Feature\u003e",
         "type": "mrkdwn"
       },
       "type": "section"
