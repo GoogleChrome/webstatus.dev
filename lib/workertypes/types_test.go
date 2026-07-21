@@ -57,6 +57,7 @@ func TestParseEventSummary(t *testing.T) {
 				SchemaVersion:  "v1",
 				SnapshotOrigin: "",
 				Text:           "Hello",
+				Truncated:      false,
 				Categories: SummaryCategories{
 					QueryChanged:    0,
 					Added:           0,
@@ -69,7 +70,6 @@ func TestParseEventSummary(t *testing.T) {
 					UpdatedRename:   0,
 					UpdatedBaseline: 0,
 				},
-				Truncated:           false,
 				Highlights:          nil,
 				QueryErrors:         nil,
 				ResolvedQueryErrors: nil,
@@ -126,6 +126,7 @@ func TestParseEventSummary(t *testing.T) {
 func TestGenerateJSONSummaryFeatureDiffV1(t *testing.T) {
 	newlyDate := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
 	browserImplDate := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+	_ = browserImplDate
 	tests := []struct {
 		name          string
 		diff          v1.FeatureDiff
@@ -783,10 +784,84 @@ func TestGenerateJSONSummary_QueryErrorsAndResolvedQueryErrors(t *testing.T) {
 		t.Fatalf("json.Unmarshal failed: %v", err)
 	}
 
-	if len(summary.QueryErrors) != 1 || summary.QueryErrors[0].Code != SummaryQueryErrorCodeSavedSearchNotFound {
+	if len(summary.QueryErrors) != 1 ||
+		summary.QueryErrors[0].Code != SummaryQueryErrorCodeSavedSearchNotFound {
 		t.Errorf("QueryErrors = %+v, want SavedSearchNotFound", summary.QueryErrors)
 	}
-	if len(summary.ResolvedQueryErrors) != 1 || summary.ResolvedQueryErrors[0].Code != SummaryQueryErrorCodeQueryGrammar {
+	if len(summary.ResolvedQueryErrors) != 1 ||
+		summary.ResolvedQueryErrors[0].Code != SummaryQueryErrorCodeQueryGrammar {
 		t.Errorf("ResolvedQueryErrors = %+v, want QueryGrammar", summary.ResolvedQueryErrors)
+	}
+}
+
+func TestEventSummary_EncapsulationAndMutators(t *testing.T) {
+	summary := NewEmptyEventSummary()
+	summary.Text = "Mutated summary"
+	summary.AddHighlight(newTestHighlight(SummaryHighlightTypeAdded, "f1", "F1"))
+	summary.SetQueryErrors([]SummaryQueryError{{Code: SummaryQueryErrorCodeInvalidQuery}})
+	summary.SetResolvedQueryErrors([]SummaryQueryError{{Code: SummaryQueryErrorCodeQueryGrammar}})
+
+	data, err := json.Marshal(summary)
+	if err != nil {
+		t.Fatalf("json.Marshal failed: %v", err)
+	}
+
+	var parsed EventSummary
+	if err := json.Unmarshal(data, &parsed); err != nil {
+		t.Fatalf("json.Unmarshal failed: %v", err)
+	}
+
+	if len(parsed.Highlights) != 1 || parsed.Highlights[0].FeatureID != "f1" {
+		t.Errorf("Highlights mismatch after round-trip: %v", parsed.Highlights)
+	}
+	if len(parsed.QueryErrors) != 1 ||
+		parsed.QueryErrors[0].Code != SummaryQueryErrorCodeInvalidQuery {
+		t.Errorf("QueryErrors mismatch after round-trip: %v", parsed.QueryErrors)
+	}
+	if len(parsed.ResolvedQueryErrors) != 1 ||
+		parsed.ResolvedQueryErrors[0].Code != SummaryQueryErrorCodeQueryGrammar {
+		t.Errorf("ResolvedQueryErrors mismatch after round-trip: %v", parsed.ResolvedQueryErrors)
+	}
+}
+
+func TestParseEventSummary_NonEmptyRawDispatch(t *testing.T) {
+	rawJSON := []byte(`{
+		"schemaVersion": "v1",
+		"text": "Full payload",
+		"queryErrors": [{"code": "saved_search_not_found"}],
+		"resolvedQueryErrors": [{"code": "query_grammar_invalid"}],
+		"highlights": [
+			{"type": "Added", "feature_id": "f-100", "feature_name": "Grid"}
+		]
+	}`)
+
+	mock := newMockCategorizedVisitor()
+	visitor := newBaseSummaryVisitor(nil, mock)
+
+	if err := ParseEventSummary(rawJSON, visitor); err != nil {
+		t.Fatalf("ParseEventSummary unexpected error: %v", err)
+	}
+
+	if mock.queryErrorsVisited != 1 {
+		t.Errorf("expected queryErrorsVisited = 1, got %d", mock.queryErrorsVisited)
+	}
+	if mock.resolvedQueryErrorsVisited != 1 {
+		t.Errorf("expected resolvedQueryErrorsVisited = 1, got %d", mock.resolvedQueryErrorsVisited)
+	}
+	if mock.addedVisited != 1 {
+		t.Errorf("expected addedVisited = 1, got %d", mock.addedVisited)
+	}
+}
+
+func TestEventSummary_AcceptContract(t *testing.T) {
+	summary := NewEmptyEventSummary()
+	summary.AddHighlight(newTestHighlight(SummaryHighlightTypeAdded, "f-1", "F1"))
+
+	mock := newMockCategorizedVisitor()
+	if err := summary.Accept(mock, nil); err != nil {
+		t.Fatalf("summary.Accept unexpected error: %v", err)
+	}
+	if mock.addedVisited != 1 {
+		t.Errorf("summary.Accept did not dispatch to visitor, addedVisited = %d", mock.addedVisited)
 	}
 }
