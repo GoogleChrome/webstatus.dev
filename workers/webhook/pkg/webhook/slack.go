@@ -181,42 +181,67 @@ type browserChangeData struct {
 	Type        workertypes.SummaryHighlightType
 }
 
+// VisitV1 initializes summary data and delegates trigger filtering and category routing
+// to BaseSummaryVisitor via summary.Accept().
 func (b *slackPayloadBuilder) VisitV1(summary workertypes.EventSummary) error {
 	b.summary = summary
-	b.queryErrors = summary.QueryErrors
-	b.resolvedQueryErrors = summary.ResolvedQueryErrors
 
-	filtered := workertypes.FilterHighlights(summary.Highlights, b.triggers)
-	if len(filtered) != 0 {
-		summary.Highlights = filtered
-	}
+	return summary.Accept(b, b.triggers)
+}
 
-	for _, h := range summary.Highlights {
-		b.processHighlight(h)
+// The following Visit... methods implement workertypes.CategorizedSummaryVisitor.
+// They are dispatched by BaseSummaryVisitor during summary.Accept().
+
+// VisitQueryErrors receives active query errors and populates b.queryErrors.
+func (b *slackPayloadBuilder) VisitQueryErrors(errs []workertypes.SummaryQueryError) error {
+	b.queryErrors = errs
+
+	return nil
+}
+
+// VisitResolvedQueryErrors receives resolved query errors and populates b.resolvedQueryErrors.
+func (b *slackPayloadBuilder) VisitResolvedQueryErrors(errs []workertypes.SummaryQueryError) error {
+	b.resolvedQueryErrors = errs
+
+	return nil
+}
+
+func (b *slackPayloadBuilder) VisitAddedFeatures(features []workertypes.SummaryHighlight) error {
+	b.addedFeatures = features
+
+	return nil
+}
+
+func (b *slackPayloadBuilder) VisitRemovedFeatures(features []workertypes.SummaryHighlight) error {
+	b.removedFeatures = features
+
+	return nil
+}
+
+func (b *slackPayloadBuilder) VisitChangedFeatures(features []workertypes.SummaryHighlight) error {
+	for _, h := range features {
+		b.processChangedData(h)
 	}
 
 	return nil
 }
 
-func (b *slackPayloadBuilder) processHighlight(highlight workertypes.SummaryHighlight) {
-	switch highlight.Type {
-	case workertypes.SummaryHighlightTypeMoved:
-		b.movedFeatures = append(b.movedFeatures, highlight)
-	case workertypes.SummaryHighlightTypeSplit:
-		b.splitFeatures = append(b.splitFeatures, highlight)
-	case workertypes.SummaryHighlightTypeAdded:
-		b.addedFeatures = append(b.addedFeatures, highlight)
-	case workertypes.SummaryHighlightTypeRemoved:
-		if highlight.BaselineChange != nil || len(highlight.BrowserChanges) > 0 {
-			b.processChangedData(highlight)
-		} else {
-			b.removedFeatures = append(b.removedFeatures, highlight)
-		}
-	case workertypes.SummaryHighlightTypeDeleted:
-		b.deletedFeatures = append(b.deletedFeatures, highlight)
-	case workertypes.SummaryHighlightTypeChanged:
-		b.processChangedData(highlight)
-	}
+func (b *slackPayloadBuilder) VisitMovedFeatures(features []workertypes.SummaryHighlight) error {
+	b.movedFeatures = features
+
+	return nil
+}
+
+func (b *slackPayloadBuilder) VisitSplitFeatures(features []workertypes.SummaryHighlight) error {
+	b.splitFeatures = features
+
+	return nil
+}
+
+func (b *slackPayloadBuilder) VisitDeletedFeatures(features []workertypes.SummaryHighlight) error {
+	b.deletedFeatures = features
+
+	return nil
 }
 
 func (b *slackPayloadBuilder) processChangedData(highlight workertypes.SummaryHighlight) {
@@ -267,8 +292,10 @@ func (b *slackPayloadBuilder) buildPayload(searchName string) SlackPayload {
 	blocks = b.appendRegressions(blocks)
 	blocks = b.appendBrowserChanges(blocks)
 	blocks = b.appendAddedFeatures(blocks)
+	blocks = b.appendRemovedFeatures(blocks)
 	blocks = b.appendSplitFeatures(blocks)
 	blocks = b.appendMovedFeatures(blocks)
+	blocks = b.appendDeletedFeatures(blocks)
 
 	unsubscribeURL := fmt.Sprintf("%s/settings/subscriptions", b.frontendBaseURL)
 	if b.subscriptionID != "" {
@@ -400,8 +427,12 @@ func (b *slackPayloadBuilder) processBrowserChange(items []string, c browserChan
 		}
 		items = append(items, txt)
 	case workertypes.BrowserStatusUnavailable:
-		txt := fmt.Sprintf("• %s: Available in %s → *Unavailable* (<%s|%s>)",
-			formatBrowserName(c.Browser), *c.Change.From.Version, featureURL, c.FeatureName)
+		fromVersionStr := ""
+		if c.Change.From.Version != nil {
+			fromVersionStr = fmt.Sprintf(" in %s", *c.Change.From.Version)
+		}
+		txt := fmt.Sprintf("• %s: Available%s → *Unavailable* (<%s|%s>)",
+			formatBrowserName(c.Browser), fromVersionStr, featureURL, c.FeatureName)
 		if c.Type == workertypes.SummaryHighlightTypeRemoved {
 			txt += "\n:warning: _This feature no longer matches your saved search._"
 		}
@@ -433,6 +464,9 @@ func (b *slackPayloadBuilder) appendSplitFeatures(blocks []any) []any {
 	if len(b.splitFeatures) > 0 {
 		blocks = append(blocks, dividerBlock())
 		for _, h := range b.splitFeatures {
+			if h.Split == nil {
+				continue
+			}
 			items := make([]string, 0, len(h.Split.To))
 			for _, sub := range h.Split.To {
 				noLongerStr := ""
@@ -462,6 +496,9 @@ func (b *slackPayloadBuilder) appendMovedFeatures(blocks []any) []any {
 	if len(b.movedFeatures) > 0 {
 		blocks = append(blocks, dividerBlock())
 		for _, h := range b.movedFeatures {
+			if h.Moved == nil {
+				continue
+			}
 			featureURL := fmt.Sprintf("%s/features/%s", b.frontendBaseURL, h.FeatureID)
 			noLongerStr := ""
 			if h.Moved.To.QueryMatch == workertypes.QueryMatchNoMatch {
@@ -474,6 +511,43 @@ func (b *slackPayloadBuilder) appendMovedFeatures(blocks []any) []any {
 	}
 
 	return blocks
+}
+
+func (b *slackPayloadBuilder) appendSimpleFeatureList(
+	blocks []any,
+	features []workertypes.SummaryHighlight,
+	sectionHeader string,
+) []any {
+	if len(features) > 0 {
+		blocks = append(blocks, dividerBlock())
+		blocks = append(blocks, sectionBlock(sectionHeader))
+		items := make([]string, 0, len(features))
+		for _, h := range features {
+			items = append(
+				items,
+				fmt.Sprintf("• <%s/features/%s|%s>", b.frontendBaseURL, h.FeatureID, h.FeatureName),
+			)
+		}
+		blocks = append(blocks, sectionBlock(strings.Join(items, "\n")))
+	}
+
+	return blocks
+}
+
+func (b *slackPayloadBuilder) appendRemovedFeatures(blocks []any) []any {
+	return b.appendSimpleFeatureList(
+		blocks,
+		b.removedFeatures,
+		"*No longer matches* \n_These features no longer match your saved search._",
+	)
+}
+
+func (b *slackPayloadBuilder) appendDeletedFeatures(blocks []any) []any {
+	return b.appendSimpleFeatureList(
+		blocks,
+		b.deletedFeatures,
+		"*Deleted* \n_These features have been removed from the web platform._",
+	)
 }
 
 func headerBlock(text string) map[string]any {
