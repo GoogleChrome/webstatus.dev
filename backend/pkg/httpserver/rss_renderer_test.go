@@ -16,8 +16,35 @@ package httpserver
 
 import (
 	"bytes"
+	"flag"
+	"os"
+	"path/filepath"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
+
+var updateGolden = flag.Bool("update", false, "update golden files") //nolint:gochecknoglobals // WONTFIX - test flag
+
+func verifyRSSGolden(t *testing.T, filename string, got string) {
+	t.Helper()
+	goldenPath := filepath.Join("testdata", filename)
+	if *updateGolden {
+		err := os.WriteFile(goldenPath, []byte(got), 0600)
+		if err != nil {
+			t.Fatalf("failed to update golden file %s: %v", goldenPath, err)
+		}
+	}
+
+	expected, err := os.ReadFile(goldenPath)
+	if err != nil {
+		t.Fatalf("failed to read golden file %s: %v", goldenPath, err)
+	}
+
+	if diff := cmp.Diff(string(expected), got); diff != "" {
+		t.Errorf("RSS description mismatch (-want +got):\n%s", diff)
+	}
+}
 
 func TestNewRSSRenderer(t *testing.T) {
 	renderer := NewRSSRenderer()
@@ -43,7 +70,10 @@ func TestRenderRSSDescription(t *testing.T) {
 				SummaryText:         "1 new feature matched",
 				Added:               []string{"Feature A"},
 				Removed:             nil,
-				Other:               nil,
+				Changed:             nil,
+				Moved:               nil,
+				Split:               nil,
+				Deleted:             nil,
 				QueryErrors:         nil,
 				ResolvedQueryErrors: nil,
 				Truncated:           false,
@@ -59,7 +89,10 @@ func TestRenderRSSDescription(t *testing.T) {
 				SummaryText:         "1 feature removed",
 				Added:               nil,
 				Removed:             []string{"Feature B"},
-				Other:               nil,
+				Changed:             nil,
+				Moved:               nil,
+				Split:               nil,
+				Deleted:             nil,
 				QueryErrors:         nil,
 				ResolvedQueryErrors: nil,
 				Truncated:           false,
@@ -70,19 +103,22 @@ func TestRenderRSSDescription(t *testing.T) {
 			},
 		},
 		{
-			name: "Other Update",
+			name: "Changed Update",
 			data: RSSItemData{
 				SummaryText:         "1 feature updated",
 				Added:               nil,
 				Removed:             nil,
-				Other:               []string{"Feature C (Changed)"},
+				Changed:             []string{"Feature C"},
+				Moved:               nil,
+				Split:               nil,
+				Deleted:             nil,
 				QueryErrors:         nil,
 				ResolvedQueryErrors: nil,
 				Truncated:           false,
 			},
 			expectedContains: []string{
 				"Feature C",
-				"Other Updates",
+				"Features Changed",
 			},
 		},
 		{
@@ -91,7 +127,10 @@ func TestRenderRSSDescription(t *testing.T) {
 				SummaryText:         "HTML escaping test",
 				Added:               []string{"<link rel=\"dns-prefetch\">"},
 				Removed:             nil,
-				Other:               nil,
+				Changed:             nil,
+				Moved:               nil,
+				Split:               nil,
+				Deleted:             nil,
 				QueryErrors:         nil,
 				ResolvedQueryErrors: nil,
 				Truncated:           false,
@@ -107,7 +146,10 @@ func TestRenderRSSDescription(t *testing.T) {
 				SummaryText:         "Summary text",
 				Added:               nil,
 				Removed:             nil,
-				Other:               nil,
+				Changed:             nil,
+				Moved:               nil,
+				Split:               nil,
+				Deleted:             nil,
 				QueryErrors:         nil,
 				ResolvedQueryErrors: nil,
 				Truncated:           true,
@@ -122,7 +164,10 @@ func TestRenderRSSDescription(t *testing.T) {
 				SummaryText:         "Query failure",
 				Added:               nil,
 				Removed:             nil,
-				Other:               nil,
+				Changed:             nil,
+				Moved:               nil,
+				Split:               nil,
+				Deleted:             nil,
 				QueryErrors:         []string{"Invalid query grammar"},
 				ResolvedQueryErrors: nil,
 				Truncated:           false,
@@ -138,7 +183,10 @@ func TestRenderRSSDescription(t *testing.T) {
 				SummaryText:         "Query recovered",
 				Added:               nil,
 				Removed:             nil,
-				Other:               nil,
+				Changed:             nil,
+				Moved:               nil,
+				Split:               nil,
+				Deleted:             nil,
 				QueryErrors:         nil,
 				ResolvedQueryErrors: []string{"Invalid query grammar"},
 				Truncated:           false,
@@ -164,4 +212,109 @@ func TestRenderRSSDescription(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestRenderRSSDescription_AllCategories(t *testing.T) {
+	data := RSSItemData{
+		SummaryText:         "Full feature summary",
+		Added:               []string{"Added Feature"},
+		Removed:             []string{"Removed Feature"},
+		Changed:             []string{"Changed Feature"},
+		Moved:               []string{"Moved Feature"},
+		Split:               []string{"Split Feature"},
+		Deleted:             []string{"Deleted Feature"},
+		QueryErrors:         []string{"Saved search not found"},
+		ResolvedQueryErrors: []string{"Invalid query grammar"},
+		Truncated:           true,
+	}
+
+	renderer := NewRSSRenderer()
+	output, err := renderer.RenderRSSDescription(data)
+	if err != nil {
+		t.Fatalf("RenderRSSDescription failed: %v", err)
+	}
+
+	expectedSections := []string{
+		"Query Recovered",
+		"Query Errors",
+		"Features Added",
+		"Features Removed",
+		"Features Changed",
+		"Features Moved/Renamed",
+		"Features Split",
+		"Features Deleted",
+		"Note: This summary has been truncated.",
+	}
+
+	for _, section := range expectedSections {
+		if !bytes.Contains([]byte(output), []byte(section)) {
+			t.Errorf("expected RSS description to contain %q, got: %s", section, output)
+		}
+	}
+
+	verifyRSSGolden(t, "rss_description.golden.html", output)
+}
+
+func TestRenderRSSDescription_GoldenSnapshots(t *testing.T) {
+	renderer := NewRSSRenderer()
+
+	t.Run("Query Error Golden", func(t *testing.T) {
+		data := RSSItemData{
+			SummaryText:         "Query failure",
+			Truncated:           false,
+			QueryErrors:         []string{"Invalid query grammar"},
+			ResolvedQueryErrors: nil,
+			Added:               nil,
+			Removed:             nil,
+			Changed:             nil,
+			Moved:               nil,
+			Split:               nil,
+			Deleted:             nil,
+		}
+		got, err := renderer.RenderRSSDescription(data)
+		if err != nil {
+			t.Fatalf("RenderRSSDescription failed: %v", err)
+		}
+		verifyRSSGolden(t, "rss_query_error.golden.html", got)
+	})
+
+	t.Run("Resolved Query Error Golden", func(t *testing.T) {
+		data := RSSItemData{
+			SummaryText:         "Query recovered",
+			Truncated:           false,
+			QueryErrors:         nil,
+			ResolvedQueryErrors: []string{"Invalid query grammar"},
+			Added:               nil,
+			Removed:             nil,
+			Changed:             nil,
+			Moved:               nil,
+			Split:               nil,
+			Deleted:             nil,
+		}
+		got, err := renderer.RenderRSSDescription(data)
+		if err != nil {
+			t.Fatalf("RenderRSSDescription failed: %v", err)
+		}
+		verifyRSSGolden(t, "rss_resolved_query_error.golden.html", got)
+	})
+
+	t.Run("Combined Errors and Features Golden", func(t *testing.T) {
+		data := RSSItemData{
+			SummaryText:         "Combined summary",
+			Truncated:           false,
+			QueryErrors:         []string{"Saved search not found"},
+			ResolvedQueryErrors: nil,
+			Added:               []string{"Added Feature"},
+			Removed:             nil,
+			Changed:             nil,
+			Moved:               nil,
+			Split:               nil,
+			Deleted:             nil,
+		}
+		got, err := renderer.RenderRSSDescription(data)
+		if err != nil {
+			t.Fatalf("RenderRSSDescription failed: %v", err)
+		}
+		verifyRSSGolden(t, "rss_combined_errors_and_features.golden.html", got)
+	})
 }

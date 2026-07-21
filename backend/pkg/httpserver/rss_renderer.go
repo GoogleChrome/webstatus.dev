@@ -52,10 +52,28 @@ const rssItemTemplate = `
         {{range .Removed}}<li>{{.}}</li>{{end}}
     </ul>
     {{end}}
-    {{if .Other}}
-    <h4>Other Updates</h4>
+    {{if .Changed}}
+    <h4>Features Changed</h4>
     <ul>
-        {{range .Other}}<li>{{.}}</li>{{end}}
+        {{range .Changed}}<li>{{.}}</li>{{end}}
+    </ul>
+    {{end}}
+    {{if .Moved}}
+    <h4>Features Moved/Renamed</h4>
+    <ul>
+        {{range .Moved}}<li>{{.}}</li>{{end}}
+    </ul>
+    {{end}}
+    {{if .Split}}
+    <h4>Features Split</h4>
+    <ul>
+        {{range .Split}}<li>{{.}}</li>{{end}}
+    </ul>
+    {{end}}
+    {{if .Deleted}}
+    <h4>Features Deleted</h4>
+    <ul>
+        {{range .Deleted}}<li>{{.}}</li>{{end}}
     </ul>
     {{end}}
     {{if .Truncated}}
@@ -68,7 +86,10 @@ type RSSItemData struct {
 	SummaryText         string
 	Added               []string
 	Removed             []string
-	Other               []string
+	Changed             []string
+	Moved               []string
+	Split               []string
+	Deleted             []string
 	QueryErrors         []string
 	ResolvedQueryErrors []string
 	Truncated           bool
