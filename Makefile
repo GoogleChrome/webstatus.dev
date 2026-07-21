@@ -351,6 +351,7 @@ ADDLICENSE_ARGS := -c "${COPYRIGHT_NAME}" \
 	-ignore 'workers/email/pkg/digest/testdata/digest.golden.html' \
 	-ignore 'workers/email/pkg/digest/testdata/digest_query_error.golden.html' \
 	-ignore 'workers/email/pkg/digest/testdata/digest_resolved_query_error.golden.html' \
+	-ignore 'workers/email/pkg/digest/testdata/digest_combined_errors_and_features.golden.html' \
 	-ignore 'backend/pkg/httpserver/testdata/rss_description.golden.html' \
 	-ignore 'backend/pkg/httpserver/testdata/rss_query_error.golden.html' \
 	-ignore 'backend/pkg/httpserver/testdata/rss_resolved_query_error.golden.html' \
