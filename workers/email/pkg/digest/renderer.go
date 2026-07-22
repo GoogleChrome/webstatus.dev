@@ -268,7 +268,8 @@ func (r *HTMLRenderer) RenderDigest(job workertypes.IncomingEmailDeliveryJob) (s
 	return subject, body.String(), nil
 }
 
-// templateDataGenerator implements workertypes.SummaryVisitor to prepare the data for the template.
+// templateDataGenerator implements workertypes.CategorizedSummaryVisitor to prepare email digest template data.
+// It receives pre-filtered categories and errors from EventSummary.Accept() via double dispatch.
 type templateDataGenerator struct {
 	job         workertypes.IncomingEmailDeliveryJob
 	subject     string
@@ -277,7 +278,7 @@ type templateDataGenerator struct {
 	data        templateData
 }
 
-// VisitV1 is called when a V1 summary is parsed.
+// VisitV1 initializes template metadata and triggers double dispatch categorization via summary.Accept().
 func (g *templateDataGenerator) VisitV1(summary workertypes.EventSummary) error {
 	g.data = newEmptyTemplateData()
 	g.data.Subject = g.subject
@@ -285,59 +286,81 @@ func (g *templateDataGenerator) VisitV1(summary workertypes.EventSummary) error 
 	g.data.SearchName = g.job.Metadata.SearchName
 	g.data.Query = g.job.Metadata.Query
 	g.data.SummaryText = summary.Text
-	g.data.QueryErrors = summary.QueryErrors
-	g.data.ResolvedQueryErrors = summary.ResolvedQueryErrors
 	g.data.Truncated = summary.Truncated
 	g.data.BaseURL = g.baseURL
 	g.data.UnsubscribeURL = fmt.Sprintf("%s/settings/subscriptions?unsubscribe=%s",
 		g.baseURL, g.job.SubscriptionID)
-	// 2. Filter Content (Content Filtering)
-	// We only show highlights that match the user's specific triggers.
-	filteredHighlights := workertypes.FilterHighlights(summary.Highlights, g.job.Triggers)
-	if len(filteredHighlights) != 0 {
-		// As long as we have some filtered highlights, override it.
-		// This should be the common case unless there's some logic error.
-		summary.Highlights = filteredHighlights
-	}
 
-	g.categorizeHighlights(summary.Highlights)
+	return summary.Accept(g, g.job.Triggers)
+}
+
+// The following Visit... methods are called by BaseSummaryVisitor during summary.Accept() double dispatch.
+
+// VisitQueryErrors receives active query errors and populates g.data.QueryErrors.
+func (g *templateDataGenerator) VisitQueryErrors(errs []workertypes.SummaryQueryError) error {
+	g.data.QueryErrors = errs
 
 	return nil
 }
 
-func (g *templateDataGenerator) categorizeHighlights(highlights []workertypes.SummaryHighlight) {
-	for _, highlight := range highlights {
-		g.processHighlight(highlight)
+// VisitResolvedQueryErrors receives resolved query errors and populates g.data.ResolvedQueryErrors.
+func (g *templateDataGenerator) VisitResolvedQueryErrors(errs []workertypes.SummaryQueryError) error {
+	g.data.ResolvedQueryErrors = errs
+
+	return nil
+}
+
+// VisitAddedFeatures receives newly added feature highlights.
+func (g *templateDataGenerator) VisitAddedFeatures(features []workertypes.SummaryHighlight) error {
+	g.data.AddedFeatures = features
+
+	return nil
+}
+
+// VisitRemovedFeatures receives feature highlights removed from query results.
+func (g *templateDataGenerator) VisitRemovedFeatures(features []workertypes.SummaryHighlight) error {
+	g.data.RemovedFeatures = features
+
+	return nil
+}
+
+// VisitChangedFeatures receives feature highlights with baseline status or browser availability changes.
+func (g *templateDataGenerator) VisitChangedFeatures(features []workertypes.SummaryHighlight) error {
+	for _, h := range features {
+		g.processChangedData(h)
 	}
+
+	return nil
 }
 
-func (g *templateDataGenerator) processHighlight(highlight workertypes.SummaryHighlight) {
-	g.routeHighlightToCategory(highlight)
-}
-
-func (g *templateDataGenerator) routeHighlightToCategory(highlight workertypes.SummaryHighlight) {
-	switch highlight.Type {
-	case workertypes.SummaryHighlightTypeMoved:
-		g.data.MovedFeatures = append(g.data.MovedFeatures, highlight)
-	case workertypes.SummaryHighlightTypeSplit:
-		g.data.SplitFeatures = append(g.data.SplitFeatures, highlight)
-	case workertypes.SummaryHighlightTypeAdded:
-		g.data.AddedFeatures = append(g.data.AddedFeatures, highlight)
-	case workertypes.SummaryHighlightTypeRemoved:
-		// Promotion Strategy:
-		// If a removed feature has significant changes (Baseline or Browser),
-		// we treat it as a "Change" so it appears in the specific sections (e.g. Baseline Newly)
-		// rather than the generic "Removed" list.
-		if highlight.BaselineChange != nil || len(highlight.BrowserChanges) > 0 {
-			g.processChangedData(highlight)
-		} else {
-			g.data.RemovedFeatures = append(g.data.RemovedFeatures, highlight)
+func (g *templateDataGenerator) VisitMovedFeatures(features []workertypes.SummaryHighlight) error {
+	valid := make([]workertypes.SummaryHighlight, 0, len(features))
+	for _, f := range features {
+		if f.Moved != nil {
+			valid = append(valid, f)
 		}
-	case workertypes.SummaryHighlightTypeDeleted:
-		g.data.DeletedFeatures = append(g.data.DeletedFeatures, highlight)
-	case workertypes.SummaryHighlightTypeChanged:
-		g.processChangedData(highlight)
 	}
+	g.data.MovedFeatures = valid
+
+	return nil
+}
+
+func (g *templateDataGenerator) VisitSplitFeatures(features []workertypes.SummaryHighlight) error {
+	valid := make([]workertypes.SummaryHighlight, 0, len(features))
+	for _, f := range features {
+		if f.Split != nil {
+			valid = append(valid, f)
+		}
+	}
+	g.data.SplitFeatures = valid
+
+	return nil
+}
+
+func (g *templateDataGenerator) VisitDeletedFeatures(features []workertypes.SummaryHighlight) error {
+	g.data.DeletedFeatures = features
+
+	return nil
 }
 
 func (g *templateDataGenerator) processChangedData(highlight workertypes.SummaryHighlight) {
