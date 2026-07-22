@@ -355,7 +355,11 @@ ADDLICENSE_ARGS := -c "${COPYRIGHT_NAME}" \
 	-ignore 'backend/pkg/httpserver/testdata/rss_description.golden.html' \
 	-ignore 'backend/pkg/httpserver/testdata/rss_query_error.golden.html' \
 	-ignore 'backend/pkg/httpserver/testdata/rss_resolved_query_error.golden.html' \
-	-ignore 'backend/pkg/httpserver/testdata/rss_combined_errors_and_features.golden.html'
+	-ignore 'backend/pkg/httpserver/testdata/rss_combined_errors_and_features.golden.html' \
+	-ignore 'workers/webhook/pkg/webhook/testdata/slack_payload.golden.json' \
+	-ignore 'workers/webhook/pkg/webhook/testdata/slack_payload_query_error.golden.json' \
+	-ignore 'workers/webhook/pkg/webhook/testdata/slack_payload_resolved_query_error.golden.json' \
+	-ignore 'workers/webhook/pkg/webhook/testdata/slack_payload_combined_errors_and_features.golden.json'
 
 license-check: go-install-tools
 	go tool addlicense -check $(ADDLICENSE_ARGS) .
