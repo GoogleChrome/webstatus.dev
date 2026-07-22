@@ -61,6 +61,7 @@ We use a Hexagonal-style **Adapter Pattern** to decouple application logic from 
 - **DO** define `noAuth:` under `components.securitySchemes` in `openapi.yaml` whenever any operation specifies `noAuth: []` in its `security:` requirements. In `oapi-codegen v2.7+`, `<Scheme>ContextKey` types (`noAuthContextKey`) are generated strictly from `components.securitySchemes`; omitting `noAuth` causes `undefined: noAuthContextKey` build failures.
 - **DO** pass pointers (`*string`) when populating optional OpenAPI response header fields (like `Location` in `301` responses), as `oapi-codegen v2.7+` models optional response headers as pointer types.
 - **DO** type strict middleware closures using `backend.StrictHandlerFunc` and `backend.StrictMiddlewareFunc` directly from the generated package rather than importing from `github.com/oapi-codegen/runtime/strictmiddleware/nethttp`.
+- **DO** use modern Go 1.26+ `new(expr)` built-in syntax (e.g., `new("my-string")` or `new(42)`) when creating pointers to values or literals. **DON'T** introduce custom pointer helper functions (e.g., `stringPtr`, `intPtr`, or generic `ptr(...)`).
 
 ## Testing & Linting
 
