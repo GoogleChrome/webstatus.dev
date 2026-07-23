@@ -38,7 +38,7 @@
     "@types/webstatus.dev-backend": "file:../lib/gen/openapi/ts-webstatus.dev-backend-types",
     "@typescript-eslint/eslint-plugin": "^8.63.0",
     "@web/dev-server-esbuild": "^2.0.0",
-    "@web/rollup-plugin-html": "^3.1.0",
+    "@web/rollup-plugin-html": "^4.0.0",
     "@web/test-runner": "^1.0.0",
     "@web/test-runner-mocha": "^0.9.0",
     "@web/test-runner-playwright": "^0.11.1",
