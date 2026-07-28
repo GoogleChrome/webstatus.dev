@@ -1832,7 +1832,7 @@ components:
         query:
           type: string
           minLength: 1
-          maxLength: 256
+          maxLength: 2048
       required:
         - name
         - query
@@ -1847,13 +1847,16 @@ components:
         name:
           type: string
           minLength: 1
+          maxLength: 32
         description:
           type: string
           nullable: true
           minLength: 1
+          maxLength: 1024
         query:
           type: string
           minLength: 1
+          maxLength: 2048
         update_mask:
           type: array
           description: >

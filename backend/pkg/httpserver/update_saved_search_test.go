@@ -15,6 +15,7 @@
 package httpserver
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -128,10 +129,163 @@ func TestUpdateSavedSearch(t *testing.T) {
 					"code":400,
 					"errors":{
 						"name":"name must be between 1 and 32 characters long",
-						"query":"query must be between 1 and 256 characters long"
+						"query":"query must be between 1 and 2048 characters long"
 					},
 					"message":"input validation errors"
 				}`,
+			),
+		},
+		{
+			name:                 "query is 2049 characters long",
+			cfg:                  nil,
+			publishCfg:           nil,
+			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
+			request: httptest.NewRequestWithContext(t.Context(),
+				http.MethodPatch,
+				"/v1/saved-searches/saved-search-id",
+				strings.NewReader(`{"query": "`+createStringOfNLength(2049)+`", "update_mask": ["query"]}`),
+			),
+			expectedResponse: testJSONResponse(400,
+				`{
+					"code":400,
+					"errors":{
+						"query":"query must be between 1 and 2048 characters long"
+					},
+					"message":"input validation errors"
+				}`),
+		},
+		{
+			name:                 "query has bad syntax",
+			cfg:                  nil,
+			publishCfg:           nil,
+			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
+			request: httptest.NewRequestWithContext(t.Context(),
+				http.MethodPatch,
+				"/v1/saved-searches/saved-search-id",
+				strings.NewReader(`{"query": "name:", "update_mask": ["query"]}`),
+			),
+			expectedResponse: testJSONResponse(400,
+				`{
+					"code":400,
+					"errors":{
+						"query":"query does not match grammar"
+					},
+					"message":"input validation errors"
+				}`),
+		},
+		{
+			name:                 "query exceeds max AST complexity",
+			cfg:                  nil,
+			publishCfg:           nil,
+			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
+			request: func() *http.Request {
+				terms := make([]string, 26)
+				for i := range terms {
+					terms[i] = fmt.Sprintf("id:feat-%d", i)
+				}
+				query := strings.Join(terms, " OR ")
+
+				return httptest.NewRequestWithContext(t.Context(),
+					http.MethodPatch,
+					"/v1/saved-searches/saved-search-id",
+					strings.NewReader(fmt.Sprintf(`{"query": %q, "update_mask": ["query"]}`, query)),
+				)
+			}(),
+			expectedResponse: testJSONResponse(400,
+				`{
+					"code":400,
+					"errors":{
+						"query":"search query complexity limit exceeded"
+					},
+					"message":"input validation errors"
+				}`),
+		},
+		{
+			name: "query with exactly 50 AST nodes (right at limit)",
+			cfg: func() *MockUpdateUserSavedSearchConfig {
+				terms := make([]string, 25)
+				for i := range terms {
+					terms[i] = fmt.Sprintf("id:feat-%d", i)
+				}
+				q := strings.Join(terms, " OR ")
+
+				return &MockUpdateUserSavedSearchConfig{
+					expectedSavedSearchID: "saved-search-id",
+					expectedUserID:        "testID1",
+					expectedUpdateRequest: &backend.SavedSearchUpdateRequest{
+						Name:        nil,
+						Description: nil,
+						Query:       &q,
+						UpdateMask: []backend.SavedSearchUpdateRequestUpdateMask{
+							backend.SavedSearchUpdateRequestMaskQuery,
+						},
+					},
+					output: &backend.SavedSearchResponse{
+						Id:             "saved-search-id",
+						Name:           "test name",
+						Query:          q,
+						Description:    nil,
+						Permissions:    nil,
+						BookmarkStatus: nil,
+						CreatedAt:      time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+						UpdatedAt:      time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+					},
+					err: nil,
+				}
+			}(),
+			publishCfg: func() *MockPublishSearchConfigurationChangedConfig {
+				terms := make([]string, 25)
+				for i := range terms {
+					terms[i] = fmt.Sprintf("id:feat-%d", i)
+				}
+				q := strings.Join(terms, " OR ")
+
+				return &MockPublishSearchConfigurationChangedConfig{
+					expectedResp: &backend.SavedSearchResponse{
+						Id:             "saved-search-id",
+						Name:           "test name",
+						Query:          q,
+						Description:    nil,
+						Permissions:    nil,
+						BookmarkStatus: nil,
+						CreatedAt:      time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+						UpdatedAt:      time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+					},
+					expectedUserID:     "testID1",
+					expectedIsCreation: false,
+					err:                nil,
+				}
+			}(),
+			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
+			request: func() *http.Request {
+				terms := make([]string, 25)
+				for i := range terms {
+					terms[i] = fmt.Sprintf("id:feat-%d", i)
+				}
+				q := strings.Join(terms, " OR ")
+
+				return httptest.NewRequestWithContext(t.Context(),
+					http.MethodPatch,
+					"/v1/saved-searches/saved-search-id",
+					strings.NewReader(fmt.Sprintf(`{"query": %q, "update_mask": ["query"]}`, q)),
+				)
+			}(),
+			expectedResponse: testJSONResponse(200,
+				func() string {
+					terms := make([]string, 25)
+					for i := range terms {
+						terms[i] = fmt.Sprintf("id:feat-%d", i)
+					}
+					q := strings.Join(terms, " OR ")
+
+					return fmt.Sprintf(`{
+						"id":"saved-search-id",
+						"name":"test name",
+						"query":%q,
+						"created_at":"2000-01-01T00:00:00Z",
+						"updated_at":"2000-01-01T00:00:00Z"
+					}`, q)
+				}(),
 			),
 		},
 		{

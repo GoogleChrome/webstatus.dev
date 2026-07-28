@@ -95,6 +95,97 @@ func (n SearchNode) IsKeyword() bool {
 	return n.Keyword == KeywordAND || n.Keyword == KeywordOR
 }
 
+// CountNodes returns the total number of nodes in the SearchNode AST tree.
+// Used for structural complexity validation to protect Cloud Spanner against query amplification attacks.
+func CountNodes(node *SearchNode) int {
+	if node == nil {
+		return 0
+	}
+	count := 1
+	for _, child := range node.Children {
+		count += CountNodes(child)
+	}
+
+	return count
+}
+
+// EqualSearchNode checks if two SearchNode trees are structurally identical.
+func EqualSearchNode(a, b *SearchNode) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+	if a.Keyword != b.Keyword {
+		return false
+	}
+	if (a.Term == nil) != (b.Term == nil) {
+		return false
+	}
+	if a.Term != nil {
+		if a.Term.Identifier != b.Term.Identifier ||
+			a.Term.Operator != b.Term.Operator ||
+			a.Term.Value != b.Term.Value {
+			return false
+		}
+	}
+	if len(a.Children) != len(b.Children) {
+		return false
+	}
+	for i := range a.Children {
+		if !EqualSearchNode(a.Children[i], b.Children[i]) {
+			return false
+		}
+	}
+
+	return true
+}
+
+// Deduplicate recursively simplifies an AST by removing duplicate child nodes under AND and OR keywords.
+// By the Idempotent Law of Boolean Algebra (A AND A = A, A OR A = A), deduplicating identical terms
+// produces a 100% logically equivalent query that returns the exact same set of web features,
+// while preventing redundant subquery generation and unnecessary Spanner CPU execution overhead.
+func Deduplicate(node *SearchNode) *SearchNode {
+	if node == nil {
+		return nil
+	}
+
+	newChildren := make([]*SearchNode, 0, len(node.Children))
+	for _, child := range node.Children {
+		dedupChild := Deduplicate(child)
+		if dedupChild == nil {
+			continue
+		}
+
+		if node.IsKeyword() {
+			duplicate := false
+			for _, existing := range newChildren {
+				if EqualSearchNode(existing, dedupChild) {
+					duplicate = true
+
+					break
+				}
+			}
+			if duplicate {
+				continue
+			}
+		}
+
+		newChildren = append(newChildren, dedupChild)
+	}
+
+	if node.IsKeyword() && len(newChildren) == 1 {
+		return newChildren[0]
+	}
+
+	return &SearchNode{
+		Keyword:  node.Keyword,
+		Term:     node.Term,
+		Children: newChildren,
+	}
+}
+
 type SearchTerm struct {
 	Identifier SearchIdentifier
 	Operator   SearchOperator

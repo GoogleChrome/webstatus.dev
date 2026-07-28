@@ -16,6 +16,7 @@ package httpserver
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -64,7 +65,7 @@ func TestCreateSavedSearch(t *testing.T) {
 					"code":400,
 					"errors":{
 						"name":"name must be between 1 and 32 characters long",
-						"query":"query must be between 1 and 256 characters long"
+						"query":"query must be between 1 and 2048 characters long"
 					},
 					"message":"input validation errors"
 				}`),
@@ -121,26 +122,26 @@ func TestCreateSavedSearch(t *testing.T) {
 				`{
 					"code":400,
 					"errors":{
-						"query":"query must be between 1 and 256 characters long"
+						"query":"query must be between 1 and 2048 characters long"
 					},
 					"message":"input validation errors"
 				}`),
 		},
 		{
-			name:                            "query is 257 characters long",
+			name:                            "query is 2049 characters long",
 			mockCreateUserSavedSearchConfig: nil,
 			mockPublishConfig:               nil,
 			authMiddlewareOption:            withAuthMiddleware(mockAuthMiddleware(testUser)),
 			request: httptest.NewRequestWithContext(t.Context(),
 				http.MethodPost,
 				"/v1/saved-searches",
-				strings.NewReader(`{"query": "`+createStringOfNLength(257)+`", "name" : "test name"}`),
+				strings.NewReader(`{"query": "`+createStringOfNLength(2049)+`", "name" : "test name"}`),
 			),
 			expectedResponse: testJSONResponse(400,
 				`{
 					"code":400,
 					"errors":{
-						"query":"query must be between 1 and 256 characters long"
+						"query":"query must be between 1 and 2048 characters long"
 					},
 					"message":"input validation errors"
 				}`),
@@ -185,6 +186,145 @@ func TestCreateSavedSearch(t *testing.T) {
 				}`),
 		},
 		{
+			name: "description is 1024 characters long (ON upper bound)",
+			mockCreateUserSavedSearchConfig: &MockCreateUserSavedSearchConfig{
+				expectedSavedSearch: backend.SavedSearch{
+					Name:        "test name",
+					Query:       `name:"test"`,
+					Description: new(createStringOfNLength(1024)),
+				},
+				expectedUserID: "testID1",
+				output: &backend.SavedSearchResponse{
+					Id:             "searchID1",
+					Name:           "test name",
+					Query:          `name:"test"`,
+					Description:    new(createStringOfNLength(1024)),
+					Permissions:    nil,
+					BookmarkStatus: nil,
+					CreatedAt:      time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+					UpdatedAt:      time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+				},
+				err: nil,
+			},
+			mockPublishConfig: &MockPublishSearchConfigurationChangedConfig{
+				expectedResp: &backend.SavedSearchResponse{
+					Id:             "searchID1",
+					Name:           "test name",
+					Query:          `name:"test"`,
+					Description:    new(createStringOfNLength(1024)),
+					Permissions:    nil,
+					BookmarkStatus: nil,
+					CreatedAt:      time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+					UpdatedAt:      time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+				},
+				expectedUserID:     "testID1",
+				expectedIsCreation: true,
+				err:                nil,
+			},
+			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
+			request: httptest.NewRequestWithContext(t.Context(),
+				http.MethodPost,
+				"/v1/saved-searches",
+				strings.NewReader(fmt.Sprintf(
+					`{"query": "name:\"test\"", "name" : "test name", "description": %q}`,
+					createStringOfNLength(1024))),
+			),
+			expectedResponse: testJSONResponse(201,
+				fmt.Sprintf(`{
+					"id":"searchID1",
+					"name":"test name",
+					"query":"name:\"test\"",
+					"description":%q,
+					"created_at":"2000-01-01T00:00:00Z",
+					"updated_at":"2000-01-01T00:00:00Z"
+				}`, createStringOfNLength(1024)),
+			),
+		},
+		{
+			name: "query with >50 raw nodes deduplicates to <=50 nodes and succeeds",
+			mockCreateUserSavedSearchConfig: func() *MockCreateUserSavedSearchConfig {
+				terms := make([]string, 60)
+				for i := range terms {
+					terms[i] = "group:layout"
+				}
+				q := strings.Join(terms, " AND ")
+
+				return &MockCreateUserSavedSearchConfig{
+					expectedSavedSearch: backend.SavedSearch{
+						Name:        "test name",
+						Query:       q,
+						Description: nil,
+					},
+					expectedUserID: "testID1",
+					output: &backend.SavedSearchResponse{
+						Id:             "searchID1",
+						Name:           "test name",
+						Query:          q,
+						Description:    nil,
+						Permissions:    nil,
+						BookmarkStatus: nil,
+						CreatedAt:      time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+						UpdatedAt:      time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+					},
+					err: nil,
+				}
+			}(),
+			mockPublishConfig: func() *MockPublishSearchConfigurationChangedConfig {
+				terms := make([]string, 60)
+				for i := range terms {
+					terms[i] = "group:layout"
+				}
+				q := strings.Join(terms, " AND ")
+
+				return &MockPublishSearchConfigurationChangedConfig{
+					expectedResp: &backend.SavedSearchResponse{
+						Id:             "searchID1",
+						Name:           "test name",
+						Query:          q,
+						Description:    nil,
+						Permissions:    nil,
+						BookmarkStatus: nil,
+						CreatedAt:      time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+						UpdatedAt:      time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+					},
+					expectedUserID:     "testID1",
+					expectedIsCreation: true,
+					err:                nil,
+				}
+			}(),
+			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
+			request: func() *http.Request {
+				terms := make([]string, 60)
+				for i := range terms {
+					terms[i] = "group:layout"
+				}
+				q := strings.Join(terms, " AND ")
+
+				return httptest.NewRequestWithContext(t.Context(),
+					http.MethodPost,
+					"/v1/saved-searches",
+					strings.NewReader(fmt.Sprintf(`{"query": %q, "name" : "test name"}`, q)),
+				)
+			}(),
+			expectedResponse: testJSONResponse(201,
+				func() string {
+					terms := make([]string, 60)
+					for i := range terms {
+						terms[i] = "group:layout"
+					}
+					q := strings.Join(terms, " AND ")
+
+					return fmt.Sprintf(`{
+						"id":"searchID1",
+						"name":"test name",
+						"query":%q,
+						"created_at":"2000-01-01T00:00:00Z",
+						"updated_at":"2000-01-01T00:00:00Z"
+					}`, q)
+				}(),
+			),
+		},
+		{
 			name:                            "query has bad syntax",
 			mockCreateUserSavedSearchConfig: nil,
 			mockPublishConfig:               nil,
@@ -204,6 +344,117 @@ func TestCreateSavedSearch(t *testing.T) {
 				}`),
 		},
 		{
+			name:                            "query exceeds max AST complexity",
+			mockCreateUserSavedSearchConfig: nil,
+			mockPublishConfig:               nil,
+			authMiddlewareOption:            withAuthMiddleware(mockAuthMiddleware(testUser)),
+			request: func() *http.Request {
+				terms := make([]string, 26)
+				for i := range terms {
+					terms[i] = fmt.Sprintf("id:feat-%d", i)
+				}
+				query := strings.Join(terms, " OR ")
+
+				return httptest.NewRequestWithContext(t.Context(),
+					http.MethodPost,
+					"/v1/saved-searches",
+					strings.NewReader(fmt.Sprintf(`{"query": %q, "name" : "test name"}`, query)),
+				)
+			}(),
+			expectedResponse: testJSONResponse(400,
+				`{
+					"code":400,
+					"errors":{
+						"query":"search query complexity limit exceeded"
+					},
+					"message":"input validation errors"
+				}`),
+		},
+		{
+			name: "query with exactly 50 AST nodes (right at limit)",
+			mockCreateUserSavedSearchConfig: func() *MockCreateUserSavedSearchConfig {
+				terms := make([]string, 25)
+				for i := range terms {
+					terms[i] = fmt.Sprintf("id:feat-%d", i)
+				}
+				q := strings.Join(terms, " OR ")
+
+				return &MockCreateUserSavedSearchConfig{
+					expectedSavedSearch: backend.SavedSearch{
+						Name:        "test name",
+						Query:       q,
+						Description: nil,
+					},
+					expectedUserID: "testID1",
+					output: &backend.SavedSearchResponse{
+						Id:             "searchID1",
+						Name:           "test name",
+						Query:          q,
+						Description:    nil,
+						Permissions:    nil,
+						BookmarkStatus: nil,
+						CreatedAt:      time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+						UpdatedAt:      time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+					},
+					err: nil,
+				}
+			}(),
+			mockPublishConfig: func() *MockPublishSearchConfigurationChangedConfig {
+				terms := make([]string, 25)
+				for i := range terms {
+					terms[i] = fmt.Sprintf("id:feat-%d", i)
+				}
+				q := strings.Join(terms, " OR ")
+
+				return &MockPublishSearchConfigurationChangedConfig{
+					expectedResp: &backend.SavedSearchResponse{
+						Id:             "searchID1",
+						Name:           "test name",
+						Query:          q,
+						Description:    nil,
+						Permissions:    nil,
+						BookmarkStatus: nil,
+						CreatedAt:      time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+						UpdatedAt:      time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+					},
+					expectedUserID:     "testID1",
+					expectedIsCreation: true,
+					err:                nil,
+				}
+			}(),
+			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
+			request: func() *http.Request {
+				terms := make([]string, 25)
+				for i := range terms {
+					terms[i] = fmt.Sprintf("id:feat-%d", i)
+				}
+				q := strings.Join(terms, " OR ")
+
+				return httptest.NewRequestWithContext(t.Context(),
+					http.MethodPost,
+					"/v1/saved-searches",
+					strings.NewReader(fmt.Sprintf(`{"query": %q, "name" : "test name"}`, q)),
+				)
+			}(),
+			expectedResponse: testJSONResponse(201,
+				func() string {
+					terms := make([]string, 25)
+					for i := range terms {
+						terms[i] = fmt.Sprintf("id:feat-%d", i)
+					}
+					q := strings.Join(terms, " OR ")
+
+					return fmt.Sprintf(`{
+						"id":"searchID1",
+						"name":"test name",
+						"query":%q,
+						"created_at":"2000-01-01T00:00:00Z",
+						"updated_at":"2000-01-01T00:00:00Z"
+					}`, q)
+				}(),
+			),
+		},
+		{
 			name:                            "missing body creation error",
 			mockCreateUserSavedSearchConfig: nil,
 			mockPublishConfig:               nil,
@@ -218,7 +469,7 @@ func TestCreateSavedSearch(t *testing.T) {
 					"code":400,
 					"errors":{
 						"name":"name must be between 1 and 32 characters long",
-						"query":"query must be between 1 and 256 characters long"
+						"query":"query must be between 1 and 2048 characters long"
 					},
 					"message":"input validation errors"
 				}`,
