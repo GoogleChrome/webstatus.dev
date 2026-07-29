@@ -19,48 +19,75 @@ import (
 	"html/template"
 )
 
-const rssItemTemplate = `
-<div>
+const rssItemTemplate = `<div>
     <p>{{.SummaryText}}</p>
-    {{if .ResolvedQueryErrors}}
+    {{- if .ResolvedQueryErrors}}
     <h4>Query Recovered</h4>
     <ul>
-        {{range .ResolvedQueryErrors}}
+        {{- range .ResolvedQueryErrors}}
         <li>Tracking resumed cleanly from your baseline. Resolved issue: {{.}}</li>
-        {{end}}
+        {{- end}}
     </ul>
-    {{end}}
-    {{if .QueryErrors}}
+    {{- end}}
+    {{- if .QueryErrors}}
     <h4>Query Errors</h4>
     <ul>
-        {{range .QueryErrors}}
+        {{- range .QueryErrors}}
         <li>{{.}}</li>
-        {{end}}
+        {{- end}}
     </ul>
-    {{end}}
-    {{if .Added}}
+    {{- end}}
+    {{- if .Added}}
     <h4>Features Added</h4>
     <ul>
-        {{range .Added}}
+        {{- range .Added}}
         <li>{{.}}</li>
-        {{end}}
+        {{- end}}
     </ul>
-    {{end}}
-    {{if .Removed}}
+    {{- end}}
+    {{- if .Removed}}
     <h4>Features Removed</h4>
     <ul>
-        {{range .Removed}}<li>{{.}}</li>{{end}}
+        {{- range .Removed}}
+        <li>{{.}}</li>
+        {{- end}}
     </ul>
-    {{end}}
-    {{if .Other}}
-    <h4>Other Updates</h4>
+    {{- end}}
+    {{- if .Changed}}
+    <h4>Features Changed</h4>
     <ul>
-        {{range .Other}}<li>{{.}}</li>{{end}}
+        {{- range .Changed}}
+        <li>{{.}}</li>
+        {{- end}}
     </ul>
-    {{end}}
-    {{if .Truncated}}
+    {{- end}}
+    {{- if .Moved}}
+    <h4>Features Moved/Renamed</h4>
+    <ul>
+        {{- range .Moved}}
+        <li>{{.}}</li>
+        {{- end}}
+    </ul>
+    {{- end}}
+    {{- if .Split}}
+    <h4>Features Split</h4>
+    <ul>
+        {{- range .Split}}
+        <li>{{.}}</li>
+        {{- end}}
+    </ul>
+    {{- end}}
+    {{- if .Deleted}}
+    <h4>Features Deleted</h4>
+    <ul>
+        {{- range .Deleted}}
+        <li>{{.}}</li>
+        {{- end}}
+    </ul>
+    {{- end}}
+    {{- if .Truncated}}
     <p><em>Note: This summary has been truncated. View full details on the site.</em></p>
-    {{end}}
+    {{- end}}
 </div>
 `
 
@@ -68,7 +95,10 @@ type RSSItemData struct {
 	SummaryText         string
 	Added               []string
 	Removed             []string
-	Other               []string
+	Changed             []string
+	Moved               []string
+	Split               []string
+	Deleted             []string
 	QueryErrors         []string
 	ResolvedQueryErrors []string
 	Truncated           bool

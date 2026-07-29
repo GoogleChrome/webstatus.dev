@@ -7,6 +7,10 @@ jsonschema/mdn_browser-compat-data
 jsonschema/web-platform-dx_web-features
 jsonschema/web-platform-dx_web-features-mappings
 docs/schema
+backend/pkg/httpserver/testdata/rss_description.golden.html
+backend/pkg/httpserver/testdata/rss_query_error.golden.html
+backend/pkg/httpserver/testdata/rss_resolved_query_error.golden.html
+backend/pkg/httpserver/testdata/rss_combined_errors_and_features.golden.html
 workers/email/pkg/digest/testdata/digest.golden.html
 workers/email/pkg/digest/testdata/digest_query_error.golden.html
 workers/email/pkg/digest/testdata/digest_resolved_query_error.golden.html

@@ -16,9 +16,13 @@ package httpserver
 
 import (
 	"fmt"
+
 	"github.com/GoogleChrome/webstatus.dev/lib/workertypes"
 )
 
+// rssVisitor implements workertypes.CategorizedSummaryVisitor to prepare RSS feed item payloads.
+// It uses double dispatch via BaseSummaryVisitor to populate RSSItemData with pre-filtered,
+// categorized highlights (Added, Removed, Changed, Moved, Split, Deleted) and error banners.
 type rssVisitor struct {
 	triggers []workertypes.JobTrigger
 	data     RSSItemData
@@ -29,7 +33,10 @@ func newEmptyRSSItemData() RSSItemData {
 		SummaryText:         "",
 		Added:               nil,
 		Removed:             nil,
-		Other:               nil,
+		Changed:             nil,
+		Moved:               nil,
+		Split:               nil,
+		Deleted:             nil,
 		QueryErrors:         nil,
 		ResolvedQueryErrors: nil,
 		Truncated:           false,
@@ -43,33 +50,14 @@ func newRSSVisitor(triggers []workertypes.JobTrigger) *rssVisitor {
 	}
 }
 
+// VisitV1 categorizes summary highlights against triggers and populates RSSItemData.
 func (v *rssVisitor) VisitV1(summary workertypes.EventSummary) error {
 	v.data = newEmptyRSSItemData()
 	v.data.SummaryText = summary.Text
 	v.data.Truncated = summary.Truncated
-	for _, qe := range summary.QueryErrors {
-		v.data.QueryErrors = append(v.data.QueryErrors, qe.Code.Message())
-	}
-	for _, qe := range summary.ResolvedQueryErrors {
-		v.data.ResolvedQueryErrors = append(v.data.ResolvedQueryErrors, qe.Code.Message())
-	}
 
-	// 1. Filter highlights against user triggers using shared workertypes helper
-	highlights := workertypes.FilterHighlights(summary.Highlights, v.triggers)
-
-	// 2. Populate current RSS categories
-	for _, h := range highlights {
-		switch h.Type {
-		case workertypes.SummaryHighlightTypeAdded:
-			v.data.Added = append(v.data.Added, h.FeatureName)
-		case workertypes.SummaryHighlightTypeRemoved:
-			v.data.Removed = append(v.data.Removed, h.FeatureName)
-		case workertypes.SummaryHighlightTypeChanged,
-			workertypes.SummaryHighlightTypeMoved,
-			workertypes.SummaryHighlightTypeSplit,
-			workertypes.SummaryHighlightTypeDeleted:
-			v.data.Other = append(v.data.Other, fmt.Sprintf("%s (%s)", h.FeatureName, h.Type))
-		}
+	if err := summary.Accept(v, v.triggers); err != nil {
+		return fmt.Errorf("failed to categorize event summary for RSS: %w", err)
 	}
 
 	return nil
@@ -80,5 +68,72 @@ func (v *rssVisitor) HasContent() bool {
 		len(v.data.ResolvedQueryErrors) > 0 ||
 		len(v.data.Added) > 0 ||
 		len(v.data.Removed) > 0 ||
-		len(v.data.Other) > 0
+		len(v.data.Changed) > 0 ||
+		len(v.data.Moved) > 0 ||
+		len(v.data.Split) > 0 ||
+		len(v.data.Deleted) > 0
+}
+
+func (v *rssVisitor) VisitQueryErrors(errs []workertypes.SummaryQueryError) error {
+	for _, qe := range errs {
+		v.data.QueryErrors = append(v.data.QueryErrors, qe.Code.Message())
+	}
+
+	return nil
+}
+
+func (v *rssVisitor) VisitResolvedQueryErrors(errs []workertypes.SummaryQueryError) error {
+	for _, qe := range errs {
+		v.data.ResolvedQueryErrors = append(v.data.ResolvedQueryErrors, qe.Code.Message())
+	}
+
+	return nil
+}
+
+func (v *rssVisitor) VisitAddedFeatures(features []workertypes.SummaryHighlight) error {
+	for _, h := range features {
+		v.data.Added = append(v.data.Added, h.FeatureName)
+	}
+
+	return nil
+}
+
+func (v *rssVisitor) VisitRemovedFeatures(features []workertypes.SummaryHighlight) error {
+	for _, h := range features {
+		v.data.Removed = append(v.data.Removed, h.FeatureName)
+	}
+
+	return nil
+}
+
+func (v *rssVisitor) VisitChangedFeatures(features []workertypes.SummaryHighlight) error {
+	for _, h := range features {
+		v.data.Changed = append(v.data.Changed, h.FeatureName)
+	}
+
+	return nil
+}
+
+func (v *rssVisitor) VisitMovedFeatures(features []workertypes.SummaryHighlight) error {
+	for _, h := range features {
+		v.data.Moved = append(v.data.Moved, h.FeatureName)
+	}
+
+	return nil
+}
+
+func (v *rssVisitor) VisitSplitFeatures(features []workertypes.SummaryHighlight) error {
+	for _, h := range features {
+		v.data.Split = append(v.data.Split, h.FeatureName)
+	}
+
+	return nil
+}
+
+func (v *rssVisitor) VisitDeletedFeatures(features []workertypes.SummaryHighlight) error {
+	for _, h := range features {
+		v.data.Deleted = append(v.data.Deleted, h.FeatureName)
+	}
+
+	return nil
 }
