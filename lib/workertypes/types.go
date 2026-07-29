@@ -173,6 +173,57 @@ type EventSummary struct {
 	Highlights          []SummaryHighlight  `json:"highlights"`
 }
 
+// Categorize filters and categorizes the summary highlights against the provided triggers.
+// It returns a BaseSummaryVisitor containing the categorized summary and any processing errors.
+func (s *EventSummary) Categorize(triggers []JobTrigger) (*BaseSummaryVisitor, error) {
+	base := newBaseSummaryVisitor(triggers, nil)
+	if err := base.VisitV1(*s); err != nil {
+		return nil, err
+	}
+
+	return base, nil
+}
+
+// Accept filters highlights against triggers and executes double-dispatch via BaseSummaryVisitor.
+func (s *EventSummary) Accept(v CategorizedSummaryVisitor, triggers []JobTrigger) error {
+	base := newBaseSummaryVisitor(triggers, v)
+
+	return base.VisitV1(*s)
+}
+
+// ExtractUniqueFeatureIDs returns deduplicated feature IDs for highlights matching the given triggers.
+func (s *EventSummary) ExtractUniqueFeatureIDs(triggers []JobTrigger) []string {
+	filtered := FilterHighlights(s.Highlights, triggers)
+	if len(filtered) == 0 {
+		return nil
+	}
+	idMap := make(map[string]struct{}, len(filtered))
+	ids := make([]string, 0, len(filtered))
+	for _, h := range filtered {
+		if _, exists := idMap[h.FeatureID]; !exists {
+			idMap[h.FeatureID] = struct{}{}
+			ids = append(ids, h.FeatureID)
+		}
+	}
+
+	return slices.Clip(ids)
+}
+
+// AddHighlight adds a highlight to the summary.
+func (s *EventSummary) AddHighlight(h SummaryHighlight) {
+	s.Highlights = append(s.Highlights, h)
+}
+
+// SetQueryErrors sets the active query errors on the summary.
+func (s *EventSummary) SetQueryErrors(errs []SummaryQueryError) {
+	s.QueryErrors = errs
+}
+
+// SetResolvedQueryErrors sets the resolved query errors on the summary.
+func (s *EventSummary) SetResolvedQueryErrors(errs []SummaryQueryError) {
+	s.ResolvedQueryErrors = errs
+}
+
 func NewEmptySummaryCategories() SummaryCategories {
 	return SummaryCategories{
 		Updated:         0,
@@ -319,8 +370,14 @@ type SummaryHighlight struct {
 	NameChange     *Change[string]                       `json:"name_change,omitempty"`
 	BaselineChange *Change[BaselineValue]                `json:"baseline_change,omitempty"`
 	BrowserChanges map[BrowserName]*Change[BrowserValue] `json:"browser_changes,omitempty"`
-	Moved          *Change[FeatureRef]                   `json:"moved,omitempty"`
-	Split          *SplitChange                          `json:"split,omitempty"`
+
+	// Moved details feature rename/location changes. May be nil if the highlight
+	// type is not SummaryHighlightTypeMoved or if unmarshaled from historical/partial event payloads.
+	Moved *Change[FeatureRef] `json:"moved,omitempty"`
+
+	// Split details feature split changes into sub-features. May be nil if the highlight
+	// type is not SummaryHighlightTypeSplit or if unmarshaled from historical/partial event payloads.
+	Split *SplitChange `json:"split,omitempty"`
 }
 
 // SummaryVisitor defines the contract for consuming immutable Event Summaries.
