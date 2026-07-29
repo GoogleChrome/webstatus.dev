@@ -62,8 +62,9 @@ func (m browserReleaseSpannerMapper) SelectOne(key browserReleaseKey) spanner.St
 	return stmt
 }
 
-func (m browserReleaseSpannerMapper) Merge(_ BrowserRelease, existing spannerBrowserRelease) spannerBrowserRelease {
-	// If the release exists, it currently does nothing and keeps the existing as-is.
+func (m browserReleaseSpannerMapper) Merge(input BrowserRelease, existing spannerBrowserRelease) spannerBrowserRelease {
+	existing.ReleaseDate = input.ReleaseDate
+
 	return existing
 }
 
