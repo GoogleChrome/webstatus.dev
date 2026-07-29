@@ -1,8 +1,45 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
+set -euo pipefail
 
 # This is a helper script for deploying to a specific environment.
 # It is called by the deploy-staging and deploy-production scripts.
+
+usage() {
+  echo "Usage: deploy-env [-q] [-f] [-p] [-a]"
+  echo "  -q : Disable interactive prompts and run in non-interactive CI/CD mode"
+  echo "  -f : Force deployment"
+  echo "  -p : Execute terraform plan only and exit"
+  echo "  -a : Execute terraform apply only and exit"
+}
+
+QUIET="${QUIET:-false}"
+FORCE_DEPLOY="${FORCE_DEPLOY:-false}"
+PLAN_ONLY="${PLAN_ONLY:-false}"
+APPLY_ONLY="${APPLY_ONLY:-false}"
+CI="${CI:-false}"
+CLOUD_BUILD="${CLOUD_BUILD:-false}"
+
+while getopts ':fqpah' flag; do
+  case "${flag}" in
+    f) FORCE_DEPLOY='true' ;;
+    q) QUIET='true' ;;
+    p) PLAN_ONLY='true' ;;
+    a) APPLY_ONLY='true' ;;
+    h) usage && exit 0 ;;
+    *) usage >&2 && exit 1 ;;
+  esac
+done
+
+# If CI or CLOUD_BUILD environment variables are true, default QUIET to true
+if [[ "${CI}" == "true" || "${CLOUD_BUILD}" == "true" ]]; then
+  QUIET="true"
+fi
+
+if [[ "${PLAN_ONLY}" == "true" && "${APPLY_ONLY}" == "true" ]]; then
+  echo "Error: -p (plan-only) and -a (apply-only) flags cannot be used together." >&2
+  usage
+  exit 1
+fi
 
 # Check that all required environment variables are set.
 if [ -z "$DEPLOY_ENV" ] || [ -z "$GCP_PROJECT" ] || \
@@ -16,7 +53,7 @@ fi
 echo "Starting deployment for $DEPLOY_ENV environment..."
 
 # Ensure we are in the project root
-if [ "$(git rev-parse --git-dir 2>/dev/null)" != ".git" ]; then
+if [ "$(git rev-parse --show-toplevel 2>/dev/null)" != "$(pwd -P)" ]; then
   echo "Please run this script from the root of the webstatus.dev repository."
   exit 1
 fi
@@ -26,36 +63,73 @@ make build
 
 cd infra
 
-echo "Authenticating with gcloud for project $GCP_PROJECT..."
-gcloud auth login
-gcloud auth application-default login --project="$GCP_PROJECT"
+if [[ "${QUIET}" == "true" ]]; then
+  echo "Non-interactive CI/CD mode (-q): Using existing/ambient gcloud credentials for project $GCP_PROJECT..."
+  gcloud config set project "$GCP_PROJECT" --quiet || true
+  export TF_IN_AUTOMATION=1
+  INPUT_FLAG="-input=false"
+else
+  echo "Authenticating with gcloud for project $GCP_PROJECT..."
+  gcloud auth login
+  gcloud auth application-default login --project="$GCP_PROJECT"
+  INPUT_FLAG=""
+fi
 gcloud auth configure-docker europe-west1-docker.pkg.dev --quiet
 
 export TF_WORKSPACE=${DEPLOY_ENV}
 
 echo "Initializing Terraform..."
-terraform init -reconfigure --var-file=".envs/${DEPLOY_ENV}.tfvars" --backend-config=".envs/backend-${DEPLOY_ENV}.tfvars"
+terraform init ${INPUT_FLAG} -reconfigure --backend-config=".envs/backend-${DEPLOY_ENV}.tfvars"
 
-echo "Planning Terraform changes..."
-terraform plan \
-    -var-file=".envs/${DEPLOY_ENV}.tfvars" \
-    -var "env_id=${DEPLOY_ENV}"
+TF_COMMON_ARGS=(-parallelism=2 -var-file=".envs/${DEPLOY_ENV}.tfvars" -var "env_id=${DEPLOY_ENV}")
 
-echo
-echo "Review the plan above. If it looks correct, you will be prompted to apply the changes."
-echo "Press enter to continue, or Ctrl+C to cancel."
-read -r
+if [[ "${APPLY_ONLY}" != "true" ]]; then
+  echo "Planning Terraform changes..."
+  terraform plan ${INPUT_FLAG:+"${INPUT_FLAG}"} "${TF_COMMON_ARGS[@]}"
 
-echo "Migrating database schema (if needed)..."
-export SPANNER_PROJECT_ID=${SPANNER_PROJECT}
-export SPANNER_DATABASE_ID=${DEPLOY_ENV}-database
-export SPANNER_INSTANCE_ID=${DEPLOY_ENV}-spanner
-(cd .. && go tool wrench migrate up --directory ./infra/storage/spanner/)
+  if [[ "${PLAN_ONLY}" == "true" ]]; then
+    echo "Plan-only mode (-p) complete. Exiting cleanly before schema migration or apply."
+    exit 0
+  fi
+
+  if [[ "${QUIET}" == "true" ]]; then
+    echo "Non-interactive CI/CD mode (-q): Auto-approving Terraform plan and continuing..."
+  else
+    echo
+    echo "Review the plan above. If it looks correct, you will be prompted to apply the changes."
+    echo "Press enter to continue, or Ctrl+C to cancel."
+    read -r
+  fi
+fi
+
+# ARCHITECTURAL NOTE: Why we skip Spanner migrations inside DevContainer during CI/CD (-q):
+# In Cloud Build CI/CD, running inside the DevContainer over --network=host causes Google Cloud
+# metadata queries (http://169.254.169.254) to fall back to the underlying GCE VM compute identity
+# (cloudbuild-untrusted@...) which has restricted scopes (devstorage.read_only), causing wrench
+# to fail with 403 "Request had insufficient authentication scopes".
+# Therefore, in non-interactive CI/CD mode (-q), we decouple database migrations from Terraform
+# and execute go tool wrench natively on the outer Cloud Build host container (Phase 2 of deploy-ci),
+# where it cleanly inherits Cloud Build's ambient service account identity without custom JSON files.
+if [[ "${QUIET}" == "true" ]]; then
+  echo "Non-interactive CI/CD mode (-q): Spanner schema migration is handled by the outer Cloud Build step."
+else
+  echo "Migrating database schema (if needed)..."
+  export SPANNER_PROJECT_ID=${SPANNER_PROJECT}
+  export SPANNER_DATABASE_ID=${DEPLOY_ENV}-database
+  export SPANNER_INSTANCE_ID=${DEPLOY_ENV}-spanner
+  (cd .. && go tool wrench migrate up --directory ./infra/storage/spanner/)
+fi
 
 echo "Applying Terraform changes..."
-terraform apply \
-    -var-file=".envs/${DEPLOY_ENV}.tfvars" \
-    -var "env_id=${DEPLOY_ENV}"
+APPLY_FLAGS=()
+if [[ "${QUIET}" == "true" ]]; then
+  APPLY_FLAGS+=("-auto-approve")
+fi
+if [[ -n "${INPUT_FLAG}" ]]; then
+  APPLY_FLAGS+=("${INPUT_FLAG}")
+fi
+
+terraform apply "${APPLY_FLAGS[@]}" "${TF_COMMON_ARGS[@]}"
 
 echo "$DEPLOY_ENV deployment complete."
 echo "Please verify the deployment at:"

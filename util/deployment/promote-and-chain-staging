@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+set -euo pipefail
+
+DEPLOY_ENV="${_DEPLOY_ENV:-${1:-staging}}"
+
+# -----------------------------------------------------------------------------
+# Guard: Staging Promotion & Trigger Chaining is Staging Only
+# -----------------------------------------------------------------------------
+if [[ "${DEPLOY_ENV}" != "staging" ]]; then
+  echo "Skipping staging promotion step (_DEPLOY_ENV=${DEPLOY_ENV})."
+  exit 0
+fi
+
+# Ensure git safe directory inside container environments
+git config --global --add safe.directory '/workspace/webstatus.dev'
+
+# -----------------------------------------------------------------------------
+# 1. Determine Repository Owner and Name from Origin Remote
+# -----------------------------------------------------------------------------
+ORIGIN_URL=$(git config --get remote.origin.url || true)
+if [[ "${ORIGIN_URL}" =~ github\.com[:/]([^/]+)/([^/]+) ]]; then
+  GH_OWNER="${BASH_REMATCH[1]}"
+  RAW_REPO="${BASH_REMATCH[2]}"
+  GH_REPO="${RAW_REPO%.git}"
+else
+  GH_OWNER="GoogleChrome"
+  GH_REPO="webstatus.dev"
+fi
+
+MAIN_SHA=$(git rev-parse HEAD)
+SHORT_SHA=$(git rev-parse --short HEAD)
+
+echo "Staging deployment completed successfully. Tagging HEAD (${SHORT_SHA}) as verified-staging-latest..."
+
+# -----------------------------------------------------------------------------
+# 2. Configure Git Credentials & Push 'verified-staging-latest' Tag
+# -----------------------------------------------------------------------------
+git config user.name "interop-tooling-ops-bot"
+git config user.email "interop-tooling-ops-bot@google.com"
+git remote set-url origin "https://github.com/${GH_OWNER}/${GH_REPO}.git"
+git tag -f verified-staging-latest HEAD
+
+# Guard: Only promote staging tag and trigger production build if HEAD is on main
+git fetch origin main 2>/dev/null || true
+if ! git merge-base --is-ancestor HEAD main 2>/dev/null && ! git merge-base --is-ancestor HEAD origin/main 2>/dev/null; then
+  echo "Commit $(git rev-parse --short HEAD) is not on main branch. Skipping verified-staging-latest tag promotion and production trigger."
+  exit 0
+fi
+
+if [[ -n "${GH_TOKEN:-}" ]]; then
+  AUTH_HEADER=$(printf "interop-tooling-ops-bot:%s" "${GH_TOKEN}" | base64 | tr -d '\r\n')
+  git -c http.https://github.com/.extraheader="Authorization: Basic ${AUTH_HEADER}" push -f origin verified-staging-latest
+else
+  echo "Warning: GH_TOKEN environment variable not set. Attempting default git push..."
+  git push -f origin verified-staging-latest
+fi
+
+# -----------------------------------------------------------------------------
+# 3. Trigger Production Build in PENDING State for Approval
+# -----------------------------------------------------------------------------
+echo "Chaining deployment to trigger-webstatus-prod (creating PENDING build for sheriff approval)..."
+gcloud builds triggers run trigger-webstatus-prod \
+  --project=interop-tooling-ops \
+  --region=us-central1 \
+  --sha="${MAIN_SHA}" \
+  --substitutions=_DEPLOY_ENV=prod,_FORCE_DEPLOY=false,_SKIP_ISSUE_CREATION=false
