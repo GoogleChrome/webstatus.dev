@@ -38,6 +38,14 @@ type BrowserRelease struct {
 	ReleaseDate    time.Time `spanner:"ReleaseDate"`
 }
 
+// Equal returns true if all fields of two BrowserRelease structs match, using
+// time.Time.Equal for ReleaseDate comparison.
+func (r BrowserRelease) Equal(other BrowserRelease) bool {
+	return r.BrowserName == other.BrowserName &&
+		r.BrowserVersion == other.BrowserVersion &&
+		r.ReleaseDate.Equal(other.ReleaseDate)
+}
+
 type browserReleaseKey struct {
 	BrowserName    string
 	BrowserVersion string
@@ -62,8 +70,9 @@ func (m browserReleaseSpannerMapper) SelectOne(key browserReleaseKey) spanner.St
 	return stmt
 }
 
-func (m browserReleaseSpannerMapper) Merge(_ BrowserRelease, existing spannerBrowserRelease) spannerBrowserRelease {
-	// If the release exists, it currently does nothing and keeps the existing as-is.
+func (m browserReleaseSpannerMapper) Merge(input BrowserRelease, existing spannerBrowserRelease) spannerBrowserRelease {
+	existing.ReleaseDate = input.ReleaseDate
+
 	return existing
 }
 

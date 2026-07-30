@@ -104,7 +104,27 @@ func TestInsertBrowserRelease(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error during read all. %s", err.Error())
 	}
-	if !slices.Equal[[]BrowserRelease](sampleBrowserReleases, releases) {
+	if !slices.EqualFunc(sampleBrowserReleases, releases, (BrowserRelease).Equal) {
 		t.Errorf("unequal releases. expected %+v actual %+v", sampleBrowserReleases, releases)
+	}
+
+	// Verify that updating a release date for an existing browser release updates ReleaseDate in Spanner
+	updatedRelease := BrowserRelease{
+		BrowserName:    "fooBrowser",
+		BrowserVersion: "0.0.0",
+		ReleaseDate:    time.Date(2000, time.January, 15, 0, 0, 0, 0, time.UTC),
+	}
+	err = spannerClient.InsertBrowserRelease(ctx, updatedRelease)
+	if err != nil {
+		t.Fatalf("unexpected error updating browser release date: %v", err)
+	}
+
+	releases, err = spannerClient.ReadAllBrowserReleases(ctx, t)
+	if err != nil {
+		t.Fatalf("unexpected error reading browser releases: %v", err)
+	}
+
+	if !slices.ContainsFunc(releases, updatedRelease.Equal) {
+		t.Errorf("expected to find updated release %+v in Spanner: got %+v", updatedRelease, releases)
 	}
 }

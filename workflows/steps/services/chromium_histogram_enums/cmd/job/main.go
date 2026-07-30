@@ -16,6 +16,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"net/http"
 	"os"
@@ -78,7 +79,7 @@ func main() {
 	// Job Execution and Error Handling
 	errs := pool.Start(ctx, numWorkers, processor, jobs)
 	if len(errs) > 0 {
-		slog.ErrorContext(ctx, "workflow returned errors", "error", errs)
+		slog.ErrorContext(ctx, "workflow returned errors", "error", errors.Join(errs...))
 		os.Exit(1)
 	}
 }
