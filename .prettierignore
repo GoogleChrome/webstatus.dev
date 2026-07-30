@@ -18,6 +18,7 @@ workers/email/pkg/digest/testdata/digest_combined_errors_and_features.golden.htm
 workers/webhook/pkg/webhook/testdata/slack_payload.golden.json
 workers/webhook/pkg/webhook/testdata/slack_payload_query_error.golden.json
 workers/webhook/pkg/webhook/testdata/slack_payload_resolved_query_error.golden.json
+workers/webhook/pkg/webhook/testdata/slack_payload_combined_errors_and_features.golden.json
 workflows/steps/services/bcd_consumer/pkg/data/testdata/data.json
 workflows/steps/services/web_feature_consumer/pkg/data/testdata/v3.data.json
 workflows/steps/services/developer_signals_consumer/pkg/data/testdata/web-features-signals.json
