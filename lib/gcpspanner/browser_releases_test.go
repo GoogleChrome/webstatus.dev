@@ -104,7 +104,7 @@ func TestInsertBrowserRelease(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error during read all. %s", err.Error())
 	}
-	if !slices.Equal[[]BrowserRelease](sampleBrowserReleases, releases) {
+	if !slices.EqualFunc(sampleBrowserReleases, releases, (BrowserRelease).Equal) {
 		t.Errorf("unequal releases. expected %+v actual %+v", sampleBrowserReleases, releases)
 	}
 
@@ -124,16 +124,7 @@ func TestInsertBrowserRelease(t *testing.T) {
 		t.Fatalf("unexpected error reading browser releases: %v", err)
 	}
 
-	foundUpdated := false
-	for _, r := range releases {
-		if r.BrowserName == "fooBrowser" && r.BrowserVersion == "0.0.0" {
-			foundUpdated = true
-			if !r.ReleaseDate.Equal(updatedRelease.ReleaseDate) {
-				t.Errorf("expected updated release date %v, got %v", updatedRelease.ReleaseDate, r.ReleaseDate)
-			}
-		}
-	}
-	if !foundUpdated {
-		t.Error("expected to find updated release in Spanner")
+	if !slices.ContainsFunc(releases, updatedRelease.Equal) {
+		t.Errorf("expected to find updated release %+v in Spanner: got %+v", updatedRelease, releases)
 	}
 }
