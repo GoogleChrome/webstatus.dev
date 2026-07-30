@@ -33,6 +33,12 @@ const (
 	slackBlockTypeMrkdwn = "mrkdwn"
 	slackBlockKeyType    = "type"
 	slackBlockKeyText    = "text"
+
+	slackSectionAddedHeader     = "*Added* \n_These features now match your search criteria._"
+	slackSectionRemovedHeader   = "*No longer matches* \n_These features no longer match your saved search._"
+	slackSectionDeletedHeader   = "*Deleted* \n_These features have been removed from the web platform._"
+	slackSectionRegressedHeader = "*Regressed to limited availability*"
+	slackSectionBrowserHeader   = "*Browser support changed*"
 )
 
 type SlackPayload struct {
@@ -373,22 +379,14 @@ func (b *slackPayloadBuilder) appendBaselineChanges(blocks []any) []any {
 }
 
 func (b *slackPayloadBuilder) appendRegressions(blocks []any) []any {
-	if len(b.baselineRegressionChanges) > 0 || len(b.removedFeatures) > 0 {
+	if len(b.baselineRegressionChanges) > 0 {
 		blocks = append(blocks, dividerBlock())
-		blocks = append(blocks, sectionBlock("*Regressed to limited availability*"))
-		if len(b.baselineRegressionChanges) > 0 {
-			logoURL := fmt.Sprintf("%s/public/img/email/limited.png", b.frontendBaseURL)
-			for _, h := range b.baselineRegressionChanges {
-				featureURL := fmt.Sprintf("%s/features/%s", b.frontendBaseURL, h.FeatureID)
-				txt := fmt.Sprintf("<%s|%s> _From Widely_", featureURL, h.FeatureName)
-				blocks = append(blocks, contextBlock(contextImageText(logoURL, "Regressed", txt)...))
-			}
-		}
-		for _, h := range b.removedFeatures {
+		blocks = append(blocks, sectionBlock(slackSectionRegressedHeader))
+		logoURL := fmt.Sprintf("%s/public/img/email/limited.png", b.frontendBaseURL)
+		for _, h := range b.baselineRegressionChanges {
 			featureURL := fmt.Sprintf("%s/features/%s", b.frontendBaseURL, h.FeatureID)
-			txt := fmt.Sprintf("<%s|%s> \n_From Newly_ \n:warning: _This feature no longer matches your saved search._",
-				featureURL, h.FeatureName)
-			blocks = append(blocks, sectionBlock(txt))
+			txt := fmt.Sprintf("<%s|%s> _From Widely_", featureURL, h.FeatureName)
+			blocks = append(blocks, contextBlock(contextImageText(logoURL, "Regressed", txt)...))
 		}
 	}
 
@@ -398,7 +396,7 @@ func (b *slackPayloadBuilder) appendRegressions(blocks []any) []any {
 func (b *slackPayloadBuilder) appendBrowserChanges(blocks []any) []any {
 	if len(b.allBrowserChanges) > 0 {
 		blocks = append(blocks, dividerBlock())
-		blocks = append(blocks, sectionBlock("*Browser support changed*"))
+		blocks = append(blocks, sectionBlock(slackSectionBrowserHeader))
 		var items []string
 		for _, c := range b.allBrowserChanges {
 			items = b.processBrowserChange(items, c)
@@ -447,17 +445,11 @@ func (b *slackPayloadBuilder) processBrowserChange(items []string, c browserChan
 }
 
 func (b *slackPayloadBuilder) appendAddedFeatures(blocks []any) []any {
-	if len(b.addedFeatures) > 0 {
-		blocks = append(blocks, dividerBlock())
-		blocks = append(blocks, sectionBlock("*Added* \n_These features now match your search criteria._"))
-		items := make([]string, 0, len(b.addedFeatures))
-		for _, h := range b.addedFeatures {
-			items = append(items, fmt.Sprintf("• <%s/features/%s|%s>", b.frontendBaseURL, h.FeatureID, h.FeatureName))
-		}
-		blocks = append(blocks, sectionBlock(strings.Join(items, "\n")))
-	}
-
-	return blocks
+	return b.appendSimpleFeatureList(
+		blocks,
+		b.addedFeatures,
+		slackSectionAddedHeader,
+	)
 }
 
 func (b *slackPayloadBuilder) appendSplitFeatures(blocks []any) []any {
@@ -538,7 +530,7 @@ func (b *slackPayloadBuilder) appendRemovedFeatures(blocks []any) []any {
 	return b.appendSimpleFeatureList(
 		blocks,
 		b.removedFeatures,
-		"*No longer matches* \n_These features no longer match your saved search._",
+		slackSectionRemovedHeader,
 	)
 }
 
@@ -546,7 +538,7 @@ func (b *slackPayloadBuilder) appendDeletedFeatures(blocks []any) []any {
 	return b.appendSimpleFeatureList(
 		blocks,
 		b.deletedFeatures,
-		"*Deleted* \n_These features have been removed from the web platform._",
+		slackSectionDeletedHeader,
 	)
 }
 

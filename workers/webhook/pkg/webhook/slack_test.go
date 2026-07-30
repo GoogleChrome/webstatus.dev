@@ -24,6 +24,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -1177,4 +1178,184 @@ func TestSlackPayloadBuilder_Sanitization(t *testing.T) {
 	if !hasXSS || !hasBold {
 		t.Error("payload missing original sanitized feature name components")
 	}
+}
+
+type sectionSeparationTestCase struct {
+	name         string
+	highlights   []workertypes.SummaryHighlight
+	wantContains []string
+	wontContains []string
+	exactCounts  map[string]int
+}
+
+// TestSlackPayloadBuilder_SectionSeparationAndDeduplication validates that each highlight category
+// (Removed, Regressed, Added, Deleted) is routed exclusively to its own section in the Slack payload
+// and that features are not duplicated across multiple sections (e.g. pure query removals appearing under regressions).
+func TestSlackPayloadBuilder_SectionSeparationAndDeduplication(t *testing.T) {
+	testCases := []sectionSeparationTestCase{
+		{
+			name: "removed feature only does not create regression section",
+			highlights: []workertypes.SummaryHighlight{
+				newTestHighlight(workertypes.SummaryHighlightTypeRemoved, "feat-removed", "Removed Feature"),
+			},
+			wantContains: []string{
+				slackSectionRemovedHeader,
+				"/features/feat-removed|Removed Feature",
+			},
+			wontContains: []string{
+				slackSectionRegressedHeader,
+				"_From Newly_",
+			},
+			exactCounts: map[string]int{
+				"feat-removed": 1,
+			},
+		},
+		{
+			name: "regressed feature only creates regression section and not removed section",
+			highlights: []workertypes.SummaryHighlight{
+				newTestChangedHighlight("feat-regressed", "Regressed Feature", workertypes.BaselineStatusLimited),
+			},
+			wantContains: []string{
+				slackSectionRegressedHeader,
+				"/features/feat-regressed|Regressed Feature",
+			},
+			wontContains: []string{
+				slackSectionRemovedHeader,
+			},
+			exactCounts: map[string]int{
+				"feat-regressed": 1,
+			},
+		},
+		{
+			name: "both regressed and removed features render cleanly without duplication",
+			highlights: []workertypes.SummaryHighlight{
+				newTestChangedHighlight("feat-regressed", "Regressed Feature", workertypes.BaselineStatusLimited),
+				newTestHighlight(workertypes.SummaryHighlightTypeRemoved, "feat-removed", "Removed Feature"),
+			},
+			wantContains: []string{
+				slackSectionRegressedHeader,
+				"/features/feat-regressed|Regressed Feature",
+				slackSectionRemovedHeader,
+				"/features/feat-removed|Removed Feature",
+			},
+			wontContains: []string{
+				"_From Newly_",
+			},
+			exactCounts: map[string]int{
+				"feat-regressed": 1,
+				"feat-removed":   1,
+			},
+		},
+		{
+			name: "added feature renders via simple list",
+			highlights: []workertypes.SummaryHighlight{
+				newTestHighlight(workertypes.SummaryHighlightTypeAdded, "feat-added", "Added Feature"),
+			},
+			wantContains: []string{
+				slackSectionAddedHeader,
+				"/features/feat-added|Added Feature",
+			},
+			wontContains: []string{
+				slackSectionRegressedHeader,
+				slackSectionRemovedHeader,
+			},
+			exactCounts: map[string]int{
+				"feat-added": 1,
+			},
+		},
+		{
+			name: "deleted feature renders via simple list",
+			highlights: []workertypes.SummaryHighlight{
+				newTestHighlight(workertypes.SummaryHighlightTypeDeleted, "feat-deleted", "Deleted Feature"),
+			},
+			wantContains: []string{
+				slackSectionDeletedHeader,
+				"/features/feat-deleted|Deleted Feature",
+			},
+			wontContains: []string{
+				slackSectionRegressedHeader,
+				slackSectionRemovedHeader,
+			},
+			exactCounts: map[string]int{
+				"feat-deleted": 1,
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			verifySectionSeparationCase(t, tc)
+		})
+	}
+}
+
+func verifySectionSeparationCase(t *testing.T, tc sectionSeparationTestCase) {
+	builder := newSlackPayloadBuilder("https://webstatus.dev", "sub-123", "Separation Check", "group:css", nil)
+	summary := workertypes.NewEmptyEventSummary()
+	for _, h := range tc.highlights {
+		summary.AddHighlight(h)
+	}
+
+	if err := builder.VisitV1(summary); err != nil {
+		t.Fatalf("VisitV1 unexpected error: %v", err)
+	}
+
+	payload := builder.buildPayload("Separation Check")
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		t.Fatalf("json.Marshal failed: %v", err)
+	}
+
+	for _, want := range tc.wantContains {
+		if !hasBlockWithText(payload.Blocks, want) {
+			t.Errorf("payload blocks missing expected text %q; blocks: %+v", want, payload.Blocks)
+		}
+	}
+
+	for _, wont := range tc.wontContains {
+		if hasBlockWithText(payload.Blocks, wont) {
+			t.Errorf("payload blocks contains unexpected text %q; blocks: %+v", wont, payload.Blocks)
+		}
+	}
+
+	for token, expectedCount := range tc.exactCounts {
+		actualCount := bytes.Count(payloadBytes, []byte(token))
+		if actualCount != expectedCount {
+			t.Errorf("token %q expected count %d, got %d. Payload: %s",
+				token, expectedCount, actualCount, string(payloadBytes))
+		}
+	}
+}
+
+func hasBlockWithText(blocks []any, text string) bool {
+	for _, b := range blocks {
+		if blockContainsText(b, text) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func blockContainsText(block any, expected string) bool {
+	switch m := block.(type) {
+	case map[string]any:
+		if textMap, ok := m["text"].(map[string]any); ok {
+			if txt, ok := textMap["text"].(string); ok && strings.Contains(txt, expected) {
+				return true
+			}
+		}
+		if textStr, ok := m["text"].(string); ok && strings.Contains(textStr, expected) {
+			return true
+		}
+		if elements, ok := m["elements"].([]any); ok {
+			for _, elem := range elements {
+				if blockContainsText(elem, expected) {
+					return true
+				}
+			}
+		}
+	}
+
+	return false
 }
