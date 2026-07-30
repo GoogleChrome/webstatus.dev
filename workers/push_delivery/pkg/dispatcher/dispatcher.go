@@ -159,7 +159,11 @@ func (g *deliveryJobGenerator) VisitV1(s workertypes.EventSummary) error {
 	// 2. Filter & Create Jobs
 	// Iterate Emails.
 	for _, sub := range subscribers.Emails {
-		if !shouldNotifyV1(sub.Triggers, s) {
+		notify, err := shouldNotifyV1(sub.Triggers, &s)
+		if err != nil {
+			return fmt.Errorf("error checking notification triggers for email subscription %s: %w", sub.SubscriptionID, err)
+		}
+		if !notify {
 			continue
 		}
 		g.emailJobs = append(g.emailJobs, workertypes.EmailDeliveryJob{
@@ -174,7 +178,11 @@ func (g *deliveryJobGenerator) VisitV1(s workertypes.EventSummary) error {
 
 	// Iterate Webhooks.
 	for _, sub := range subscribers.Webhooks {
-		if !shouldNotifyV1(sub.Triggers, s) {
+		notify, err := shouldNotifyV1(sub.Triggers, &s)
+		if err != nil {
+			return fmt.Errorf("error checking notification triggers for webhook subscription %s: %w", sub.SubscriptionID, err)
+		}
+		if !notify {
 			continue
 		}
 		g.webhookJobs = append(g.webhookJobs, workertypes.WebhookDeliveryJob{
@@ -196,40 +204,19 @@ func (g *deliveryJobGenerator) JobCount() int {
 	return len(g.emailJobs) + len(g.webhookJobs)
 }
 
-// shouldNotifyV1 determines if the V1 event summary matches any of the user's triggers.
-func shouldNotifyV1(triggers []workertypes.JobTrigger, summary workertypes.EventSummary) bool {
-	if len(summary.QueryErrors) > 0 || len(summary.ResolvedQueryErrors) > 0 {
-		return true
+// shouldNotifyV1 determines if the V1 event summary matches any of the subscriber's triggers.
+// Note: summary is passed as a pointer (*workertypes.EventSummary) to prevent copying the
+// EventSummary struct header and slice backing arrays across subscriber evaluation loops.
+// base.HasContent() returns true if there are active query errors, resolved query errors, or any
+// highlights matching the given triggers.
+func shouldNotifyV1(triggers []workertypes.JobTrigger, summary *workertypes.EventSummary) (bool, error) {
+	if summary == nil {
+		return false, nil
+	}
+	base, err := summary.Categorize(triggers)
+	if err != nil {
+		return false, fmt.Errorf("failed to categorize event summary against triggers: %w", err)
 	}
 
-	// 1. Determine if summary has changes.
-	hasChanges := summary.Categories.Added > 0 ||
-		summary.Categories.Removed > 0 ||
-		summary.Categories.Updated > 0 ||
-		summary.Categories.Moved > 0 ||
-		summary.Categories.Split > 0 ||
-		summary.Categories.QueryChanged > 0
-
-	if !hasChanges {
-		return false
-	}
-
-	// 2. Iterate triggers and check highlights.
-	for _, t := range triggers {
-		if matchesTrigger(t, summary) {
-			return true
-		}
-	}
-
-	return false
-}
-
-func matchesTrigger(t workertypes.JobTrigger, summary workertypes.EventSummary) bool {
-	for _, h := range summary.Highlights {
-		if h.MatchesTrigger(t) {
-			return true
-		}
-	}
-
-	return false
+	return base.HasContent(), nil
 }
