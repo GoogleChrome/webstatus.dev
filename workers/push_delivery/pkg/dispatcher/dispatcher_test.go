@@ -857,11 +857,12 @@ func TestProcessEvent_ResolvedQueryErrors_AllChannels(t *testing.T) {
 }
 
 func TestShouldNotifyV1_NilSummary(t *testing.T) {
+	// Verify that if the summary is nil, shouldNotifyV1 returns false and no error.
 	got, err := shouldNotifyV1([]workertypes.JobTrigger{workertypes.FeaturePromotedToNewly}, nil)
 	if err != nil {
 		t.Fatalf("shouldNotifyV1 unexpected error: %v", err)
 	}
-	if got != false {
+	if got {
 		t.Errorf("shouldNotifyV1(triggers, nil) = %v, want false", got)
 	}
 }
