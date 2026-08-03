@@ -29,6 +29,20 @@ export function createAPIError(
     typeof error.message === 'string'
   ) {
     message = error.message;
+    if (
+      'errors' in error &&
+      error.errors instanceof Object &&
+      error.errors !== null
+    ) {
+      const entries = Object.entries(error.errors);
+      const fieldMsgs = entries
+        .filter(([, msg]) => typeof msg === 'string')
+        .map(([field, msg]) => `${field}: ${msg}`)
+        .join(', ');
+      if (fieldMsgs) {
+        message = fieldMsgs;
+      }
+    }
     if ('code' in error && typeof error.code === 'number') {
       code = error.code;
     }

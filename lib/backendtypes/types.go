@@ -79,7 +79,13 @@ var (
 	ErrQueryConsistsEntirelyOfSavedSearch = errors.New(
 		"query cannot consist entirely of a single saved search or hotlist",
 	)
+
+	// ErrQueryComplexityExceeded indicates that the search query AST complexity exceeds the maximum allowed limit.
+	ErrQueryComplexityExceeded = errors.New("search query complexity limit exceeded")
 )
+
+// MaxASTNodes specifies the maximum allowed AST node complexity after deduplication.
+const MaxASTNodes = 50
 
 type QueryParseError struct {
 	BadQuery string

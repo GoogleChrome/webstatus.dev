@@ -1598,9 +1598,17 @@ func (s *Backend) ValidateQueryReferences(ctx context.Context, query string, upd
 	// Run expansion as a dry-run check mechanism.
 	// Starting with depth = maxAncestorDist ensures that any transitive ancestors
 	// won't exceed the global depth limit of 2.
-	_, _, err = s.expandSavedSearches(ctx, node, maxAncestorDist, map[string]struct{}{})
+	expandedNode, _, err := s.expandSavedSearches(ctx, node, maxAncestorDist, map[string]struct{}{})
+	if err != nil {
+		return err
+	}
 
-	return err
+	dedupExpanded := searchtypes.Deduplicate(expandedNode)
+	if searchtypes.CountNodes(dedupExpanded) > backendtypes.MaxASTNodes {
+		return backendtypes.ErrQueryComplexityExceeded
+	}
+
+	return nil
 }
 
 func (s *Backend) getMaxAncestorDistance(ctx context.Context, id string, currentDist int) (int, error) {

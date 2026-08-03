@@ -22,6 +22,7 @@ import (
 	"math/big"
 	"reflect"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -5127,6 +5128,24 @@ func TestValidateQueryReferences(t *testing.T) {
 			userSearches:        nil,
 			referencingSearches: nil,
 			expectedError:       backendtypes.ErrQueryConsistsEntirelyOfSavedSearch,
+		},
+		{
+			name:                "expanded query exceeds max AST complexity",
+			query:               "(saved:child) OR id:extra",
+			updateID:            nil,
+			systemSearches:      nil,
+			referencingSearches: nil,
+			userSearches: func() map[string]*gcpspanner.SavedSearch {
+				terms := make([]string, 25)
+				for i := range terms {
+					terms[i] = fmt.Sprintf("id:feat-%d", i)
+				}
+
+				return map[string]*gcpspanner.SavedSearch{
+					"child": {Query: strings.Join(terms, " OR ")},
+				}
+			}(),
+			expectedError: backendtypes.ErrQueryComplexityExceeded,
 		},
 	}
 

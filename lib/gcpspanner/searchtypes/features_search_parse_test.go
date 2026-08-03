@@ -1808,3 +1808,66 @@ func TestParseQueryBadInput(t *testing.T) {
 		})
 	}
 }
+
+func TestDeduplicateAndCountNodes(t *testing.T) {
+	parser := FeaturesSearchQueryParser{}
+
+	t.Run("Deduplicate repeated terms under AND", func(t *testing.T) {
+		input := "group:layout AND group:layout AND group:layout"
+		ast, err := parser.Parse(input)
+		if err != nil {
+			t.Fatalf("unexpected parse error: %v", err)
+		}
+
+		initialCount := CountNodes(ast)
+		if initialCount < 4 {
+			t.Errorf("expected at least 4 nodes initially, got %d", initialCount)
+		}
+
+		dedup := Deduplicate(ast)
+		dedupCount := CountNodes(dedup)
+		if dedupCount >= initialCount {
+			t.Errorf("expected deduplicated count to be smaller than initial %d, got %d", initialCount, dedupCount)
+		}
+	})
+
+	t.Run("Deduplicate repeated terms under OR", func(t *testing.T) {
+		input := "group:layout OR group:layout OR group:layout"
+		ast, err := parser.Parse(input)
+		if err != nil {
+			t.Fatalf("unexpected parse error: %v", err)
+		}
+
+		initialCount := CountNodes(ast)
+		dedup := Deduplicate(ast)
+		dedupCount := CountNodes(dedup)
+		if dedupCount >= initialCount {
+			t.Errorf("expected OR deduplication to reduce nodes from %d, got %d", initialCount, dedupCount)
+		}
+	})
+
+	t.Run("CountNodes and Deduplicate nil safety", func(t *testing.T) {
+		if CountNodes(nil) != 0 {
+			t.Errorf("expected CountNodes(nil) == 0")
+		}
+		if Deduplicate(nil) != nil {
+			t.Errorf("expected Deduplicate(nil) == nil")
+		}
+		if !EqualSearchNode(nil, nil) {
+			t.Errorf("expected EqualSearchNode(nil, nil) == true")
+		}
+	})
+
+	t.Run("CountNodes on complex query", func(t *testing.T) {
+		input := "id:feat1 OR id:feat2 OR id:feat3"
+		ast, err := parser.Parse(input)
+		if err != nil {
+			t.Fatalf("unexpected parse error: %v", err)
+		}
+
+		count := CountNodes(ast)
+		if count <= 0 {
+			t.Errorf("expected positive node count, got %d", count)
+		}
+	})
+}

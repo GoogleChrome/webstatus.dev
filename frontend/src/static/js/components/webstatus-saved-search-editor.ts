@@ -43,9 +43,9 @@ const SavedSearchInputConstraints = {
   NameMinLength: 1,
   NameMaxLength: 32,
   // There is no minimum length for the description. We drop the description if it is an empty string.
-  DescriptionMaxLength: 256,
+  DescriptionMaxLength: 1024,
   QueryMinLength: 1,
-  QueryMaxLength: 256,
+  QueryMaxLength: 2048,
 };
 
 @customElement('webstatus-saved-search-editor')

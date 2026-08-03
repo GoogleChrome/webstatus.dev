@@ -150,7 +150,7 @@ func (s *Server) UpdateSavedSearch(
 	err = s.eventPublisher.PublishSearchConfigurationChanged(ctx, output, user.ID, false)
 	if err != nil {
 		// We should not mark this as a failure. Only log it.
-		slog.ErrorContext(ctx, "unable to publish search configuration changed event during update", "error", err)
+		slog.WarnContext(ctx, "unable to publish search configuration changed event during update", "error", err)
 	}
 
 	return backend.UpdateSavedSearch200JSONResponse(*output), nil
