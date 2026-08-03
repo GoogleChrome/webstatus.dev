@@ -395,6 +395,12 @@ playwright-update-snapshots: fresh-env-for-playwright
 playwright-test: fresh-env-for-playwright
 	npx playwright test
 
+playwright-functional: fresh-env-for-playwright
+	npx playwright test --grep-invert @visual
+
+playwright-visual: fresh-env-for-playwright
+	npx playwright test --grep @visual
+
 playwright-ui: fresh-env-for-playwright
 	npx playwright test --ui --ui-port=8123
 
