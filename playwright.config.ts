@@ -34,8 +34,8 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
-  /* Utilize multi-core parallel test execution now that state resets are pure HTTP */
-  workers: process.env.CI ? 4 : undefined,
+  /* Always run with one worker per runner to ensure test state stability. */
+  workers: 1,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: 'html',
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
