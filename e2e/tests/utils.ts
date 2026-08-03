@@ -15,6 +15,9 @@
  */
 
 import {Page, expect, type Locator} from '@playwright/test';
+import {execSync} from 'child_process';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
 
 const DEFAULT_FAKE_NOW = 'Dec 1 2020 12:34:56';
 
@@ -290,5 +293,16 @@ export async function expect404PageButtons(
 }
 
 export async function resetUserData() {
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = path.dirname(__filename);
+  const projectRootDir = path.resolve(__dirname, '../..');
+
+  try {
+    const cmd = `make dev_fake_data -o build -o is_local_migration_ready LOAD_FAKE_DATA_FLAGS='-scope=user -reset'`;
+    execSync(cmd, {cwd: projectRootDir, stdio: 'ignore'});
+  } catch (error) {
+    // Non-fatal if make is unavailable in standalone synthetic test runners.
+  }
+
   await resetWiremockScenarioState();
 }
