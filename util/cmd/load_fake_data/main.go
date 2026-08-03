@@ -1406,6 +1406,8 @@ func generateWebFeatureChromiumHistogramEnumValues(
 func generateChromiumHistogramMetrics(
 	ctx context.Context, client *gcpspanner.Client, features []gcpspanner.SpannerWebFeature) (int, error) {
 	metricsCount := 0
+	metricsToStore := make([]gcpspanner.DailyChromiumHistogramMetricItem, 0, len(features)*330)
+
 	for i := range len(features) {
 		currDate := startTimeWindow
 		// For testing, some features (~20%) have no usage data.
@@ -1413,6 +1415,8 @@ func generateChromiumHistogramMetrics(
 		if modifier == 0 && features[i].FeatureKey != featurePageFeatureKey {
 			continue
 		}
+		bucketID := int64(i + 1)
+
 		for currDate.Before(time.Date(2020, time.December, 1, 0, 0, 0, 0, time.UTC)) {
 			var usage *big.Rat
 			var modifier = r.Intn(4)
@@ -1426,30 +1430,35 @@ func generateChromiumHistogramMetrics(
 				usage = big.NewRat(r.Int63n(10000), 10000) // Generate usage between 0-100%
 			}
 
-			err := client.StoreDailyChromiumHistogramMetrics(
-				ctx,
-				metricdatatypes.WebDXFeatureEnum, map[int64]gcpspanner.DailyChromiumHistogramMetric{
-					int64(i + 1): {
-						Day:  civil.DateOf(currDate),
-						Rate: *usage,
-					},
+			day := civil.DateOf(currDate)
+			metricsToStore = append(metricsToStore, gcpspanner.DailyChromiumHistogramMetricItem{
+				DailyChromiumHistogramMetric: gcpspanner.DailyChromiumHistogramMetric{
+					Day:  day,
+					Rate: *usage,
 				},
-			)
+				BucketID: bucketID,
+			})
+			metricsCount++
 
-			if err != nil {
-				return metricsCount, err
-			}
 			if features[i].FeatureKey == featurePageFeatureKey {
 				// Add more data points to assert pagination of metrics for feature page.
 				currDate = currDate.AddDate(0, 0, 1) // Add 1 day.
 			} else {
 				currDate = currDate.AddDate(0, 0, r.Intn(23)+7) // Add up to a month, increasing by at least 7 days.
 			}
-			metricsCount++
 		}
 	}
 
-	err := client.SyncLatestDailyChromiumHistogramMetrics(ctx)
+	err := client.StoreAllDailyChromiumHistogramMetrics(
+		ctx,
+		metricdatatypes.WebDXFeatureEnum,
+		metricsToStore,
+	)
+	if err != nil {
+		return metricsCount, err
+	}
+
+	err = client.SyncLatestDailyChromiumHistogramMetrics(ctx)
 	if err != nil {
 		return metricsCount, err
 	}

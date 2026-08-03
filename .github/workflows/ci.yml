@@ -74,6 +74,17 @@ jobs:
       - name: Get Repo Owner
         id: get_repo_owner
         run: echo "REPO_OWNER=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" > $GITHUB_ENV
+      - name: Cache DevContainer Dependencies (Go & Node)
+        uses: actions/cache@v4
+        with:
+          path: |
+            .devcontainer/cache/go/go-build
+            .devcontainer/cache/go/pkg
+            .devcontainer/cache/node/.npm
+          key: ${{ runner.os }}-devcontainer-cache-${{ hashFiles('**/*.sum') }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-devcontainer-cache-${{ hashFiles('**/*.sum') }}-
+            ${{ runner.os }}-devcontainer-cache-
       - name: Login to GitHub Container Registry
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
@@ -132,6 +143,17 @@ jobs:
       - name: Get Repo Owner
         id: get_repo_owner
         run: echo "REPO_OWNER=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" > $GITHUB_ENV
+      - name: Cache DevContainer Dependencies (Go & Node)
+        uses: actions/cache@v4
+        with:
+          path: |
+            .devcontainer/cache/go/go-build
+            .devcontainer/cache/go/pkg
+            .devcontainer/cache/node/.npm
+          key: ${{ runner.os }}-devcontainer-cache-${{ hashFiles('**/*.sum') }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-devcontainer-cache-${{ hashFiles('**/*.sum') }}-
+            ${{ runner.os }}-devcontainer-cache-
       - name: Login to GitHub Container Registry
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
