@@ -86,6 +86,68 @@ func (c *Client) StoreDailyChromiumHistogramMetrics(
 	return runConcurrentBatch(ctx, c, producerFn, dailyChromiumHistogramMetricsTable, toMutationFn)
 }
 
+// DailyChromiumHistogramMetricItem represents a single histogram metric data point with its bucket ID.
+type DailyChromiumHistogramMetricItem struct {
+	DailyChromiumHistogramMetric
+	BucketID int64
+}
+
+// StoreAllDailyChromiumHistogramMetrics stores a slice of daily chromium histogram metrics across multiple days/buckets
+// in a bulk concurrent batch.
+func (c *Client) StoreAllDailyChromiumHistogramMetrics(
+	ctx context.Context,
+	histogramName metricdatatypes.HistogramName,
+	metrics []DailyChromiumHistogramMetricItem,
+) error {
+	chromiumHistogramEnumID, err := c.GetIDFromChromiumHistogramKey(ctx, string(histogramName))
+	if err != nil {
+		slog.ErrorContext(ctx, "unable to find histogram key id from histogram name", "name", string(histogramName))
+
+		return errors.Join(err, ErrUsageMetricUpsertNoHistogramFound)
+	}
+
+	// Cache enum value IDs for unique bucket IDs to avoid redundant lookups.
+	bucketIDToEnumValueID := make(map[int64]string)
+	for _, m := range metrics {
+		if _, exists := bucketIDToEnumValueID[m.BucketID]; !exists {
+			enumValueID, err := c.GetIDFromChromiumHistogramEnumValueKey(
+				ctx, *chromiumHistogramEnumID, m.BucketID)
+			if err != nil {
+				slog.WarnContext(
+					ctx,
+					"unable to find histogram value id. likely a draft or obsolete feature. will skip",
+					"id",
+					*chromiumHistogramEnumID,
+					"bucketID",
+					m.BucketID,
+				)
+
+				continue
+			}
+			bucketIDToEnumValueID[m.BucketID] = *enumValueID
+		}
+	}
+
+	producerFn := func(metricChan chan<- spannerDailyChromiumHistogramMetric) {
+		for _, m := range metrics {
+			enumValueID, ok := bucketIDToEnumValueID[m.BucketID]
+			if !ok {
+				continue
+			}
+			metricChan <- spannerDailyChromiumHistogramMetric{
+				DailyChromiumHistogramMetric: m.DailyChromiumHistogramMetric,
+				ChromiumHistogramEnumValueID: enumValueID,
+			}
+		}
+	}
+
+	toMutationFn := func(m spannerDailyChromiumHistogramMetric) (*spanner.Mutation, error) {
+		return spanner.InsertOrUpdateStruct(dailyChromiumHistogramMetricsTable, m)
+	}
+
+	return runConcurrentBatch(ctx, c, producerFn, dailyChromiumHistogramMetricsTable, toMutationFn)
+}
+
 // Implements the syncableEntityMapper interface for WebFeature and SpannerLatestDailyChromiumHistogramMetric.
 type latestDailyChromiumHistogramMetricMapper struct{}
 

@@ -424,6 +424,18 @@ func TestStoreAndSyncDailyChromiumHistogramMetric(t *testing.T) {
 					t.Errorf("expected %v, received %v", tc.expectedError, err)
 				}
 			})
+			t.Run(tc.name+" (StoreAll)", func(t *testing.T) {
+				metrics := []DailyChromiumHistogramMetricItem{
+					{
+						DailyChromiumHistogramMetric: unsuedMetric,
+						BucketID:                     tc.bucketID,
+					},
+				}
+				err := spannerClient.StoreAllDailyChromiumHistogramMetrics(ctx, tc.histogram, metrics)
+				if !errors.Is(err, tc.expectedError) {
+					t.Errorf("expected %v, received %v", tc.expectedError, err)
+				}
+			})
 		}
 	})
 }
