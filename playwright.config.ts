@@ -36,8 +36,8 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   /* Always run with one worker per runner to ensure test state stability. */
   workers: 1,
-  /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: 'html',
+  /* Reporter to use: blob on CI for multi-shard merging, html locally. See https://playwright.dev/docs/test-sharding */
+  reporter: process.env.CI ? [['blob'], ['github']] : 'html',
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
