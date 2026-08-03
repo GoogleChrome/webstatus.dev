@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM google/cloud-sdk:578.0.0-emulators
+FROM gcr.io/cloud-spanner-emulator/emulator:1.5.55 AS emulator
+
+FROM debian:trixie-slim
 # TARGETARCH is an automatic platform ARG enabled by Docker BuildKit.
 # https://docs.docker.com/reference/dockerfile/#automatic-platform-args-in-the-global-scope
 ARG TARGETARCH
@@ -21,6 +23,10 @@ ENV SPANNER_PROJECT_ID=local
 ENV SPANNER_INSTANCE_ID=local
 ENV SPANNER_DATABASE_ID=local
 ENV SPANNER_EMULATOR_HOST=0.0.0.0:9010
+
+RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates && rm -rf /var/lib/apt/lists/*
+
+COPY --from=emulator /emulator_main /gateway_main /bin/
 
 # Install Wrench - https://github.com/cloudspannerecosystem/wrench
 COPY tools/go.mod tools.go.mod
@@ -31,11 +37,7 @@ RUN WRENCH_VERSION=$(grep 'github.com/cloudspannerecosystem/wrench' tools.go.mod
     "https://github.com/cloudspannerecosystem/wrench/releases/download/v${WRENCH_VERSION}/wrench-${WRENCH_VERSION}-linux-${TARGETARCH}.tar.gz" && \
     tar -xf wrench.tar.gz && \
     mv wrench /bin/ && \
-    rm wrench.tar.gz tools.go.mod
-
-RUN gcloud config set auth/disable_credentials true && \
-    gcloud config set project ${SPANNER_PROJECT_ID} && \
-    gcloud config set api_endpoint_overrides/spanner http://localhost:9020/ && \
+    rm wrench.tar.gz tools.go.mod && \
     mkdir schemas
 
 COPY ./.dev/spanner/run.sh run.sh
