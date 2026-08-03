@@ -17,6 +17,11 @@ on:
   workflow_dispatch: # Allows manual triggering
   schedule:
     - cron: '0 0 * * 2' # Runs every Tuesday at midnight UTC
+  push:
+    branches:
+      - main
+    paths:
+      - '.devcontainer/**'
 
 permissions:
   contents: read
