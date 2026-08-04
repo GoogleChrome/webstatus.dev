@@ -80,5 +80,5 @@ jobs:
       - name: Commit and Push Updated Snapshots
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "test(e2e): update playwright test snapshots [skip ci]"
-          file_pattern: "e2e/**"
+          commit_message: 'test(e2e): update playwright test snapshots [skip ci]'
+          file_pattern: 'e2e/**'
