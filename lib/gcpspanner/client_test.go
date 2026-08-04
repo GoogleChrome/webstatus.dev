@@ -76,7 +76,6 @@ func createDatabaseContainer() error {
 		},
 		ExposedPorts: []string{"9010/tcp"},
 		WaitingFor:   wait.ForLog("Spanner setup for webstatus.dev finished"),
-		Name:         "webstatus-dev-test-spanner",
 	}
 	spannerContainer, err = testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: req,

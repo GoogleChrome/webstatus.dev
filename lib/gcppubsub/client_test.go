@@ -73,7 +73,6 @@ func createPubSubContainer() error {
 		},
 		ExposedPorts: []string{"8060/tcp"},
 		WaitingFor:   wait.ForLog("Pub/Sub setup for webstatus.dev finished"),
-		Name:         "webstatus-dev-test-pubsub",
 	}
 	pubsubContainer, err = testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: req,
