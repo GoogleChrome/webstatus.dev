@@ -46,23 +46,33 @@ if ! gh auth status > /dev/null 2>&1; then
 fi
 echo "Authenticated."
 
-PREVIOUS_SHORT_SHA=$(gh issue list --state=closed --label="release" --json title --repo "GoogleChrome/webstatus.dev" | jq -r '.[0].title // ""' | awk '{print $NF}')
+# Ensure complete git commit history is fetched for accurate changelog generation
+echo "Fetching git history for changelog generation..."
+if [[ -n "${GH_TOKEN:-}" ]]; then
+  AUTH_HEADER=$(printf "interop-tooling-ops-bot:%s" "${GH_TOKEN}" | base64 | tr -d '\r\n')
+  git -c http.https://github.com/.extraheader="Authorization: Basic ${AUTH_HEADER}" fetch --unshallow 2>/dev/null || \
+  git -c http.https://github.com/.extraheader="Authorization: Basic ${AUTH_HEADER}" fetch --depth=200 origin main 2>/dev/null || true
+else
+  git fetch --unshallow 2>/dev/null || git fetch --depth=200 origin main 2>/dev/null || true
+fi
+
+PREVIOUS_SHORT_SHA=$(gh issue list --state=closed --label="release" --limit 10 --json title --repo "GoogleChrome/webstatus.dev" | jq -r '.[0].title // ""' | awk '{print $NF}')
 CHANGELOG=""
 
 if [ -z "$PREVIOUS_SHORT_SHA" ]; then
   if [[ "${QUIET}" == "true" ]]; then
     echo "Could not determine the previous release SHA from closed issues. Generating recent 20 commits..."
-    CHANGELOG=$(git log -n 20 --oneline --format="- %C(auto) %h %s")
+    CHANGELOG=$(git log -n 20 --format="* %h %s")
     PREVIOUS_SHORT_SHA=$(git rev-parse --short HEAD~20 2>/dev/null || git rev-parse --short HEAD)
   else
     echo "Could not determine the previous release SHA. Please check closed release issues."
     exit 1
   fi
 else
-  if ! CHANGELOG=$(git log --oneline "$PREVIOUS_SHORT_SHA..HEAD" --format="- %C(auto) %h %s" 2>/dev/null); then
+  if ! CHANGELOG=$(git log "$PREVIOUS_SHORT_SHA..HEAD" --format="* %h %s" 2>/dev/null) || [[ -z "$CHANGELOG" ]]; then
     if [[ "${QUIET}" == "true" ]]; then
       echo "Previous commit ($PREVIOUS_SHORT_SHA) not directly in DAG or shallow clone; generating recent 20 commits..."
-      CHANGELOG=$(git log -n 20 --oneline --format="- %C(auto) %h %s")
+      CHANGELOG=$(git log -n 20 --format="* %h %s")
     else
       echo "Failed to run git log for $PREVIOUS_SHORT_SHA..HEAD."
       exit 1
@@ -95,13 +105,14 @@ if [[ -n "$EXISTING_ISSUE_JSON" ]]; then
 fi
 
 ISSUE_BODY=$(cat << EOF
-Changelist $PREVIOUS_SHORT_SHA...$NEW_SHA
+**Full Changelog**: https://github.com/GoogleChrome/webstatus.dev/compare/${PREVIOUS_SHORT_SHA}...${NEW_SHA}
 
-Changes:
+### Changes
 
 $CHANGELOG
 
-This push is happening as part of the regular weekly push.
+---
+*This release was deployed via centralized CD automation (interop-tooling-ops).*
 EOF
 )
 
