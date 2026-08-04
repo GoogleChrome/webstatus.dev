@@ -71,7 +71,6 @@ func createGCSContainer() error {
 		},
 		ExposedPorts: []string{"4443/tcp"},
 		WaitingFor:   wait.ForListeningPort("4443/tcp"),
-		Name:         "webstatus-dev-test-gcs",
 		// Needed because of https://github.com/fsouza/fake-gcs-server/issues/982
 		Cmd: []string{"-scheme", "http", "-public-host", "localhost", "-backend", "memory"},
 	}

@@ -43,7 +43,6 @@ func getTestValkey(t testing.TB) *ValkeyDataCache[string, []byte] {
 		},
 		ExposedPorts: []string{"6379/tcp"},
 		WaitingFor:   wait.ForLog("Ready to accept connections"),
-		Name:         "webstatus-dev-test-valkey",
 	}
 	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: req,
