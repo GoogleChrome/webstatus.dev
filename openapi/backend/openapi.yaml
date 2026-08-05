@@ -24,6 +24,20 @@ servers:
   - url: https://api.webstatus.dev
     description: Production
 paths:
+  /v1/healthchecks/liveness:
+    get:
+      summary: Service liveness health check
+      description: Returns a 200 OK status to indicate that the service process is alive and responsive.
+      operationId: getHealthcheckLiveness
+      tags:
+        - Healthchecks
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthcheckResponse'
   /v1/features:
     get:
       summary: List features
@@ -1512,6 +1526,15 @@ components:
         for desktop browsers with a corresponding mobile browser.
       required: false
   schemas:
+    HealthcheckResponse:
+      type: object
+      description: Response indicating the health status of the service
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          example: 'healthy'
     SupportedBrowsers:
       type: string
       description: List of supported browsers that webstatus.dev currently ingests

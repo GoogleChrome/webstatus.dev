@@ -1676,6 +1676,16 @@ func (m *mockServerInterface) DeleteSubscription(ctx context.Context,
 	panic("unimplemented")
 }
 
+// GetHealthcheckLiveness implements backend.StrictServerInterface.
+// nolint: ireturn // WONTFIX - generated method signature
+func (m *mockServerInterface) GetHealthcheckLiveness(ctx context.Context,
+	_ backend.GetHealthcheckLivenessRequestObject) (
+	backend.GetHealthcheckLivenessResponseObject, error) {
+	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
+	m.callCount++
+	panic("unimplemented")
+}
+
 func (m *mockServerInterface) assertCallCount(expectedCallCount int) {
 	if m.callCount != expectedCallCount {
 		m.t.Errorf("expected mock server to be used %d times. only used %d times", expectedCallCount, m.callCount)
