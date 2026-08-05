@@ -20,6 +20,7 @@ import {
   expectDualThemeScreenshot,
   waitForSidebarLoaded,
 } from './utils';
+import {setupVisualFixtures} from './fixture-routes';
 
 async function waitForAllChartsToLoad(page: Page) {
   // Wait for all charts to finish loading.
@@ -29,6 +30,7 @@ async function waitForAllChartsToLoad(page: Page) {
 
 test.beforeEach(async ({page}) => {
   await setupFakeNow(page);
+  await setupVisualFixtures(page);
 });
 
 test('matches the screenshot', async ({page}) => {
@@ -45,4 +47,39 @@ test('matches the screenshot', async ({page}) => {
 
   const pageContainer = page.locator('.page-container');
   await expectDualThemeScreenshot(page, pageContainer, 'stats-page');
+});
+
+test('matches screenshot when selecting a point on missing one implementation chart', async ({
+  page,
+}) => {
+  await page.goto('http://localhost:5555/stats');
+  await waitForSidebarLoaded(page);
+  await waitForAllChartsToLoad(page);
+
+  const missingOneChart = page.locator(
+    'webstatus-stats-missing-one-impl-chart-panel',
+  );
+  await expect(missingOneChart).toBeVisible();
+
+  // Simulate selecting a data point on the chart
+  await missingOneChart.evaluate((el: any) => {
+    el.handlePointSelected({
+      detail: {
+        timestamp: new Date('2023-01-01T00:00:00Z'),
+        label: 'Chrome',
+      },
+    });
+  });
+
+  // Wait for missing features list header to render
+  await expect(
+    missingOneChart.locator('#missing-one-implementation-list-header'),
+  ).toBeVisible();
+
+  const pageContainer = page.locator('.page-container');
+  await expectDualThemeScreenshot(
+    page,
+    pageContainer,
+    'stats-page-point-selected',
+  );
 });

@@ -1,0 +1,20 @@
+{
+  "metadata": {},
+  "data": [
+    {
+      "run_timestamp": "2024-01-01T00:00:00Z",
+      "total_tests_count": 100,
+      "test_pass_count": 95
+    },
+    {
+      "run_timestamp": "2024-02-01T00:00:00Z",
+      "total_tests_count": 100,
+      "test_pass_count": 98
+    },
+    {
+      "run_timestamp": "2024-03-01T00:00:00Z",
+      "total_tests_count": 100,
+      "test_pass_count": 100
+    }
+  ]
+}
