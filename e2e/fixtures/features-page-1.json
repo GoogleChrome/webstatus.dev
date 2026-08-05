@@ -1,0 +1,1230 @@
+{
+  "metadata": {
+    "next_page_token": "page_2_token",
+    "total": 50
+  },
+  "data": [
+    {
+      "feature_id": "accent-color",
+      "name": "accent-color",
+      "baseline": {
+        "status": "widely",
+        "low_date": "2022-03-14",
+        "high_date": "2024-09-14"
+      },
+      "browser_implementations": {
+        "chrome": {
+          "status": "available",
+          "date": "2021-08-31",
+          "version": "93"
+        },
+        "firefox": {
+          "status": "available",
+          "date": "2021-09-07",
+          "version": "92"
+        },
+        "safari": {
+          "status": "available",
+          "date": "2022-03-14",
+          "version": "15.4"
+        },
+        "edge": {"status": "available", "date": "2021-08-31", "version": "93"},
+        "chrome_android": {
+          "status": "available",
+          "date": "2021-08-31",
+          "version": "93"
+        },
+        "firefox_android": {
+          "status": "available",
+          "date": "2021-09-07",
+          "version": "92"
+        },
+        "safari_ios": {
+          "status": "available",
+          "date": "2022-03-14",
+          "version": "15.4"
+        }
+      },
+      "wpt": {
+        "stable": {
+          "chrome": {"score": 1.0},
+          "firefox": {"score": 1.0},
+          "safari": {"score": 1.0}
+        },
+        "experimental": {
+          "chrome": {"score": 1.0},
+          "firefox": {"score": 1.0},
+          "safari": {"score": 1.0}
+        }
+      },
+      "developer_signals": {
+        "upvotes": 42
+      }
+    },
+    {
+      "feature_id": "anchor-positioning",
+      "name": "Anchor Positioning",
+      "baseline": {
+        "status": "limited",
+        "low_date": null,
+        "high_date": null
+      },
+      "browser_implementations": {
+        "chrome": {
+          "status": "available",
+          "date": "2024-05-21",
+          "version": "125"
+        },
+        "firefox": {"status": "unavailable"},
+        "safari": {"status": "unavailable"},
+        "edge": {"status": "available", "date": "2024-05-21", "version": "125"},
+        "chrome_android": {
+          "status": "available",
+          "date": "2024-05-21",
+          "version": "125"
+        },
+        "firefox_android": {"status": "unavailable"},
+        "safari_ios": {"status": "unavailable"}
+      },
+      "wpt": {
+        "stable": {
+          "chrome": {"score": 0.98},
+          "firefox": {"score": 0.12},
+          "safari": {"score": 0.05}
+        },
+        "experimental": {
+          "chrome": {"score": 0.99},
+          "firefox": {"score": 0.35},
+          "safari": {"score": 0.15}
+        }
+      },
+      "developer_signals": {
+        "upvotes": 128
+      }
+    },
+    {
+      "feature_id": "aspect-ratio",
+      "name": "aspect-ratio",
+      "baseline": {
+        "status": "widely",
+        "low_date": "2021-09-20",
+        "high_date": "2024-03-20"
+      },
+      "browser_implementations": {
+        "chrome": {
+          "status": "available",
+          "date": "2021-01-19",
+          "version": "88"
+        },
+        "firefox": {
+          "status": "available",
+          "date": "2021-07-13",
+          "version": "89"
+        },
+        "safari": {
+          "status": "available",
+          "date": "2021-09-20",
+          "version": "15"
+        },
+        "edge": {"status": "available", "date": "2021-01-19", "version": "88"},
+        "chrome_android": {
+          "status": "available",
+          "date": "2021-01-19",
+          "version": "88"
+        },
+        "firefox_android": {
+          "status": "available",
+          "date": "2021-07-13",
+          "version": "89"
+        },
+        "safari_ios": {
+          "status": "available",
+          "date": "2021-09-20",
+          "version": "15"
+        }
+      },
+      "wpt": {
+        "stable": {
+          "chrome": {"score": 1.0},
+          "firefox": {"score": 1.0},
+          "safari": {"score": 1.0}
+        }
+      },
+      "developer_signals": {
+        "upvotes": 75
+      }
+    },
+    {
+      "feature_id": "backdrop-filter",
+      "name": "backdrop-filter",
+      "baseline": {
+        "status": "newly",
+        "low_date": "2023-10-24",
+        "high_date": null
+      },
+      "browser_implementations": {
+        "chrome": {
+          "status": "available",
+          "date": "2019-09-10",
+          "version": "76"
+        },
+        "firefox": {
+          "status": "available",
+          "date": "2022-07-26",
+          "version": "103"
+        },
+        "safari": {"status": "available", "date": "2015-09-30", "version": "9"},
+        "edge": {"status": "available", "date": "2020-01-15", "version": "79"},
+        "chrome_android": {
+          "status": "available",
+          "date": "2019-09-10",
+          "version": "76"
+        },
+        "firefox_android": {
+          "status": "available",
+          "date": "2022-07-26",
+          "version": "103"
+        },
+        "safari_ios": {
+          "status": "available",
+          "date": "2015-09-30",
+          "version": "9"
+        }
+      },
+      "wpt": {
+        "stable": {
+          "chrome": {"score": 0.95},
+          "firefox": {"score": 0.92},
+          "safari": {"score": 0.97}
+        }
+      },
+      "developer_signals": {
+        "upvotes": 55
+      }
+    },
+    {
+      "feature_id": "cascade-layers",
+      "name": "Cascade Layers (@layer)",
+      "baseline": {
+        "status": "widely",
+        "low_date": "2022-03-14",
+        "high_date": "2024-09-14"
+      },
+      "browser_implementations": {
+        "chrome": {
+          "status": "available",
+          "date": "2022-03-01",
+          "version": "99"
+        },
+        "firefox": {
+          "status": "available",
+          "date": "2022-02-08",
+          "version": "97"
+        },
+        "safari": {
+          "status": "available",
+          "date": "2022-03-14",
+          "version": "15.4"
+        },
+        "edge": {"status": "available", "date": "2022-03-01", "version": "99"},
+        "chrome_android": {
+          "status": "available",
+          "date": "2022-03-01",
+          "version": "99"
+        },
+        "firefox_android": {
+          "status": "available",
+          "date": "2022-02-08",
+          "version": "97"
+        },
+        "safari_ios": {
+          "status": "available",
+          "date": "2022-03-14",
+          "version": "15.4"
+        }
+      },
+      "wpt": {
+        "stable": {
+          "chrome": {"score": 1.0},
+          "firefox": {"score": 1.0},
+          "safari": {"score": 1.0}
+        }
+      },
+      "developer_signals": {
+        "upvotes": 89
+      }
+    },
+    {
+      "feature_id": "color-mix",
+      "name": "color-mix()",
+      "baseline": {
+        "status": "newly",
+        "low_date": "2023-05-09",
+        "high_date": null
+      },
+      "browser_implementations": {
+        "chrome": {
+          "status": "available",
+          "date": "2023-03-07",
+          "version": "111"
+        },
+        "firefox": {
+          "status": "available",
+          "date": "2023-05-09",
+          "version": "113"
+        },
+        "safari": {
+          "status": "available",
+          "date": "2023-03-27",
+          "version": "16.2"
+        },
+        "edge": {"status": "available", "date": "2023-03-07", "version": "111"},
+        "chrome_android": {
+          "status": "available",
+          "date": "2023-03-07",
+          "version": "111"
+        },
+        "firefox_android": {
+          "status": "available",
+          "date": "2023-05-09",
+          "version": "113"
+        },
+        "safari_ios": {
+          "status": "available",
+          "date": "2023-03-27",
+          "version": "16.2"
+        }
+      },
+      "wpt": {
+        "stable": {
+          "chrome": {"score": 0.99},
+          "firefox": {"score": 0.99},
+          "safari": {"score": 0.98}
+        }
+      },
+      "developer_signals": {
+        "upvotes": 67
+      }
+    },
+    {
+      "feature_id": "container-queries",
+      "name": "Container Queries (@container)",
+      "baseline": {
+        "status": "newly",
+        "low_date": "2023-02-14",
+        "high_date": null
+      },
+      "browser_implementations": {
+        "chrome": {
+          "status": "available",
+          "date": "2022-08-30",
+          "version": "105"
+        },
+        "firefox": {
+          "status": "available",
+          "date": "2023-02-14",
+          "version": "110"
+        },
+        "safari": {
+          "status": "available",
+          "date": "2022-09-12",
+          "version": "16"
+        },
+        "edge": {"status": "available", "date": "2022-08-30", "version": "105"},
+        "chrome_android": {
+          "status": "available",
+          "date": "2022-08-30",
+          "version": "105"
+        },
+        "firefox_android": {
+          "status": "available",
+          "date": "2023-02-14",
+          "version": "110"
+        },
+        "safari_ios": {
+          "status": "available",
+          "date": "2022-09-12",
+          "version": "16"
+        }
+      },
+      "wpt": {
+        "stable": {
+          "chrome": {"score": 1.0},
+          "firefox": {"score": 0.98},
+          "safari": {"score": 0.97}
+        }
+      },
+      "developer_signals": {
+        "upvotes": 210
+      }
+    },
+    {
+      "feature_id": "dialog",
+      "name": "HTML <dialog> element",
+      "baseline": {
+        "status": "widely",
+        "low_date": "2022-03-14",
+        "high_date": "2024-09-14"
+      },
+      "browser_implementations": {
+        "chrome": {
+          "status": "available",
+          "date": "2014-07-29",
+          "version": "37"
+        },
+        "firefox": {
+          "status": "available",
+          "date": "2022-03-08",
+          "version": "98"
+        },
+        "safari": {
+          "status": "available",
+          "date": "2022-03-14",
+          "version": "15.4"
+        },
+        "edge": {"status": "available", "date": "2020-01-15", "version": "79"},
+        "chrome_android": {
+          "status": "available",
+          "date": "2014-07-29",
+          "version": "37"
+        },
+        "firefox_android": {
+          "status": "available",
+          "date": "2022-03-08",
+          "version": "98"
+        },
+        "safari_ios": {
+          "status": "available",
+          "date": "2022-03-14",
+          "version": "15.4"
+        }
+      },
+      "wpt": {
+        "stable": {
+          "chrome": {"score": 1.0},
+          "firefox": {"score": 1.0},
+          "safari": {"score": 1.0}
+        }
+      },
+      "developer_signals": {
+        "upvotes": 140
+      }
+    },
+    {
+      "feature_id": "flexbox",
+      "name": "CSS Flexible Box Layout",
+      "baseline": {
+        "status": "widely",
+        "low_date": "2015-09-30",
+        "high_date": "2018-03-30"
+      },
+      "browser_implementations": {
+        "chrome": {
+          "status": "available",
+          "date": "2013-08-20",
+          "version": "29"
+        },
+        "firefox": {
+          "status": "available",
+          "date": "2014-04-29",
+          "version": "28"
+        },
+        "safari": {"status": "available", "date": "2015-09-30", "version": "9"},
+        "edge": {"status": "available", "date": "2015-07-29", "version": "12"},
+        "chrome_android": {
+          "status": "available",
+          "date": "2013-08-20",
+          "version": "29"
+        },
+        "firefox_android": {
+          "status": "available",
+          "date": "2014-04-29",
+          "version": "28"
+        },
+        "safari_ios": {
+          "status": "available",
+          "date": "2015-09-30",
+          "version": "9"
+        }
+      },
+      "wpt": {
+        "stable": {
+          "chrome": {"score": 1.0},
+          "firefox": {"score": 1.0},
+          "safari": {"score": 1.0}
+        }
+      },
+      "developer_signals": {
+        "upvotes": 350
+      }
+    },
+    {
+      "feature_id": "grid",
+      "name": "CSS Grid Layout",
+      "baseline": {
+        "status": "widely",
+        "low_date": "2017-10-17",
+        "high_date": "2020-04-17"
+      },
+      "browser_implementations": {
+        "chrome": {
+          "status": "available",
+          "date": "2017-03-09",
+          "version": "57"
+        },
+        "firefox": {
+          "status": "available",
+          "date": "2017-03-07",
+          "version": "52"
+        },
+        "safari": {
+          "status": "available",
+          "date": "2017-03-27",
+          "version": "10.1"
+        },
+        "edge": {"status": "available", "date": "2017-10-17", "version": "16"},
+        "chrome_android": {
+          "status": "available",
+          "date": "2017-03-09",
+          "version": "57"
+        },
+        "firefox_android": {
+          "status": "available",
+          "date": "2017-03-07",
+          "version": "52"
+        },
+        "safari_ios": {
+          "status": "available",
+          "date": "2017-03-27",
+          "version": "10.1"
+        }
+      },
+      "wpt": {
+        "stable": {
+          "chrome": {"score": 1.0},
+          "firefox": {"score": 1.0},
+          "safari": {"score": 1.0}
+        }
+      },
+      "developer_signals": {
+        "upvotes": 280
+      }
+    },
+    {
+      "feature_id": "has-pseudo-class",
+      "name": ":has() pseudo-class",
+      "baseline": {
+        "status": "newly",
+        "low_date": "2023-12-19",
+        "high_date": null
+      },
+      "browser_implementations": {
+        "chrome": {
+          "status": "available",
+          "date": "2022-08-30",
+          "version": "105"
+        },
+        "firefox": {
+          "status": "available",
+          "date": "2023-12-19",
+          "version": "121"
+        },
+        "safari": {
+          "status": "available",
+          "date": "2022-03-14",
+          "version": "15.4"
+        },
+        "edge": {"status": "available", "date": "2022-08-30", "version": "105"},
+        "chrome_android": {
+          "status": "available",
+          "date": "2022-08-30",
+          "version": "105"
+        },
+        "firefox_android": {
+          "status": "available",
+          "date": "2023-12-19",
+          "version": "121"
+        },
+        "safari_ios": {
+          "status": "available",
+          "date": "2022-03-14",
+          "version": "15.4"
+        }
+      },
+      "wpt": {
+        "stable": {
+          "chrome": {"score": 0.99},
+          "firefox": {"score": 0.98},
+          "safari": {"score": 0.99}
+        }
+      },
+      "developer_signals": {
+        "upvotes": 195
+      }
+    },
+    {
+      "feature_id": "import-maps",
+      "name": "JavaScript Import Maps",
+      "baseline": {
+        "status": "newly",
+        "low_date": "2023-03-27",
+        "high_date": null
+      },
+      "browser_implementations": {
+        "chrome": {
+          "status": "available",
+          "date": "2021-03-02",
+          "version": "89"
+        },
+        "firefox": {
+          "status": "available",
+          "date": "2023-01-17",
+          "version": "108"
+        },
+        "safari": {
+          "status": "available",
+          "date": "2023-03-27",
+          "version": "16.4"
+        },
+        "edge": {"status": "available", "date": "2021-03-02", "version": "89"},
+        "chrome_android": {
+          "status": "available",
+          "date": "2021-03-02",
+          "version": "89"
+        },
+        "firefox_android": {
+          "status": "available",
+          "date": "2023-01-17",
+          "version": "108"
+        },
+        "safari_ios": {
+          "status": "available",
+          "date": "2023-03-27",
+          "version": "16.4"
+        }
+      },
+      "wpt": {
+        "stable": {
+          "chrome": {"score": 1.0},
+          "firefox": {"score": 1.0},
+          "safari": {"score": 0.98}
+        }
+      },
+      "developer_signals": {
+        "upvotes": 85
+      }
+    },
+    {
+      "feature_id": "nesting",
+      "name": "CSS Nesting",
+      "baseline": {
+        "status": "newly",
+        "low_date": "2023-12-19",
+        "high_date": null
+      },
+      "browser_implementations": {
+        "chrome": {
+          "status": "available",
+          "date": "2023-04-04",
+          "version": "112"
+        },
+        "firefox": {
+          "status": "available",
+          "date": "2023-08-29",
+          "version": "117"
+        },
+        "safari": {
+          "status": "available",
+          "date": "2023-03-27",
+          "version": "16.5"
+        },
+        "edge": {"status": "available", "date": "2023-04-04", "version": "112"},
+        "chrome_android": {
+          "status": "available",
+          "date": "2023-04-04",
+          "version": "112"
+        },
+        "firefox_android": {
+          "status": "available",
+          "date": "2023-08-29",
+          "version": "117"
+        },
+        "safari_ios": {
+          "status": "available",
+          "date": "2023-03-27",
+          "version": "16.5"
+        }
+      },
+      "wpt": {
+        "stable": {
+          "chrome": {"score": 1.0},
+          "firefox": {"score": 1.0},
+          "safari": {"score": 1.0}
+        }
+      },
+      "developer_signals": {
+        "upvotes": 160
+      }
+    },
+    {
+      "feature_id": "popover",
+      "name": "Popover API",
+      "baseline": {
+        "status": "newly",
+        "low_date": "2024-04-16",
+        "high_date": null
+      },
+      "browser_implementations": {
+        "chrome": {
+          "status": "available",
+          "date": "2023-05-02",
+          "version": "114"
+        },
+        "firefox": {
+          "status": "available",
+          "date": "2024-04-16",
+          "version": "125"
+        },
+        "safari": {
+          "status": "available",
+          "date": "2023-09-18",
+          "version": "17"
+        },
+        "edge": {"status": "available", "date": "2023-05-02", "version": "114"},
+        "chrome_android": {
+          "status": "available",
+          "date": "2023-05-02",
+          "version": "114"
+        },
+        "firefox_android": {
+          "status": "available",
+          "date": "2024-04-16",
+          "version": "125"
+        },
+        "safari_ios": {
+          "status": "available",
+          "date": "2023-09-18",
+          "version": "17"
+        }
+      },
+      "wpt": {
+        "stable": {
+          "chrome": {"score": 0.98},
+          "firefox": {"score": 0.96},
+          "safari": {"score": 0.97}
+        }
+      },
+      "developer_signals": {
+        "upvotes": 115
+      }
+    },
+    {
+      "feature_id": "subgrid",
+      "name": "CSS Subgrid",
+      "baseline": {
+        "status": "newly",
+        "low_date": "2023-09-18",
+        "high_date": null
+      },
+      "browser_implementations": {
+        "chrome": {
+          "status": "available",
+          "date": "2023-09-12",
+          "version": "117"
+        },
+        "firefox": {
+          "status": "available",
+          "date": "2019-12-03",
+          "version": "71"
+        },
+        "safari": {
+          "status": "available",
+          "date": "2022-09-12",
+          "version": "16"
+        },
+        "edge": {"status": "available", "date": "2023-09-12", "version": "117"},
+        "chrome_android": {
+          "status": "available",
+          "date": "2023-09-12",
+          "version": "117"
+        },
+        "firefox_android": {
+          "status": "available",
+          "date": "2019-12-03",
+          "version": "71"
+        },
+        "safari_ios": {
+          "status": "available",
+          "date": "2022-09-12",
+          "version": "16"
+        }
+      },
+      "wpt": {
+        "stable": {
+          "chrome": {"score": 0.99},
+          "firefox": {"score": 0.99},
+          "safari": {"score": 0.99}
+        }
+      },
+      "developer_signals": {
+        "upvotes": 130
+      }
+    },
+    {
+      "feature_id": "view-transitions",
+      "name": "View Transitions API (Same-document)",
+      "baseline": {
+        "status": "limited",
+        "low_date": null,
+        "high_date": null
+      },
+      "browser_implementations": {
+        "chrome": {
+          "status": "available",
+          "date": "2023-03-07",
+          "version": "111"
+        },
+        "firefox": {"status": "unavailable"},
+        "safari": {
+          "status": "available",
+          "date": "2024-09-16",
+          "version": "18"
+        },
+        "edge": {"status": "available", "date": "2023-03-07", "version": "111"},
+        "chrome_android": {
+          "status": "available",
+          "date": "2023-03-07",
+          "version": "111"
+        },
+        "firefox_android": {"status": "unavailable"},
+        "safari_ios": {
+          "status": "available",
+          "date": "2024-09-16",
+          "version": "18"
+        }
+      },
+      "wpt": {
+        "stable": {
+          "chrome": {"score": 0.95},
+          "firefox": {"score": 0.1},
+          "safari": {"score": 0.9}
+        }
+      },
+      "developer_signals": {
+        "upvotes": 175
+      }
+    },
+    {
+      "feature_id": "web-animations",
+      "name": "Web Animations API",
+      "baseline": {
+        "status": "widely",
+        "low_date": "2020-03-24",
+        "high_date": "2022-09-24"
+      },
+      "browser_implementations": {
+        "chrome": {
+          "status": "available",
+          "date": "2014-06-10",
+          "version": "36"
+        },
+        "firefox": {
+          "status": "available",
+          "date": "2016-08-02",
+          "version": "48"
+        },
+        "safari": {
+          "status": "available",
+          "date": "2020-03-24",
+          "version": "13.1"
+        },
+        "edge": {"status": "available", "date": "2020-01-15", "version": "79"},
+        "chrome_android": {
+          "status": "available",
+          "date": "2014-06-10",
+          "version": "36"
+        },
+        "firefox_android": {
+          "status": "available",
+          "date": "2016-08-02",
+          "version": "48"
+        },
+        "safari_ios": {
+          "status": "available",
+          "date": "2020-03-24",
+          "version": "13.1"
+        }
+      },
+      "wpt": {
+        "stable": {
+          "chrome": {"score": 1.0},
+          "firefox": {"score": 1.0},
+          "safari": {"score": 1.0}
+        }
+      },
+      "developer_signals": {
+        "upvotes": 90
+      }
+    },
+    {
+      "feature_id": "web-components",
+      "name": "Custom Elements & Shadow DOM",
+      "baseline": {
+        "status": "widely",
+        "low_date": "2020-01-15",
+        "high_date": "2022-07-15"
+      },
+      "browser_implementations": {
+        "chrome": {
+          "status": "available",
+          "date": "2016-10-12",
+          "version": "54"
+        },
+        "firefox": {
+          "status": "available",
+          "date": "2018-10-23",
+          "version": "63"
+        },
+        "safari": {
+          "status": "available",
+          "date": "2016-09-20",
+          "version": "10"
+        },
+        "edge": {"status": "available", "date": "2020-01-15", "version": "79"},
+        "chrome_android": {
+          "status": "available",
+          "date": "2016-10-12",
+          "version": "54"
+        },
+        "firefox_android": {
+          "status": "available",
+          "date": "2018-10-23",
+          "version": "63"
+        },
+        "safari_ios": {
+          "status": "available",
+          "date": "2016-09-20",
+          "version": "10"
+        }
+      },
+      "wpt": {
+        "stable": {
+          "chrome": {"score": 1.0},
+          "firefox": {"score": 1.0},
+          "safari": {"score": 1.0}
+        }
+      },
+      "developer_signals": {
+        "upvotes": 220
+      }
+    },
+    {
+      "feature_id": "webgpu",
+      "name": "WebGPU API",
+      "baseline": {
+        "status": "limited",
+        "low_date": null,
+        "high_date": null
+      },
+      "browser_implementations": {
+        "chrome": {
+          "status": "available",
+          "date": "2023-05-02",
+          "version": "113"
+        },
+        "firefox": {"status": "unavailable"},
+        "safari": {"status": "unavailable"},
+        "edge": {"status": "available", "date": "2023-05-02", "version": "113"},
+        "chrome_android": {
+          "status": "available",
+          "date": "2024-01-23",
+          "version": "121"
+        },
+        "firefox_android": {"status": "unavailable"},
+        "safari_ios": {"status": "unavailable"}
+      },
+      "wpt": {
+        "stable": {
+          "chrome": {"score": 0.94},
+          "firefox": {"score": 0.15},
+          "safari": {"score": 0.1}
+        }
+      },
+      "developer_signals": {
+        "upvotes": 310
+      }
+    },
+    {
+      "feature_id": "webhid",
+      "name": "WebHID API",
+      "baseline": {
+        "status": "limited",
+        "low_date": null,
+        "high_date": null
+      },
+      "browser_implementations": {
+        "chrome": {
+          "status": "available",
+          "date": "2021-03-02",
+          "version": "89"
+        },
+        "firefox": {"status": "unavailable"},
+        "safari": {"status": "unavailable"},
+        "edge": {"status": "available", "date": "2021-03-02", "version": "89"},
+        "chrome_android": {"status": "unavailable"},
+        "firefox_android": {"status": "unavailable"},
+        "safari_ios": {"status": "unavailable"}
+      },
+      "wpt": {
+        "stable": {
+          "chrome": {"score": 0.9}
+        }
+      },
+      "developer_signals": {
+        "upvotes": 45
+      }
+    },
+    {
+      "feature_id": "webrtc",
+      "name": "WebRTC 1.0: Real-Time Communication",
+      "baseline": {
+        "status": "widely",
+        "low_date": "2017-09-19",
+        "high_date": "2020-03-19"
+      },
+      "browser_implementations": {
+        "chrome": {
+          "status": "available",
+          "date": "2013-02-26",
+          "version": "25"
+        },
+        "firefox": {
+          "status": "available",
+          "date": "2013-06-25",
+          "version": "22"
+        },
+        "safari": {
+          "status": "available",
+          "date": "2017-09-19",
+          "version": "11"
+        },
+        "edge": {"status": "available", "date": "2020-01-15", "version": "79"},
+        "chrome_android": {
+          "status": "available",
+          "date": "2013-02-26",
+          "version": "25"
+        },
+        "firefox_android": {
+          "status": "available",
+          "date": "2013-06-25",
+          "version": "22"
+        },
+        "safari_ios": {
+          "status": "available",
+          "date": "2017-09-19",
+          "version": "11"
+        }
+      },
+      "wpt": {
+        "stable": {
+          "chrome": {"score": 1.0},
+          "firefox": {"score": 1.0},
+          "safari": {"score": 1.0}
+        }
+      },
+      "developer_signals": {
+        "upvotes": 180
+      }
+    },
+    {
+      "feature_id": "web-locks",
+      "name": "Web Locks API",
+      "baseline": {
+        "status": "widely",
+        "low_date": "2022-03-14",
+        "high_date": "2024-09-14"
+      },
+      "browser_implementations": {
+        "chrome": {
+          "status": "available",
+          "date": "2018-09-04",
+          "version": "69"
+        },
+        "firefox": {
+          "status": "available",
+          "date": "2022-01-11",
+          "version": "96"
+        },
+        "safari": {
+          "status": "available",
+          "date": "2022-03-14",
+          "version": "15.4"
+        },
+        "edge": {"status": "available", "date": "2020-01-15", "version": "79"},
+        "chrome_android": {
+          "status": "available",
+          "date": "2018-09-04",
+          "version": "69"
+        },
+        "firefox_android": {
+          "status": "available",
+          "date": "2022-01-11",
+          "version": "96"
+        },
+        "safari_ios": {
+          "status": "available",
+          "date": "2022-03-14",
+          "version": "15.4"
+        }
+      },
+      "wpt": {
+        "stable": {
+          "chrome": {"score": 1.0},
+          "firefox": {"score": 1.0},
+          "safari": {"score": 1.0}
+        }
+      },
+      "developer_signals": {
+        "upvotes": 60
+      }
+    },
+    {
+      "feature_id": "web-share",
+      "name": "Web Share API",
+      "baseline": {
+        "status": "newly",
+        "low_date": "2023-03-14",
+        "high_date": null
+      },
+      "browser_implementations": {
+        "chrome": {
+          "status": "available",
+          "date": "2021-03-02",
+          "version": "89"
+        },
+        "firefox": {
+          "status": "available",
+          "date": "2019-12-03",
+          "version": "71"
+        },
+        "safari": {
+          "status": "available",
+          "date": "2019-03-25",
+          "version": "12.1"
+        },
+        "edge": {"status": "available", "date": "2021-03-02", "version": "89"},
+        "chrome_android": {
+          "status": "available",
+          "date": "2017-10-17",
+          "version": "61"
+        },
+        "firefox_android": {
+          "status": "available",
+          "date": "2019-12-03",
+          "version": "71"
+        },
+        "safari_ios": {
+          "status": "available",
+          "date": "2019-03-25",
+          "version": "12.1"
+        }
+      },
+      "wpt": {
+        "stable": {
+          "chrome": {"score": 0.95},
+          "firefox": {"score": 0.9},
+          "safari": {"score": 0.95}
+        }
+      },
+      "developer_signals": {
+        "upvotes": 95
+      }
+    },
+    {
+      "feature_id": "web-bluetooth",
+      "name": "Web Bluetooth API",
+      "baseline": {
+        "status": "limited",
+        "low_date": null,
+        "high_date": null
+      },
+      "browser_implementations": {
+        "chrome": {
+          "status": "available",
+          "date": "2017-02-01",
+          "version": "56"
+        },
+        "firefox": {"status": "unavailable"},
+        "safari": {"status": "unavailable"},
+        "edge": {"status": "available", "date": "2020-01-15", "version": "79"},
+        "chrome_android": {
+          "status": "available",
+          "date": "2017-02-01",
+          "version": "56"
+        },
+        "firefox_android": {"status": "unavailable"},
+        "safari_ios": {"status": "unavailable"}
+      },
+      "wpt": {
+        "stable": {
+          "chrome": {"score": 0.88}
+        }
+      },
+      "developer_signals": {
+        "upvotes": 120
+      }
+    },
+    {
+      "feature_id": "webassembly",
+      "name": "WebAssembly Core",
+      "baseline": {
+        "status": "widely",
+        "low_date": "2017-11-28",
+        "high_date": "2020-05-28"
+      },
+      "browser_implementations": {
+        "chrome": {
+          "status": "available",
+          "date": "2017-03-09",
+          "version": "57"
+        },
+        "firefox": {
+          "status": "available",
+          "date": "2017-03-07",
+          "version": "52"
+        },
+        "safari": {
+          "status": "available",
+          "date": "2017-09-19",
+          "version": "11"
+        },
+        "edge": {"status": "available", "date": "2017-11-28", "version": "16"},
+        "chrome_android": {
+          "status": "available",
+          "date": "2017-03-09",
+          "version": "57"
+        },
+        "firefox_android": {
+          "status": "available",
+          "date": "2017-03-07",
+          "version": "52"
+        },
+        "safari_ios": {
+          "status": "available",
+          "date": "2017-09-19",
+          "version": "11"
+        }
+      },
+      "wpt": {
+        "stable": {
+          "chrome": {"score": 1.0},
+          "firefox": {"score": 1.0},
+          "safari": {"score": 1.0}
+        }
+      },
+      "developer_signals": {
+        "upvotes": 400
+      }
+    }
+  ]
+}

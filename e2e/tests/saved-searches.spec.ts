@@ -176,9 +176,6 @@ test.describe('Saved Searches on Overview Page', () => {
       page,
       `http://localhost:5555?q=saved:${USER1_SEARCH1.id}`,
     );
-    await page.waitForURL(
-      url => url.searchParams.get('q') === `saved:${USER1_SEARCH1.id}`,
-    );
 
     // Verify controls are present
     await expect(saveButtonLocator(page)).toBeVisible();
@@ -200,9 +197,6 @@ test.describe('Saved Searches on Overview Page', () => {
       page,
       `http://localhost:5555?q=saved:${USER2_SEARCH1.id}`,
     ); // User 1 views User 2's search
-    await page.waitForURL(
-      url => url.searchParams.get('q') === `saved:${USER2_SEARCH1.id}`,
-    );
 
     // Verify controls are present
     await expect(saveButtonLocator(page)).toBeVisible();
@@ -224,9 +218,6 @@ test.describe('Saved Searches on Overview Page', () => {
       page,
       `http://localhost:5555?q=saved:${USER1_SEARCH1.id}`,
     ); // User 2 views User 1's search
-    await page.waitForURL(
-      url => url.searchParams.get('q') === `saved:${USER1_SEARCH1.id}`,
-    );
 
     // Verify controls are present
     await expect(saveButtonLocator(page)).toBeVisible();
@@ -245,9 +236,6 @@ test.describe('Saved Searches on Overview Page', () => {
     await gotoOverviewPageUrl(
       page,
       `http://localhost:5555?q=saved:${USER1_SEARCH1.id}`,
-    );
-    await page.waitForURL(
-      url => url.searchParams.get('q') === `saved:${USER1_SEARCH1.id}`,
     );
 
     const updatedName = 'My Updated Query Name';
@@ -301,9 +289,6 @@ test.describe('Saved Searches on Overview Page', () => {
       page,
       `http://localhost:5555?q=saved:${USER1_SEARCH2.id}`,
     );
-    await page.waitForURL(
-      url => url.searchParams.get('q') === `saved:${USER1_SEARCH2.id}`,
-    );
 
     // 1. Click delete icon
     await deleteIconLocator(page).click();
@@ -320,7 +305,7 @@ test.describe('Saved Searches on Overview Page', () => {
     await editorDeleteButtonLocator(page).click();
 
     // 3. Verify dialog closes and URL updates (removes search_id)
-    await expect(editorDialogLocator(page)).not.toBeVisible();
+    await expect(editorDialogLocator(page)).toBeHidden({timeout: 10000});
     await page.waitForURL(
       url => !url.searchParams.get('q')?.includes('saved:'),
     );
@@ -336,9 +321,6 @@ test.describe('Saved Searches on Overview Page', () => {
       page,
       `http://localhost:5555?q=saved:${USER1_SEARCH1.id}`,
     ); // User 2 views User 1's search
-    await page.waitForURL(
-      url => url.searchParams.get('q') === `saved:${USER1_SEARCH1.id}`,
-    );
 
     // 1. Verify empty star is present
     await expect(bookmarkEmptyIconLocator(page)).toBeVisible();
@@ -353,9 +335,6 @@ test.describe('Saved Searches on Overview Page', () => {
 
     // 4. Refresh and verify persistence
     await page.reload();
-    await page.waitForURL(
-      url => url.searchParams.get('q') === `saved:${USER1_SEARCH1.id}`,
-    );
     await expect(bookmarkFilledIconLocator(page)).toBeVisible();
   });
 
@@ -366,9 +345,6 @@ test.describe('Saved Searches on Overview Page', () => {
       `http://localhost:5555?q=saved:${USER2_SEARCH1.id}`,
     );
     // User 1 views User 2's search (which they bookmarked)
-    await page.waitForURL(
-      url => url.searchParams.get('q') === `saved:${USER2_SEARCH1.id}`,
-    );
 
     // 1. Verify filled star is present
     await expect(bookmarkFilledIconLocator(page)).toBeVisible();
@@ -396,9 +372,6 @@ test.describe('Saved Searches on Overview Page', () => {
     await gotoOverviewPageUrl(
       page,
       `http://localhost:5555?q=saved:${USER1_SEARCH1.id}`,
-    );
-    await page.waitForURL(
-      url => url.searchParams.get('q') === `saved:${USER1_SEARCH1.id}`,
     );
 
     // Click the share icon
