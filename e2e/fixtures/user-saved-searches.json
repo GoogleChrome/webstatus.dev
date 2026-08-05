@@ -1,0 +1,19 @@
+{
+  "metadata": {},
+  "data": [
+    {
+      "id": "u09386fe-65f1-4640-b28d-3cf2f2de69c9",
+      "name": "my first project query",
+      "query": "available_on:chrome AND available_on:firefox",
+      "description": "My custom user query for project monitoring",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z",
+      "permissions": {
+        "role": "saved_search_owner"
+      },
+      "bookmark_status": {
+        "status": "bookmark_active"
+      }
+    }
+  ]
+}

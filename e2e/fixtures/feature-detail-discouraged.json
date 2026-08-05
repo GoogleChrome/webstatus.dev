@@ -1,0 +1,27 @@
+{
+  "feature_id": "discouraged",
+  "name": "Discouraged Feature Example",
+  "baseline": {
+    "status": "limited",
+    "low_date": null,
+    "high_date": null
+  },
+  "discouraged": {
+    "according_to": [
+      {"link": "https://html.spec.whatwg.org/multipage/obsolete.html"}
+    ],
+    "alternatives": [{"id": "dialog"}]
+  },
+  "browser_implementations": {
+    "chrome": {"status": "available", "date": "2010-01-01", "version": "4"},
+    "firefox": {"status": "available", "date": "2010-01-01", "version": "3.6"},
+    "safari": {"status": "available", "date": "2010-01-01", "version": "4"}
+  },
+  "wpt": {
+    "stable": {
+      "chrome": {"score": 0.5},
+      "firefox": {"score": 0.5},
+      "safari": {"score": 0.5}
+    }
+  }
+}

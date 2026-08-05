@@ -22,6 +22,11 @@ import {
   waitForSidebarLoaded,
   expectDualThemeScreenshot,
 } from './utils';
+import {setupVisualFixtures} from './fixture-routes';
+
+test.beforeEach(async ({page}) => {
+  await setupVisualFixtures(page);
+});
 
 test('Bad URL redirection to 404 page', async ({page}) => {
   const badUrls = [
@@ -123,6 +128,7 @@ test('should allow navigation from 404 page', async ({page}) => {
 });
 
 test('matches the screenshot 404 not found page', async ({page}) => {
+  await setupVisualFixtures(page);
   await page.goto(`${BASE_URL}/bad_url`);
   const pageContainer = page.locator('.page-container');
   await waitForSidebarLoaded(page);

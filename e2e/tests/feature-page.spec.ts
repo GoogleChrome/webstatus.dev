@@ -1,5 +1,5 @@
 /**
- * Copyright 2023 Google LLC
+ * Copyright 2024 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,14 +15,16 @@
  */
 
 import {test, expect} from '@playwright/test';
+
 import {
-  setupFakeNow,
-  resetUserData,
-  loginAsUser,
   expectDualThemeScreenshot,
+  loginAsUser,
+  resetUserData,
   waitForSidebarLoaded,
   waitForTabbedChartCompletion,
+  setupFakeNow,
 } from './utils';
+import {setupVisualFixtures} from './fixture-routes';
 
 test.beforeEach(async ({page}) => {
   await setupFakeNow(page);
@@ -34,104 +36,112 @@ const featureName = 'Anchor Positioning';
 
 const discouragedFeatureId = 'discouraged';
 
-test('matches the screenshot', async ({page}) => {
-  await page.goto(`http://localhost:5555/features/${featureID}`);
+test.describe('Visual Screenshots & Feature Views', () => {
+  test.beforeEach(async ({page}) => {
+    await setupVisualFixtures(page);
+  });
 
-  // Wait for the chart to fully render
-  await waitForTabbedChartCompletion(
+  test('matches the screenshot', async ({page}) => {
+    await page.goto(`http://localhost:5555/features/${featureID}`);
+
+    // Wait for the chart to fully render
+    await waitForTabbedChartCompletion(
+      page,
+      'feature-wpt-implementation-progress',
+      0,
+    );
+
+    const pageContainer = page.locator('.page-container');
+    await waitForSidebarLoaded(page);
+    await expectDualThemeScreenshot(page, pageContainer, 'feature-page');
+  });
+
+  test('matches the screenshot for a discouraged feature', async ({page}) => {
+    await page.goto(`http://localhost:5555/features/${discouragedFeatureId}`);
+
+    // Wait for the specific feature name header to be visible
+    await expect(page.locator('#nameAndOffsiteLinks h1')).toBeVisible();
+
+    await waitForTabbedChartCompletion(
+      page,
+      'feature-wpt-implementation-progress',
+      0,
+    );
+
+    const pageContainer = page.locator('.page-container');
+    await waitForSidebarLoaded(page);
+    await expectDualThemeScreenshot(
+      page,
+      pageContainer,
+      'feature-page-discouraged',
+    );
+  });
+
+  test('chart width resizes with window', async ({page}) => {
+    await page.goto(`http://localhost:5555/features/${featureID}`);
+    await waitForTabbedChartCompletion(
+      page,
+      'feature-wpt-implementation-progress',
+      0,
+    );
+    await page.waitForTimeout(1000);
+    const narrowWidth = 1000;
+    const wideWidth = 1200;
+    const height = 1500;
+    const chartContainer = page.locator(
+      '#feature-wpt-implementation-progress-0-complete',
+    );
+
+    // Resize to narrow width
+    await page.setViewportSize({width: narrowWidth, height});
+    await page.waitForTimeout(1000);
+    const newChartWidth = await chartContainer.evaluate(el => el.clientWidth);
+
+    // Ensure that the chart is wider than the narrow width
+    await page.setViewportSize({width: wideWidth, height});
+    await page.waitForTimeout(1000);
+    const newChartWidth2 = await chartContainer.evaluate(el => el.clientWidth);
+    expect(newChartWidth2).toBeGreaterThan(newChartWidth);
+
+    // And restore to original size
+    await page.setViewportSize({width: narrowWidth, height});
+    // We may be able to remove the following waitForTimeout after we address:
+    // https://github.com/GoogleChrome/webstatus.dev/issues/278
+    await page.waitForTimeout(2000);
+    const newChartWidth3 = await chartContainer.evaluate(el => el.clientWidth);
+    expect(newChartWidth3).toEqual(newChartWidth);
+
+    // Compare screenshot of smaller chart
+    await expect(chartContainer).toHaveScreenshot(
+      'chart-width-resizes-with-window-1.png',
+    );
+  });
+
+  test('mobile chart displays on click and matches screenshot', async ({
     page,
-    'feature-wpt-implementation-progress',
-    0,
-  );
+  }) => {
+    await page.goto(`http://localhost:5555/features/${featureID}`);
+    await waitForTabbedChartCompletion(
+      page,
+      'feature-wpt-implementation-progress',
+      0,
+    );
+    const mobileTab = page.locator(
+      'sl-tab#feature-wpt-implementation-progress-tab-mobile',
+    );
 
-  const pageContainer = page.locator('.page-container');
-  await waitForSidebarLoaded(page);
-  await expectDualThemeScreenshot(page, pageContainer, 'feature-page');
-});
+    await mobileTab.click();
+    await page.waitForTimeout(2000);
+    await waitForTabbedChartCompletion(
+      page,
+      'feature-wpt-implementation-progress',
+      1,
+    );
 
-test('matches the screenshot for a discouraged feature', async ({page}) => {
-  await page.goto(`http://localhost:5555/features/${discouragedFeatureId}`);
-
-  // Wait for the specific feature name header to be visible
-  await expect(page.locator('#nameAndOffsiteLinks h1')).toBeVisible();
-
-  await waitForTabbedChartCompletion(
-    page,
-    'feature-wpt-implementation-progress',
-    0,
-  );
-
-  const pageContainer = page.locator('.page-container');
-  await waitForSidebarLoaded(page);
-  await expectDualThemeScreenshot(
-    page,
-    pageContainer,
-    'feature-page-discouraged',
-  );
-});
-
-test('chart width resizes with window', async ({page}) => {
-  await page.goto(`http://localhost:5555/features/${featureID}`);
-  await waitForTabbedChartCompletion(
-    page,
-    'feature-wpt-implementation-progress',
-    0,
-  );
-  await page.waitForTimeout(1000);
-  const narrowWidth = 1000;
-  const wideWidth = 1200;
-  const height = 1500;
-  const chartContainer = page.locator(
-    '#feature-wpt-implementation-progress-0-complete',
-  );
-
-  // Resize to narrow width
-  await page.setViewportSize({width: narrowWidth, height});
-  await page.waitForTimeout(1000);
-  const newChartWidth = await chartContainer.evaluate(el => el.clientWidth);
-
-  // Ensure that the chart is wider than the narrow width
-  await page.setViewportSize({width: wideWidth, height});
-  await page.waitForTimeout(1000);
-  const newChartWidth2 = await chartContainer.evaluate(el => el.clientWidth);
-  expect(newChartWidth2).toBeGreaterThan(newChartWidth);
-
-  // And restore to original size
-  await page.setViewportSize({width: narrowWidth, height});
-  // We may be able to remove the following waitForTimeout after we address:
-  // https://github.com/GoogleChrome/webstatus.dev/issues/278
-  await page.waitForTimeout(2000);
-  const newChartWidth3 = await chartContainer.evaluate(el => el.clientWidth);
-  expect(newChartWidth3).toEqual(newChartWidth);
-
-  // Compare screenshot of smaller chart
-  await expect(chartContainer).toHaveScreenshot();
-});
-
-test('mobile chart displays on click and matches screenshot', async ({
-  page,
-}) => {
-  await page.goto(`http://localhost:5555/features/${featureID}`);
-  await waitForTabbedChartCompletion(
-    page,
-    'feature-wpt-implementation-progress',
-    0,
-  );
-  const mobileTab = page.locator(
-    'sl-tab#feature-wpt-implementation-progress-tab-mobile',
-  );
-
-  await mobileTab.click();
-  await page.waitForTimeout(2000);
-  await waitForTabbedChartCompletion(
-    page,
-    'feature-wpt-implementation-progress',
-    1,
-  );
-
-  const pageContainer = page.locator('.page-container');
-  await waitForSidebarLoaded(page);
-  await expectDualThemeScreenshot(page, pageContainer, 'feature-page-mobile');
+    const pageContainer = page.locator('.page-container');
+    await waitForSidebarLoaded(page);
+    await expectDualThemeScreenshot(page, pageContainer, 'feature-page-mobile');
+  });
 });
 
 test('date range changes are preserved in the URL', async ({page}) => {
@@ -143,9 +153,7 @@ test('date range changes are preserved in the URL', async ({page}) => {
   );
 
   // Get the current default startDate and endDate from the selectors
-  // TODO Figure out how to use getByLabel with shoelace and replace page.locator with that.
   const submitBtnSelector = page.locator('sl-button#date-range-picker-btn');
-  // Can only detect if the button is enabled by getting the raw <button>
   const submitBtn = submitBtnSelector.locator('button');
   await expect(submitBtn).toBeDisabled();
   const startDateSelector = page.locator('sl-input#start-date');
@@ -185,8 +193,6 @@ test('date range changes are preserved in the URL', async ({page}) => {
   const startDateValue2 = await startDateInputElement2.inputValue();
   expect(startDateValue2).toBe('2020-04-01');
 
-  // TODO: Check that the chart has the right start date.
-
   // Click on the feature breadcrumb.
   const featureCrumb = page.locator(`.crumbs >> a:has-text("${featureName}")`);
   await featureCrumb.click();
@@ -214,23 +220,18 @@ test('date range changes are preserved in the URL', async ({page}) => {
 
 test('redirects for a moved feature', async ({page, browserName}) => {
   test.skip(browserName === 'webkit', 'Skipping webkit due to flakiness');
-  const oldResponsePromise = page.waitForResponse(
+  const responsePromise = page.waitForResponse(
     response =>
       response.url().includes('/v1/features/old-feature') &&
       response.request().method() === 'GET',
   );
-  const newResponsePromise = page.waitForResponse(
-    response =>
-      response.url().includes('/v1/features/new-feature') &&
-      response.request().method() === 'GET',
-  );
   await page.goto('http://localhost:5555/features/old-feature');
-  await oldResponsePromise;
-  await newResponsePromise;
+  await responsePromise;
 
   // Expect the URL to be updated to the new feature's URL.
   await expect(page).toHaveURL(
-    'http://localhost:5555/features/new-feature?redirected_from=old-feature',
+    /.*\/features\/new-feature\?redirected_from=old-feature/,
+    {timeout: 10000},
   );
 
   // Expect the title and redirect banner to be correct.
@@ -255,7 +256,6 @@ test('redirects for a moved feature', async ({page, browserName}) => {
 });
 
 test('shows gone page for a split feature', async ({page}) => {
-  // Wait for the API request to complete before checking for redirect.
   const responsePromise = page.waitForResponse(
     response =>
       response.url().includes('/v1/features/before-split-feature') &&
@@ -281,7 +281,7 @@ test('shows gone page for a split feature', async ({page}) => {
   ).toBeVisible();
 
   // Take a screenshot for visual verification.
-  const pageContainer = page.locator('.container'); // Assuming a generic container for the error page.
+  const pageContainer = page.locator('.container');
   await waitForSidebarLoaded(page);
   await expectDualThemeScreenshot(page, pageContainer, 'feature-gone-split');
 });

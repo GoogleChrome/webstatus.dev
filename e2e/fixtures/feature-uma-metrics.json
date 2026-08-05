@@ -1,0 +1,8 @@
+{
+  "metadata": {},
+  "data": [
+    {"timestamp": "2024-01-01T00:00:00Z", "usage": 0.45},
+    {"timestamp": "2024-02-01T00:00:00Z", "usage": 0.62},
+    {"timestamp": "2024-03-01T00:00:00Z", "usage": 0.85}
+  ]
+}

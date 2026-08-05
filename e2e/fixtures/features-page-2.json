@@ -1,0 +1,150 @@
+{
+  "metadata": {
+    "next_page_token": null,
+    "total": 50
+  },
+  "data": [
+    {
+      "feature_id": "web-vitals",
+      "name": "Web Vitals APIs",
+      "baseline": {
+        "status": "limited",
+        "low_date": null,
+        "high_date": null
+      },
+      "browser_implementations": {
+        "chrome": {
+          "status": "available",
+          "date": "2020-05-19",
+          "version": "83"
+        },
+        "firefox": {"status": "unavailable"},
+        "safari": {"status": "unavailable"}
+      },
+      "wpt": {
+        "stable": {
+          "chrome": {"score": 0.95}
+        }
+      },
+      "developer_signals": {
+        "upvotes": 150
+      }
+    },
+    {
+      "feature_id": "webgl2",
+      "name": "WebGL 2.0",
+      "baseline": {
+        "status": "widely",
+        "low_date": "2021-09-20",
+        "high_date": "2024-03-20"
+      },
+      "browser_implementations": {
+        "chrome": {
+          "status": "available",
+          "date": "2017-01-25",
+          "version": "56"
+        },
+        "firefox": {
+          "status": "available",
+          "date": "2017-01-24",
+          "version": "51"
+        },
+        "safari": {
+          "status": "available",
+          "date": "2021-09-20",
+          "version": "15"
+        },
+        "edge": {"status": "available", "date": "2020-01-15", "version": "79"}
+      },
+      "wpt": {
+        "stable": {
+          "chrome": {"score": 1.0},
+          "firefox": {"score": 1.0},
+          "safari": {"score": 1.0}
+        }
+      },
+      "developer_signals": {
+        "upvotes": 240
+      }
+    },
+    {
+      "feature_id": "web-otp",
+      "name": "WebOTP API",
+      "baseline": {
+        "status": "limited",
+        "low_date": null,
+        "high_date": null
+      },
+      "browser_implementations": {
+        "chrome": {
+          "status": "available",
+          "date": "2020-07-14",
+          "version": "84"
+        },
+        "firefox": {"status": "unavailable"},
+        "safari": {"status": "available", "date": "2020-09-16", "version": "14"}
+      },
+      "developer_signals": {
+        "upvotes": 88
+      }
+    },
+    {
+      "feature_id": "web-codecs",
+      "name": "WebCodecs API",
+      "baseline": {
+        "status": "limited",
+        "low_date": null,
+        "high_date": null
+      },
+      "browser_implementations": {
+        "chrome": {
+          "status": "available",
+          "date": "2021-09-21",
+          "version": "94"
+        },
+        "firefox": {"status": "unavailable"},
+        "safari": {"status": "available", "date": "2023-09-18", "version": "17"}
+      },
+      "developer_signals": {
+        "upvotes": 170
+      }
+    },
+    {
+      "feature_id": "web-audio",
+      "name": "Web Audio API",
+      "baseline": {
+        "status": "widely",
+        "low_date": "2021-04-26",
+        "high_date": "2023-10-26"
+      },
+      "browser_implementations": {
+        "chrome": {
+          "status": "available",
+          "date": "2013-11-12",
+          "version": "31"
+        },
+        "firefox": {
+          "status": "available",
+          "date": "2013-10-29",
+          "version": "25"
+        },
+        "safari": {
+          "status": "available",
+          "date": "2021-04-26",
+          "version": "14.1"
+        },
+        "edge": {"status": "available", "date": "2020-01-15", "version": "79"}
+      },
+      "wpt": {
+        "stable": {
+          "chrome": {"score": 1.0},
+          "firefox": {"score": 1.0},
+          "safari": {"score": 1.0}
+        }
+      },
+      "developer_signals": {
+        "upvotes": 190
+      }
+    }
+  ]
+}

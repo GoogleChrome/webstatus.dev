@@ -1,0 +1,40 @@
+{
+  "feature_id": "anchor-positioning",
+  "name": "Anchor Positioning",
+  "baseline": {
+    "status": "limited",
+    "low_date": null,
+    "high_date": null
+  },
+  "browser_implementations": {
+    "chrome": {"status": "available", "date": "2024-05-21", "version": "125"},
+    "firefox": {"status": "unavailable"},
+    "safari": {"status": "unavailable"},
+    "edge": {"status": "available", "date": "2024-05-21", "version": "125"},
+    "chrome_android": {
+      "status": "available",
+      "date": "2024-05-21",
+      "version": "125"
+    },
+    "firefox_android": {"status": "unavailable"},
+    "safari_ios": {"status": "unavailable"}
+  },
+  "spec": {
+    "links": [{"link": "https://drafts.csswg.org/css-anchor-position-1/"}]
+  },
+  "wpt": {
+    "stable": {
+      "chrome": {"score": 0.98},
+      "firefox": {"score": 0.12},
+      "safari": {"score": 0.05}
+    },
+    "experimental": {
+      "chrome": {"score": 0.99},
+      "firefox": {"score": 0.35},
+      "safari": {"score": 0.15}
+    }
+  },
+  "developer_signals": {
+    "upvotes": 128
+  }
+}

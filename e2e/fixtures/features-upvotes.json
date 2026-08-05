@@ -1,0 +1,79 @@
+{
+  "metadata": {
+    "next_page_token": null,
+    "total": 5
+  },
+  "data": [
+    {
+      "feature_id": "webassembly",
+      "name": "WebAssembly Core",
+      "baseline": {
+        "status": "widely",
+        "low_date": "2017-11-28",
+        "high_date": "2020-05-28"
+      },
+      "browser_implementations": {
+        "chrome": {
+          "status": "available",
+          "date": "2017-03-09",
+          "version": "57"
+        },
+        "firefox": {
+          "status": "available",
+          "date": "2017-03-07",
+          "version": "52"
+        },
+        "safari": {"status": "available", "date": "2017-09-19", "version": "11"}
+      },
+      "developer_signals": {
+        "upvotes": 400
+      }
+    },
+    {
+      "feature_id": "flexbox",
+      "name": "CSS Flexible Box Layout",
+      "baseline": {
+        "status": "widely",
+        "low_date": "2015-09-30",
+        "high_date": "2018-03-30"
+      },
+      "browser_implementations": {
+        "chrome": {
+          "status": "available",
+          "date": "2013-08-20",
+          "version": "29"
+        },
+        "firefox": {
+          "status": "available",
+          "date": "2014-04-29",
+          "version": "28"
+        },
+        "safari": {"status": "available", "date": "2015-09-30", "version": "9"}
+      },
+      "developer_signals": {
+        "upvotes": 350
+      }
+    },
+    {
+      "feature_id": "webgpu",
+      "name": "WebGPU API",
+      "baseline": {
+        "status": "limited",
+        "low_date": null,
+        "high_date": null
+      },
+      "browser_implementations": {
+        "chrome": {
+          "status": "available",
+          "date": "2023-05-02",
+          "version": "113"
+        },
+        "firefox": {"status": "unavailable"},
+        "safari": {"status": "unavailable"}
+      },
+      "developer_signals": {
+        "upvotes": 310
+      }
+    }
+  ]
+}

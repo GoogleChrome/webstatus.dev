@@ -24,6 +24,7 @@ import {
   expectDualThemeScreenshot,
   setupFakeNow,
 } from './utils';
+import {setupVisualFixtures} from './fixture-routes';
 
 const DEFAULT_PAGE_SIZE = 25;
 
@@ -31,80 +32,103 @@ test.beforeEach(async ({page}) => {
   await setupFakeNow(page);
 });
 
-test('matches the screenshot', async ({page}) => {
-  await gotoOverviewPageUrl(page, 'http://localhost:5555/');
-  const pageContainer = page.locator('.page-container');
-  await expectDualThemeScreenshot(page, pageContainer, 'overview-page');
-});
+test.describe('Visual Screenshots', () => {
+  test.beforeEach(async ({page}) => {
+    await setupVisualFixtures(page);
+  });
 
-test('matches the screenshot for mobile columns', async ({page}) => {
-  await gotoOverviewPageUrl(
+  test('matches the screenshot', async ({page}) => {
+    await gotoOverviewPageUrl(page, 'http://localhost:5555/');
+    const pageContainer = page.locator('.page-container');
+    await expectDualThemeScreenshot(page, pageContainer, 'overview-page');
+  });
+
+  test('matches the screenshot for mobile columns', async ({page}) => {
+    await gotoOverviewPageUrl(
+      page,
+      'http://localhost:5555/?columns=name,availability_chrome_android,availability_firefox_android,' +
+        'availability_safari_ios,stable_chrome_android,stable_firefox_android,stable_safari_ios,' +
+        'experimental_chrome_android,experimental_firefox_android,experimental_safari_ios',
+    );
+    const pageContainer = page.locator('.page-container');
+    await expectDualThemeScreenshot(
+      page,
+      pageContainer,
+      'overview-page-mobile',
+    );
+  });
+
+  test('screenshot for availability sort', async ({page}) => {
+    await gotoOverviewPageUrl(
+      page,
+      'http://localhost:5555/?sort=availability_chrome_asc',
+    );
+    const pageContainer = page.locator('.page-container');
+    await expectDualThemeScreenshot(page, pageContainer, 'overview-page-sort');
+  });
+
+  test('screenshot for developer upvotes column', async ({page}) => {
+    await gotoOverviewPageUrl(
+      page,
+      'http://localhost:5555/?columns=name,baseline_status,availability_chrome,availability_firefox,availability_edge,' +
+        'availability_safari,chrome_usage,developer_signal_upvotes',
+    );
+    const pageContainer = page.locator('.page-container');
+    await expectDualThemeScreenshot(
+      page,
+      pageContainer,
+      'overview-page-developer-upvotes',
+    );
+  });
+
+  test('matches screenshot for page 2 pagination', async ({page}) => {
+    await gotoOverviewPageUrl(
+      page,
+      'http://localhost:5555/?page_token=page_2_token',
+    );
+    const pageContainer = page.locator('.page-container');
+    await expectDualThemeScreenshot(
+      page,
+      pageContainer,
+      'overview-page-page-2',
+    );
+  });
+
+  test('shows an error that their query is invalid', async ({page}) => {
+    await page.goto('http://localhost:5555/?q=available_on%3Achrom');
+    await waitForSidebarLoaded(page);
+
+    const message = page.locator('.message');
+    await message.waitFor({state: 'visible'});
+    expect(message).toContainText('Invalid query...');
+
+    const pageContainer = page.locator('.page-container');
+    await expectDualThemeScreenshot(page, pageContainer, 'invalid-query');
+  });
+
+  test('shows an unknown error when there is an internal error', async ({
     page,
-    'http://localhost:5555/?columns=name,availability_chrome_android,availability_firefox_android,' +
-      'availability_safari_ios,stable_chrome_android,stable_firefox_android,stable_safari_ios,' +
-      'experimental_chrome_android,experimental_firefox_android,experimental_safari_ios',
-  );
-  const pageContainer = page.locator('.page-container');
-  await expectDualThemeScreenshot(page, pageContainer, 'overview-page-mobile');
-});
+  }) => {
+    await page.route('**/v1/features?page_size=' + DEFAULT_PAGE_SIZE, route =>
+      route.fulfill({
+        status: 500,
+        contentType: 'application/json',
+        json: {
+          code: 500,
+          message: 'uh-oh',
+        },
+      }),
+    );
+    await page.goto('http://localhost:5555/');
+    await waitForSidebarLoaded(page);
 
-test('screenshot for availability sort', async ({page}) => {
-  await gotoOverviewPageUrl(
-    page,
-    'http://localhost:5555/?sort=availability_chrome_asc',
-  );
-  const pageContainer = page.locator('.page-container');
-  await expectDualThemeScreenshot(page, pageContainer, 'overview-page-sort');
-});
+    const message = page.locator('.message');
+    await message.waitFor({state: 'visible'});
+    expect(message).toContainText('Something went wrong...');
 
-test('screenshot for developer upvotes column', async ({page}) => {
-  await gotoOverviewPageUrl(
-    page,
-    'http://localhost:5555/?columns=name,baseline_status,availability_chrome,availability_firefox,availability_edge,' +
-      'availability_safari,chrome_usage,developer_signal_upvotes',
-  );
-  const pageContainer = page.locator('.page-container');
-  await expectDualThemeScreenshot(
-    page,
-    pageContainer,
-    'overview-page-developer-upvotes',
-  );
-});
-
-test('shows an error that their query is invalid', async ({page}) => {
-  await page.goto('http://localhost:5555/?q=available_on%3Achrom');
-  await waitForSidebarLoaded(page);
-
-  const message = page.locator('.message');
-  await message.waitFor({state: 'visible'});
-  expect(message).toContainText('Invalid query...');
-
-  const pageContainer = page.locator('.page-container');
-  await expectDualThemeScreenshot(page, pageContainer, 'invalid-query');
-});
-
-test('shows an unknown error when there is an internal error', async ({
-  page,
-}) => {
-  await page.route('**/v1/features?page_size=' + DEFAULT_PAGE_SIZE, route =>
-    route.fulfill({
-      status: 500,
-      contentType: 'application/json',
-      json: {
-        code: 500,
-        message: 'uh-oh',
-      },
-    }),
-  );
-  await page.goto('http://localhost:5555/');
-  await waitForSidebarLoaded(page);
-
-  const message = page.locator('.message');
-  await message.waitFor({state: 'visible'});
-  expect(message).toContainText('Something went wrong...');
-
-  const pageContainer = page.locator('.page-container');
-  await expectDualThemeScreenshot(page, pageContainer, 'internal-error');
+    const pageContainer = page.locator('.page-container');
+    await expectDualThemeScreenshot(page, pageContainer, 'internal-error');
+  });
 });
 
 test('hides the Feature column', async ({page}) => {
