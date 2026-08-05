@@ -393,15 +393,15 @@ playwright-test: fresh-env-for-playwright
 	npx playwright test $(if $(PLAYWRIGHT_PROJECT),--project=$(PLAYWRIGHT_PROJECT),)
 
 playwright-functional: fresh-env-for-playwright
-	npx playwright test --grep-invert @visual
+	npx playwright test e2e/functional $(if $(PLAYWRIGHT_PROJECT),--project=$(PLAYWRIGHT_PROJECT),)
 
-playwright-visual: fresh-env-for-playwright
-	npx playwright test --grep @visual
+playwright-visual:
+	npx playwright test e2e/visual $(if $(PLAYWRIGHT_PROJECT),--project=$(PLAYWRIGHT_PROJECT),)
 
-playwright-ui: fresh-env-for-playwright
+playwright-ui:
 	npx playwright test --ui --ui-port=8123
 
-playwright-debug: fresh-env-for-playwright
+playwright-debug:
 	npx playwright test --debug --ui-port=8123
 
 playwright-open-report:

@@ -19,8 +19,8 @@ import {
   setupFakeNow,
   expectDualThemeScreenshot,
   waitForSidebarLoaded,
-} from './utils';
-import {setupVisualFixtures} from './fixture-routes';
+} from '../utils/utils.js';
+import {setupVisualFixtures} from '../utils/fixture-routes.js';
 
 async function waitForAllChartsToLoad(page: Page) {
   // Wait for all charts to finish loading.

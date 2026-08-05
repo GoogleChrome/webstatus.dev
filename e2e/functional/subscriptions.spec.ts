@@ -15,7 +15,7 @@
  */
 
 import {test, expect} from '@playwright/test';
-import {loginAsUser, BASE_URL, resetUserData} from './utils';
+import {loginAsUser, BASE_URL, resetUserData} from '../utils/utils.js';
 
 const subscriptionPageURL = `${BASE_URL}/settings/subscriptions`;
 
@@ -159,7 +159,13 @@ test.describe('Subscriptions Page', () => {
       name: 'Confirm Unsubscribe',
     });
     await expect(deleteButton).toBeVisible();
+    const responsePromise = page.waitForResponse(
+      response =>
+        response.url().includes('/subscriptions/') &&
+        response.request().method() === 'DELETE',
+    );
     await deleteButton.click();
+    await responsePromise;
 
     // Assert that the success toast appears.
     await expect(

@@ -15,7 +15,7 @@
  */
 
 import {test, expect} from '@playwright/test';
-import {gotoOverviewPageUrl} from './utils';
+import {gotoOverviewPageUrl} from '../utils/utils.js';
 
 test('preconnect tag present', async ({page}) => {
   interface PreconnectLink {
