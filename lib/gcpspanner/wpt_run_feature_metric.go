@@ -31,12 +31,15 @@ const LatestWPTRunFeatureMetricsTable = "LatestWPTRunFeatureMetrics"
 
 func init() {
 	getFeatureMetricBaseTemplate = NewQueryTemplate(getFeatureMetricBaseRawTemplate)
+	getSingleFeatureMetricBaseTemplate = NewQueryTemplate(getSingleFeatureMetricBaseRawTemplate)
 }
 
 // nolint: gochecknoglobals // WONTFIX. Compile the template once at startup. Startup fails if invalid.
 var (
 	// getFeatureMetricBaseTemplate is the compiled version of getFeatureMetricBaseRawTemplate.
 	getFeatureMetricBaseTemplate BaseQueryTemplate
+	// getSingleFeatureMetricBaseTemplate is the compiled version of getSingleFeatureMetricBaseRawTemplate.
+	getSingleFeatureMetricBaseTemplate BaseQueryTemplate
 )
 
 const (
@@ -74,9 +77,32 @@ const (
 {{ end }}
 	ORDER BY r.TimeStart DESC, r.ExternalRunID DESC LIMIT @pageSize`
 
+	getSingleFeatureMetricBaseRawTemplate = `
+	SELECT
+		r.ExternalRunID,
+		wpfm.TimeStart,
+		wpfm.{{ .TotalColumn }} AS TotalTests,
+		wpfm.{{ .PassColumn }} AS TestPass
+	FROM WPTRunFeatureMetrics@{FORCE_INDEX=MetricsFeatureChannelBrowserTime} wpfm
+	JOIN WPTRuns r ON r.ID = wpfm.ID
+	WHERE wpfm.WebFeatureID = @webFeatureID
+		AND wpfm.BrowserName = @browserName
+		AND wpfm.Channel = @channel
+		AND wpfm.{{ .TotalColumn }} IS NOT NULL
+		AND wpfm.{{ .PassColumn }} IS NOT NULL
+		AND wpfm.TimeStart >= @startAt AND wpfm.TimeStart < @endAt
+{{ if .PageFilter }}
+		{{ .PageFilter }}
+{{ end }}
+	ORDER BY wpfm.TimeStart DESC, r.ExternalRunID DESC LIMIT @pageSize`
+
 	commonFeatureMetricPaginationRawTemplate = `
 		AND (r.TimeStart < @lastTimestamp OR
 			r.TimeStart = @lastTimestamp AND r.ExternalRunID < @lastRunID)`
+
+	commonSingleFeatureMetricPaginationRawTemplate = `
+		AND (wpfm.TimeStart < @lastTimestamp OR
+			wpfm.TimeStart = @lastTimestamp AND r.ExternalRunID < @lastRunID)`
 
 	singleFeatureMetricSubsetRawTemplate    = `AND wf.FeatureKey = @featureKey`
 	multipleFeaturesMetricSubsetRawTemplate = `AND wf.FeatureKey IN UNNEST(@featureKeys)`
@@ -90,6 +116,13 @@ type FeatureMetricsTemplateData struct {
 	FeatureKeyFilter string
 	ExtraFilter      string
 	IsSingleFeature  bool
+}
+
+// SingleFeatureMetricsTemplateData contains the variables for getSingleFeatureMetricBaseRawTemplate.
+type SingleFeatureMetricsTemplateData struct {
+	TotalColumn string
+	PassColumn  string
+	PageFilter  string
 }
 
 // SpannerWPTRunFeatureMetric is a wrapper for the metric data that is actually
@@ -402,22 +435,28 @@ func (c *Client) ListMetricsForFeatureIDBrowserAndChannel(
 	pageSize int,
 	pageToken *string,
 ) ([]WPTRunFeatureMetricWithTime, *string, error) {
-	params := map[string]any{
-		"featureKey":  featureKey,
-		"browserName": browser,
-		"channel":     channel,
-		"startAt":     startAt,
-		"endAt":       endAt,
-		"pageSize":    pageSize,
+	featureID, err := c.GetIDFromFeatureKey(ctx, NewFeatureKeyFilter(featureKey))
+	if err != nil {
+		if errors.Is(err, ErrQueryReturnedNoResults) {
+			return nil, nil, nil
+		}
+
+		return nil, nil, errors.Join(ErrInternalQueryFailure, err)
 	}
 
-	tmplData := FeatureMetricsTemplateData{
-		TotalColumn:      metricsTotalTestColumn(metric),
-		PassColumn:       metricsTestPassColumn(metric),
-		PageFilter:       "",
-		FeatureKeyFilter: singleFeatureMetricSubsetRawTemplate,
-		ExtraFilter:      removeExcludedKeyFilterAND,
-		IsSingleFeature:  true,
+	params := map[string]any{
+		"webFeatureID": *featureID,
+		"browserName":  browser,
+		"channel":      channel,
+		"startAt":      startAt,
+		"endAt":        endAt,
+		"pageSize":     pageSize,
+	}
+
+	tmplData := SingleFeatureMetricsTemplateData{
+		TotalColumn: metricsTotalTestColumn(metric),
+		PassColumn:  metricsTestPassColumn(metric),
+		PageFilter:  "",
 	}
 
 	if pageToken != nil {
@@ -427,9 +466,9 @@ func (c *Client) ListMetricsForFeatureIDBrowserAndChannel(
 		}
 		params["lastTimestamp"] = cursor.LastTimeStart
 		params["lastRunID"] = cursor.LastRunID
-		tmplData.PageFilter = commonFeatureMetricPaginationRawTemplate
+		tmplData.PageFilter = commonSingleFeatureMetricPaginationRawTemplate
 	}
-	tmpl := getFeatureMetricBaseTemplate.Execute(tmplData)
+	tmpl := getSingleFeatureMetricBaseTemplate.Execute(tmplData)
 	stmt := spanner.NewStatement(tmpl)
 	stmt.Params = params
 

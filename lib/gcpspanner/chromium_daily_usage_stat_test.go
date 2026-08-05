@@ -181,6 +181,27 @@ func testGetStatsPages(ctx context.Context, c *Client, t *testing.T) {
 	}
 }
 
+func testGetNonExistentFeatureStats(ctx context.Context, c *Client, t *testing.T) {
+	stats, token, err := c.ListChromeDailyUsageStatsForFeatureID(
+		ctx,
+		"featureDoesNotExist",
+		time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+		time.Date(2000, time.December, 1, 0, 0, 0, 0, time.UTC),
+		5,
+		nil,
+	)
+
+	if !errors.Is(err, nil) {
+		t.Errorf("expected no error for non-existent feature. received %s", err.Error())
+	}
+	if token != nil {
+		t.Error("expected null token for non-existent feature")
+	}
+	if len(stats) != 0 {
+		t.Errorf("expected 0 stats for non-existent feature, received %d", len(stats))
+	}
+}
+
 func TestListChromeDailyUsageStatsForFeatureID(t *testing.T) {
 	restartDatabaseContainer(t)
 	ctx := context.Background()
@@ -199,4 +220,5 @@ func TestListChromeDailyUsageStatsForFeatureID(t *testing.T) {
 	testGetAllStats(ctx, spannerClient, t)
 	testGetSubsetStats(ctx, spannerClient, t)
 	testGetStatsPages(ctx, spannerClient, t)
+	testGetNonExistentFeatureStats(ctx, spannerClient, t)
 }

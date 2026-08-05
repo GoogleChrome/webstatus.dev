@@ -330,10 +330,14 @@ type LatestRunResultsGroupedByChannel map[string][]LatestRunResult
 
 func (f GCPFeatureSearchBaseQuery) buildBaseQueryFragment() string { return gcpFSBaseQueryTemplate }
 
+func (f GCPFeatureSearchBaseQuery) buildBaseCountQueryFragment() string {
+	return commonFSCountBaseQueryTemplate
+}
+
 func (f GCPFeatureSearchBaseQuery) CountQuery(args FeatureSearchCountArgs) string {
 	return gcpFSCountQueryTemplate.Execute(GCPFSCountTemplateData{
 		CommonFSCountTemplateData: CommonFSCountTemplateData{
-			BaseQueryFragment: f.buildBaseQueryFragment(),
+			BaseQueryFragment: f.buildBaseCountQueryFragment(),
 			Filters:           args.Filters,
 		},
 	})
@@ -346,9 +350,10 @@ func (f GCPFeatureSearchBaseQuery) CountQuery(args FeatureSearchCountArgs) strin
 const defaultSortPosition = 999999999
 
 const (
-	// commonFSBaseQueryTemplate provides the core of a Spanner query, joining
-	// the WebFeatures table with FeatureBaselineStatus for status information.
-	commonFSBaseQueryTemplate = `
+	// commonFSCountBaseQueryTemplate provides the core of a Spanner count query, joining
+	// the WebFeatures table with metadata tables that can be filtered on, while omitting
+	// non-filtering subqueries (browser_info and chromium_usage_metrics).
+	commonFSCountBaseQueryTemplate = `
 FROM WebFeatures wf
 LEFT OUTER JOIN FeatureBaselineStatus fbs ON wf.ID = fbs.WebFeatureID
 LEFT OUTER JOIN ExcludedFeatureKeys efk ON wf.FeatureKey = efk.FeatureKey
@@ -357,7 +362,12 @@ LEFT OUTER JOIN FeatureDiscouragedDetails fdd ON wf.ID = fdd.WebFeatureID
 LEFT OUTER JOIN LatestFeatureDeveloperSignals lfds ON wf.ID = lfds.WebFeatureID
 LEFT OUTER JOIN WebFeaturesMappingData wfmd ON wf.ID = wfmd.WebFeatureID
 LEFT OUTER JOIN SystemManagedSavedSearches smfs ON wf.ID = smfs.FeatureID
-LEFT OUTER JOIN (
+`
+
+	// commonFSBaseQueryTemplate provides the core of a Spanner query, extending
+	// commonFSCountBaseQueryTemplate with the browser_info and chromium_usage_metrics subqueries
+	// needed for column projection.
+	commonFSBaseQueryTemplate = commonFSCountBaseQueryTemplate + `LEFT OUTER JOIN (
 	SELECT
 		bfa.WebFeatureID,
 		ARRAY_AGG(
@@ -795,10 +805,14 @@ type LocalFeatureBaseQuery struct{}
 
 func (f LocalFeatureBaseQuery) buildBaseQueryFragment() string { return localFSBaseQueryTemplate }
 
+func (f LocalFeatureBaseQuery) buildBaseCountQueryFragment() string {
+	return commonFSCountBaseQueryTemplate
+}
+
 func (f LocalFeatureBaseQuery) CountQuery(args FeatureSearchCountArgs) string {
 	return localFSCountQueryTemplate.Execute(LocalFSCountTemplateData{
 		CommonFSCountTemplateData: CommonFSCountTemplateData{
-			BaseQueryFragment: f.buildBaseQueryFragment(),
+			BaseQueryFragment: f.buildBaseCountQueryFragment(),
 			Filters:           args.Filters,
 		},
 	})
