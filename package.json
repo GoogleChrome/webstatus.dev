@@ -4,7 +4,11 @@
   "description": "webstatus.dev is a tool to monitor and track the status of all Web Platform features across dimensions that are related to availability across browsers, and adoption and usage by web developers.",
   "main": "index.js",
   "type": "module",
-  "scripts": {},
+  "scripts": {
+    "test:e2e": "playwright test",
+    "test:e2e:visual": "playwright test e2e/visual",
+    "test:e2e:functional": "playwright test e2e/functional"
+  },
   "author": "",
   "license": "Apache-2.0",
   "workspaces": [
