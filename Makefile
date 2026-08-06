@@ -393,11 +393,13 @@ playwright-test: fresh-env-for-playwright
 	npx playwright test $(if $(PLAYWRIGHT_PROJECT),--project=$(PLAYWRIGHT_PROJECT),)
 
 playwright-functional: fresh-env-for-playwright
-	npx playwright test e2e/functional $(if $(PLAYWRIGHT_PROJECT),--project=$(PLAYWRIGHT_PROJECT),)
+	npx playwright test e2e/functional e2e/synthetic $(if $(PLAYWRIGHT_PROJECT),--project=$(PLAYWRIGHT_PROJECT),)
 
-playwright-visual: playwright-install gen
-	npm run build -w frontend
+playwright-visual: fresh-env-for-playwright
 	npx playwright test e2e/visual $(if $(PLAYWRIGHT_PROJECT),--project=$(PLAYWRIGHT_PROJECT),)
+
+playwright-synthetic: fresh-env-for-playwright
+	npx playwright test e2e/synthetic $(if $(PLAYWRIGHT_PROJECT),--project=$(PLAYWRIGHT_PROJECT),)
 
 playwright-ui:
 	npx playwright test --ui --ui-port=8123
