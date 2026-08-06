@@ -216,6 +216,56 @@ describe('webstatus-feature-page', () => {
     });
   });
 
+  describe('renderOneWPTCard', () => {
+    let element: FeaturePage;
+    let hostElement: HTMLDivElement;
+
+    beforeEach(async () => {
+      element = await fixture(
+        html`<webstatus-feature-page
+          .location=${location}
+        ></webstatus-feature-page>`,
+      );
+      hostElement = document.createElement('div');
+    });
+
+    it('marks unavailable browser implementation cards as disabled', async () => {
+      element.feature = {
+        feature_id: 'id',
+        name: 'name',
+        browser_implementations: {
+          chrome: {status: 'unavailable'},
+        },
+      };
+
+      const actual = element.renderOneWPTCard('chrome', 'chrome_24x24.png');
+      render(actual, hostElement);
+      const host = await fixture(hostElement);
+      const card = host.querySelector('sl-card');
+
+      expect(card).to.exist;
+      expect(card!.classList.contains('browser-impl-unavailable')).to.be.true;
+    });
+
+    it('marks available browser implementation cards as available', async () => {
+      element.feature = {
+        feature_id: 'id',
+        name: 'name',
+        browser_implementations: {
+          chrome: {status: 'available', version: '123'},
+        },
+      };
+
+      const actual = element.renderOneWPTCard('chrome', 'chrome_24x24.png');
+      render(actual, hostElement);
+      const host = await fixture(hostElement);
+      const card = host.querySelector('sl-card');
+
+      expect(card).to.exist;
+      expect(card!.classList.contains('browser-impl-available')).to.be.true;
+    });
+  });
+
   describe('renderDeveloperSignal', () => {
     let element: FeaturePage;
     let hostElement: HTMLDivElement;
