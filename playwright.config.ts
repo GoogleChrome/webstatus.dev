@@ -102,11 +102,4 @@ export default defineConfig({
     //   use: { ...devices['Desktop Chrome'], channel: 'chrome' },
     // },
   ],
-
-  /* Run local static dev server before starting tests if not already running */
-  webServer: {
-    command: 'python3 -m http.server 5555 --directory frontend/dist/static',
-    url: 'http://localhost:5555',
-    reuseExistingServer: true,
-  },
 });
