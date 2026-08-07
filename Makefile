@@ -393,7 +393,7 @@ playwright-update-snapshots: fresh-env-for-playwright
 	npx playwright test --update-snapshots
 
 playwright-test: fresh-env-for-playwright
-	npx playwright test
+	npx playwright test $(if $(PLAYWRIGHT_PROJECT),--project=$(PLAYWRIGHT_PROJECT),)
 
 playwright-functional: fresh-env-for-playwright
 	npx playwright test --grep-invert @visual
