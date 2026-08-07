@@ -1,0 +1,176 @@
+/**
+ * Copyright 2024 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+import {test, expect} from '@playwright/test';
+
+import {
+  loginAsUser,
+  resetUserData,
+  waitForTabbedChartCompletion,
+  setupFakeNow,
+} from '../utils/utils.js';
+
+test.beforeEach(async ({page}) => {
+  await setupFakeNow(page);
+  await page.setViewportSize({width: 1280, height: 1500});
+});
+
+const featureID = 'anchor-positioning';
+const featureName = 'Anchor Positioning';
+
+test('date range changes are preserved in the URL', async ({page}) => {
+  await page.goto(`http://localhost:5555/features/${featureID}`);
+  await waitForTabbedChartCompletion(
+    page,
+    'feature-wpt-implementation-progress',
+    0,
+  );
+
+  // Get the current default startDate and endDate from the selectors
+  const submitBtnSelector = page.locator('sl-button#date-range-picker-btn');
+  const submitBtn = submitBtnSelector.locator('button');
+  await expect(submitBtn).toBeDisabled();
+  const startDateSelector = page.locator('sl-input#start-date');
+  const startDateInputElement = startDateSelector.locator('input');
+  const startDate = await startDateInputElement.inputValue();
+  const endDateSelector = page.locator('sl-input#end-date');
+  const endDateInputElement = endDateSelector.locator('input');
+  const endDate = await endDateInputElement.inputValue();
+
+  // Change the start date to April 1st, 2020, in yyyy-mm-dd order
+  await startDateInputElement.fill('2020-04-01');
+
+  await expect(submitBtn).toBeEnabled();
+
+  // Submit the change
+  await submitBtn.click();
+
+  // Check that the URL includes the startDate and endDate
+  await expect(page).toHaveURL(/.*?startDate=2020-04-01/);
+  await expect(page).toHaveURL(/.*?endDate=2020-12-01/);
+
+  // Refresh the page with that URL.
+  await page.goto(page.url());
+  await waitForTabbedChartCompletion(
+    page,
+    'feature-wpt-implementation-progress',
+    0,
+  );
+
+  // Check that the startDate and endDate are still there.
+  await expect(page).toHaveURL(/.*?startDate=2020-04-01/);
+  await expect(page).toHaveURL(/.*?endDate=2020-12-01/);
+
+  // Check that the startDate selector has the right value.
+  const startDateSelector2 = page.locator('sl-input#start-date');
+  const startDateInputElement2 = startDateSelector2.locator('input');
+  const startDateValue2 = await startDateInputElement2.inputValue();
+  expect(startDateValue2).toBe('2020-04-01');
+
+  // Click on the feature breadcrumb.
+  const featureCrumb = page.locator(`.crumbs >> a:has-text("${featureName}")`);
+  await featureCrumb.click();
+
+  // Check that the URL no longer contains the startDate or endDate.
+  await expect(page).not.toHaveURL(/.*?startDate=2020-04-01/);
+  await expect(page).not.toHaveURL(/.*?endDate=2020-12-01/);
+
+  // Go to that URL.
+  await page.goto(page.url());
+  await waitForTabbedChartCompletion(
+    page,
+    'feature-wpt-implementation-progress',
+    0,
+  );
+
+  // Check that the startDate and endDate selectors are reset to the initial default.
+  const startDateSelector3 = page.locator('sl-input#start-date');
+  const startDateInputElement3 = startDateSelector3.locator('input');
+  expect(await startDateInputElement3.inputValue()).toBe(startDate);
+  const endDateSelector3 = page.locator('sl-input#end-date');
+  const endDateInputElement3 = endDateSelector3.locator('input');
+  expect(await endDateInputElement3.inputValue()).toBe(endDate);
+});
+
+test('chart width resizes with window', async ({page}) => {
+  await page.goto(`http://localhost:5555/features/${featureID}`);
+  await waitForTabbedChartCompletion(
+    page,
+    'feature-wpt-implementation-progress',
+    0,
+  );
+  await page.waitForTimeout(1000);
+  const narrowWidth = 1000;
+  const wideWidth = 1200;
+  const height = 1500;
+  const chartContainer = page.locator(
+    '#feature-wpt-implementation-progress-0-complete',
+  );
+
+  // Resize to narrow width
+  await page.setViewportSize({width: narrowWidth, height});
+  await page.waitForTimeout(1000);
+  const newChartWidth = await chartContainer.evaluate(el => el.clientWidth);
+
+  // Ensure that the chart is wider than the narrow width
+  await page.setViewportSize({width: wideWidth, height});
+  await page.waitForTimeout(1000);
+  const newChartWidth2 = await chartContainer.evaluate(el => el.clientWidth);
+  expect(newChartWidth2).toBeGreaterThan(newChartWidth);
+
+  // And restore to original size
+  await page.setViewportSize({width: narrowWidth, height});
+  await page.waitForTimeout(2000);
+  const newChartWidth3 = await chartContainer.evaluate(el => el.clientWidth);
+  expect(newChartWidth3).toEqual(newChartWidth);
+});
+
+test.describe('Subscriptions', () => {
+  test.beforeAll(async () => {
+    await resetUserData();
+  });
+  test.afterAll(async () => {
+    await resetUserData();
+  });
+  test('Logged-in user can subscribe to updates', async ({page}) => {
+    await loginAsUser(page, 'test user 1');
+
+    await page.goto(`http://localhost:5555/features/${featureID}`);
+    await page.getByRole('button', {name: 'Subscribe'}).click();
+    const dialog = page.locator('webstatus-manage-subscriptions-dialog');
+    await expect(
+      dialog.getByRole('heading', {name: 'Manage notifications'}),
+    ).toBeVisible();
+
+    await dialog.getByText('test.user.1@example.com').click();
+
+    await dialog
+      .locator('sl-checkbox')
+      .filter({hasText: '...becomes widely available'})
+      .locator('label')
+      .click();
+
+    const createButton = dialog.getByRole('button', {
+      name: 'Create Subscription',
+    });
+    await expect(createButton).toBeVisible();
+    await createButton.click();
+
+    await expect(
+      page.locator('sl-alert', {hasText: 'Subscription saved!'}),
+    ).toBeVisible();
+  });
+});

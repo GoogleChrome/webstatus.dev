@@ -15,7 +15,11 @@
  */
 
 import {test, expect, Page} from '@playwright/test';
-import {gotoOverviewPageUrl, loginAsUser, resetUserData} from './utils';
+import {
+  gotoOverviewPageUrl,
+  loginAsUser,
+  resetUserData,
+} from '../utils/utils.js';
 
 function expectUrlsEqual(actualUrlStr: string, expectedUrlStr: string) {
   const actual = new URL(actualUrlStr);

@@ -15,7 +15,7 @@
  */
 
 import {test, expect, Response} from '@playwright/test';
-import {gotoOverviewPageUrl} from './utils';
+import {gotoOverviewPageUrl} from '../utils/utils.js';
 
 function checkReponseForGZIPCompression(response: Response) {
   expect(

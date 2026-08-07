@@ -316,6 +316,24 @@ export async function setupVisualFixtures(
         });
         return;
       }
+      if (
+        featureId === 'after-split-feature-1' ||
+        featureId === 'after-split-feature-2'
+      ) {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            ...featureDetailAnchorPositioningFixture,
+            feature_id: featureId,
+            name:
+              featureId === 'after-split-feature-1'
+                ? 'After Split Feature 1'
+                : 'After Split Feature 2',
+          }),
+        });
+        return;
+      }
       // 404 for unknown feature
       await route.fulfill({
         status: 404,

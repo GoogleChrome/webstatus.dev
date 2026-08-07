@@ -19,8 +19,8 @@ import {
   loginAsUser,
   expectDualThemeScreenshot,
   waitForSidebarLoaded,
-} from './utils';
-import {setupVisualFixtures} from './fixture-routes';
+} from '../utils/utils.js';
+import {setupVisualFixtures} from '../utils/fixture-routes.js';
 
 test.beforeEach(async () => {});
 
