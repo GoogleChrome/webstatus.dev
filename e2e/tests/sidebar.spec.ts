@@ -20,10 +20,12 @@ import {
   expectDualThemeScreenshot,
   waitForSidebarLoaded,
 } from './utils';
+import {setupVisualFixtures} from './fixture-routes';
 
 test.beforeEach(async () => {});
 
 test('matches the screenshot', async ({page}) => {
+  await setupVisualFixtures(page, {userRole: 'unauthenticated'});
   await page.goto('http://localhost:5555/');
 
   // The sidebar menu should be shown by default.
@@ -33,6 +35,7 @@ test('matches the screenshot', async ({page}) => {
 });
 
 test('matches the screenshot for an authenticated user', async ({page}) => {
+  await setupVisualFixtures(page, {userRole: 'authenticated'});
   await loginAsUser(page, 'test user 1');
   await page.goto('http://localhost:5555/');
 

@@ -1,0 +1,32 @@
+{
+  "metadata": {},
+  "data": [
+    {
+      "id": "a09386fe-65f1-4640-b28d-3cf2f2de69c9",
+      "name": "I like queries",
+      "query": "baseline_status:limited OR available_on:chrome",
+      "description": "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
+      "display_order": 1,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    },
+    {
+      "id": "b19386fe-65f1-4640-b28d-3cf2f2de69c0",
+      "name": "Baseline Newly Available",
+      "query": "baseline_status:newly",
+      "description": "Newly available web features across browsers",
+      "display_order": 2,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    },
+    {
+      "id": "c29386fe-65f1-4640-b28d-3cf2f2de69c1",
+      "name": "Baseline Widely Available",
+      "query": "baseline_status:widely",
+      "description": "Widely available web features",
+      "display_order": 3,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  ]
+}
