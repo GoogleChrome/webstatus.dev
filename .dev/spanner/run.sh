@@ -14,8 +14,9 @@
 # limitations under the License.
 
 
-gcloud emulators spanner start --host-port=0.0.0.0:9010 --rest-port=9020 --project="${SPANNER_PROJECT_ID}" --log-http --verbosity=debug --user-output-enabled &
-while ! curl -s -o /dev/null localhost:9020; do
+/bin/gateway_main --hostname=0.0.0.0 --http_port=9020 --grpc_port=9010 &
+
+while ! curl -s -o /dev/null http://localhost:9020/; do
   sleep 1 # Wait 1 second before checking again
   echo "waiting until spanner emulator responds before finishing setup"
 done
@@ -23,22 +24,15 @@ done
 # For the following commands, exit on any error.
 set -e
 
-gcloud spanner instances create "${SPANNER_INSTANCE_ID}" --config=emulator-config --description='Local Instance' --nodes=1 --verbosity=debug
-# shellcheck disable=SC2091
-$(gcloud emulators spanner env-init)
+# Create instance via Spanner Emulator REST API
+curl -s -X POST "http://localhost:9020/v1/projects/${SPANNER_PROJECT_ID}/instances" \
+  -H "Content-Type: application/json" \
+  -d "{\"instanceId\": \"${SPANNER_INSTANCE_ID}\", \"instance\": {\"displayName\": \"Local Instance\"}}"
+
+export SPANNER_EMULATOR_HOST="localhost:9010"
 
 # Setup database
-wrench  create --directory ./schemas/
-
-# Print migrations for debugging purposes.
-for file in ./schemas/migrations/*; do
-  # Check if it's a regular file
-  if [ -f "$file" ]; then
-    echo "----- File: $file -----"
-    cat "$file"
-    echo "------------------------"
-  fi
-done
+wrench create --directory ./schemas/
 
 # Perform migrations
 wrench migrate up --directory ./schemas/
