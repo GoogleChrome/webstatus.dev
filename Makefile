@@ -92,12 +92,12 @@ check-local-ports:
 
 
 port-forward-manual: port-forward-terminate
-	kubectl wait --for=condition=ready pod/frontend
-	kubectl wait --for=condition=ready pod/backend
-	kubectl wait --for=condition=ready pod/auth
-	kubectl wait --for=condition=ready pod/datastore
-	kubectl wait --for=condition=ready pod/spanner
-	kubectl wait --for=condition=ready pod/wiremock
+	kubectl wait --for=condition=ready --timeout=120s pod/frontend
+	kubectl wait --for=condition=ready --timeout=120s pod/backend
+	kubectl wait --for=condition=ready --timeout=120s pod/auth
+	kubectl wait --for=condition=ready --timeout=120s pod/datastore
+	kubectl wait --for=condition=ready --timeout=120s pod/spanner
+	kubectl wait --for=condition=ready --timeout=120s pod/wiremock
 	kubectl port-forward --address 127.0.0.1 pod/frontend 5555:5555 2>&1 >/dev/null &
 	kubectl port-forward --address 127.0.0.1 pod/backend 8080:8080 2>&1 >/dev/null &
 	kubectl port-forward --address 127.0.0.1 pod/auth 9099:9099 2>&1 >/dev/null &

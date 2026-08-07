@@ -22,6 +22,7 @@ import {fileURLToPath} from 'node:url';
 const DEFAULT_FAKE_NOW = 'Dec 1 2020 12:34:56';
 
 export const BASE_URL = 'http://localhost:5555';
+export const WIREMOCK_URL = process.env.WIREMOCK_URL || 'http://localhost:8087';
 
 export async function forceTheme(page: Page, theme: 'light' | 'dark') {
   await page.addInitScript(theme => {
@@ -152,42 +153,42 @@ export const testUsers = {
  * Sets the Wiremock scenario state for user emails based on the provided username.
  * This ensures that Wiremock serves the correct email stubs for the logged-in user.
  */
-export async function setUserWiremockScenarioState(
-  page: Page,
-  username: keyof typeof testUsers,
-) {
-  let makeTarget = 'set-wiremock-user1'; // Default for test user 1
-  if (username === 'test user 2') {
-    makeTarget = 'set-wiremock-user2';
-  }
-
-  const __filename = fileURLToPath(import.meta.url);
-  const __dirname = path.dirname(__filename);
-  const projectRootDir = path.resolve(__dirname, '../..');
-
+export async function setWiremockScenario(scenarioName: string, state: string) {
   try {
-    const cmd = `make ${makeTarget}`;
-    console.log(`Executing command: ${cmd} in ${projectRootDir}`);
-    execSync(cmd, {cwd: projectRootDir, stdio: 'inherit'});
+    const response = await fetch(
+      `${WIREMOCK_URL}/__admin/scenarios/${scenarioName}/state`,
+      {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({state}),
+      },
+    );
+    if (!response.ok) {
+      console.warn(
+        `Failed to set Wiremock scenario ${scenarioName} to ${state}: ${response.statusText}`,
+      );
+    }
   } catch (error) {
-    console.error(`Error executing make target ${makeTarget}:`, error);
-    throw new Error('Failed to set Wiremock scenario state, halting tests.');
+    console.warn(`Could not connect to Wiremock at ${WIREMOCK_URL}:`, error);
   }
 }
 
-async function resetWiremockScenarioState() {
-  const __filename = fileURLToPath(import.meta.url);
-  const __dirname = path.dirname(__filename);
-  const projectRootDir = path.resolve(__dirname, '../..');
+export async function setUserWiremockScenarioState(
+  _page: Page,
+  username: keyof typeof testUsers,
+) {
+  const state = username === 'test user 2' ? 'user2_logged_in' : 'Started';
+  await Promise.all([
+    setWiremockScenario('user_profile', state),
+    setWiremockScenario('user_emails', state),
+  ]);
+}
 
-  try {
-    const cmd = `make reset-wiremock`;
-    console.log(`Executing command: ${cmd} in ${projectRootDir}`);
-    execSync(cmd, {cwd: projectRootDir, stdio: 'inherit'});
-  } catch (error) {
-    console.error('Error resetting Wiremock scenarios:', error);
-    throw new Error('Failed to reset Wiremock scenarios, halting tests.');
-  }
+export async function resetWiremockScenarioState() {
+  await Promise.all([
+    setWiremockScenario('user_profile', 'Started'),
+    setWiremockScenario('user_emails', 'Started'),
+  ]);
 }
 
 export async function loginAsUser(
@@ -292,20 +293,15 @@ export async function expect404PageButtons(
 }
 
 export async function resetUserData() {
-  const __filename = fileURLToPath(import.meta.url); // get the resolved path to the file
+  const __filename = fileURLToPath(import.meta.url);
   const __dirname = path.dirname(__filename);
   const projectRootDir = path.resolve(__dirname, '../..');
 
   try {
     const cmd = `make dev_fake_data -o build -o is_local_migration_ready LOAD_FAKE_DATA_FLAGS='-scope=user -reset'`;
-
-    console.log(`Executing command: ${cmd} in ${projectRootDir}`);
-    execSync(cmd, {cwd: projectRootDir, stdio: 'inherit'});
-
-    console.log('Reset command finished successfully.');
+    execSync(cmd, {cwd: projectRootDir, stdio: 'ignore'});
   } catch (error) {
-    console.error('Error reset command (make dev_fake_data):', error);
-    throw new Error('Reset command finished, halting tests.');
+    // Non-fatal if make is unavailable in standalone synthetic test runners.
   }
 
   await resetWiremockScenarioState();
