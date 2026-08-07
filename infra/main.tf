@@ -223,3 +223,15 @@ module "workers" {
   otel_collector_config_mount_path = local.otel_collector_config_mount_path
   otel_collector_endpoint          = local.otel_collector_endpoint
 }
+
+module "monitoring" {
+  source = "./monitoring"
+  providers = {
+    google.internal_project = google.internal_project
+  }
+  project_id               = var.projects.internal
+  env_id                   = var.env_id
+  target_host              = replace(replace(var.frontend_base_url, "https://", ""), "http://", "")
+  notification_channel_ids = var.notification_channel_ids
+}
+

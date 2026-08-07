@@ -44,7 +44,17 @@ fi
 MAIN_SHA=$(git rev-parse HEAD)
 SHORT_SHA=$(git rev-parse --short HEAD)
 
-echo "Staging deployment completed successfully. Tagging HEAD (${SHORT_SHA}) as verified-staging-latest..."
+# -----------------------------------------------------------------------------
+# 1.5 Run Synthetic Smoke Probe Verification against Staging
+# -----------------------------------------------------------------------------
+echo "Executing synthetic smoke probes against deployed staging environment..."
+STAGING_URL="${STAGING_URL:-https://website-webstatus-dev.corp.goog}"
+BASE_URL="${STAGING_URL}" npx playwright test e2e/synthetic --project=chromium || {
+  echo "Error: Staging synthetic smoke probes failed. Halting promotion." >&2
+  exit 1
+}
+
+echo "Staging deployment and synthetic probes completed successfully. Tagging HEAD (${SHORT_SHA}) as verified-staging-latest..."
 
 # -----------------------------------------------------------------------------
 # 2. Configure Git Credentials & Push 'verified-staging-latest' Tag
