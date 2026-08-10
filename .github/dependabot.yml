@@ -14,15 +14,300 @@
 
 version: 2
 updates:
-  # Go Modules
-  # TODO - revisit when dependabot has better support for multi-module projects that reference each other.
-  # https://github.com/dependabot/dependabot-core/issues/6012
+  # =========================================================================
+  # Go Modules (Configured per Module Directory with Staggered Monday Run Times)
+  # =========================================================================
+
+  # Core Libraries & Shared Generators (02:00 AM PST)
+  - package-ecosystem: 'gomod'
+    directory: '/lib'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '02:00'
+      timezone: 'America/Los_Angeles'
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 2
+    ignore:
+      - dependency-name: 'github.com/GoogleChrome/webstatus.dev/*'
+    groups:
+      go_modules:
+        patterns:
+          - '*'
+
+  - package-ecosystem: 'gomod'
+    directory: '/lib/gen'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '02:00'
+      timezone: 'America/Los_Angeles'
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 2
+    ignore:
+      - dependency-name: 'github.com/GoogleChrome/webstatus.dev/*'
+    groups:
+      go_modules:
+        patterns:
+          - '*'
+
+  - package-ecosystem: 'gomod'
+    directory: '/util'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '02:00'
+      timezone: 'America/Los_Angeles'
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 2
+    ignore:
+      - dependency-name: 'github.com/GoogleChrome/webstatus.dev/*'
+    groups:
+      go_modules:
+        patterns:
+          - '*'
+
+  - package-ecosystem: 'gomod'
+    directory: '/tools'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '02:00'
+      timezone: 'America/Los_Angeles'
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 2
+    ignore:
+      - dependency-name: 'github.com/GoogleChrome/webstatus.dev/*'
+    groups:
+      go_modules:
+        patterns:
+          - '*'
+
+  # Backend API Service (03:00 AM PST)
+  - package-ecosystem: 'gomod'
+    directory: '/backend'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '03:00'
+      timezone: 'America/Los_Angeles'
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 2
+    ignore:
+      - dependency-name: 'github.com/GoogleChrome/webstatus.dev/*'
+    groups:
+      go_modules:
+        patterns:
+          - '*'
+
+  # Workers (04:00 AM PST)
+  - package-ecosystem: 'gomod'
+    directory: '/workers/email'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '04:00'
+      timezone: 'America/Los_Angeles'
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 2
+    ignore:
+      - dependency-name: 'github.com/GoogleChrome/webstatus.dev/*'
+    groups:
+      go_modules:
+        patterns:
+          - '*'
+
+  - package-ecosystem: 'gomod'
+    directory: '/workers/webhook'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '04:00'
+      timezone: 'America/Los_Angeles'
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 2
+    ignore:
+      - dependency-name: 'github.com/GoogleChrome/webstatus.dev/*'
+    groups:
+      go_modules:
+        patterns:
+          - '*'
+
+  - package-ecosystem: 'gomod'
+    directory: '/workers/event_producer'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '04:00'
+      timezone: 'America/Los_Angeles'
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 2
+    ignore:
+      - dependency-name: 'github.com/GoogleChrome/webstatus.dev/*'
+    groups:
+      go_modules:
+        patterns:
+          - '*'
+
+  - package-ecosystem: 'gomod'
+    directory: '/workers/push_delivery'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '04:00'
+      timezone: 'America/Los_Angeles'
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 2
+    ignore:
+      - dependency-name: 'github.com/GoogleChrome/webstatus.dev/*'
+    groups:
+      go_modules:
+        patterns:
+          - '*'
+
+  # Workflow Step Services (05:00 AM PST)
+  - package-ecosystem: 'gomod'
+    directory: '/workflows/steps/services/bcd_consumer'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '05:00'
+      timezone: 'America/Los_Angeles'
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 2
+    ignore:
+      - dependency-name: 'github.com/GoogleChrome/webstatus.dev/*'
+    groups:
+      go_modules:
+        patterns:
+          - '*'
+
+  - package-ecosystem: 'gomod'
+    directory: '/workflows/steps/services/chromium_histogram_enums'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '05:00'
+      timezone: 'America/Los_Angeles'
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 2
+    ignore:
+      - dependency-name: 'github.com/GoogleChrome/webstatus.dev/*'
+    groups:
+      go_modules:
+        patterns:
+          - '*'
+
+  - package-ecosystem: 'gomod'
+    directory: '/workflows/steps/services/developer_signals_consumer'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '05:00'
+      timezone: 'America/Los_Angeles'
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 2
+    ignore:
+      - dependency-name: 'github.com/GoogleChrome/webstatus.dev/*'
+    groups:
+      go_modules:
+        patterns:
+          - '*'
+
+  - package-ecosystem: 'gomod'
+    directory: '/workflows/steps/services/uma_export'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '05:00'
+      timezone: 'America/Los_Angeles'
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 2
+    ignore:
+      - dependency-name: 'github.com/GoogleChrome/webstatus.dev/*'
+    groups:
+      go_modules:
+        patterns:
+          - '*'
+
+  - package-ecosystem: 'gomod'
+    directory: '/workflows/steps/services/web_feature_consumer'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '05:00'
+      timezone: 'America/Los_Angeles'
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 2
+    ignore:
+      - dependency-name: 'github.com/GoogleChrome/webstatus.dev/*'
+    groups:
+      go_modules:
+        patterns:
+          - '*'
+
+  - package-ecosystem: 'gomod'
+    directory: '/workflows/steps/services/web_features_mapping_consumer'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '05:00'
+      timezone: 'America/Los_Angeles'
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 2
+    ignore:
+      - dependency-name: 'github.com/GoogleChrome/webstatus.dev/*'
+    groups:
+      go_modules:
+        patterns:
+          - '*'
+
+  - package-ecosystem: 'gomod'
+    directory: '/workflows/steps/services/wpt_consumer'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '05:00'
+      timezone: 'America/Los_Angeles'
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 2
+    ignore:
+      - dependency-name: 'github.com/GoogleChrome/webstatus.dev/*'
+    groups:
+      go_modules:
+        patterns:
+          - '*'
+
+  # =========================================================================
+  # Other Ecosystems (06:00 AM PST)
+  # =========================================================================
 
   # NPM
   - package-ecosystem: 'npm'
     directory: '/'
     schedule:
       interval: 'weekly'
+      day: 'monday'
+      time: '06:00'
+      timezone: 'America/Los_Angeles'
+    cooldown:
+      default-days: 7
     versioning-strategy: 'increase'
     ignore:
       - dependency-name: '@types/node'
@@ -37,41 +322,81 @@ updates:
     directory: '/.dev/datastore'
     schedule:
       interval: 'weekly'
+      day: 'monday'
+      time: '06:00'
+      timezone: 'America/Los_Angeles'
+    cooldown:
+      default-days: 7
 
   - package-ecosystem: 'docker'
     directory: '/.dev/gcs'
     schedule:
       interval: 'weekly'
+      day: 'monday'
+      time: '06:00'
+      timezone: 'America/Los_Angeles'
+    cooldown:
+      default-days: 7
 
   - package-ecosystem: 'docker'
     directory: '/.dev/valkey'
     schedule:
       interval: 'weekly'
+      day: 'monday'
+      time: '06:00'
+      timezone: 'America/Los_Angeles'
+    cooldown:
+      default-days: 7
 
   - package-ecosystem: 'docker'
     directory: '/.dev/spanner'
     schedule:
       interval: 'weekly'
+      day: 'monday'
+      time: '06:00'
+      timezone: 'America/Los_Angeles'
+    cooldown:
+      default-days: 7
 
   - package-ecosystem: 'docker'
     directory: '/.dev/wiremock'
     schedule:
       interval: 'weekly'
+      day: 'monday'
+      time: '06:00'
+      timezone: 'America/Los_Angeles'
+    cooldown:
+      default-days: 7
 
   - package-ecosystem: 'docker'
     directory: '/.dev/pubsub'
     schedule:
       interval: 'weekly'
+      day: 'monday'
+      time: '06:00'
+      timezone: 'America/Los_Angeles'
+    cooldown:
+      default-days: 7
 
   - package-ecosystem: 'docker'
     directory: '/.devcontainer'
     schedule:
       interval: 'weekly'
+      day: 'monday'
+      time: '06:00'
+      timezone: 'America/Los_Angeles'
+    cooldown:
+      default-days: 7
 
   - package-ecosystem: 'docker'
     directory: '/images'
     schedule:
       interval: 'weekly'
+      day: 'monday'
+      time: '06:00'
+      timezone: 'America/Los_Angeles'
+    cooldown:
+      default-days: 7
     ignore:
       - dependency-name: 'node'
         versions:
@@ -82,6 +407,11 @@ updates:
     directory: '/.dev/auth'
     schedule:
       interval: 'weekly'
+      day: 'monday'
+      time: '06:00'
+      timezone: 'America/Los_Angeles'
+    cooldown:
+      default-days: 7
     ignore:
       - dependency-name: 'node'
         versions:
@@ -93,15 +423,30 @@ updates:
     directory: '/infra'
     schedule:
       interval: 'weekly'
+      day: 'monday'
+      time: '06:00'
+      timezone: 'America/Los_Angeles'
+    cooldown:
+      default-days: 7
 
   # DevContainer
   - package-ecosystem: 'devcontainers'
     directory: '/.devcontainer'
     schedule:
       interval: 'weekly'
+      day: 'monday'
+      time: '06:00'
+      timezone: 'America/Los_Angeles'
+    cooldown:
+      default-days: 7
 
   # GitHub Actions
   - package-ecosystem: 'github-actions'
     directory: '/'
     schedule:
       interval: 'weekly'
+      day: 'monday'
+      time: '06:00'
+      timezone: 'America/Los_Angeles'
+    cooldown:
+      default-days: 7
