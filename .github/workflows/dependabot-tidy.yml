@@ -81,10 +81,10 @@ jobs:
           HEAD_REF: ${{ github.head_ref }}
         run: |
           if [ -n "$(git status --porcelain)" ]; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git config user.name "dependabot[bot]"
+            git config user.email "49699333+dependabot[bot]@users.noreply.github.com"
             git add **/go.mod **/go.sum
-            git commit -m "chore: run go mod tidy across workspace modules"
+            git commit -m "chore: run go mod tidy across workspace modules" -m "Signed-off-by: dependabot[bot] <support@github.com>"
             git push origin "HEAD:${HEAD_REF}"
           else
             echo "No workspace module drift detected."

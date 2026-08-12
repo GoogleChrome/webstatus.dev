@@ -18,6 +18,9 @@ on: # trigger builds for 1) PRs, 2) merges into main from merge_queue, and 3) ma
   merge_group:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 env:
   GO_VERSION: '1.25'
   NODE_VERSION: '24'
@@ -44,7 +47,9 @@ jobs:
       - name: Create Workspace
         run: mkdir -p ${{ github.workspace }}
       - name: Checkout (GitHub)
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Move Docker
         run: |
           sudo service docker stop
@@ -57,11 +62,11 @@ jobs:
           sudo df -h
           echo "Docker Root Dir:"
           sudo docker info | grep "Docker Root Dir"
-      - uses: actions/setup-go@v7
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: ${{ env.GO_VERSION }}
           cache-dependency-path: ${{ env.GO_CACHE_DEPENDENCY_PATH }}
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
@@ -69,7 +74,7 @@ jobs:
         id: get_repo_owner
         run: echo "REPO_OWNER=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" > $GITHUB_ENV
       - name: Run precommit target for CI
-        uses: devcontainers/ci@v0.3
+        uses: devcontainers/ci@513af61f4de4f75d37e4438f184ba4358f0fc1ca # v0.3
         with:
           cacheFrom: ghcr.io/${{ env.REPO_OWNER }}/webstatus-dev-devcontainer-ci-precommit
           push: never
@@ -94,7 +99,9 @@ jobs:
       - name: Create Workspace
         run: mkdir -p ${{ github.workspace }}
       - name: Checkout (GitHub)
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Move Docker
         run: |
           sudo service docker stop
@@ -107,11 +114,11 @@ jobs:
           sudo df -h
           echo "Docker Root Dir:"
           sudo docker info | grep "Docker Root Dir"
-      - uses: actions/setup-go@v7
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: ${{ env.GO_VERSION }}
           cache-dependency-path: ${{ env.GO_CACHE_DEPENDENCY_PATH }}
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
@@ -119,12 +126,12 @@ jobs:
         id: get_repo_owner
         run: echo "REPO_OWNER=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" > $GITHUB_ENV
       - name: Run playwright-test target for CI
-        uses: devcontainers/ci@v0.3
+        uses: devcontainers/ci@513af61f4de4f75d37e4438f184ba4358f0fc1ca # v0.3
         with:
           cacheFrom: ghcr.io/${{ env.REPO_OWNER }}/webstatus-dev-devcontainer
           push: never
           runCmd: CI=true make playwright-test
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: ${{ !cancelled() }}
         with:
           name: playwright-report
