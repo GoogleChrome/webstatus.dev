@@ -78,12 +78,12 @@ jobs:
       - name: Push Reconciled Go Diffs
         if: steps.check_go.outputs.is_go_pr == 'true'
         env:
-          HEAD_REF: ${{ github.head_ref }}
+          HEAD_REF: ${{ github.head_ref || github.ref_name }}
         run: |
-          if [ -n "$(git status --porcelain)" ]; then
-            git config user.name "dependabot[bot]"
-            git config user.email "49699333+dependabot[bot]@users.noreply.github.com"
-            git add **/go.mod **/go.sum
+          git config user.name "dependabot[bot]"
+          git config user.email "49699333+dependabot[bot]@users.noreply.github.com"
+          git add ':(glob)**/go.mod' ':(glob)**/go.sum'
+          if ! git diff --cached --quiet; then
             git commit -m "chore: run go mod tidy across workspace modules" -m "Signed-off-by: dependabot[bot] <support@github.com>"
             git push origin "HEAD:${HEAD_REF}"
           else
