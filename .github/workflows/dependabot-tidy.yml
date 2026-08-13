@@ -28,6 +28,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  packages: read
 
 jobs:
   auto-tidy:
@@ -62,6 +63,14 @@ jobs:
         run: |
           REPO_OWNER=$(echo "$REPO_OWNER_RAW" | tr '[:upper:]' '[:lower:]')
           echo "REPO_OWNER=$REPO_OWNER" >> "$GITHUB_ENV"
+
+      - name: Login to GitHub Container Registry
+        if: steps.check_go.outputs.is_go_pr == 'true'
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ env.REPO_OWNER }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run multi-pass go-tidy in DevContainer
         if: steps.check_go.outputs.is_go_pr == 'true'
