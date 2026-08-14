@@ -443,6 +443,83 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/vcs/{provider}/installations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: "github";
+            };
+            cookie?: never;
+        };
+        /** List VCS installations accessible to the authenticated user */
+        get: operations["listVCSInstallations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/vcs/{provider}/repositories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: "github";
+            };
+            cookie?: never;
+        };
+        /** List VCS repositories accessible to the authenticated user */
+        get: operations["listVCSRepositories"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/vcs/{provider}/repositories/{repository_id}/code-subscriptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: "github";
+                repository_id: string;
+            };
+            cookie?: never;
+        };
+        /** List active code subscriptions for a repository */
+        get: operations["listCodeSubscriptions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/webhooks/{provider}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: "github";
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** VCS Webhook Ingress */
+        post: operations["handleVCSWebhook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -879,6 +956,66 @@ export interface components {
         MissingOneImplFeaturesPage: {
             metadata?: components["schemas"]["PageMetadata"];
             data: components["schemas"]["MissingOneImplFeature"][];
+        };
+        VCSInstallationSummary: {
+            id: string;
+            vcs_provider: string;
+            vcs_installation_id: string;
+            account_login: string;
+            account_type: string;
+        };
+        VCSInstallationPage: {
+            metadata?: components["schemas"]["PageMetadata"];
+            data?: components["schemas"]["VCSInstallationSummary"][];
+        };
+        VCSRepositorySummary: {
+            id: string;
+            vcs_provider: string;
+            vcs_installation_id: string;
+            repository_id: string;
+            owner: string;
+            name: string;
+            full_name: string;
+            private: boolean;
+        };
+        VCSRepositoryPage: {
+            metadata?: components["schemas"]["PageMetadata"];
+            data?: components["schemas"]["VCSRepositorySummary"][];
+        };
+        SubscriptionOccurrence: {
+            file_path: string;
+            /** Format: int64 */
+            line_number: number;
+            comment_snippet: string;
+        };
+        CodeSubscriptionResponse: {
+            id: string;
+            vcs_provider: string;
+            vcs_installation_id?: string;
+            vcs_repository_id: string;
+            repository_owner: string;
+            repository_name: string;
+            repository_full_name: string;
+            feature_id?: string;
+            target_query: string;
+            triggers: components["schemas"]["SubscriptionTriggerWritable"][];
+            raw_directive?: string;
+            occurrences: components["schemas"]["SubscriptionOccurrence"][];
+            /** Format: int64 */
+            occurrence_count: number;
+            /** @enum {string} */
+            status: "ACTIVE" | "TRIGGERED" | "DELIVERED" | "RESOLVED" | "OBSOLETE" | "DELETED" | "ERROR";
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        CodeSubscriptionPage: {
+            metadata?: components["schemas"]["PageMetadata"];
+            data?: components["schemas"]["CodeSubscriptionResponse"][];
+        };
+        VCSWebhookPayload: {
+            [key: string]: unknown;
         };
     };
     responses: never;
@@ -2841,6 +2978,233 @@ export interface operations {
                 };
             };
             /** @description Internal Service Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BasicErrorModel"];
+                };
+            };
+        };
+    };
+    listVCSInstallations: {
+        parameters: {
+            query?: {
+                /** @description Pagination token */
+                page_token?: components["parameters"]["paginationTokenParam"];
+                /** @description Number of results to return */
+                page_size?: components["parameters"]["paginationSizeParam"];
+            };
+            header?: never;
+            path: {
+                provider: "github";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VCSInstallationPage"];
+                };
+            };
+            /** @description Bad Input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BasicErrorModel"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BasicErrorModel"];
+                };
+            };
+            /** @description Internal Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BasicErrorModel"];
+                };
+            };
+        };
+    };
+    listVCSRepositories: {
+        parameters: {
+            query?: {
+                /** @description Pagination token */
+                page_token?: components["parameters"]["paginationTokenParam"];
+                /** @description Number of results to return */
+                page_size?: components["parameters"]["paginationSizeParam"];
+            };
+            header?: never;
+            path: {
+                provider: "github";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VCSRepositoryPage"];
+                };
+            };
+            /** @description Bad Input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BasicErrorModel"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BasicErrorModel"];
+                };
+            };
+            /** @description Internal Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BasicErrorModel"];
+                };
+            };
+        };
+    };
+    listCodeSubscriptions: {
+        parameters: {
+            query?: {
+                /** @description Pagination token */
+                page_token?: components["parameters"]["paginationTokenParam"];
+                /** @description Number of results to return */
+                page_size?: components["parameters"]["paginationSizeParam"];
+            };
+            header?: never;
+            path: {
+                provider: "github";
+                repository_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CodeSubscriptionPage"];
+                };
+            };
+            /** @description Bad Input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BasicErrorModel"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BasicErrorModel"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BasicErrorModel"];
+                };
+            };
+            /** @description Internal Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BasicErrorModel"];
+                };
+            };
+        };
+    };
+    handleVCSWebhook: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Hub-Signature-256"?: string;
+                "X-GitHub-Delivery"?: string;
+                "X-GitHub-Event"?: string;
+            };
+            path: {
+                provider: "github";
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VCSWebhookPayload"];
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BasicErrorModel"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BasicErrorModel"];
+                };
+            };
+            /** @description Internal Error */
             500: {
                 headers: {
                     [name: string]: unknown;
