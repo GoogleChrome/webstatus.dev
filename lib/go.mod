@@ -46,6 +46,7 @@ require (
 	github.com/getkin/kin-openapi v0.146.0 // indirect
 	github.com/go-jose/go-jose/v4 v4.1.4 // indirect
 	github.com/go-openapi/jsonpointer v1.0.0 // indirect
+	github.com/golang-jwt/jwt/v5 v5.3.1 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/go-github/v89 v89.0.0 // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
@@ -155,7 +156,7 @@ require (
 	golang.org/x/exp v0.0.0-20260709172345-9ea1abe57597 // indirect
 	golang.org/x/net v0.57.0 // indirect
 	golang.org/x/oauth2 v0.36.0
-	golang.org/x/sync v0.22.0 // indirect
+	golang.org/x/sync v0.22.0
 	golang.org/x/sys v0.47.0 // indirect
 	golang.org/x/text v0.40.0 // indirect
 	golang.org/x/time v0.15.0 // indirect

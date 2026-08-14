@@ -34,8 +34,8 @@ func VerifyWebhookSignature(payload []byte, headerSig string, secret []byte) boo
 	if cleanSig == "" {
 		return false
 	}
-	if strings.HasPrefix(cleanSig, "sha256=") {
-		cleanSig = "sha256=" + strings.TrimSpace(strings.TrimPrefix(cleanSig, "sha256="))
+	if after, ok := strings.CutPrefix(cleanSig, "sha256="); ok {
+		cleanSig = "sha256=" + strings.TrimSpace(after)
 	}
 
 	_, err := github.ValidatePayloadFromBody("application/json", bytes.NewReader(payload), cleanSig, secret)
