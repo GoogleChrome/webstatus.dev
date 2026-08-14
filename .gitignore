@@ -65,9 +65,11 @@ go.work.sum
 .devcontainer/cache/go/go-build/*
 .devcontainer/cache/go/pkg/*
 .devcontainer/cache/node/.npm/*
+.devcontainer/cache/minikube_home/*
 !.devcontainer/cache/go/go-build/.gitkeep
 !.devcontainer/cache/go/pkg/.gitkeep
 !.devcontainer/cache/node/.npm/.gitkeep
+!.devcontainer/cache/minikube_home/.gitkeep
 
 # TypeScript
 tsconfig.tsbuildinfo
