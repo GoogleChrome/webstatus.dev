@@ -287,6 +287,8 @@ func TestMockDownloadFileFromRelease(t *testing.T) {
 					t:                       t,
 					mockGetLatestReleaseCfg: tc.cfg,
 				},
+				gitClient:    nil,
+				issuesClient: nil,
 			}
 			rt := mockRoundTripper{
 				t:   t,

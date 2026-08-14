@@ -16,6 +16,7 @@ package gh
 
 import (
 	"context"
+	"net/http"
 	"net/url"
 
 	"github.com/google/go-github/v79/github"
@@ -34,30 +35,47 @@ type RepoClient interface {
 	GetLatestRelease(ctx context.Context, owner, repo string) (*github.RepositoryRelease, *github.Response, error)
 }
 
+type GitClient interface {
+	GetTree(ctx context.Context, owner, repo, sha string, recursive bool) (*github.Tree, *github.Response, error)
+	GetBlobRaw(ctx context.Context, owner, repo, sha string) ([]byte, *github.Response, error)
+}
+
+type IssuesClient interface {
+	Create(ctx context.Context, owner, repo string, issue *github.IssueRequest) (*github.Issue, *github.Response, error)
+}
+
 type UsersClient interface {
 	ListEmails(ctx context.Context, opts *github.ListOptions) ([]*github.UserEmail, *github.Response, error)
 	Get(ctx context.Context, user string) (*github.User, *github.Response, error)
 }
 
 type Client struct {
-	repoClient RepoClient
+	repoClient   RepoClient
+	gitClient    GitClient
+	issuesClient IssuesClient
 }
 
 // NewClient creates a new Github Client. If the token is not empty, it will
 // use it as the auth token to make calls.
 func NewClient(token string, opts ...ClientOption) *Client {
-	ghClient := github.NewClient(nil)
+	return NewClientWithHTTPClient(nil, token, opts...)
+}
+
+// NewClientWithHTTPClient creates a new Github Client with a custom HTTP client.
+func NewClientWithHTTPClient(httpClient *http.Client, token string, opts ...ClientOption) *Client {
+	ghClient := github.NewClient(httpClient)
 	if token != "" {
 		ghClient = ghClient.WithAuthToken(token)
 	}
 	for _, opt := range opts {
 		opt(ghClient)
 	}
-	c := &Client{
-		repoClient: ghClient.Repositories,
-	}
 
-	return c
+	return &Client{
+		repoClient:   ghClient.Repositories,
+		gitClient:    ghClient.Git,
+		issuesClient: ghClient.Issues,
+	}
 }
 
 // UserGitHubClient is a client that receives a token from a user that has installed our GitHub App.
