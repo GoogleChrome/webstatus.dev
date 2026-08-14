@@ -359,7 +359,8 @@ ADDLICENSE_ARGS := -c "${COPYRIGHT_NAME}" \
 	-ignore 'workers/webhook/pkg/webhook/testdata/slack_payload.golden.json' \
 	-ignore 'workers/webhook/pkg/webhook/testdata/slack_payload_query_error.golden.json' \
 	-ignore 'workers/webhook/pkg/webhook/testdata/slack_payload_resolved_query_error.golden.json' \
-	-ignore 'workers/webhook/pkg/webhook/testdata/slack_payload_combined_errors_and_features.golden.json'
+	-ignore 'workers/webhook/pkg/webhook/testdata/slack_payload_combined_errors_and_features.golden.json' \
+	-ignore 'lib/codescan/testdata/**'
 
 license-check: go-install-tools
 	go tool addlicense -check $(ADDLICENSE_ARGS) .

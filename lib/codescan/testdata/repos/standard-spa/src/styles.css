@@ -1,0 +1,12 @@
+/* Application layout styles */
+
+.grid-container {
+  display: grid;
+  /* TODO(baseline/subgrid): upgrade nested grid layout to subgrid */
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.tooltip-box {
+  /* TODO(baseline-widely/anchor-positioning): anchor tooltip to button */
+  position: absolute;
+}
