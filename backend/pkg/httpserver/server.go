@@ -18,6 +18,7 @@ import (
 	"cmp"
 	"context"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net"
 	"net/http"
@@ -328,3 +329,5 @@ func GenericErrorFn(ctx context.Context, statusCode int, w http.ResponseWriter, 
 		slog.WarnContext(ctx, "unable to write generic error", "error", encoderErr)
 	}
 }
+
+var errNotImplemented = errors.New("not implemented")

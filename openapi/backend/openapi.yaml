@@ -1454,6 +1454,194 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BasicErrorModel'
+  /v1/vcs/{provider}/installations:
+    parameters:
+      - name: provider
+        in: path
+        required: true
+        schema:
+          type: string
+          enum: [github]
+    get:
+      summary: List VCS installations accessible to the authenticated user
+      operationId: listVCSInstallations
+      parameters:
+        - $ref: '#/components/parameters/paginationTokenParam'
+        - $ref: '#/components/parameters/paginationSizeParam'
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VCSInstallationPage'
+        '400':
+          description: Bad Input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '500':
+          description: Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+  /v1/vcs/{provider}/repositories:
+    parameters:
+      - name: provider
+        in: path
+        required: true
+        schema:
+          type: string
+          enum: [github]
+    get:
+      summary: List VCS repositories accessible to the authenticated user
+      operationId: listVCSRepositories
+      parameters:
+        - $ref: '#/components/parameters/paginationTokenParam'
+        - $ref: '#/components/parameters/paginationSizeParam'
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VCSRepositoryPage'
+        '400':
+          description: Bad Input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '500':
+          description: Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+  /v1/vcs/{provider}/repositories/{repository_id}/code-subscriptions:
+    parameters:
+      - name: provider
+        in: path
+        required: true
+        schema:
+          type: string
+          enum: [github]
+      - name: repository_id
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      summary: List active code subscriptions for a repository
+      operationId: listCodeSubscriptions
+      parameters:
+        - $ref: '#/components/parameters/paginationTokenParam'
+        - $ref: '#/components/parameters/paginationSizeParam'
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CodeSubscriptionPage'
+        '400':
+          description: Bad Input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '500':
+          description: Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+  /v1/webhooks/{provider}:
+    parameters:
+      - name: provider
+        in: path
+        required: true
+        schema:
+          type: string
+          enum: [github]
+    post:
+      summary: VCS Webhook Ingress
+      operationId: handleVCSWebhook
+      parameters:
+        - name: X-Hub-Signature-256
+          in: header
+          required: false
+          schema:
+            type: string
+        - name: X-GitHub-Delivery
+          in: header
+          required: false
+          schema:
+            type: string
+        - name: X-GitHub-Event
+          in: header
+          required: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VCSWebhookPayload'
+      responses:
+        '202':
+          description: Accepted
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '500':
+          description: Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
 components:
   parameters:
     browserPathParam:
@@ -2435,6 +2623,155 @@ components:
             $ref: '#/components/schemas/MissingOneImplFeature'
       required:
         - data
+    VCSInstallationSummary:
+      type: object
+      required:
+        - id
+        - vcs_provider
+        - vcs_installation_id
+        - account_login
+        - account_type
+      properties:
+        id:
+          type: string
+        vcs_provider:
+          type: string
+        vcs_installation_id:
+          type: string
+        account_login:
+          type: string
+        account_type:
+          type: string
+    VCSInstallationPage:
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/PageMetadata'
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/VCSInstallationSummary'
+    VCSRepositorySummary:
+      type: object
+      required:
+        - id
+        - vcs_provider
+        - vcs_installation_id
+        - repository_id
+        - owner
+        - name
+        - full_name
+        - private
+      properties:
+        id:
+          type: string
+        vcs_provider:
+          type: string
+        vcs_installation_id:
+          type: string
+        repository_id:
+          type: string
+        owner:
+          type: string
+        name:
+          type: string
+        full_name:
+          type: string
+        private:
+          type: boolean
+    VCSRepositoryPage:
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/PageMetadata'
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/VCSRepositorySummary'
+    SubscriptionOccurrence:
+      type: object
+      required:
+        - file_path
+        - line_number
+        - comment_snippet
+      properties:
+        file_path:
+          type: string
+        line_number:
+          type: integer
+          format: int64
+        comment_snippet:
+          type: string
+    CodeSubscriptionResponse:
+      type: object
+      required:
+        - id
+        - vcs_provider
+        - vcs_repository_id
+        - repository_owner
+        - repository_name
+        - repository_full_name
+        - target_query
+        - triggers
+        - status
+        - occurrences
+        - occurrence_count
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+        vcs_provider:
+          type: string
+        vcs_installation_id:
+          type: string
+        vcs_repository_id:
+          type: string
+        repository_owner:
+          type: string
+        repository_name:
+          type: string
+        repository_full_name:
+          type: string
+        feature_id:
+          type: string
+        target_query:
+          type: string
+        triggers:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubscriptionTriggerWritable'
+        raw_directive:
+          type: string
+        occurrences:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubscriptionOccurrence'
+        occurrence_count:
+          type: integer
+          format: int64
+        status:
+          type: string
+          enum:
+            [ACTIVE, TRIGGERED, DELIVERED, RESOLVED, OBSOLETE, DELETED, ERROR]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    CodeSubscriptionPage:
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/PageMetadata'
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/CodeSubscriptionResponse'
+    VCSWebhookPayload:
+      type: object
+      additionalProperties: true
   securitySchemes:
     bearerAuth:
       type: http
