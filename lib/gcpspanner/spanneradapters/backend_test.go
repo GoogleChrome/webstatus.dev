@@ -782,6 +782,28 @@ func (c mockBackendSpannerClient) UpdateSavedSearchSubscription(
 	return c.mockUpdateSavedSearchSubscriptionCfg.returnedError
 }
 
+func (c mockBackendSpannerClient) ListCodeSubscriptionsByRepository(
+	_ context.Context,
+	_ string,
+	_ string,
+) ([]gcpspanner.CodeSubscription, error) {
+	return nil, nil
+}
+
+func (c mockBackendSpannerClient) DeleteCodeSubscription(
+	_ context.Context,
+	_ string,
+) error {
+	return nil
+}
+
+func (c mockBackendSpannerClient) RecordVCSWebhookDelivery(
+	_ context.Context,
+	_ gcpspanner.VCSWebhookDelivery,
+) (bool, error) {
+	return true, nil
+}
+
 func TestCreateSavedSearchSubscriptionMapsLimitError(t *testing.T) {
 	mock := new(mockBackendSpannerClient)
 	mock.t = t

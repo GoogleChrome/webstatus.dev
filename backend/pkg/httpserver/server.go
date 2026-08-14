@@ -18,6 +18,7 @@ import (
 	"cmp"
 	"context"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net"
 	"net/http"
@@ -327,4 +328,47 @@ func GenericErrorFn(ctx context.Context, statusCode int, w http.ResponseWriter, 
 	if err != nil {
 		slog.WarnContext(ctx, "unable to write generic error", "error", encoderErr)
 	}
+}
+
+// Stubs to satisfy backend.StrictServerInterface on openapi branch.
+// Concrete implementations and tests are in the api-handlers branch.
+
+// nolint: ireturn // WONTFIX - generated method signature
+func (s *Server) ListCodeSubscriptions(
+	_ context.Context,
+	_ backend.ListCodeSubscriptionsRequestObject,
+) (backend.ListCodeSubscriptionsResponseObject, error) {
+	return nil, errors.New("not implemented")
+}
+
+// nolint: ireturn // WONTFIX - generated method signature
+func (s *Server) DeleteCodeSubscription(
+	_ context.Context,
+	_ backend.DeleteCodeSubscriptionRequestObject,
+) (backend.DeleteCodeSubscriptionResponseObject, error) {
+	return nil, errors.New("not implemented")
+}
+
+// nolint: ireturn // WONTFIX - generated method signature
+func (s *Server) ListVCSInstallations(
+	_ context.Context,
+	_ backend.ListVCSInstallationsRequestObject,
+) (backend.ListVCSInstallationsResponseObject, error) {
+	return nil, errors.New("not implemented")
+}
+
+// nolint: ireturn // WONTFIX - generated method signature
+func (s *Server) ListVCSRepositories(
+	_ context.Context,
+	_ backend.ListVCSRepositoriesRequestObject,
+) (backend.ListVCSRepositoriesResponseObject, error) {
+	return nil, errors.New("not implemented")
+}
+
+// nolint: ireturn // WONTFIX - generated method signature
+func (s *Server) HandleVCSWebhook(
+	_ context.Context,
+	_ backend.HandleVCSWebhookRequestObject,
+) (backend.HandleVCSWebhookResponseObject, error) {
+	return nil, errors.New("not implemented")
 }

@@ -16,9 +16,11 @@ package gcppubsubadapters
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/backendtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/event"
 	searchconfigv1 "github.com/GoogleChrome/webstatus.dev/lib/event/searchconfigurationchanged/v1"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
@@ -63,6 +65,28 @@ func (p *BackendAdapter) PublishSearchConfigurationChanged(
 		"msgID", id,
 		"searchID", evt.SearchID,
 		"isCreation", evt.IsCreation)
+
+	return nil
+}
+
+func (p *BackendAdapter) PublishCodeScanTask(
+	ctx context.Context,
+	task backendtypes.CodeScanTaskMessage,
+) error {
+	data, err := json.Marshal(task)
+	if err != nil {
+		return fmt.Errorf("failed to marshal code scan task: %w", err)
+	}
+
+	id, err := p.client.Publish(ctx, p.topicID, data)
+	if err != nil {
+		return fmt.Errorf("failed to publish code scan task: %w", err)
+	}
+
+	slog.InfoContext(ctx, "published code scan task",
+		"msgID", id,
+		"repo", task.RepositoryFullName,
+		"commit", task.CommitSHA)
 
 	return nil
 }
