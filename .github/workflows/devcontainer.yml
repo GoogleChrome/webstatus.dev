@@ -20,6 +20,7 @@ on:
 
 permissions:
   contents: read
+  packages: read
 
 env:
   GO_VERSION: '1.25'
@@ -104,6 +105,12 @@ jobs:
       - name: Get Repo Owner
         id: get_repo_owner
         run: echo "REPO_OWNER=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" > $GITHUB_ENV
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ env.REPO_OWNER }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: Run precommit target for CI
         uses: devcontainers/ci@513af61f4de4f75d37e4438f184ba4358f0fc1ca # v0.3
         with:
@@ -161,6 +168,12 @@ jobs:
       - name: Get Repo Owner
         id: get_repo_owner
         run: echo "REPO_OWNER=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" > $GITHUB_ENV
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ env.REPO_OWNER }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: Run playwright-test target for CI
         uses: devcontainers/ci@513af61f4de4f75d37e4438f184ba4358f0fc1ca # v0.3
         with:
