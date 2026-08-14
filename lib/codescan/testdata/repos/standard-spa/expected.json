@@ -1,0 +1,60 @@
+{
+  "scenario": "Standard Single-Page TypeScript/CSS Application",
+  "description": "Demonstrates a standard SPA with root .baseline.json configuration, inline TypeScript directives, CSS block directives, and HTML comment directives.",
+  "files": {
+    ".baseline.json": {
+      "purpose": "Repository root configuration establishing target=widely and issue label defaults",
+      "expectedDirectives": []
+    },
+    "src/app.ts": {
+      "purpose": "Main TypeScript application logic with inline TODO(baseline/popover) and TODO(baseline/view-transitions, newly) comments",
+      "expectedDirectives": [
+        {
+          "file_path": "src/app.ts",
+          "target_query": "id:popover",
+          "trigger": "feature.baseline.promote_to_widely",
+          "line_number": 4,
+          "raw_snippet": "// TODO(baseline/popover): replace custom tooltip with native popover"
+        },
+        {
+          "file_path": "src/app.ts",
+          "target_query": "id:view-transitions",
+          "trigger": "feature.baseline.promote_to_newly",
+          "line_number": 7,
+          "raw_snippet": "// TODO(baseline/view-transitions, newly): smooth page transitions"
+        }
+      ]
+    },
+    "src/styles.css": {
+      "purpose": "Application styles with CSS block comment directives for subgrid and anchor-positioning",
+      "expectedDirectives": [
+        {
+          "file_path": "src/styles.css",
+          "target_query": "id:subgrid",
+          "trigger": "feature.baseline.promote_to_widely",
+          "line_number": 5,
+          "raw_snippet": "/* TODO(baseline/subgrid): upgrade nested grid layout to subgrid */"
+        },
+        {
+          "file_path": "src/styles.css",
+          "target_query": "id:anchor-positioning",
+          "trigger": "feature.baseline.promote_to_widely",
+          "line_number": 10,
+          "raw_snippet": "/* TODO(baseline-widely/anchor-positioning): anchor tooltip to button */"
+        }
+      ]
+    },
+    "index.html": {
+      "purpose": "HTML entrypoint with HTML comment directive for native dialog",
+      "expectedDirectives": [
+        {
+          "file_path": "index.html",
+          "target_query": "id:dialog",
+          "trigger": "feature.baseline.promote_to_widely",
+          "line_number": 9,
+          "raw_snippet": "<!-- TODO(baseline/dialog): replace third-party modal polyfill with native dialog -->"
+        }
+      ]
+    }
+  }
+}
