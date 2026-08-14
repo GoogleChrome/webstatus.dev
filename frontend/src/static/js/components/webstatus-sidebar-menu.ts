@@ -55,6 +55,7 @@ enum NavigationItemKey {
   FEATURES = 'features-item',
   STATISTICS = 'statistics-item',
   SUBSCRIPTIONS = 'subscriptions-item',
+  CODE_SUBSCRIPTIONS = 'code-subscriptions-item',
   NOTIFICATION_CHANNELS = 'notification-channels-item',
 }
 
@@ -79,6 +80,10 @@ const navigationMap: NavigationMap = {
   [NavigationItemKey.SUBSCRIPTIONS]: {
     id: NavigationItemKey.SUBSCRIPTIONS,
     path: '/settings/subscriptions',
+  },
+  [NavigationItemKey.CODE_SUBSCRIPTIONS]: {
+    id: NavigationItemKey.CODE_SUBSCRIPTIONS,
+    path: '/settings/code-subscriptions',
   },
   [NavigationItemKey.NOTIFICATION_CHANNELS]: {
     id: NavigationItemKey.NOTIFICATION_CHANNELS,
@@ -389,6 +394,15 @@ export class WebstatusSidebarMenu extends LitElement {
           href="${navigationMap[NavigationItemKey.SUBSCRIPTIONS].path}"
         >
           Subscriptions
+        </a>
+      </sl-tree-item>
+      <sl-tree-item id="code-subscriptions-item">
+        <sl-icon name="code-square"></sl-icon>
+        <a
+          class="code-subscriptions-link"
+          href="${navigationMap[NavigationItemKey.CODE_SUBSCRIPTIONS].path}"
+        >
+          Code Subscriptions
         </a>
       </sl-tree-item>
       <sl-tree-item id="notifications-channels-item">

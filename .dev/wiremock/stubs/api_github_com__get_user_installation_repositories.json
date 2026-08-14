@@ -1,0 +1,37 @@
+{
+  "metadata": {
+    "notes": "Mocks GET /user/installations/{installation_id}/repositories",
+    "docsLink": "https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-user-for-an-installation"
+  },
+  "scenarioName": "code_subscriptions",
+  "requiredScenarioState": "Started",
+  "request": {
+    "method": "GET",
+    "urlPattern": "/user/installations/[0-9]+/repositories"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "total_count": 1,
+      "repositories": [
+        {
+          "id": 67890,
+          "name": "webstatus.dev",
+          "full_name": "GoogleChrome/webstatus.dev",
+          "private": false,
+          "owner": {
+            "login": "GoogleChrome",
+            "id": 1793478,
+            "type": "Organization"
+          },
+          "html_url": "https://github.com/GoogleChrome/webstatus.dev",
+          "description": "Web Platform Status Tracker",
+          "default_branch": "main"
+        }
+      ]
+    }
+  }
+}
