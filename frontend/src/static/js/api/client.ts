@@ -1024,4 +1024,69 @@ export class APIClient {
       'patch',
     );
   }
+
+  public listVCSInstallations(
+    provider: 'github',
+    token: string,
+  ): Promise<components['schemas']['VCSInstallationPage']> {
+    return this.handleResponse(
+      this.client.GET('/v1/vcs/{provider}/installations', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        params: {
+          path: {
+            provider,
+          },
+        },
+      }),
+      '/v1/vcs/{provider}/installations',
+      'get',
+    );
+  }
+
+  public listVCSRepositories(
+    provider: 'github',
+    token: string,
+  ): Promise<components['schemas']['VCSRepositoryPage']> {
+    return this.handleResponse(
+      this.client.GET('/v1/vcs/{provider}/repositories', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        params: {
+          path: {
+            provider,
+          },
+        },
+      }),
+      '/v1/vcs/{provider}/repositories',
+      'get',
+    );
+  }
+
+  public listCodeSubscriptions(
+    provider: 'github',
+    repositoryId: string,
+    token: string,
+  ): Promise<components['schemas']['CodeSubscriptionPage']> {
+    return this.handleResponse(
+      this.client.GET(
+        '/v1/vcs/{provider}/repositories/{repository_id}/code-subscriptions',
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          params: {
+            path: {
+              provider,
+              repository_id: repositoryId,
+            },
+          },
+        },
+      ),
+      '/v1/vcs/{provider}/repositories/{repository_id}/code-subscriptions',
+      'get',
+    );
+  }
 }
