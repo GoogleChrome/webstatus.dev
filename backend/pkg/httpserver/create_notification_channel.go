@@ -64,7 +64,8 @@ func validateNotificationChannel(input *backend.CreateNotificationChannelRequest
 }
 
 // CreateNotificationChannel implements backend.StrictServerInterface.
-// nolint: ireturn // Name generated from openapi
+//
+//nolint:ireturn // Name generated from openapi
 func (s *Server) CreateNotificationChannel(
 	ctx context.Context,
 	request backend.CreateNotificationChannelRequestObject) (

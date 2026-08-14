@@ -26,7 +26,8 @@ import (
 )
 
 // GetSavedSearch implements backend.StrictServerInterface.
-// nolint:ireturn, revive // Expected ireturn for openapi generation.
+//
+//nolint:ireturn, revive // Expected ireturn for openapi generation.
 func (s *Server) GetSavedSearch(
 	ctx context.Context, req backend.GetSavedSearchRequestObject) (
 	backend.GetSavedSearchResponseObject, error) {

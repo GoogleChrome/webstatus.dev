@@ -25,7 +25,8 @@ import (
 )
 
 // RemoveUserSavedSearchBookmark implements backend.StrictServerInterface.
-// nolint: ireturn // Name generated from openapi
+//
+//nolint:ireturn // Name generated from openapi
 func (s *Server) RemoveUserSavedSearchBookmark(
 	ctx context.Context, request backend.RemoveUserSavedSearchBookmarkRequestObject) (
 	backend.RemoveUserSavedSearchBookmarkResponseObject, error) {

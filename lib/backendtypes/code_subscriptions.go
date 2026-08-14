@@ -130,7 +130,7 @@ func CodeSubscriptionsToResponse(subs []gcpspanner.CodeSubscription) backend.Cod
 			Triggers:           triggers,
 			UpdatedAt:          sub.UpdatedAt,
 			VcsInstallationId:  &instID,
-			VcsProvider:        sub.VCSProvider,
+			VcsProvider:        string(sub.VCSProvider),
 			VcsRepositoryId:    sub.VCSRepositoryID,
 		})
 	}

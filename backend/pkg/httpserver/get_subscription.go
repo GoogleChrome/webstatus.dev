@@ -24,7 +24,7 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 )
 
-// nolint:ireturn, revive // Expected ireturn for openapi generation.
+//nolint:ireturn, revive // Expected ireturn for openapi generation.
 func (s *Server) GetSubscription(
 	ctx context.Context,
 	request backend.GetSubscriptionRequestObject,

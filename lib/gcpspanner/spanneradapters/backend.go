@@ -187,7 +187,8 @@ type BackendSpannerClient interface {
 	) ([]gcpspanner.SavedSearchNotificationEvent, *string, error)
 	ListCodeSubscriptionsByRepository(
 		ctx context.Context,
-		vcsProvider, repoID string,
+		vcsProvider gcpspanner.VCSProvider,
+		repoID string,
 	) ([]gcpspanner.CodeSubscription, error)
 	DeleteCodeSubscription(
 		ctx context.Context,
@@ -2228,7 +2229,11 @@ func (s *Backend) ListCodeSubscriptions(
 	ctx context.Context,
 	vcsProvider, repoID string,
 ) ([]backend.CodeSubscriptionResponse, error) {
-	subs, err := s.client.ListCodeSubscriptionsByRepository(ctx, vcsProvider, repoID)
+	provider, err := gcpspanner.ParseVCSProvider(vcsProvider)
+	if err != nil {
+		return nil, err
+	}
+	subs, err := s.client.ListCodeSubscriptionsByRepository(ctx, provider, repoID)
 	if err != nil {
 		return nil, err
 	}

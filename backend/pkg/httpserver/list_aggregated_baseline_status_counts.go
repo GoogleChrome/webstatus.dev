@@ -24,7 +24,8 @@ import (
 )
 
 // ListAggregatedBaselineStatusCounts implements backend.StrictServerInterface.
-// nolint: revive, ireturn // Name generated from openapi
+//
+//nolint:revive, ireturn // Name generated from openapi
 func (s *Server) ListAggregatedBaselineStatusCounts(
 	ctx context.Context, request backend.ListAggregatedBaselineStatusCountsRequestObject) (
 	backend.ListAggregatedBaselineStatusCountsResponseObject, error) {

@@ -74,7 +74,8 @@ type Item struct {
 }
 
 // GetSubscriptionRSS handles the request to get an RSS feed for a subscription.
-// nolint: ireturn // Signature generated from OpenAPI.
+//
+//nolint:ireturn // Signature generated from OpenAPI.
 func (s *Server) GetSubscriptionRSS(
 	ctx context.Context,
 	request backend.GetSubscriptionRSSRequestObject,

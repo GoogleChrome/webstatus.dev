@@ -24,7 +24,8 @@ import (
 )
 
 // ListFeatureWPTMetrics implements backend.StrictServerInterface.
-// nolint: revive, ireturn // Name generated from openapi
+//
+//nolint:revive, ireturn // Name generated from openapi
 func (s *Server) ListFeatureWPTMetrics(
 	ctx context.Context,
 	request backend.ListFeatureWPTMetricsRequestObject,

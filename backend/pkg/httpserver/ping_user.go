@@ -23,7 +23,8 @@ import (
 )
 
 // PingUser implements backend.StrictServerInterface.
-// nolint: ireturn // Name generated from openapi
+//
+//nolint:ireturn // Name generated from openapi
 func (s *Server) PingUser(
 	ctx context.Context,
 	req backend.PingUserRequestObject,

@@ -30,6 +30,7 @@ import (
 
 	"github.com/GoogleChrome/webstatus.dev/lib/auth"
 	"github.com/GoogleChrome/webstatus.dev/lib/backendtypes"
+	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/searchtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 	"github.com/GoogleChrome/webstatus.dev/lib/gh"
@@ -1111,6 +1112,28 @@ func (m *MockWPTMetricsStorer) GetGlobalSavedSearch(
 	return nil, errors.New("basic mock") // basic mock
 }
 
+func (m *MockWPTMetricsStorer) ListCodeSubscriptions(
+	_ context.Context,
+	_ string,
+	_ string,
+) ([]backend.CodeSubscriptionResponse, error) {
+	return []backend.CodeSubscriptionResponse{}, nil
+}
+
+func (m *MockWPTMetricsStorer) DeleteCodeSubscription(
+	_ context.Context,
+	_ string,
+) error {
+	return nil
+}
+
+func (m *MockWPTMetricsStorer) RecordVCSWebhookDelivery(
+	_ context.Context,
+	_ gcpspanner.VCSWebhookDelivery,
+) (bool, error) {
+	return true, nil
+}
+
 type MockPublishSearchConfigurationChangedConfig struct {
 	expectedResp       *backend.SavedSearchResponse
 	expectedUserID     string
@@ -1143,6 +1166,13 @@ func (m *MockEventPublisher) PublishSearchConfigurationChanged(
 	return m.publishSearchConfigurationChangedCfg.err
 }
 
+func (m *MockEventPublisher) PublishCodeScanTask(
+	_ context.Context,
+	_ backendtypes.CodeScanTaskMessage,
+) error {
+	return nil
+}
+
 func TestGetPageSizeOrDefault(t *testing.T) {
 	testCases := []struct {
 		name          string
@@ -1166,7 +1196,7 @@ func TestGetPageSizeOrDefault(t *testing.T) {
 }
 
 func createEmptyBodyResponse(status int) *http.Response {
-	// nolint:exhaustruct // WONTFIX - only for test purposes
+	//nolint:exhaustruct // WONTFIX - only for test purposes
 	return &http.Response{
 		StatusCode: status,
 		// For no content, the openapi library currently just returns an
@@ -1176,7 +1206,7 @@ func createEmptyBodyResponse(status int) *http.Response {
 	}
 }
 
-// nolint: gochecknoglobals
+//nolint:gochecknoglobals
 var (
 	inputPageToken = new("input-token")
 	nextPageToken  = new("next-page-token")
@@ -1185,7 +1215,7 @@ var (
 )
 
 func testJSONResponse(statusCode int, body string) *http.Response {
-	// nolint:exhaustruct // WONTFIX - only for test purposes
+	//nolint:exhaustruct // WONTFIX - only for test purposes
 	return &http.Response{
 		StatusCode: statusCode,
 		Header: http.Header{
@@ -1381,7 +1411,8 @@ type mockServerInterface struct {
 }
 
 // ListAggregatedBaselineStatusCounts implements backend.StrictServerInterface.
-// nolint: ireturn // WONTFIX - generated method signature
+//
+//nolint:ireturn // WONTFIX - generated method signature
 func (m *mockServerInterface) ListAggregatedBaselineStatusCounts(
 	ctx context.Context, _ backend.ListAggregatedBaselineStatusCountsRequestObject) (
 	backend.ListAggregatedBaselineStatusCountsResponseObject, error) {
@@ -1391,7 +1422,8 @@ func (m *mockServerInterface) ListAggregatedBaselineStatusCounts(
 }
 
 // CreateSavedSearch implements backend.StrictServerInterface.
-// nolint: ireturn // WONTFIX - generated method signature
+//
+//nolint:ireturn // WONTFIX - generated method signature
 func (m *mockServerInterface) CreateSavedSearch(ctx context.Context, _ backend.CreateSavedSearchRequestObject) (
 	backend.CreateSavedSearchResponseObject, error) {
 	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
@@ -1400,7 +1432,8 @@ func (m *mockServerInterface) CreateSavedSearch(ctx context.Context, _ backend.C
 }
 
 // GetFeature implements backend.StrictServerInterface.
-// nolint: ireturn // WONTFIX - generated method signature
+//
+//nolint:ireturn // WONTFIX - generated method signature
 func (m *mockServerInterface) GetFeature(ctx context.Context, _ backend.GetFeatureRequestObject) (
 	backend.GetFeatureResponseObject, error) {
 	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
@@ -1409,7 +1442,8 @@ func (m *mockServerInterface) GetFeature(ctx context.Context, _ backend.GetFeatu
 }
 
 // GetFeatureMetadata implements backend.StrictServerInterface.
-// nolint: ireturn // WONTFIX - generated method signature
+//
+//nolint:ireturn // WONTFIX - generated method signature
 func (m *mockServerInterface) GetFeatureMetadata(ctx context.Context, _ backend.GetFeatureMetadataRequestObject) (
 	backend.GetFeatureMetadataResponseObject, error) {
 	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
@@ -1418,7 +1452,8 @@ func (m *mockServerInterface) GetFeatureMetadata(ctx context.Context, _ backend.
 }
 
 // GetSavedSearch implements backend.StrictServerInterface.
-// nolint: ireturn // WONTFIX - generated method signature
+//
+//nolint:ireturn // WONTFIX - generated method signature
 func (m *mockServerInterface) GetSavedSearch(ctx context.Context, _ backend.GetSavedSearchRequestObject) (
 	backend.GetSavedSearchResponseObject, error) {
 	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
@@ -1427,7 +1462,8 @@ func (m *mockServerInterface) GetSavedSearch(ctx context.Context, _ backend.GetS
 }
 
 // ListAggregatedFeatureSupport implements backend.StrictServerInterface.
-// nolint: ireturn // WONTFIX - generated method signature
+//
+//nolint:ireturn // WONTFIX - generated method signature
 func (m *mockServerInterface) ListAggregatedFeatureSupport(ctx context.Context,
 	_ backend.ListAggregatedFeatureSupportRequestObject) (
 	backend.ListAggregatedFeatureSupportResponseObject, error) {
@@ -1437,7 +1473,8 @@ func (m *mockServerInterface) ListAggregatedFeatureSupport(ctx context.Context,
 }
 
 // ListAggregatedWPTMetrics implements backend.StrictServerInterface.
-// nolint: ireturn // WONTFIX - generated method signature
+//
+//nolint:ireturn // WONTFIX - generated method signature
 func (m *mockServerInterface) ListAggregatedWPTMetrics(ctx context.Context,
 	_ backend.ListAggregatedWPTMetricsRequestObject) (backend.ListAggregatedWPTMetricsResponseObject, error) {
 	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
@@ -1446,7 +1483,8 @@ func (m *mockServerInterface) ListAggregatedWPTMetrics(ctx context.Context,
 }
 
 // ListChromeDailyUsageStats implements backend.StrictServerInterface.
-// nolint: ireturn // WONTFIX - generated method signature
+//
+//nolint:ireturn // WONTFIX - generated method signature
 func (m *mockServerInterface) ListChromeDailyUsageStats(ctx context.Context,
 	_ backend.ListChromeDailyUsageStatsRequestObject) (
 	backend.ListChromeDailyUsageStatsResponseObject, error) {
@@ -1456,7 +1494,8 @@ func (m *mockServerInterface) ListChromeDailyUsageStats(ctx context.Context,
 }
 
 // ListFeatureWPTMetrics implements backend.StrictServerInterface.
-// nolint: ireturn // WONTFIX - generated method signature
+//
+//nolint:ireturn // WONTFIX - generated method signature
 func (m *mockServerInterface) ListFeatureWPTMetrics(ctx context.Context,
 	_ backend.ListFeatureWPTMetricsRequestObject) (backend.ListFeatureWPTMetricsResponseObject, error) {
 	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
@@ -1465,7 +1504,8 @@ func (m *mockServerInterface) ListFeatureWPTMetrics(ctx context.Context,
 }
 
 // ListFeatures implements backend.StrictServerInterface.
-// nolint: ireturn // WONTFIX - generated method signature
+//
+//nolint:ireturn // WONTFIX - generated method signature
 func (m *mockServerInterface) ListFeatures(ctx context.Context,
 	_ backend.ListFeaturesRequestObject) (backend.ListFeaturesResponseObject, error) {
 	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
@@ -1474,7 +1514,8 @@ func (m *mockServerInterface) ListFeatures(ctx context.Context,
 }
 
 // ListMissingOneImplementationCounts implements backend.StrictServerInterface.
-// nolint: ireturn // WONTFIX - generated method signature
+//
+//nolint:ireturn // WONTFIX - generated method signature
 func (m *mockServerInterface) ListMissingOneImplementationCounts(ctx context.Context,
 	_ backend.ListMissingOneImplementationCountsRequestObject) (
 	backend.ListMissingOneImplementationCountsResponseObject, error) {
@@ -1484,7 +1525,8 @@ func (m *mockServerInterface) ListMissingOneImplementationCounts(ctx context.Con
 }
 
 // ListUserSavedSearches implements backend.StrictServerInterface.
-// nolint: ireturn // WONTFIX - generated method signature
+//
+//nolint:ireturn // WONTFIX - generated method signature
 func (m *mockServerInterface) ListUserSavedSearches(ctx context.Context,
 	_ backend.ListUserSavedSearchesRequestObject) (backend.ListUserSavedSearchesResponseObject, error) {
 	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
@@ -1493,7 +1535,8 @@ func (m *mockServerInterface) ListUserSavedSearches(ctx context.Context,
 }
 
 // PutUserSavedSearchBookmark implements backend.StrictServerInterface.
-// nolint: ireturn // WONTFIX - generated method signature
+//
+//nolint:ireturn // WONTFIX - generated method signature
 func (m *mockServerInterface) PutUserSavedSearchBookmark(ctx context.Context,
 	_ backend.PutUserSavedSearchBookmarkRequestObject) (backend.PutUserSavedSearchBookmarkResponseObject, error) {
 	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
@@ -1502,7 +1545,8 @@ func (m *mockServerInterface) PutUserSavedSearchBookmark(ctx context.Context,
 }
 
 // RemoveSavedSearch implements backend.StrictServerInterface.
-// nolint: ireturn // WONTFIX - generated method signature
+//
+//nolint:ireturn // WONTFIX - generated method signature
 func (m *mockServerInterface) RemoveSavedSearch(ctx context.Context,
 	_ backend.RemoveSavedSearchRequestObject) (backend.RemoveSavedSearchResponseObject, error) {
 	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
@@ -1511,7 +1555,8 @@ func (m *mockServerInterface) RemoveSavedSearch(ctx context.Context,
 }
 
 // RemoveUserSavedSearchBookmark implements backend.StrictServerInterface.
-// nolint: ireturn // WONTFIX - generated method signature
+//
+//nolint:ireturn // WONTFIX - generated method signature
 func (m *mockServerInterface) RemoveUserSavedSearchBookmark(ctx context.Context,
 	_ backend.RemoveUserSavedSearchBookmarkRequestObject) (
 	backend.RemoveUserSavedSearchBookmarkResponseObject, error) {
@@ -1521,7 +1566,8 @@ func (m *mockServerInterface) RemoveUserSavedSearchBookmark(ctx context.Context,
 }
 
 // UpdateSavedSearch implements backend.StrictServerInterface.
-// nolint: ireturn // WONTFIX - generated method signature
+//
+//nolint:ireturn // WONTFIX - generated method signature
 func (m *mockServerInterface) UpdateSavedSearch(ctx context.Context,
 	_ backend.UpdateSavedSearchRequestObject) (backend.UpdateSavedSearchResponseObject, error) {
 	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
@@ -1530,7 +1576,8 @@ func (m *mockServerInterface) UpdateSavedSearch(ctx context.Context,
 }
 
 // DeleteNotificationChannel implements backend.StrictServerInterface.
-// nolint: ireturn // WONTFIX - generated method signature
+//
+//nolint:ireturn // WONTFIX - generated method signature
 func (m *mockServerInterface) DeleteNotificationChannel(
 	ctx context.Context,
 	_ backend.DeleteNotificationChannelRequestObject,
@@ -1541,7 +1588,8 @@ func (m *mockServerInterface) DeleteNotificationChannel(
 }
 
 // CreateNotificationChannel implements backend.StrictServerInterface.
-// nolint: ireturn // WONTFIX - generated method signature
+//
+//nolint:ireturn // WONTFIX - generated method signature
 func (m *mockServerInterface) CreateNotificationChannel(
 	ctx context.Context,
 	_ backend.CreateNotificationChannelRequestObject,
@@ -1552,7 +1600,8 @@ func (m *mockServerInterface) CreateNotificationChannel(
 }
 
 // UpdateNotificationChannel implements backend.StrictServerInterface.
-// nolint: ireturn // WONTFIX - generated method signature
+//
+//nolint:ireturn // WONTFIX - generated method signature
 func (m *mockServerInterface) UpdateNotificationChannel(
 	ctx context.Context,
 	_ backend.UpdateNotificationChannelRequestObject,
@@ -1563,7 +1612,8 @@ func (m *mockServerInterface) UpdateNotificationChannel(
 }
 
 // GetNotificationChannel implements backend.StrictServerInterface.
-// nolint: ireturn // WONTFIX - generated method signature
+//
+//nolint:ireturn // WONTFIX - generated method signature
 func (m *mockServerInterface) GetNotificationChannel(
 	ctx context.Context,
 	_ backend.GetNotificationChannelRequestObject,
@@ -1574,7 +1624,8 @@ func (m *mockServerInterface) GetNotificationChannel(
 }
 
 // ListNotificationChannels implements backend.StrictServerInterface.
-// nolint: ireturn // WONTFIX - generated method signature
+//
+//nolint:ireturn // WONTFIX - generated method signature
 func (m *mockServerInterface) ListNotificationChannels(
 	ctx context.Context,
 	_ backend.ListNotificationChannelsRequestObject,
@@ -1585,7 +1636,8 @@ func (m *mockServerInterface) ListNotificationChannels(
 }
 
 // ListGlobalSavedSearches implements backend.StrictServerInterface.
-// nolint: ireturn // WONTFIX - generated method signature
+//
+//nolint:ireturn // WONTFIX - generated method signature
 func (m *mockServerInterface) ListGlobalSavedSearches(
 	ctx context.Context,
 	_ backend.ListGlobalSavedSearchesRequestObject,
@@ -1596,7 +1648,8 @@ func (m *mockServerInterface) ListGlobalSavedSearches(
 }
 
 // PingUser implements backend.StrictServerInterface.
-// nolint: ireturn // WONTFIX - generated method signature
+//
+//nolint:ireturn // WONTFIX - generated method signature
 func (m *mockServerInterface) PingUser(
 	ctx context.Context,
 	_ backend.PingUserRequestObject,
@@ -1608,7 +1661,8 @@ func (m *mockServerInterface) PingUser(
 }
 
 // ListMissingOneImplementationFeatures implements backend.StrictServerInterface.
-// nolint: ireturn // WONTFIX - generated method signature
+//
+//nolint:ireturn // WONTFIX - generated method signature
 func (m *mockServerInterface) ListMissingOneImplementationFeatures(ctx context.Context,
 	_ backend.ListMissingOneImplementationFeaturesRequestObject) (
 	backend.ListMissingOneImplementationFeaturesResponseObject, error) {
@@ -1618,7 +1672,8 @@ func (m *mockServerInterface) ListMissingOneImplementationFeatures(ctx context.C
 }
 
 // CreateSubscription implements backend.StrictServerInterface.
-// nolint: ireturn // WONTFIX - generated method signature
+//
+//nolint:ireturn // WONTFIX - generated method signature
 func (m *mockServerInterface) CreateSubscription(ctx context.Context,
 	_ backend.CreateSubscriptionRequestObject) (
 	backend.CreateSubscriptionResponseObject, error) {
@@ -1628,7 +1683,8 @@ func (m *mockServerInterface) CreateSubscription(ctx context.Context,
 }
 
 // UpdateSubscription implements backend.StrictServerInterface.
-// nolint: ireturn // WONTFIX - generated method signature
+//
+//nolint:ireturn // WONTFIX - generated method signature
 func (m *mockServerInterface) UpdateSubscription(ctx context.Context,
 	_ backend.UpdateSubscriptionRequestObject) (
 	backend.UpdateSubscriptionResponseObject, error) {
@@ -1638,7 +1694,8 @@ func (m *mockServerInterface) UpdateSubscription(ctx context.Context,
 }
 
 // ListSubscriptions implements backend.StrictServerInterface.
-// nolint: ireturn // WONTFIX - generated method signature
+//
+//nolint:ireturn // WONTFIX - generated method signature
 func (m *mockServerInterface) ListSubscriptions(ctx context.Context,
 	_ backend.ListSubscriptionsRequestObject) (
 	backend.ListSubscriptionsResponseObject, error) {
@@ -1648,7 +1705,8 @@ func (m *mockServerInterface) ListSubscriptions(ctx context.Context,
 }
 
 // GetSubscription implements backend.StrictServerInterface.
-// nolint: ireturn // WONTFIX - generated method signature
+//
+//nolint:ireturn // WONTFIX - generated method signature
 func (m *mockServerInterface) GetSubscription(ctx context.Context,
 	_ backend.GetSubscriptionRequestObject) (
 	backend.GetSubscriptionResponseObject, error) {
@@ -1658,7 +1716,8 @@ func (m *mockServerInterface) GetSubscription(ctx context.Context,
 }
 
 // GetSubscriptionRSS implements backend.StrictServerInterface.
-// nolint: ireturn // WONTFIX - generated method signature
+//
+//nolint:ireturn // WONTFIX - generated method signature
 func (m *mockServerInterface) GetSubscriptionRSS(ctx context.Context, _ backend.GetSubscriptionRSSRequestObject) (
 	backend.GetSubscriptionRSSResponseObject, error) {
 	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
@@ -1667,7 +1726,8 @@ func (m *mockServerInterface) GetSubscriptionRSS(ctx context.Context, _ backend.
 }
 
 // DeleteSubscription implements backend.StrictServerInterface.
-// nolint: ireturn // WONTFIX - generated method signature
+//
+//nolint:ireturn // WONTFIX - generated method signature
 func (m *mockServerInterface) DeleteSubscription(ctx context.Context,
 	_ backend.DeleteSubscriptionRequestObject) (
 	backend.DeleteSubscriptionResponseObject, error) {
@@ -1677,7 +1737,8 @@ func (m *mockServerInterface) DeleteSubscription(ctx context.Context,
 }
 
 // GetHealthcheckLiveness implements backend.StrictServerInterface.
-// nolint: ireturn // WONTFIX - generated method signature
+//
+//nolint:ireturn // WONTFIX - generated method signature
 func (m *mockServerInterface) GetHealthcheckLiveness(ctx context.Context,
 	_ backend.GetHealthcheckLivenessRequestObject) (
 	backend.GetHealthcheckLivenessResponseObject, error) {
@@ -1687,7 +1748,8 @@ func (m *mockServerInterface) GetHealthcheckLiveness(ctx context.Context,
 }
 
 // DeleteCodeSubscription implements backend.StrictServerInterface.
-// nolint: ireturn // WONTFIX - generated method signature
+//
+//nolint:ireturn // WONTFIX - generated method signature
 func (m *mockServerInterface) DeleteCodeSubscription(ctx context.Context,
 	_ backend.DeleteCodeSubscriptionRequestObject) (
 	backend.DeleteCodeSubscriptionResponseObject, error) {
@@ -1697,7 +1759,8 @@ func (m *mockServerInterface) DeleteCodeSubscription(ctx context.Context,
 }
 
 // HandleVCSWebhook implements backend.StrictServerInterface.
-// nolint: ireturn // WONTFIX - generated method signature
+//
+//nolint:ireturn // WONTFIX - generated method signature
 func (m *mockServerInterface) HandleVCSWebhook(_ context.Context,
 	_ backend.HandleVCSWebhookRequestObject) (
 	backend.HandleVCSWebhookResponseObject, error) {
@@ -1706,7 +1769,8 @@ func (m *mockServerInterface) HandleVCSWebhook(_ context.Context,
 }
 
 // ListCodeSubscriptions implements backend.StrictServerInterface.
-// nolint: ireturn // WONTFIX - generated method signature
+//
+//nolint:ireturn // WONTFIX - generated method signature
 func (m *mockServerInterface) ListCodeSubscriptions(ctx context.Context,
 	_ backend.ListCodeSubscriptionsRequestObject) (
 	backend.ListCodeSubscriptionsResponseObject, error) {
@@ -1716,7 +1780,8 @@ func (m *mockServerInterface) ListCodeSubscriptions(ctx context.Context,
 }
 
 // ListVCSInstallations implements backend.StrictServerInterface.
-// nolint: ireturn // WONTFIX - generated method signature
+//
+//nolint:ireturn // WONTFIX - generated method signature
 func (m *mockServerInterface) ListVCSInstallations(ctx context.Context,
 	_ backend.ListVCSInstallationsRequestObject) (
 	backend.ListVCSInstallationsResponseObject, error) {
@@ -1726,7 +1791,8 @@ func (m *mockServerInterface) ListVCSInstallations(ctx context.Context,
 }
 
 // ListVCSRepositories implements backend.StrictServerInterface.
-// nolint: ireturn // WONTFIX - generated method signature
+//
+//nolint:ireturn // WONTFIX - generated method signature
 func (m *mockServerInterface) ListVCSRepositories(ctx context.Context,
 	_ backend.ListVCSRepositoriesRequestObject) (
 	backend.ListVCSRepositoriesResponseObject, error) {

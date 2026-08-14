@@ -88,7 +88,8 @@ func PrepareMissingOneBrowserParams(
 }
 
 // ListMissingOneImplementationFeatures implements backend.StrictServerInterface.
-// nolint: ireturn // Signature generated from openapi
+//
+//nolint:ireturn // Signature generated from openapi
 func (s *Server) ListMissingOneImplementationFeatures(
 	ctx context.Context,
 	request backend.ListMissingOneImplementationFeaturesRequestObject) (

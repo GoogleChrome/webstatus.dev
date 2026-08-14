@@ -24,7 +24,8 @@ import (
 )
 
 // ListNotificationChannels handles the GET request to /v1/users/me/notification-channels.
-// nolint:ireturn, revive // Expected ireturn for openapi generation.
+//
+//nolint:ireturn, revive // Expected ireturn for openapi generation.
 func (s *Server) ListNotificationChannels(
 	ctx context.Context,
 	req backend.ListNotificationChannelsRequestObject,

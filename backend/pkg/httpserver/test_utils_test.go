@@ -21,12 +21,10 @@ import (
 // TestServerOption defines a function type to override Server fields in tests.
 type TestServerOption func(*Server)
 
-// setupTestServer creates a Server instance initialized with safe defaults for testing.
-func setupTestServer(t *testing.T, options ...TestServerOption) *Server {
+func newDefaultMockWPTMetricsStorer(t *testing.T) *MockWPTMetricsStorer {
 	t.Helper()
 
-	// Default mock implementation
-	mockStorer := &MockWPTMetricsStorer{
+	return &MockWPTMetricsStorer{
 		t:                                                 t,
 		featureCfg:                                        nil,
 		aggregateCfg:                                      nil,
@@ -95,6 +93,13 @@ func setupTestServer(t *testing.T, options ...TestServerOption) *Server {
 		callCountGetGlobalSavedSearch:                     0,
 		callCountGetSavedSearchSubscriptionPublic:         0,
 	}
+}
+
+// setupTestServer creates a Server instance initialized with safe defaults for testing.
+func setupTestServer(t *testing.T, options ...TestServerOption) *Server {
+	t.Helper()
+
+	mockStorer := newDefaultMockWPTMetricsStorer(t)
 
 	srv := &Server{
 		metadataStorer:          nil,
@@ -104,6 +109,7 @@ func setupTestServer(t *testing.T, options ...TestServerOption) *Server {
 		userGitHubClientFactory: nil,
 		eventPublisher:          nil,
 		rssRenderer:             NewRSSRenderer(),
+		webhookSecret:           nil,
 	}
 
 	// Apply Functional Options to override defaults
@@ -143,5 +149,11 @@ func withCustomCaches(c *operationResponseCaches) TestServerOption {
 func withCustomGitHubClientFactory(f UserGitHubClientFactory) TestServerOption {
 	return func(srv *Server) {
 		srv.userGitHubClientFactory = f
+	}
+}
+
+func withWebhookSecret(secret []byte) TestServerOption {
+	return func(srv *Server) {
+		srv.webhookSecret = secret
 	}
 }

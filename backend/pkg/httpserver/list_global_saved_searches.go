@@ -24,7 +24,8 @@ import (
 )
 
 // ListGlobalSavedSearches implements backend.StrictServerInterface.
-// nolint:ireturn // Expected ireturn for openapi generation.
+//
+//nolint:ireturn // Expected ireturn for openapi generation.
 func (s *Server) ListGlobalSavedSearches(
 	ctx context.Context,
 	req backend.ListGlobalSavedSearchesRequestObject,

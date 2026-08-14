@@ -24,7 +24,8 @@ import (
 )
 
 // ListChromeDailyUsageStats implements backend.StrictServerInterface.
-// nolint: revive, ireturn // Name generated from openapi
+//
+//nolint:revive, ireturn // Name generated from openapi
 func (s *Server) ListChromeDailyUsageStats(
 	ctx context.Context,
 	request backend.ListChromeDailyUsageStatsRequestObject,

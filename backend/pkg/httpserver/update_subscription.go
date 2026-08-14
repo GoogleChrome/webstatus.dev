@@ -86,7 +86,7 @@ func validateSubscriptionUpdate(input *backend.UpdateSubscriptionRequest) *field
 	return nil
 }
 
-// nolint:ireturn, revive // Expected ireturn for openapi generation.
+//nolint:ireturn, revive // Expected ireturn for openapi generation.
 func (s *Server) UpdateSubscription(
 	ctx context.Context,
 	request backend.UpdateSubscriptionRequestObject,

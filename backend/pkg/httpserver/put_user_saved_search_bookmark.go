@@ -25,7 +25,8 @@ import (
 )
 
 // PutUserSavedSearchBookmark implements backend.StrictServerInterface.
-// nolint: ireturn // Name generated from openapi
+//
+//nolint:ireturn // Name generated from openapi
 func (s *Server) PutUserSavedSearchBookmark(
 	ctx context.Context, request backend.PutUserSavedSearchBookmarkRequestObject) (
 	backend.PutUserSavedSearchBookmarkResponseObject, error) {

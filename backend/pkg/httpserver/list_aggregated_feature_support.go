@@ -41,7 +41,8 @@ func getDesktopsMobileProduct(browser backend.BrowserPathParam) (backend.Browser
 }
 
 // ListAggregatedFeatureSupport implements backend.StrictServerInterface.
-// nolint: ireturn // Signature generated from openapi
+//
+//nolint:ireturn // Signature generated from openapi
 func (s *Server) ListAggregatedFeatureSupport(
 	ctx context.Context,
 	request backend.ListAggregatedFeatureSupportRequestObject) (

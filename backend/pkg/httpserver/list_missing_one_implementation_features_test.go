@@ -191,7 +191,7 @@ func TestListMissingOneImplementationFeatures(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			// nolint: exhaustruct
+			//nolint:exhaustruct
 			mockStorer := &MockWPTMetricsStorer{
 				listMissingOneImplFeaturesCfg: &tc.mockConfig,
 				t:                             t,

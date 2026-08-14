@@ -83,7 +83,8 @@ func validateSavedSearchUpdate(input *backend.UpdateSavedSearchJSONRequestBody) 
 }
 
 // UpdateSavedSearch implements backend.StrictServerInterface.
-// nolint: ireturn // Name generated from openapi
+//
+//nolint:ireturn // Name generated from openapi
 func (s *Server) UpdateSavedSearch(
 	ctx context.Context, request backend.UpdateSavedSearchRequestObject) (
 	backend.UpdateSavedSearchResponseObject, error) {
@@ -112,7 +113,7 @@ func (s *Server) UpdateSavedSearch(
 		err := s.wptMetricsStorer.ValidateQueryReferences(ctx, *request.Body.Query, &request.SearchId)
 		if err != nil {
 			if safeErr := sanitizeValidationError(err); safeErr != nil {
-				// nolint:nilerr // WONTFIX - false positive when returning structured 400 response instead of Go error.
+				//nolint:nilerr // WONTFIX - false positive when returning structured 400 response instead of Go error.
 				return backend.UpdateSavedSearch400JSONResponse{
 					Code:    http.StatusBadRequest,
 					Message: safeErr.Error(),

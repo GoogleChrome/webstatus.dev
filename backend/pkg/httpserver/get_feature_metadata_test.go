@@ -112,7 +112,7 @@ func TestGetFeatureMetadata(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			// nolint: exhaustruct
+			//nolint:exhaustruct
 			mockStorer := &MockWPTMetricsStorer{
 				getIDFromFeatureKeyConfig: tc.mockGetIDConfig,
 				t:                         t,

@@ -48,7 +48,7 @@ func TestGetFeature(t *testing.T) {
 		request            *http.Request
 		expectedResponse   *http.Response
 	}{
-		// nolint:dupl // WONTFIX - being explicit for short list of tests.
+		//nolint:dupl // WONTFIX - being explicit for short list of tests.
 		{
 			name: "Success Case - no optional params - use defaults",
 			mockConfig: &MockGetFeatureByIDConfig{
@@ -129,7 +129,7 @@ func TestGetFeature(t *testing.T) {
 				"system_managed_saved_search_id":"saved-search-1"
 			 }`),
 		},
-		// nolint:dupl // WONTFIX - being explicit for short list of tests.
+		//nolint:dupl // WONTFIX - being explicit for short list of tests.
 		{
 			name:              "Success Case - no optional params - use defaults - cached",
 			mockConfig:        nil,
@@ -172,7 +172,7 @@ func TestGetFeature(t *testing.T) {
 						"system_managed_saved_search_id":"saved-search-1"
 					 }`),
 		},
-		// nolint:dupl // WONTFIX - being explicit for short list of tests.
+		//nolint:dupl // WONTFIX - being explicit for short list of tests.
 		{
 			name: "Success Case - with optional params",
 			mockConfig: &MockGetFeatureByIDConfig{
@@ -269,7 +269,7 @@ func TestGetFeature(t *testing.T) {
 				}`,
 			),
 		},
-		// nolint:dupl // WONTFIX - being explicit for short list of tests.
+		//nolint:dupl // WONTFIX - being explicit for short list of tests.
 		{
 			name:              "Success Case - with optional params - cached",
 			mockConfig:        nil,
@@ -388,7 +388,7 @@ func TestGetFeature(t *testing.T) {
 				nil,
 			),
 			expectedResponse: func() *http.Response {
-				// nolint:exhaustruct
+				//nolint:exhaustruct
 				return &http.Response{
 					StatusCode: http.StatusMovedPermanently,
 					Header: map[string][]string{
@@ -446,7 +446,7 @@ func TestGetFeature(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			// nolint: exhaustruct
+			//nolint:exhaustruct
 			mockStorer := &MockWPTMetricsStorer{
 				getFeatureByIDConfig: tc.mockConfig,
 				t:                    t,

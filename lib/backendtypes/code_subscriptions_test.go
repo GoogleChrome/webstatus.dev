@@ -60,7 +60,7 @@ func TestVCSInstallationToSummary(t *testing.T) {
 		t.Errorf("summary.ID = %s, want inst-uuid-1", summary.ID)
 	}
 	ghPerms := summary.Permissions.GitHub
-	if ghPerms == nil || ghPerms.Issues == nil || *ghPerms.Issues != "write" {
+	if ghPerms == nil || ghPerms.Issues == nil || *ghPerms.Issues != gcpspanner.GitHubPermissionLevelWrite {
 		t.Errorf("summary.Permissions.GitHub.Issues = %v, want write", ghPerms)
 	}
 }

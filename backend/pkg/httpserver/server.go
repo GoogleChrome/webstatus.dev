@@ -18,7 +18,6 @@ import (
 	"cmp"
 	"context"
 	"encoding/json"
-	"errors"
 	"log/slog"
 	"net"
 	"net/http"
@@ -27,6 +26,7 @@ import (
 
 	"github.com/GoogleChrome/webstatus.dev/lib/backendtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/cachetypes"
+	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/searchtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 	"github.com/GoogleChrome/webstatus.dev/lib/gh"
@@ -193,6 +193,18 @@ type WPTMetricsStorer interface {
 		userID, subscriptionID string,
 		req backend.UpdateSubscriptionRequest,
 	) (*backend.SubscriptionResponse, error)
+	ListCodeSubscriptions(
+		ctx context.Context,
+		vcsProvider, repoID string,
+	) ([]backend.CodeSubscriptionResponse, error)
+	DeleteCodeSubscription(
+		ctx context.Context,
+		id string,
+	) error
+	RecordVCSWebhookDelivery(
+		ctx context.Context,
+		delivery gcpspanner.VCSWebhookDelivery,
+	) (bool, error)
 }
 
 type Server struct {
@@ -203,6 +215,7 @@ type Server struct {
 	userGitHubClientFactory UserGitHubClientFactory
 	eventPublisher          EventPublisher
 	rssRenderer             *RSSRenderer
+	webhookSecret           []byte
 }
 
 type GitHubUserClient interface {
@@ -257,6 +270,17 @@ type RouteCacheOptions struct {
 type EventPublisher interface {
 	PublishSearchConfigurationChanged(ctx context.Context, resp *backend.SavedSearchResponse,
 		userID string, isCreation bool) error
+	PublishCodeScanTask(ctx context.Context, task backendtypes.CodeScanTaskMessage) error
+}
+
+// ServerOption configures options for the HTTP server.
+type ServerOption func(*Server)
+
+// WithWebhookSecret configures the HMAC webhook secret for verifying incoming webhooks.
+func WithWebhookSecret(secret []byte) ServerOption {
+	return func(s *Server) {
+		s.webhookSecret = secret
+	}
 }
 
 func NewHTTPServer(
@@ -269,7 +293,8 @@ func NewHTTPServer(
 	routeCacheOptions RouteCacheOptions,
 	userGitHubClientFactory UserGitHubClientFactory,
 	preRequestValidationMiddlewares []func(http.Handler) http.Handler,
-	authMiddleware func(http.Handler) http.Handler) *http.Server {
+	authMiddleware func(http.Handler) http.Handler,
+	opts ...ServerOption) *http.Server {
 	// Create an instance of our handler which satisfies the generated interface
 	srv := &Server{
 		metadataStorer:          metadataStorer,
@@ -279,6 +304,11 @@ func NewHTTPServer(
 		baseURL:                 baseURL,
 		userGitHubClientFactory: userGitHubClientFactory,
 		rssRenderer:             NewRSSRenderer(),
+		webhookSecret:           nil,
+	}
+
+	for _, opt := range opts {
+		opt(srv)
 	}
 
 	return createOpenAPIServerServer(port, srv, preRequestValidationMiddlewares, authMiddleware)
@@ -302,7 +332,7 @@ func createOpenAPIServerServer(
 	// Now wrap the middlewares
 	wrappedHandler := applyPreRequestValidationMiddlewares(r, preRequestValidationMiddlewares)
 
-	// nolint:exhaustruct // No need to populate 3rd party struct
+	//nolint:exhaustruct // No need to populate 3rd party struct
 	return &http.Server{
 		Handler:           wrappedHandler,
 		Addr:              net.JoinHostPort("0.0.0.0", port),
@@ -328,47 +358,4 @@ func GenericErrorFn(ctx context.Context, statusCode int, w http.ResponseWriter, 
 	if err != nil {
 		slog.WarnContext(ctx, "unable to write generic error", "error", encoderErr)
 	}
-}
-
-// Stubs to satisfy backend.StrictServerInterface on openapi branch.
-// Concrete implementations and tests are in the api-handlers branch.
-
-// nolint: ireturn // WONTFIX - generated method signature
-func (s *Server) ListCodeSubscriptions(
-	_ context.Context,
-	_ backend.ListCodeSubscriptionsRequestObject,
-) (backend.ListCodeSubscriptionsResponseObject, error) {
-	return nil, errors.New("not implemented")
-}
-
-// nolint: ireturn // WONTFIX - generated method signature
-func (s *Server) DeleteCodeSubscription(
-	_ context.Context,
-	_ backend.DeleteCodeSubscriptionRequestObject,
-) (backend.DeleteCodeSubscriptionResponseObject, error) {
-	return nil, errors.New("not implemented")
-}
-
-// nolint: ireturn // WONTFIX - generated method signature
-func (s *Server) ListVCSInstallations(
-	_ context.Context,
-	_ backend.ListVCSInstallationsRequestObject,
-) (backend.ListVCSInstallationsResponseObject, error) {
-	return nil, errors.New("not implemented")
-}
-
-// nolint: ireturn // WONTFIX - generated method signature
-func (s *Server) ListVCSRepositories(
-	_ context.Context,
-	_ backend.ListVCSRepositoriesRequestObject,
-) (backend.ListVCSRepositoriesResponseObject, error) {
-	return nil, errors.New("not implemented")
-}
-
-// nolint: ireturn // WONTFIX - generated method signature
-func (s *Server) HandleVCSWebhook(
-	_ context.Context,
-	_ backend.HandleVCSWebhookRequestObject,
-) (backend.HandleVCSWebhookResponseObject, error) {
-	return nil, errors.New("not implemented")
 }

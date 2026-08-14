@@ -156,7 +156,8 @@ func sanitizeValidationError(err error) error {
 }
 
 // CreateSavedSearch implements backend.StrictServerInterface.
-// nolint: ireturn // Name generated from openapi
+//
+//nolint:ireturn // Name generated from openapi
 func (s *Server) CreateSavedSearch(ctx context.Context, request backend.CreateSavedSearchRequestObject) (
 	backend.CreateSavedSearchResponseObject, error) {
 	// At this point, the user should be authenticated and in the context.
@@ -184,7 +185,7 @@ func (s *Server) CreateSavedSearch(ctx context.Context, request backend.CreateSa
 	err := s.wptMetricsStorer.ValidateQueryReferences(ctx, request.Body.Query, nil)
 	if err != nil {
 		if safeErr := sanitizeValidationError(err); safeErr != nil {
-			// nolint:nilerr // WONTFIX - false positive when returning structured 400 response instead of Go error.
+			//nolint:nilerr // WONTFIX - false positive when returning structured 400 response instead of Go error.
 			return backend.CreateSavedSearch400JSONResponse{
 				Code:    http.StatusBadRequest,
 				Message: safeErr.Error(),

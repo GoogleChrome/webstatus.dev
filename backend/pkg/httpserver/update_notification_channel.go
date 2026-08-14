@@ -77,7 +77,8 @@ func validateUpdateNotificationChannel(request *backend.UpdateNotificationChanne
 }
 
 // UpdateNotificationChannel implements backend.StrictServerInterface.
-// nolint: ireturn // Name generated from openapi
+//
+//nolint:ireturn // Name generated from openapi
 func (s *Server) UpdateNotificationChannel(
 	ctx context.Context,
 	request backend.UpdateNotificationChannelRequestObject) (

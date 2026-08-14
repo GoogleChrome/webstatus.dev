@@ -256,7 +256,7 @@ func TestPingUser(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			authMiddlewareOption := withAuthMiddleware(tc.authMiddleware)
 			myServer := setupTestServer(t,
-				// nolint:exhaustruct
+				//nolint:exhaustruct
 				withCustomStorer(&MockWPTMetricsStorer{t: t, syncUserProfileInfoCfg: tc.syncUserProfileInfoCfg}),
 				withCustomGitHubClientFactory(setupMockGitHubUserClient(
 					t,

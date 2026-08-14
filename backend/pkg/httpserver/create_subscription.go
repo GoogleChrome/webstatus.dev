@@ -153,7 +153,7 @@ func validateSubscriptionCreation(input *backend.Subscription) *fieldValidationE
 	return nil
 }
 
-// nolint:ireturn, revive // Expected ireturn for openapi generation.
+//nolint:ireturn, revive // Expected ireturn for openapi generation.
 func (s *Server) CreateSubscription(
 	ctx context.Context,
 	request backend.CreateSubscriptionRequestObject,

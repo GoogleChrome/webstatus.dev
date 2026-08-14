@@ -26,7 +26,8 @@ import (
 )
 
 // GetFeatureMetadata implements backend.StrictServerInterface.
-// nolint: revive, ireturn // Name generated from openapi
+//
+//nolint:revive, ireturn // Name generated from openapi
 func (s *Server) GetFeatureMetadata(ctx context.Context,
 	request backend.GetFeatureMetadataRequestObject) (backend.GetFeatureMetadataResponseObject, error) {
 	var cachedResponse backend.GetFeatureMetadata200JSONResponse

@@ -70,7 +70,8 @@ func (v *GetFeatureResultVisitor) VisitSplitFeature(_ context.Context, result ba
 }
 
 // GetFeature implements backend.StrictServerInterface.
-// nolint: revive, ireturn // Name generated from openapi
+//
+//nolint:revive, ireturn // Name generated from openapi
 func (s *Server) GetFeature(
 	ctx context.Context,
 	request backend.GetFeatureRequestObject,

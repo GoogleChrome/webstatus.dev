@@ -24,7 +24,8 @@ import (
 )
 
 // ListAggregatedWPTMetrics implements backend.StrictServerInterface.
-// nolint: revive, ireturn // Name generated from openapi
+//
+//nolint:revive, ireturn // Name generated from openapi
 func (s *Server) ListAggregatedWPTMetrics(
 	ctx context.Context,
 	request backend.ListAggregatedWPTMetricsRequestObject,

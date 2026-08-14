@@ -24,7 +24,8 @@ import (
 )
 
 // DeleteNotificationChannel handles the DELETE request to /v1/users/me/notification-channels/{channel_id}.
-// nolint:ireturn, revive // Expected ireturn for openapi generation.
+//
+//nolint:ireturn, revive // Expected ireturn for openapi generation.
 func (s *Server) DeleteNotificationChannel(
 	ctx context.Context,
 	req backend.DeleteNotificationChannelRequestObject,

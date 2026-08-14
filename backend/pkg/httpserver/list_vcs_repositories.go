@@ -20,16 +20,22 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 )
 
-const healthyStatus = "healthy"
+//nolint:ireturn, revive // Expected ireturn for openapi generation.
+func (s *Server) ListVCSRepositories(
+	ctx context.Context,
+	_ backend.ListVCSRepositoriesRequestObject,
+) (backend.ListVCSRepositoriesResponseObject, error) {
+	userCheck := CheckAuthenticatedUser[backend.ListVCSRepositoriesResponseObject](
+		ctx, "ListVCSRepositories",
+		func(code int, message string) backend.ListVCSRepositoriesResponseObject {
+			return backend.ListVCSRepositories500JSONResponse(
+				backend.BasicErrorModel{Code: code, Message: message})
+		})
+	if userCheck.User == nil {
+		return userCheck.Response, nil
+	}
 
-// GetHealthcheckLiveness implements backend.StrictServerInterface.
-//
-//nolint:ireturn // Name generated from openapi
-func (s *Server) GetHealthcheckLiveness(
-	_ context.Context,
-	_ backend.GetHealthcheckLivenessRequestObject,
-) (backend.GetHealthcheckLivenessResponseObject, error) {
-	return backend.GetHealthcheckLiveness200JSONResponse{
-		Status: healthyStatus,
+	return backend.ListVCSRepositories200JSONResponse{
+		Data: []backend.VCSRepositorySummary{},
 	}, nil
 }

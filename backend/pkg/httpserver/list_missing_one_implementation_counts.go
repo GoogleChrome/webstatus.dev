@@ -24,7 +24,8 @@ import (
 )
 
 // ListMissingOneImplementationCounts implements backend.StrictServerInterface.
-// nolint: ireturn // Signature generated from openapi
+//
+//nolint:ireturn // Signature generated from openapi
 func (s *Server) ListMissingOneImplementationCounts(
 	ctx context.Context,
 	request backend.ListMissingOneImplementationCountsRequestObject) (

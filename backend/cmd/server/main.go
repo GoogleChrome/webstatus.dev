@@ -217,6 +217,13 @@ func main() {
 		os.Exit(1)
 	}
 
+	var serverOpts []httpserver.ServerOption
+	if secretStr := os.Getenv("GITHUB_WEBHOOK_SECRET"); secretStr != "" {
+		serverOpts = append(serverOpts, httpserver.WithWebhookSecret([]byte(secretStr)))
+	} else if os.Getenv("SPANNER_EMULATOR_HOST") != "" {
+		serverOpts = append(serverOpts, httpserver.WithWebhookSecret([]byte("dev-webhook-secret-for-testing-only-12345")))
+	}
+
 	srv := httpserver.NewHTTPServer(
 		"8080",
 		baseURL,
@@ -232,6 +239,7 @@ func main() {
 		},
 		preRequestMiddlewares,
 		authMiddleware,
+		serverOpts...,
 	)
 
 	err = srv.ListenAndServe()

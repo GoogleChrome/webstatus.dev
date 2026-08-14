@@ -25,7 +25,8 @@ import (
 )
 
 // RemoveSavedSearch implements backend.StrictServerInterface.
-// nolint: ireturn // Name generated from openapi
+//
+//nolint:ireturn // Name generated from openapi
 func (s *Server) RemoveSavedSearch(
 	ctx context.Context, request backend.RemoveSavedSearchRequestObject) (
 	backend.RemoveSavedSearchResponseObject, error) {

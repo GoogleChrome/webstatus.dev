@@ -784,7 +784,7 @@ func (c mockBackendSpannerClient) UpdateSavedSearchSubscription(
 
 func (c mockBackendSpannerClient) ListCodeSubscriptionsByRepository(
 	_ context.Context,
-	_ string,
+	_ gcpspanner.VCSProvider,
 	_ string,
 ) ([]gcpspanner.CodeSubscription, error) {
 	return nil, nil
