@@ -1,6 +1,7 @@
 SHELL := /bin/bash
 NPROCS := $(shell nproc)
 GH_REPO := "GoogleChrome/webstatus.dev"
+REPO_OWNER ?= googlechrome
 
 DOCKERFILES := \
 	images/go_service.Dockerfile \
@@ -32,6 +33,7 @@ DOCKERFILES := \
 		minikube-clean-restart \
 		start-local \
 		deploy-local \
+		pull-cached-services \
 		stop-local \
 		port-forward-manual \
 		port-forward-terminate \
@@ -57,6 +59,13 @@ debug-local: configure-skaffold gen
 
 configure-skaffold: minikube-running
 	skaffold config set --kube-context "$${MINIKUBE_PROFILE}" local-cluster true
+
+pull-cached-services: configure-skaffold
+	@echo "Warming Minikube Docker cache from GHCR..."
+	@eval $$(minikube docker-env -p "$${MINIKUBE_PROFILE}") 2>/dev/null || true; \
+	for svc in backend frontend spanner datastore auth wiremock valkey pubsub; do \
+		docker pull ghcr.io/$(REPO_OWNER)/webstatus.dev/$$svc:latest 2>/dev/null || true & \
+	done; wait
 
 deploy-local: configure-skaffold
 	skaffold run $(SKAFFOLD_RUN_FLAGS) --status-check=true
@@ -384,7 +393,7 @@ SKIP_FRESH_ENV ?=
 PLAYWRIGHT_PROJECT ?=
 PLAYWRIGHT_BROWSER ?= $(PLAYWRIGHT_PROJECT)
 
-fresh-env-for-playwright: $(if $(SKIP_FRESH_ENV),,playwright-install delete-local build deploy-local port-forward-manual dev_fake_users dev_fake_data)
+fresh-env-for-playwright: $(if $(SKIP_FRESH_ENV),,playwright-install delete-local pull-cached-services build deploy-local port-forward-manual dev_fake_users dev_fake_data)
 
 playwright-install:
 	npx playwright install --with-deps $(PLAYWRIGHT_BROWSER)
