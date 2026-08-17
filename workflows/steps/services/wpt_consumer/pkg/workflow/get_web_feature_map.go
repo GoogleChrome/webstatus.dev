@@ -18,6 +18,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"sync"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/cachetypes"
 	"github.com/web-platform-tests/wpt.fyi/shared"
@@ -38,12 +39,14 @@ func NewCacheableWebFeaturesDataGetter(
 	return &CacheableWebFeaturesDataGetter{
 		client: client,
 		cache:  cache,
+		loadMu: &sync.Mutex{},
 	}
 }
 
 type CacheableWebFeaturesDataGetter struct {
 	client WebFeatureDataGetter
 	cache  DataCacher[string, shared.WebFeaturesData]
+	loadMu *sync.Mutex
 }
 
 const (
@@ -59,10 +62,6 @@ type WebFeatureDataGetter interface {
 func (g *CacheableWebFeaturesDataGetter) GetWebFeaturesData(
 	ctx context.Context, _ string) (shared.WebFeaturesData, error) {
 	// 1. Attempts to retrieve data from the cache.
-	// 2. If not found or an unexpected cache error occurs, falls back to fetching data directly.
-	// 3. Caches freshly fetched data for future requests.
-
-	// Step 1.
 	cachedData, err := g.cache.Get(ctx, cacheKeyLatest)
 	if err == nil {
 		return cachedData, nil
@@ -70,16 +69,29 @@ func (g *CacheableWebFeaturesDataGetter) GetWebFeaturesData(
 		slog.WarnContext(ctx, "unexpected error when trying to get cache data", "err", err)
 	}
 
-	// Step 2.
+	// 2. Slow path: Acquire mutex so only 1 worker fetches on cold start.
+	g.loadMu.Lock()
+	defer g.loadMu.Unlock()
+
+	// Double-check cache in case another worker already populated it while we waited.
+	cachedData, err = g.cache.Get(ctx, cacheKeyLatest)
+	if err == nil {
+		return cachedData, nil
+	} else if !errors.Is(err, cachetypes.ErrCachedDataNotFound) {
+		slog.WarnContext(ctx, "unexpected error when trying to get cache data", "err", err)
+	}
+
+	// 3. Fetch data directly.
 	data, err := g.client.Get(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// Step 3.
+	// 4. Cache freshly fetched data for future requests.
 	if err := g.cache.Cache(ctx, cacheKeyLatest, data); err != nil {
 		slog.WarnContext(ctx, "unable to cache web features data", "err", err)
 	}
 
-	return data, nil
+	// Return isolated copy from cache.
+	return g.cache.Get(ctx, cacheKeyLatest)
 }

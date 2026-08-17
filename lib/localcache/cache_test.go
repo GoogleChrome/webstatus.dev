@@ -17,7 +17,6 @@ package localcache
 import (
 	"context"
 	"errors"
-	"maps"
 	"reflect"
 	"sync"
 	"testing"
@@ -116,20 +115,8 @@ func TestLocalDataCache(t *testing.T) {
 // This test is designed to fail under the Go race detector if the cache's Get
 // method does not return a proper copy, leading to a data race.
 func TestLocalDataCache_ConcurrentMapAccess(t *testing.T) {
-	// Define a copier function for our test map type. This is what a consumer
-	// of the cache would provide for their specific reference type.
-	copier := func(in map[string]int) map[string]int {
-		if in == nil {
-			return nil
-		}
-		out := make(map[string]int, len(in))
-		maps.Copy(out, in)
-
-		return out
-	}
-
-	// Create a new cache instance with the copier function.
-	cache := NewLocalDataCache[string, map[string]int](copier)
+	// Create a new cache instance with the generic MapCopier function.
+	cache := NewLocalDataCache[string, map[string]int](MapCopier[map[string]int]())
 	initialMap := map[string]int{"a": 1}
 	// Seed the cache with an initial value.
 	err := cache.Cache(context.Background(), "test-map", initialMap)
@@ -160,4 +147,115 @@ func TestLocalDataCache_ConcurrentMapAccess(t *testing.T) {
 	// Wait for all goroutines to complete. If there was a race condition,
 	// the test will have already failed when run with the -race flag.
 	wg.Wait()
+}
+
+// TestLocalDataCache_CopyOnWrite tests that mutating the original map passed to Cache
+// does not modify the cached data when a copier is provided.
+func TestLocalDataCache_CopyOnWrite(t *testing.T) {
+	cache := NewLocalDataCache[string, map[string]int](MapCopier[map[string]int]())
+	inputMap := map[string]int{"a": 1}
+
+	err := cache.Cache(context.Background(), "test-key", inputMap)
+	if err != nil {
+		t.Fatalf("unexpected error caching: %v", err)
+	}
+
+	// Mutate the original map after caching.
+	inputMap["a"] = 999
+	inputMap["b"] = 123
+
+	// Retrieve from cache and verify it still has the original value.
+	cached, err := cache.Get(context.Background(), "test-key")
+	if err != nil {
+		t.Fatalf("unexpected error getting: %v", err)
+	}
+
+	expected := map[string]int{"a": 1}
+	if !reflect.DeepEqual(cached, expected) {
+		t.Errorf("expected cached map %v, got %v", expected, cached)
+	}
+}
+
+// TestLocalDataCache_ConcurrentNestedMapAccess tests that NestedMapCopier provides
+// complete thread safety and mutation isolation across 100 concurrent workers modifying
+// both inner and outer maps simultaneously.
+func TestLocalDataCache_ConcurrentNestedMapAccess(t *testing.T) {
+	type NestedMap map[string]map[string]any
+
+	cache := NewLocalDataCache[string, NestedMap](NestedMapCopier[NestedMap]())
+	initialData := NestedMap{
+		"test1.html": {"feat1": 100, "feat2": 200},
+		"test2.html": {"feat3": 300},
+	}
+
+	err := cache.Cache(context.Background(), "nested-key", initialData)
+	if err != nil {
+		t.Fatalf("unexpected error caching: %v", err)
+	}
+
+	// Mutate original map to ensure copy-on-store holds
+	initialData["test1.html"]["feat1"] = 999
+	initialData["test3.html"] = map[string]any{"feat4": 400}
+
+	var wg sync.WaitGroup
+	numGoroutines := 100
+
+	for i := range numGoroutines {
+		wg.Go(func() {
+			m, err := cache.Get(context.Background(), "nested-key")
+			if err != nil {
+				t.Error(err)
+			}
+			// Verify original values are untouched
+			if m["test1.html"]["feat1"] != 100 {
+				t.Errorf("expected feat1=100, got %v", m["test1.html"]["feat1"])
+			}
+			if _, exists := m["test3.html"]; exists {
+				t.Errorf("expected test3.html to not exist in cached copy")
+			}
+
+			// Perform concurrent mutations on both outer and inner maps
+			m["test1.html"]["feat1"] = i
+			delete(m["test1.html"], "feat2")
+			m["test1.html"]["new_feat"] = "concurrent_value"
+			m["new_test.html"] = map[string]any{"custom": i}
+		})
+	}
+
+	wg.Wait()
+
+	// Verify the cached state remains completely pristine after all workers finish
+	finalCached, err := cache.Get(context.Background(), "nested-key")
+	if err != nil {
+		t.Fatalf("unexpected error getting: %v", err)
+	}
+
+	expectedFinal := NestedMap{
+		"test1.html": {"feat1": 100, "feat2": 200},
+		"test2.html": {"feat3": 300},
+	}
+	if !reflect.DeepEqual(finalCached, expectedFinal) {
+		t.Errorf("cache corrupted! expected %v, got %v", expectedFinal, finalCached)
+	}
+}
+
+func TestNestedMapCopier_NilHandling(t *testing.T) {
+	type NestedMap map[string]map[string]int
+	copier := NestedMapCopier[NestedMap]()
+
+	if copier(nil) != nil {
+		t.Errorf("expected nil for nil input")
+	}
+
+	inputWithNilInner := NestedMap{
+		"test1": nil,
+		"test2": {"a": 1},
+	}
+	copied := copier(inputWithNilInner)
+	if copied["test1"] != nil {
+		t.Errorf("expected nil inner map for test1, got %v", copied["test1"])
+	}
+	if copied["test2"]["a"] != 1 {
+		t.Errorf("expected 1, got %v", copied["test2"]["a"])
+	}
 }
