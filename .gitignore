@@ -60,13 +60,11 @@ go.work.sum
 .devcontainer/cache/go/pkg/*
 .devcontainer/cache/node/.npm/*
 .devcontainer/cache/minikube_home/*
-.devcontainer/cache/apt/archives/*
 .devcontainer/cache/playwright/*
 !.devcontainer/cache/go/go-build/.gitkeep
 !.devcontainer/cache/go/pkg/.gitkeep
 !.devcontainer/cache/node/.npm/.gitkeep
 !.devcontainer/cache/minikube_home/.gitkeep
-!.devcontainer/cache/apt/archives/.gitkeep
 !.devcontainer/cache/playwright/.gitkeep
 
 # TypeScript

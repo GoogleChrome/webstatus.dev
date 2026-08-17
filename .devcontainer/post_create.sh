@@ -22,14 +22,9 @@ chmod -R a+r ./*
 # Clean up minikube just in case to ensure a fresh cluster.
 make minikube-delete
 
-# Ensure the mounted APT and user cache directories have correct ownership
-# and configure APT to retain downloaded packages across DevContainer runs.
-sudo mkdir -p /var/cache/apt/archives/partial
-sudo chown -R "$(whoami)":"$(whoami)" /var/cache/apt/archives
+# Ensure the mounted user cache directories have correct ownership.
 sudo mkdir -p "$HOME/.cache/ms-playwright" "$HOME/.cache/go-build"
 sudo chown -R "$(whoami)":"$(whoami)" "$HOME/.cache"
-echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' | sudo tee /etc/apt/apt.conf.d/01keep-cache > /dev/null
-sudo rm -f /etc/apt/apt.conf.d/docker-clean
 
 # Install go tools
 make go-install-tools

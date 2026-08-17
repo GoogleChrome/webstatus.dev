@@ -386,7 +386,7 @@ PLAYWRIGHT_BROWSER ?= $(PLAYWRIGHT_PROJECT)
 fresh-env-for-playwright: $(if $(SKIP_FRESH_ENV),,playwright-install delete-local build deploy-local port-forward-manual dev_fake_users dev_fake_data)
 
 playwright-install:
-	npx playwright install $(if $(PLAYWRIGHT_BROWSER),$(PLAYWRIGHT_BROWSER),--with-deps)
+	npx playwright install --with-deps $(PLAYWRIGHT_BROWSER)
 
 playwright-update-snapshots: fresh-env-for-playwright
 	npx playwright test --update-snapshots

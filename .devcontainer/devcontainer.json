@@ -14,8 +14,6 @@
     "source=${localWorkspaceFolder}/.devcontainer/cache/go/pkg,target=/go/pkg,type=bind,consistency=consistent",
     // Mount npm cache
     "source=${localWorkspaceFolder}/.devcontainer/cache/node/.npm,target=/home/vscode/.npm,type=bind,consistency=consistent",
-    // Mount APT package cache (devcontainers/spec#345)
-    "source=${localWorkspaceFolder}/.devcontainer/cache/apt/archives,target=/var/cache/apt/archives,type=bind,consistency=consistent",
     // Mount Playwright browser cache
     "source=${localWorkspaceFolder}/.devcontainer/cache/playwright,target=/home/vscode/.cache/ms-playwright,type=bind,consistency=consistent"
   ],
