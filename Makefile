@@ -380,11 +380,13 @@ unstaged-changes:
 # Set this variable to any non-empty value (e.g., SKIP_FRESH_ENV=1) to skip the
 # fresh-env-for-playwright prerequisite. If unset, the fresh environment will be created.
 SKIP_FRESH_ENV ?=
+PLAYWRIGHT_PROJECT ?=
+PLAYWRIGHT_BROWSER ?= $(PLAYWRIGHT_PROJECT)
 
 fresh-env-for-playwright: $(if $(SKIP_FRESH_ENV),,playwright-install delete-local build deploy-local port-forward-manual dev_fake_users dev_fake_data)
 
 playwright-install:
-	npx playwright install --with-deps
+	npx playwright install $(if $(PLAYWRIGHT_BROWSER),$(PLAYWRIGHT_BROWSER),--with-deps)
 
 playwright-update-snapshots: fresh-env-for-playwright
 	npx playwright test --update-snapshots
@@ -541,11 +543,18 @@ dev_fake_data: build is_local_migration_ready check-local-ports
 			$(LOAD_FAKE_DATA_FLAGS)
 is_local_migration_ready:
 	kubectl wait --for=condition=ready --timeout=300s pod/spanner
-	@MAX_RETRIES=5; SLEEP_INTERVAL=5 ; \
-    for (( i=0; i < $$MAX_RETRIES; i++ )); do \
-		[[ $$(kubectl exec pods/spanner -- wrench migrate version) -eq 1 ]] && break; \
-		echo "Migration not ready (attempt $$i). Retrying in $$SLEEP_INTERVAL seconds..."; sleep $$SLEEP_INTERVAL ; \
-    done
+	@MAX_RETRIES=10; SLEEP_INTERVAL=3; \
+	for (( i=0; i < $$MAX_RETRIES; i++ )); do \
+		VERSION=$$(kubectl exec pods/spanner -- wrench migrate version 2>/dev/null || echo 0); \
+		if [[ "$$VERSION" =~ ^[0-9]+$$ ]] && [ "$$VERSION" -gt 0 ]; then \
+			echo "Spanner migrations ready at version $$VERSION"; \
+			exit 0; \
+		fi; \
+		echo "Migration not ready (attempt $$i). Retrying in $$SLEEP_INTERVAL seconds..."; \
+		sleep $$SLEEP_INTERVAL; \
+	done; \
+	echo "Error: Spanner migrations failed to reach ready state"; \
+	exit 1
 
 
 ################################

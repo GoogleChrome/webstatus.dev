@@ -104,13 +104,15 @@ jobs:
       - name: Get Repo Owner
         id: get_repo_owner
         run: echo "REPO_OWNER=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" > $GITHUB_ENV
-      - name: Cache DevContainer Dependencies (Go & Node)
+      - name: Cache DevContainer Dependencies (Go, Node, APT, Playwright)
         uses: actions/cache@d4323d4df104b026a6aa633fdb11d772146be0bf # v4.2.2
         with:
           path: |
             .devcontainer/cache/go/go-build
             .devcontainer/cache/go/pkg
             .devcontainer/cache/node/.npm
+            .devcontainer/cache/apt
+            .devcontainer/cache/playwright
           key: ${{ runner.os }}-devcontainer-precommit-${{ hashFiles('**/*.sum') }}-${{ hashFiles('package-lock.json') }}-${{ hashFiles('.devcontainer/devcontainer.json') }}
           restore-keys: |
             ${{ runner.os }}-devcontainer-precommit-${{ hashFiles('**/*.sum') }}-${{ hashFiles('package-lock.json') }}-
@@ -172,7 +174,7 @@ jobs:
       - name: Get Repo Owner
         id: get_repo_owner
         run: echo "REPO_OWNER=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" > $GITHUB_ENV
-      - name: Cache DevContainer Dependencies (Go, Node, Minikube)
+      - name: Cache DevContainer Dependencies (Go, Node, Minikube, APT, Playwright)
         uses: actions/cache@d4323d4df104b026a6aa633fdb11d772146be0bf # v4.2.2
         with:
           path: |
@@ -180,6 +182,8 @@ jobs:
             .devcontainer/cache/go/pkg
             .devcontainer/cache/node/.npm
             .devcontainer/cache/minikube_home
+            .devcontainer/cache/apt
+            .devcontainer/cache/playwright
           key: ${{ runner.os }}-devcontainer-playwright-${{ hashFiles('**/*.sum') }}-${{ hashFiles('package-lock.json') }}-${{ hashFiles('.devcontainer/devcontainer.json') }}
           restore-keys: |
             ${{ runner.os }}-devcontainer-playwright-${{ hashFiles('**/*.sum') }}-${{ hashFiles('package-lock.json') }}-
