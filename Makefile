@@ -67,7 +67,8 @@ pull-cached-services: configure-skaffold
 		echo "$$GITHUB_TOKEN" | docker login ghcr.io -u "$${REPO_OWNER}" --password-stdin 2>/dev/null || true; \
 	fi; \
 	for svc in backend frontend spanner datastore auth wiremock valkey pubsub; do \
-		docker pull ghcr.io/$(REPO_OWNER)/webstatus.dev/$$svc:latest 2>/dev/null || true & \
+		(docker pull ghcr.io/$(REPO_OWNER)/webstatus.dev/$$svc:latest 2>/dev/null && \
+		 docker tag ghcr.io/$(REPO_OWNER)/webstatus.dev/$$svc:latest $$svc:latest 2>/dev/null || true) & \
 	done; wait
 
 deploy-local: configure-skaffold
