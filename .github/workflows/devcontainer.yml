@@ -60,6 +60,7 @@ jobs:
           imageName: ghcr.io/${{ env.REPO_OWNER }}/webstatus-dev-devcontainer
           cacheFrom: ghcr.io/${{ env.REPO_OWNER }}/webstatus-dev-devcontainer
           push: always
+          runCmd: npx playwright install-deps
 
   # Run the precommit action to build language/tool specific caches
   # The precommit action currently is configured to cache:

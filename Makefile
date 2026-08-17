@@ -46,8 +46,9 @@ precommit: license-check  go-fix go-tidy lint test unstaged-changes
 ################################
 # Local Environment
 ################################
+SKAFFOLD_CACHE_ARTIFACTS ?= true
 SKAFFOLD_FLAGS = -p local
-SKAFFOLD_RUN_FLAGS = $(SKAFFOLD_FLAGS) --build-concurrency=$(NPROCS) --no-prune=false --cache-artifacts=false --port-forward=off
+SKAFFOLD_RUN_FLAGS = $(SKAFFOLD_FLAGS) --build-concurrency=$(NPROCS) --no-prune=false --cache-artifacts=$(SKAFFOLD_CACHE_ARTIFACTS) --port-forward=off
 start-local: configure-skaffold gen
 	skaffold dev $(SKAFFOLD_RUN_FLAGS)
 

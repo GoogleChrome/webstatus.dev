@@ -31,6 +31,9 @@ profiles:
               service_dir: frontend
               build_env: local
             target: static # Can switch to "placeholder" to show placeholder site locally.
+            cacheFrom:
+              - ghcr.io/googlechrome/webstatus.dev/frontend:cache
+              - ghcr.io/googlechrome/webstatus.dev/frontend:latest
       local:
         useBuildkit: true
     manifests:
