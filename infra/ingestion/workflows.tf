@@ -77,7 +77,7 @@ module "wpt_workflow" {
   full_name                       = "WPT Workflow"
   deletion_protection             = var.deletion_protection
   project_id                      = var.spanner_datails.project_id
-  timeout_seconds                 = 86400 # 24 hours
+  timeout_seconds                 = 7200 # 2 hours
   image_name                      = "wpt_consumer_image"
   spanner_details                 = var.spanner_datails
   notification_channel_ids        = var.notification_channel_ids

@@ -16,6 +16,7 @@ package localcache
 
 import (
 	"context"
+	"maps"
 	"sync"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/cachetypes"
@@ -25,6 +26,41 @@ import (
 // This is necessary for cache implementations that store reference types (e.g., maps, slices, pointers)
 // to prevent race conditions when multiple goroutines access and modify cached data.
 type Copier[V any] func(V) V
+
+// MapCopier returns a reusable Copier function for single-level maps: map[K]V.
+func MapCopier[M ~map[K]V, K comparable, V any]() Copier[M] {
+	return func(in M) M {
+		if in == nil {
+			return nil
+		}
+		out := make(M, len(in))
+		maps.Copy(out, in)
+
+		return out
+	}
+}
+
+// NestedMapCopier returns a reusable Copier function for two-level nested maps: map[K1]map[K2]V.
+func NestedMapCopier[M ~map[K1]map[K2]V, K1 comparable, K2 comparable, V any]() Copier[M] {
+	return func(in M) M {
+		if in == nil {
+			return nil
+		}
+		out := make(M, len(in))
+		for k, inner := range in {
+			if inner == nil {
+				out[k] = nil
+
+				continue
+			}
+			newInner := make(map[K2]V, len(inner))
+			maps.Copy(newInner, inner)
+			out[k] = newInner
+		}
+
+		return out
+	}
+}
 
 // LocalDataCache is an in-memory thread safe cache.
 // It uses generics so that users of it can uses any type of data they want.
@@ -53,6 +89,9 @@ func NewLocalDataCache[K comparable, V any](copier Copier[V]) *LocalDataCache[K,
 }
 
 // Cache stores a value in the cache.
+// If a copier function was provided to NewLocalDataCache, this method stores a
+// deep copy of the value to ensure thread safety and prevent mutations by the caller
+// from corrupting cached data.
 func (c *LocalDataCache[K, V]) Cache(
 	_ context.Context,
 	key K,
@@ -60,7 +99,11 @@ func (c *LocalDataCache[K, V]) Cache(
 ) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.data[key] = in
+	if c.copier != nil {
+		c.data[key] = c.copier(in)
+	} else {
+		c.data[key] = in
+	}
 
 	return nil
 }

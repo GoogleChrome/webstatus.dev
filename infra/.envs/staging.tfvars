@@ -96,10 +96,10 @@ uma_region_schedules = {
   "europe-west1" = "30 3,9,15,21 * * *"
 }
 
-# 5. WPT - Takes a while. It runs once daily.
+# 5. WPT - Runs every 6 hours
 wpt_region_schedules = {
-  "us-central1"  = "0 21 * * *" # Daily at 9:00 PM
-  "europe-west1" = "0 9 * * *"  # Daily at 9:00 AM
+  "us-central1"  = "0 4,10,16,22 * * *"
+  "europe-west1" = "30 4,10,16,22 * * *"
 }
 
 
