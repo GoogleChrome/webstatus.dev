@@ -50,7 +50,9 @@ precommit: license-check  go-fix go-tidy lint test unstaged-changes
 # Local Environment
 ################################
 SKAFFOLD_CACHE_ARTIFACTS ?= false
-SKAFFOLD_FLAGS = -p local
+SKAFFOLD_DEFAULT_REPO ?= $(if $(CI),ghcr.io/$(REPO_OWNER)/webstatus.dev,)
+SKAFFOLD_TAG ?= $(if $(CI),latest,)
+SKAFFOLD_FLAGS = -p local $(if $(SKAFFOLD_DEFAULT_REPO),--default-repo=$(SKAFFOLD_DEFAULT_REPO),) $(if $(SKAFFOLD_TAG),--tag=$(SKAFFOLD_TAG),)
 SKAFFOLD_RUN_FLAGS = $(SKAFFOLD_FLAGS) --build-concurrency=$(NPROCS) --no-prune=false --cache-artifacts=$(SKAFFOLD_CACHE_ARTIFACTS) --port-forward=off
 start-local: configure-skaffold gen
 	skaffold dev $(SKAFFOLD_RUN_FLAGS)

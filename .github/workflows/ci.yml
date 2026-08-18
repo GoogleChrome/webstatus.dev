@@ -96,7 +96,11 @@ jobs:
         with:
           cacheFrom: ghcr.io/${{ env.REPO_OWNER }}/webstatus-dev-devcontainer
           push: never
-          runCmd: make precommit
+          runCmd: |
+            export GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}"
+            export GITHUB_ACTOR="${{ github.actor }}"
+            export REPO_OWNER="${{ github.repository_owner }}"
+            make precommit
   playwright:
     runs-on: ubuntu-latest
     strategy:
@@ -183,7 +187,11 @@ jobs:
         with:
           cacheFrom: ghcr.io/${{ env.REPO_OWNER }}/webstatus-dev-devcontainer
           push: never
-          runCmd: CI=true make playwright-${{ matrix.suite }} PLAYWRIGHT_PROJECT=${{ matrix.project }}
+          runCmd: |
+            export GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}"
+            export GITHUB_ACTOR="${{ github.actor }}"
+            export REPO_OWNER="${{ github.repository_owner }}"
+            CI=true make playwright-${{ matrix.suite }} PLAYWRIGHT_PROJECT=${{ matrix.project }}
       - name: Upload blob report
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: ${{ !cancelled() }}
