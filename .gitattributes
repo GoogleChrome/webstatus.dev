@@ -1,0 +1,3 @@
+# GitHub Linguist Generated Files Configuration
+# Automatically collapses generated code in Pull Request diff views.
+lib/gen/** linguist-generated=true
