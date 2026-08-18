@@ -87,7 +87,11 @@ pull-cached-services: configure-skaffold
 	done; wait
 
 deploy-local: configure-skaffold
+ifeq ($(CI),true)
+	skaffold deploy $(SKAFFOLD_FLAGS) --status-check=true
+else
 	skaffold run $(SKAFFOLD_RUN_FLAGS) --status-check=true
+endif
 
 delete-local:
 	skaffold delete $(SKAFFOLD_FLAGS) || true
