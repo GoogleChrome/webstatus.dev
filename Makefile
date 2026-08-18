@@ -50,7 +50,7 @@ precommit: license-check  go-fix go-tidy lint test unstaged-changes
 ################################
 # Local Environment
 ################################
-SKAFFOLD_CACHE_ARTIFACTS ?= false
+SKAFFOLD_CACHE_ARTIFACTS ?= true
 SKAFFOLD_DEFAULT_REPO ?= $(if $(CI),ghcr.io/$(REPO_OWNER_LOWER)/webstatus.dev,)
 SKAFFOLD_TAG ?= $(if $(CI),latest,)
 SKAFFOLD_FLAGS = -p local $(if $(SKAFFOLD_DEFAULT_REPO),--default-repo=$(SKAFFOLD_DEFAULT_REPO),) $(if $(SKAFFOLD_TAG),--tag=$(SKAFFOLD_TAG),)
