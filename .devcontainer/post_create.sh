@@ -23,8 +23,8 @@ chmod -R a+r ./*
 make minikube-delete
 
 # Ensure the mounted user cache directories have correct ownership.
-sudo mkdir -p "$HOME/.cache/ms-playwright" "$HOME/.cache/go-build"
-sudo chown -R "$(whoami)":"$(whoami)" "$HOME/.cache"
+sudo mkdir -p "$HOME/.cache/ms-playwright" "$HOME/.cache/go-build" "$HOME/.minikube/cache"
+sudo chown -R "$(whoami)":"$(whoami)" "$HOME/.cache" "$HOME/.minikube"
 
 # Install go tools
 make go-install-tools
