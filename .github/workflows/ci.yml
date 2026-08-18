@@ -91,15 +91,12 @@ jobs:
         uses: devcontainers/ci@513af61f4de4f75d37e4438f184ba4358f0fc1ca # v0.3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_ACTOR: ${{ github.actor }}
           REPO_OWNER: ${{ env.REPO_OWNER }}
         with:
           cacheFrom: ghcr.io/${{ env.REPO_OWNER }}/webstatus-dev-devcontainer
           push: never
-          runCmd: |
-            if [ -n "$GITHUB_TOKEN" ]; then
-              echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$REPO_OWNER" --password-stdin 2>/dev/null || true
-            fi
-            make precommit
+          runCmd: make precommit
   playwright:
     runs-on: ubuntu-latest
     strategy:
@@ -182,15 +179,12 @@ jobs:
         uses: devcontainers/ci@513af61f4de4f75d37e4438f184ba4358f0fc1ca # v0.3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_ACTOR: ${{ github.actor }}
           REPO_OWNER: ${{ env.REPO_OWNER }}
         with:
           cacheFrom: ghcr.io/${{ env.REPO_OWNER }}/webstatus-dev-devcontainer
           push: never
-          runCmd: |
-            if [ -n "$GITHUB_TOKEN" ]; then
-              echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$REPO_OWNER" --password-stdin 2>/dev/null || true
-            fi
-            CI=true make playwright-${{ matrix.suite }} PLAYWRIGHT_PROJECT=${{ matrix.project }}
+          runCmd: CI=true make playwright-${{ matrix.suite }} PLAYWRIGHT_PROJECT=${{ matrix.project }}
       - name: Upload blob report
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: ${{ !cancelled() }}

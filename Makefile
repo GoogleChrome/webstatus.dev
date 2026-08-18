@@ -34,6 +34,7 @@ DOCKERFILES := \
 		start-local \
 		deploy-local \
 		pull-cached-services \
+		configure-ci-registry-auth \
 		stop-local \
 		port-forward-manual \
 		port-forward-terminate \
@@ -57,15 +58,26 @@ start-local: configure-skaffold gen
 debug-local: configure-skaffold gen
 	skaffold debug $(SKAFFOLD_RUN_FLAGS)
 
-configure-skaffold: minikube-running
+configure-ci-registry-auth: minikube-running
+	@if [ -n "$$GITHUB_TOKEN" ]; then \
+		echo "Configuring GHCR authentication for Minikube and Kubernetes in CI..."; \
+		eval $$(minikube docker-env -p "$${MINIKUBE_PROFILE}") 2>/dev/null || true; \
+		echo "$$GITHUB_TOKEN" | docker login ghcr.io -u "$${GITHUB_ACTOR:-$${REPO_OWNER:-googlechrome}}" --password-stdin 2>/dev/null || true; \
+		kubectl create secret docker-registry ghcr-secret \
+			--docker-server=https://ghcr.io \
+			--docker-username="$${GITHUB_ACTOR:-$${REPO_OWNER:-googlechrome}}" \
+			--docker-password="$$GITHUB_TOKEN" \
+			--docker-email="$${GITHUB_ACTOR:-$${REPO_OWNER:-googlechrome}}@users.noreply.github.com" \
+			--dry-run=client -o yaml | kubectl apply -f - 2>/dev/null || true; \
+		kubectl patch serviceaccount default -p '{"imagePullSecrets": [{"name": "ghcr-secret"}]}' 2>/dev/null || true; \
+	fi
+
+configure-skaffold: configure-ci-registry-auth
 	skaffold config set --kube-context "$${MINIKUBE_PROFILE}" local-cluster true
 
 pull-cached-services: configure-skaffold
 	@echo "Warming Minikube Docker cache from GHCR..."
 	@eval $$(minikube docker-env -p "$${MINIKUBE_PROFILE}") 2>/dev/null || true; \
-	if [ -n "$$GITHUB_TOKEN" ]; then \
-		echo "$$GITHUB_TOKEN" | docker login ghcr.io -u "$${REPO_OWNER:-googlechrome}" --password-stdin 2>/dev/null || true; \
-	fi; \
 	for svc in backend frontend spanner datastore auth wiremock valkey pubsub; do \
 		(docker pull ghcr.io/$${REPO_OWNER:-googlechrome}/webstatus.dev/$$svc:latest 2>/dev/null && \
 		 docker tag ghcr.io/$${REPO_OWNER:-googlechrome}/webstatus.dev/$$svc:latest $$svc:latest 2>/dev/null || true) & \
