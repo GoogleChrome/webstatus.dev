@@ -26,6 +26,7 @@ env:
   GO_VERSION: '1.25'
   NODE_VERSION: '24'
   GO_CACHE_DEPENDENCY_PATH: '**/*.sum'
+  REPO_OWNER: ${{ github.repository_owner }}
 
 jobs:
   build:
