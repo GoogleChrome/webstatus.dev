@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC
+// Copyright 2026 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -24,8 +24,20 @@ import (
 //
 //nolint:ireturn, revive // Expected ireturn for openapi generation.
 func (s *Server) ListVCSInstallations(
-	_ context.Context,
+	ctx context.Context,
 	_ backend.ListVCSInstallationsRequestObject,
 ) (backend.ListVCSInstallationsResponseObject, error) {
-	return nil, errNotImplemented
+	userCheck := CheckAuthenticatedUser[backend.ListVCSInstallationsResponseObject](
+		ctx, "ListVCSInstallations",
+		func(code int, message string) backend.ListVCSInstallationsResponseObject {
+			return backend.ListVCSInstallations500JSONResponse(
+				backend.BasicErrorModel{Code: code, Message: message})
+		})
+	if userCheck.User == nil {
+		return userCheck.Response, nil
+	}
+
+	return backend.ListVCSInstallations200JSONResponse{
+		Data: []backend.VCSInstallationSummary{},
+	}, nil
 }
