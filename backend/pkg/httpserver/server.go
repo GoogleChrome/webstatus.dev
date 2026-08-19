@@ -193,6 +193,12 @@ type WPTMetricsStorer interface {
 		userID, subscriptionID string,
 		req backend.UpdateSubscriptionRequest,
 	) (*backend.SubscriptionResponse, error)
+	ListCodeSubscriptions(
+		ctx context.Context,
+		vcsProvider, repoID string,
+		pageSize int,
+		pageToken *string,
+	) (*backend.CodeSubscriptionPage, error)
 }
 
 type Server struct {
