@@ -24,8 +24,23 @@ import (
 //
 //nolint:ireturn, revive // Expected ireturn for openapi generation.
 func (s *Server) ListVCSRepositories(
-	_ context.Context,
+	ctx context.Context,
 	_ backend.ListVCSRepositoriesRequestObject,
 ) (backend.ListVCSRepositoriesResponseObject, error) {
-	return nil, errNotImplemented
+	userCheck := CheckAuthenticatedUser[backend.ListVCSRepositoriesResponseObject](
+		ctx, "ListVCSRepositories",
+		func(code int, message string) backend.ListVCSRepositoriesResponseObject {
+			return backend.ListVCSRepositories500JSONResponse(
+				backend.BasicErrorModel{Code: code, Message: message})
+		})
+	if userCheck.User == nil {
+		return userCheck.Response, nil
+	}
+
+	data := []backend.VCSRepositorySummary{}
+
+	return backend.ListVCSRepositories200JSONResponse{
+		Data:     &data,
+		Metadata: nil,
+	}, nil
 }
