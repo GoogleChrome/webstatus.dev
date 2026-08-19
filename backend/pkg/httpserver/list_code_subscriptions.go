@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC
+// Copyright 2026 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,6 +16,8 @@ package httpserver
 
 import (
 	"context"
+	"log/slog"
+	"net/http"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 )
@@ -24,8 +26,32 @@ import (
 //
 //nolint:ireturn, revive // Expected ireturn for openapi generation.
 func (s *Server) ListCodeSubscriptions(
-	_ context.Context,
-	_ backend.ListCodeSubscriptionsRequestObject,
+	ctx context.Context,
+	request backend.ListCodeSubscriptionsRequestObject,
 ) (backend.ListCodeSubscriptionsResponseObject, error) {
-	return nil, errNotImplemented
+	userCheck := CheckAuthenticatedUser[backend.ListCodeSubscriptionsResponseObject](
+		ctx, "ListCodeSubscriptions",
+		func(code int, message string) backend.ListCodeSubscriptionsResponseObject {
+			return backend.ListCodeSubscriptions500JSONResponse(
+				backend.BasicErrorModel{Code: code, Message: message})
+		})
+	if userCheck.User == nil {
+		return userCheck.Response, nil
+	}
+
+	subs, err := s.wptMetricsStorer.ListCodeSubscriptions(ctx, request.Provider, request.RepositoryId)
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to list code subscriptions", "error", err,
+			"provider", request.Provider, "repo_id", request.RepositoryId)
+
+		return backend.ListCodeSubscriptions500JSONResponse(
+			backend.BasicErrorModel{
+				Code:    http.StatusInternalServerError,
+				Message: "failed to list code subscriptions",
+			}), nil
+	}
+
+	return backend.ListCodeSubscriptions200JSONResponse{
+		Data: subs,
+	}, nil
 }

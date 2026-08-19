@@ -21,12 +21,10 @@ import (
 // TestServerOption defines a function type to override Server fields in tests.
 type TestServerOption func(*Server)
 
-// setupTestServer creates a Server instance initialized with safe defaults for testing.
-func setupTestServer(t *testing.T, options ...TestServerOption) *Server {
+func newDefaultMockWPTMetricsStorer(t *testing.T) *MockWPTMetricsStorer {
 	t.Helper()
 
-	// Default mock implementation
-	mockStorer := &MockWPTMetricsStorer{
+	return &MockWPTMetricsStorer{
 		t:                                                 t,
 		featureCfg:                                        nil,
 		aggregateCfg:                                      nil,
@@ -61,6 +59,7 @@ func setupTestServer(t *testing.T, options ...TestServerOption) *Server {
 		updateSavedSearchSubscriptionCfg:                  nil,
 		validateQueryReferencesCfg:                        nil,
 		listGlobalSavedSearchesCfg:                        nil,
+		listCodeSubscriptionsCfg:                          nil,
 		callCountListMetricsForFeatureIDBrowserAndChannel: 0,
 		callCountListMetricsOverTimeWithAggregatedTotals:  0,
 		callCountListChromeDailyUsageStats:                0,
@@ -94,7 +93,15 @@ func setupTestServer(t *testing.T, options ...TestServerOption) *Server {
 		callCountListGlobalSavedSearches:                  0,
 		callCountGetGlobalSavedSearch:                     0,
 		callCountGetSavedSearchSubscriptionPublic:         0,
+		callCountListCodeSubscriptions:                    0,
 	}
+}
+
+// setupTestServer creates a Server instance initialized with safe defaults for testing.
+func setupTestServer(t *testing.T, options ...TestServerOption) *Server {
+	t.Helper()
+
+	mockStorer := newDefaultMockWPTMetricsStorer(t)
 
 	srv := &Server{
 		metadataStorer:          nil,

@@ -370,6 +370,7 @@ type MockWPTMetricsStorer struct {
 	updateSavedSearchSubscriptionCfg                  *MockUpdateSavedSearchSubscriptionConfig
 	validateQueryReferencesCfg                        *MockValidateQueryReferencesConfig
 	listGlobalSavedSearchesCfg                        *MockListGlobalSavedSearchesConfig
+	listCodeSubscriptionsCfg                          *MockListCodeSubscriptionsConfig
 	t                                                 *testing.T
 	callCountListMissingOneImplCounts                 int
 	callCountListMissingOneImplFeatures               int
@@ -404,6 +405,7 @@ type MockWPTMetricsStorer struct {
 	callCountValidateQueryReferences                  int
 	callCountListGlobalSavedSearches                  int
 	callCountGetGlobalSavedSearch                     int
+	callCountListCodeSubscriptions                    int
 }
 
 func (m *MockWPTMetricsStorer) GetIDFromFeatureKey(
@@ -1109,6 +1111,33 @@ func (m *MockWPTMetricsStorer) GetGlobalSavedSearch(
 	m.callCountGetGlobalSavedSearch++
 
 	return nil, errors.New("basic mock") // basic mock
+}
+
+type MockListCodeSubscriptionsConfig struct {
+	expectedProvider     string
+	expectedRepositoryID string
+	output               []backend.CodeSubscriptionResponse
+	err                  error
+}
+
+func (m *MockWPTMetricsStorer) ListCodeSubscriptions(
+	_ context.Context,
+	provider string,
+	repoID string,
+) ([]backend.CodeSubscriptionResponse, error) {
+	m.callCountListCodeSubscriptions++
+
+	if m.listCodeSubscriptionsCfg != nil {
+		if provider != m.listCodeSubscriptionsCfg.expectedProvider ||
+			repoID != m.listCodeSubscriptionsCfg.expectedRepositoryID {
+			m.t.Errorf("Incorrect arguments. Expected: {%s, %s}, Got: {%s, %s}",
+				m.listCodeSubscriptionsCfg.expectedProvider, m.listCodeSubscriptionsCfg.expectedRepositoryID, provider, repoID)
+		}
+
+		return m.listCodeSubscriptionsCfg.output, m.listCodeSubscriptionsCfg.err
+	}
+
+	return []backend.CodeSubscriptionResponse{}, nil
 }
 
 type MockPublishSearchConfigurationChangedConfig struct {
