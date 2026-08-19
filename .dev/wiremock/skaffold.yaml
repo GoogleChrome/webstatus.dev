@@ -22,9 +22,6 @@ profiles:
       artifacts:
         - image: wiremock
           context: .
-          docker:
-            cacheFrom:
-              - ghcr.io/googlechrome/webstatus.dev/wiremock:cache
       local:
         useBuildkit: true
     manifests:

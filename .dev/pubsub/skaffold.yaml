@@ -24,8 +24,6 @@ profiles:
           context: ../../.
           docker:
             dockerfile: ./.dev/pubsub/Dockerfile
-            cacheFrom:
-              - ghcr.io/googlechrome/webstatus.dev/pubsub:cache
           sync:
             infer:
               - ./.dev/pubsub/run.sh

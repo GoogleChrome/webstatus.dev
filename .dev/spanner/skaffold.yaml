@@ -24,8 +24,6 @@ profiles:
           context: ../../.
           docker:
             dockerfile: ./.dev/spanner/Dockerfile
-            cacheFrom:
-              - ghcr.io/googlechrome/webstatus.dev/spanner:cache
           sync:
             infer:
               - ./.dev/spanner/run.sh

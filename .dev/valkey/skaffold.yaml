@@ -22,9 +22,6 @@ profiles:
       artifacts:
         - image: valkey
           context: .
-          docker:
-            cacheFrom:
-              - ghcr.io/googlechrome/webstatus.dev/valkey:cache
       local:
         useBuildkit: true
     manifests:

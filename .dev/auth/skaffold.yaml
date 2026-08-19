@@ -22,9 +22,6 @@ profiles:
       artifacts:
         - image: auth
           context: .
-          docker:
-            cacheFrom:
-              - ghcr.io/googlechrome/webstatus.dev/auth:cache
       local:
         useBuildkit: true
     manifests:
