@@ -58,6 +58,9 @@ var (
 	// This suggests a mismatch between the data stored in the database and the expected data contract.
 	ErrJSONUnmarshal = errors.New("failed to unmarshal JSON data")
 
+	// ErrUnsupportedVCSProvider indicates the requested VCS provider is not supported.
+	ErrUnsupportedVCSProvider = errors.New("unsupported VCS provider")
+
 	// ErrEmptyJSONValue is a sentinel error indicating that the JSON value from the database
 	// was valid but empty (e.g., an empty array or object). This allows callers to distinguish
 	// between a missing value and an explicitly empty one.
