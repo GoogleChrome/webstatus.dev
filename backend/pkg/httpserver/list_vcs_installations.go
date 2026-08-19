@@ -24,8 +24,23 @@ import (
 //
 //nolint:ireturn, revive // Expected ireturn for openapi generation.
 func (s *Server) ListVCSInstallations(
-	_ context.Context,
+	ctx context.Context,
 	_ backend.ListVCSInstallationsRequestObject,
 ) (backend.ListVCSInstallationsResponseObject, error) {
-	return nil, errNotImplemented
+	userCheck := CheckAuthenticatedUser[backend.ListVCSInstallationsResponseObject](
+		ctx, "ListVCSInstallations",
+		func(code int, message string) backend.ListVCSInstallationsResponseObject {
+			return backend.ListVCSInstallations500JSONResponse(
+				backend.BasicErrorModel{Code: code, Message: message})
+		})
+	if userCheck.User == nil {
+		return userCheck.Response, nil
+	}
+
+	data := []backend.VCSInstallationSummary{}
+
+	return backend.ListVCSInstallations200JSONResponse{
+		Data:     &data,
+		Metadata: nil,
+	}, nil
 }
