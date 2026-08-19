@@ -220,6 +220,13 @@ func main() {
 		os.Exit(1)
 	}
 
+	webhookSecret := os.Getenv("GITHUB_WEBHOOK_SECRET")
+	if webhookSecret == "" {
+		slog.ErrorContext(ctx, "missing GITHUB_WEBHOOK_SECRET environment variable")
+		os.Exit(1)
+	}
+	webhookVerifier := gh.NewWebhookVerifier([]byte(webhookSecret))
+
 	tokenProvider := initTokenProvider(ctx)
 	vcsPermissionChecker := gh.NewGitHubPermissionCheckerWithTokenProvider(tokenProvider, gitHubAPIBaseURL)
 
@@ -236,6 +243,7 @@ func main() {
 				GitHubUserClient: gh.NewUserGitHubClient(token, ghOptions...),
 			}
 		},
+		webhookVerifier,
 		vcsPermissionChecker,
 		preRequestMiddlewares,
 		authMiddleware,

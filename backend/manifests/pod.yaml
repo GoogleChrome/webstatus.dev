@@ -69,6 +69,8 @@ spec:
           value: '123456'
         - name: GITHUB_APP_PRIVATE_KEY_PATH
           value: '/etc/secrets/github-app/private-key.pem'
+        - name: GITHUB_WEBHOOK_SECRET
+          value: 'dev-webhook-secret-for-testing-only-12345'
       volumeMounts:
         - name: github-app-secret-volume
           mountPath: /etc/secrets/github-app
