@@ -185,6 +185,19 @@ type BackendSpannerClient interface {
 		pageSize int,
 		pageToken *string,
 	) ([]gcpspanner.SavedSearchNotificationEvent, *string, error)
+	ListCodeSubscriptionsByRepository(
+		ctx context.Context,
+		vcsProvider gcpspanner.VCSProvider,
+		repoID string,
+	) ([]gcpspanner.CodeSubscription, error)
+	DeleteCodeSubscription(
+		ctx context.Context,
+		id string,
+	) error
+	RecordVCSWebhookDelivery(
+		ctx context.Context,
+		delivery gcpspanner.VCSWebhookDelivery,
+	) (bool, error)
 }
 
 // Backend converts queries to spanner to usable entities for the backend
@@ -2210,4 +2223,31 @@ func (s *Backend) GetGlobalSavedSearch(
 		CreatedAt:    &savedSearch.CreatedAt,
 		UpdatedAt:    &savedSearch.UpdatedAt,
 	}, nil
+}
+
+func (s *Backend) ListCodeSubscriptions(
+	ctx context.Context,
+	vcsProvider, repoID string,
+) ([]backend.CodeSubscriptionResponse, error) {
+	subs, err := s.client.ListCodeSubscriptionsByRepository(ctx, gcpspanner.VCSProvider(vcsProvider), repoID)
+	if err != nil {
+		return nil, err
+	}
+	resp := backendtypes.CodeSubscriptionsToResponse(subs)
+
+	return resp.Data, nil
+}
+
+func (s *Backend) DeleteCodeSubscription(
+	ctx context.Context,
+	id string,
+) error {
+	return s.client.DeleteCodeSubscription(ctx, id)
+}
+
+func (s *Backend) RecordVCSWebhookDelivery(
+	ctx context.Context,
+	delivery gcpspanner.VCSWebhookDelivery,
+) (bool, error) {
+	return s.client.RecordVCSWebhookDelivery(ctx, delivery)
 }
