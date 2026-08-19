@@ -34,6 +34,9 @@ profiles:
             dockerfile: images/go_service.Dockerfile
             buildArgs:
               service_dir: backend
+            cacheFrom:
+              - backend:latest
+              - ghcr.io/googlechrome/webstatus.dev/backend:latest
       local:
         useBuildkit: true
     manifests:
