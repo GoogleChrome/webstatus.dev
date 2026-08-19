@@ -35,8 +35,9 @@ profiles:
             buildArgs:
               service_dir: backend
             cacheFrom:
-              - backend:latest
+              - ghcr.io/googlechrome/webstatus.dev/backend:cache
               - ghcr.io/googlechrome/webstatus.dev/backend:latest
+              - backend:latest
       local:
         useBuildkit: true
     manifests:

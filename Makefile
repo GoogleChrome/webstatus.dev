@@ -63,6 +63,8 @@ debug-local: configure-skaffold gen
 configure-ci-registry-auth: minikube-running
 	@if [ -n "$$GITHUB_TOKEN" ]; then \
 		echo "Configuring GHCR authentication for Minikube and Kubernetes in CI..."; \
+		echo "$$GITHUB_TOKEN" | docker login ghcr.io -u "$${GITHUB_ACTOR:-$(REPO_OWNER_LOWER)}" --password-stdin 2>/dev/null || true; \
+		minikube cp "$${HOME}/.docker/config.json" /root/.docker/config.json -p "$${MINIKUBE_PROFILE}" 2>/dev/null || true; \
 		eval $$(minikube docker-env -p "$${MINIKUBE_PROFILE}") 2>/dev/null || true; \
 		echo "$$GITHUB_TOKEN" | docker login ghcr.io -u "$${GITHUB_ACTOR:-$(REPO_OWNER_LOWER)}" --password-stdin 2>/dev/null || true; \
 		kubectl create secret docker-registry ghcr-secret \
