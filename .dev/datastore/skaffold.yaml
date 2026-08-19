@@ -22,6 +22,9 @@ profiles:
       artifacts:
         - image: datastore
           context: .
+          docker:
+            cacheFrom:
+              - ghcr.io/googlechrome/webstatus.dev/datastore:cache
       local:
         useBuildkit: true
     manifests:

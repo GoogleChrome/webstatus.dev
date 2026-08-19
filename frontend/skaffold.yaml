@@ -32,8 +32,6 @@ profiles:
               build_env: local
             cacheFrom:
               - ghcr.io/googlechrome/webstatus.dev/frontend:cache
-              - ghcr.io/googlechrome/webstatus.dev/frontend:latest
-              - frontend:latest
             target: static # Can switch to "placeholder" to show placeholder site locally.
       local:
         useBuildkit: true
