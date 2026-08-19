@@ -371,6 +371,7 @@ type MockWPTMetricsStorer struct {
 	validateQueryReferencesCfg                        *MockValidateQueryReferencesConfig
 	listGlobalSavedSearchesCfg                        *MockListGlobalSavedSearchesConfig
 	listCodeSubscriptionsCfg                          *MockListCodeSubscriptionsConfig
+	deleteCodeSubscriptionCfg                         *MockDeleteCodeSubscriptionConfig
 	t                                                 *testing.T
 	callCountListMissingOneImplCounts                 int
 	callCountListMissingOneImplFeatures               int
@@ -406,6 +407,7 @@ type MockWPTMetricsStorer struct {
 	callCountListGlobalSavedSearches                  int
 	callCountGetGlobalSavedSearch                     int
 	callCountListCodeSubscriptions                    int
+	callCountDeleteCodeSubscription                   int
 }
 
 func (m *MockWPTMetricsStorer) GetIDFromFeatureKey(
@@ -1138,6 +1140,29 @@ func (m *MockWPTMetricsStorer) ListCodeSubscriptions(
 	}
 
 	return []backend.CodeSubscriptionResponse{}, nil
+}
+
+type MockDeleteCodeSubscriptionConfig struct {
+	expectedSubscriptionID string
+	err                    error
+}
+
+func (m *MockWPTMetricsStorer) DeleteCodeSubscription(
+	_ context.Context,
+	subscriptionID string,
+) error {
+	m.callCountDeleteCodeSubscription++
+
+	if m.deleteCodeSubscriptionCfg != nil {
+		if subscriptionID != m.deleteCodeSubscriptionCfg.expectedSubscriptionID {
+			m.t.Errorf("Incorrect arguments. Expected: %s, Got: %s",
+				m.deleteCodeSubscriptionCfg.expectedSubscriptionID, subscriptionID)
+		}
+
+		return m.deleteCodeSubscriptionCfg.err
+	}
+
+	return nil
 }
 
 type MockPublishSearchConfigurationChangedConfig struct {

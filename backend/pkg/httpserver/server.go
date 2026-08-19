@@ -197,6 +197,10 @@ type WPTMetricsStorer interface {
 		ctx context.Context,
 		vcsProvider, repoID string,
 	) ([]backend.CodeSubscriptionResponse, error)
+	DeleteCodeSubscription(
+		ctx context.Context,
+		subscriptionID string,
+	) error
 }
 
 type Server struct {

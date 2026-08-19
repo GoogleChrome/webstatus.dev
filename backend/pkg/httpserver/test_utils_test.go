@@ -60,6 +60,7 @@ func newDefaultMockWPTMetricsStorer(t *testing.T) *MockWPTMetricsStorer {
 		validateQueryReferencesCfg:                        nil,
 		listGlobalSavedSearchesCfg:                        nil,
 		listCodeSubscriptionsCfg:                          nil,
+		deleteCodeSubscriptionCfg:                         nil,
 		callCountListMetricsForFeatureIDBrowserAndChannel: 0,
 		callCountListMetricsOverTimeWithAggregatedTotals:  0,
 		callCountListChromeDailyUsageStats:                0,
@@ -94,6 +95,7 @@ func newDefaultMockWPTMetricsStorer(t *testing.T) *MockWPTMetricsStorer {
 		callCountGetGlobalSavedSearch:                     0,
 		callCountGetSavedSearchSubscriptionPublic:         0,
 		callCountListCodeSubscriptions:                    0,
+		callCountDeleteCodeSubscription:                   0,
 	}
 }
 
