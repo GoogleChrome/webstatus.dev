@@ -85,7 +85,8 @@ pull-cached-services: configure-skaffold
 	for svc in backend frontend spanner datastore auth wiremock valkey pubsub; do \
 		(docker pull ghcr.io/$(REPO_OWNER_LOWER)/webstatus.dev/$$svc:latest 2>/dev/null && \
 		 docker tag ghcr.io/$(REPO_OWNER_LOWER)/webstatus.dev/$$svc:latest $$svc:latest 2>/dev/null || true; \
-		 docker pull ghcr.io/$(REPO_OWNER_LOWER)/webstatus.dev/$$svc:cache 2>/dev/null || true) & \
+		 docker pull ghcr.io/$(REPO_OWNER_LOWER)/webstatus.dev/$$svc:cache 2>/dev/null && \
+		 docker tag ghcr.io/$(REPO_OWNER_LOWER)/webstatus.dev/$$svc:cache $$svc:cache 2>/dev/null || true) & \
 	done; wait
 
 deploy-local: configure-skaffold
