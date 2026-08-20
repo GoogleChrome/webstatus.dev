@@ -18,8 +18,11 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"testing"
+
+	"github.com/GoogleChrome/webstatus.dev/lib/webhookverifiertypes"
 )
 
 func TestWebhookVerifier_VerifySignature(t *testing.T) {
@@ -37,70 +40,77 @@ func TestWebhookVerifier_VerifySignature(t *testing.T) {
 		payload   []byte
 		headerSig string
 		secret    []byte
-		wantValid bool
+		wantErr   error
 	}{
 		{
 			name:      "valid signature",
 			payload:   payload,
 			headerSig: validSig,
 			secret:    validSecret,
-			wantValid: true,
+			wantErr:   nil,
 		},
 		{
 			name:      "tampered payload",
 			payload:   []byte(`{"action":"tampered"}`),
 			headerSig: validSig,
 			secret:    validSecret,
-			wantValid: false,
+			wantErr:   webhookverifiertypes.ErrInvalidSignature,
 		},
 		{
 			name:      "wrong secret",
 			payload:   payload,
 			headerSig: validSig,
 			secret:    []byte("different-secret-key-1234567890"),
-			wantValid: false,
+			wantErr:   webhookverifiertypes.ErrInvalidSignature,
 		},
 		{
 			name:      "empty secret",
 			payload:   payload,
 			headerSig: validSig,
 			secret:    []byte(""),
-			wantValid: false,
+			wantErr:   webhookverifiertypes.ErrSecretNotConfigured,
 		},
 		{
 			name:      "nil secret",
 			payload:   payload,
 			headerSig: validSig,
 			secret:    nil,
-			wantValid: false,
+			wantErr:   webhookverifiertypes.ErrSecretNotConfigured,
+		},
+		{
+			name:      "empty signature header",
+			payload:   payload,
+			headerSig: "",
+			secret:    validSecret,
+			wantErr:   webhookverifiertypes.ErrMissingSignature,
 		},
 		{
 			name:      "missing sha256 prefix",
 			payload:   payload,
 			headerSig: hex.EncodeToString(mac.Sum(nil)),
 			secret:    validSecret,
-			wantValid: false,
+			wantErr:   webhookverifiertypes.ErrInvalidSignature,
 		},
 		{
 			name:      "sha1 prefix instead of sha256",
 			payload:   payload,
 			headerSig: "sha1=abcdef123456",
 			secret:    validSecret,
-			wantValid: false,
+			wantErr:   webhookverifiertypes.ErrInvalidSignature,
 		},
 		{
 			name:      "invalid hex in signature",
 			payload:   payload,
 			headerSig: "sha256=zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz",
 			secret:    validSecret,
-			wantValid: false,
+			wantErr:   webhookverifiertypes.ErrInvalidSignature,
 		},
 		{
 			name:      "truncated hex signature",
 			payload:   payload,
 			headerSig: "sha256=abcdef",
 			secret:    validSecret,
-			wantValid: false,
+			wantErr:   webhookverifiertypes.ErrInvalidSignature,
 		},
 	}
 
@@ -108,28 +118,73 @@ func TestWebhookVerifier_VerifySignature(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			verifier := NewWebhookVerifier(tc.secret)
-			got := verifier.VerifySignature(tc.payload, tc.headerSig)
-			if got != tc.wantValid {
-				t.Errorf("VerifySignature() = %v, want %v", got, tc.wantValid)
+			err := verifier.VerifySignature(tc.payload, tc.headerSig)
+			if !errors.Is(err, tc.wantErr) {
+				t.Errorf("VerifySignature() error = %v, wantErr %v", err, tc.wantErr)
 			}
 		})
 	}
 
-	t.Run("nil verifier returns false", func(t *testing.T) {
+	t.Run("nil verifier returns ErrSecretNotConfigured", func(t *testing.T) {
 		t.Parallel()
 		var nilVerifier *WebhookVerifier
-		if nilVerifier.VerifySignature(payload, validSig) {
-			t.Errorf("nil verifier should return false")
+		err := nilVerifier.VerifySignature(payload, validSig)
+		if !errors.Is(err, webhookverifiertypes.ErrSecretNotConfigured) {
+			t.Errorf("nil verifier should return ErrSecretNotConfigured, got %v", err)
 		}
 	})
 }
 
 func FuzzWebhookVerifier_VerifySignature(f *testing.F) {
-	f.Add([]byte("sample payload"), "sha256=abcdef0123456789", []byte("a-secret-longer-than-16-bytes"))
-	f.Add([]byte(""), "invalid", []byte(""))
+	f.Add([]byte(`{"action":"push","repository":{"id":12345}}`), []byte("a-secret-longer-than-16-bytes"))
+	f.Add([]byte(""), []byte("short-secret"))
+	f.Add([]byte("\x00\xff\x00\xff"), []byte("special-bytes"))
+	f.Add([]byte("sample payload"), []byte(""))
 
-	f.Fuzz(func(_ *testing.T, payload []byte, header string, secret []byte) {
+	f.Fuzz(func(t *testing.T, payload []byte, secret []byte) {
 		verifier := NewWebhookVerifier(secret)
-		_ = verifier.VerifySignature(payload, header)
+
+		// Invariant 1: Empty Secret Boundary
+		if len(secret) == 0 {
+			err := verifier.VerifySignature(payload, "sha256=dummy")
+			if !errors.Is(err, webhookverifiertypes.ErrSecretNotConfigured) {
+				t.Fatalf("expected ErrSecretNotConfigured for empty secret, got %v", err)
+			}
+
+			return
+		}
+
+		// Generate a valid signature for this random payload & secret
+		mac := hmac.New(sha256.New, secret)
+		mac.Write(payload)
+		validSig := "sha256=" + hex.EncodeToString(mac.Sum(nil))
+
+		// Invariant 2: Legitimate Signatures Must Always Pass
+		if err := verifier.VerifySignature(payload, validSig); err != nil {
+			t.Fatalf("valid signature failed verification: %v\npayload: %q\nsecret: %q", err, payload, secret)
+		}
+
+		// Invariant 3: Tampered Payloads Must Always Fail
+		if len(payload) > 0 {
+			tamperedPayload := make([]byte, len(payload))
+			copy(tamperedPayload, payload)
+			tamperedPayload[0] ^= 0xFF // Flip bits in the first byte
+
+			if err := verifier.VerifySignature(tamperedPayload, validSig); err == nil {
+				t.Fatalf("tampered payload unexpectedly passed verification!\npayload: %q", payload)
+			}
+		}
+
+		// Invariant 4: Corrupted Signatures Must Always Fail
+		corruptedHex := []byte(validSig[7:])
+		if corruptedHex[0] == '0' {
+			corruptedHex[0] = '1'
+		} else {
+			corruptedHex[0] = '0'
+		}
+		corruptedSig := "sha256=" + string(corruptedHex)
+		if err := verifier.VerifySignature(payload, corruptedSig); err == nil {
+			t.Fatalf("corrupted signature unexpectedly passed verification!")
+		}
 	})
 }

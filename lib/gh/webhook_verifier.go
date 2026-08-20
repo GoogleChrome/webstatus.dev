@@ -16,11 +16,14 @@ package gh
 
 import (
 	"bytes"
+	"fmt"
+	"strings"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/webhookverifiertypes"
 	"github.com/google/go-github/v79/github"
 )
 
-// WebhookVerifier validates incoming GitHub webhook signatures using the official go-github SDK.
+// WebhookVerifier validates incoming GitHub webhook signatures using HMAC SHA-256.
 type WebhookVerifier struct {
 	secret []byte
 }
@@ -33,12 +36,19 @@ func NewWebhookVerifier(secret []byte) *WebhookVerifier {
 }
 
 // VerifySignature verifies a GitHub HMAC SHA-256 webhook signature header (e.g. "sha256=...").
-func (v *WebhookVerifier) VerifySignature(payload []byte, headerSig string) bool {
+func (v *WebhookVerifier) VerifySignature(payload []byte, headerSig string) error {
 	if v == nil || len(v.secret) == 0 {
-		return false
+		return webhookverifiertypes.ErrSecretNotConfigured
+	}
+
+	if strings.TrimSpace(headerSig) == "" {
+		return webhookverifiertypes.ErrMissingSignature
 	}
 
 	_, err := github.ValidatePayloadFromBody("application/json", bytes.NewReader(payload), headerSig, v.secret)
+	if err != nil {
+		return fmt.Errorf("%w: %w", webhookverifiertypes.ErrInvalidSignature, err)
+	}
 
-	return err == nil
+	return nil
 }
