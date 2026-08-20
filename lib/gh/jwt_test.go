@@ -51,9 +51,9 @@ func TestMintAppJWT(t *testing.T) {
 	privKey, pemBytes := generateTestRSAPEM(t)
 	appID := "webstatus-github-app-123"
 
-	tokenStr, err := MintAppJWT(appID, pemBytes)
+	tokenStr, err := mintAppJWT(appID, pemBytes)
 	if err != nil {
-		t.Fatalf("MintAppJWT failed: %v", err)
+		t.Fatalf("mintAppJWT failed: %v", err)
 	}
 
 	parts := strings.Split(tokenStr, ".")
@@ -148,7 +148,7 @@ func TestMintAppJWTErrors(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			_, err := MintAppJWT(tc.appID, tc.pemData)
+			_, err := mintAppJWT(tc.appID, tc.pemData)
 			if err == nil {
 				t.Fatalf("expected error, got nil")
 			}

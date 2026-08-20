@@ -15,6 +15,7 @@
 package gh
 
 import (
+	"crypto/rsa"
 	"errors"
 	"fmt"
 	"time"
@@ -30,12 +31,12 @@ var (
 	ErrEmptyAppID = errors.New("app id must not be empty")
 )
 
-// MintAppJWT generates an RS256-signed JSON Web Token for authenticating as a GitHub App.
+// mintAppJWT generates an RS256-signed JSON Web Token for authenticating as a GitHub App.
 // Claims:
 // - iat: now - 60s (handles clock skew)
-// - exp: now + 10m (GitHub maximum validity)
+// - exp: now + 9m (effective validity = 10m with -60s iat, conforming to GitHub's 10m maximum)
 // - iss: appID.
-func MintAppJWT(appID string, privateKeyPEM []byte) (string, error) {
+func mintAppJWT(appID string, privateKeyPEM []byte) (string, error) {
 	if appID == "" {
 		return "", ErrEmptyAppID
 	}
@@ -43,6 +44,17 @@ func MintAppJWT(appID string, privateKeyPEM []byte) (string, error) {
 	key, err := jwt.ParseRSAPrivateKeyFromPEM(privateKeyPEM)
 	if err != nil {
 		return "", fmt.Errorf("%w: %w", ErrInvalidPrivateKey, err)
+	}
+
+	return mintAppJWTWithKey(appID, key)
+}
+
+func mintAppJWTWithKey(appID string, key *rsa.PrivateKey) (string, error) {
+	if appID == "" {
+		return "", ErrEmptyAppID
+	}
+	if key == nil {
+		return "", ErrInvalidPrivateKey
 	}
 
 	now := time.Now().UTC()

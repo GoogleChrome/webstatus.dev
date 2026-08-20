@@ -18,6 +18,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"sync"
@@ -101,10 +102,12 @@ func TestTokenProvider_GetInstallationToken(t *testing.T) {
 	defer server.Close()
 
 	cacher := newMockTokenCacher()
-	tp := NewTokenProvider("app-99", privPEM,
-		WithTokenProviderBaseURL(server.URL),
-		WithTokenProviderHTTPClient(server.Client()),
-		WithTokenCacher(cacher))
+	tp, err := NewTokenProvider("app-99", privPEM, cacher)
+	if err != nil {
+		t.Fatalf("NewTokenProvider failed: %v", err)
+	}
+	tp.baseURL = server.URL
+	tp.httpClient = server.Client()
 
 	// 1. Initial token fetch (cache miss, calls HTTP API)
 	token, err := tp.GetInstallationToken(context.Background(), "123")
@@ -129,14 +132,27 @@ func TestTokenProvider_GetInstallationToken(t *testing.T) {
 	}
 }
 
+type testNoopTokenCacher struct{}
+
+func (testNoopTokenCacher) Get(_ context.Context, _ string) ([]byte, error) {
+	return nil, errors.New("not found")
+}
+
+func (testNoopTokenCacher) Cache(_ context.Context, _ string, _ []byte) error {
+	return nil
+}
+
 func TestTokenProvider_ValidationErrors(t *testing.T) {
 	t.Parallel()
 
 	_, privPEM := generateTestRSAPEM(t)
-	tp := NewTokenProvider("app-99", privPEM)
+	tp, err := NewTokenProvider("app-99", privPEM, testNoopTokenCacher{})
+	if err != nil {
+		t.Fatalf("NewTokenProvider failed: %v", err)
+	}
 
 	// 1. Empty installation ID
-	_, err := tp.GetInstallationToken(context.Background(), "")
+	_, err = tp.GetInstallationToken(context.Background(), "")
 	if !errors.Is(err, ErrEmptyInstallationID) {
 		t.Errorf("expected ErrEmptyInstallationID, got: %v", err)
 	}
@@ -164,9 +180,12 @@ func TestTokenProviderDetachedContext(t *testing.T) {
 	}))
 	defer server.Close()
 
-	tp := NewTokenProvider("app-99", privPEM,
-		WithTokenProviderBaseURL(server.URL),
-		WithTokenProviderHTTPClient(server.Client()))
+	tp, err := NewTokenProvider("app-99", privPEM, testNoopTokenCacher{})
+	if err != nil {
+		t.Fatalf("NewTokenProvider failed: %v", err)
+	}
+	tp.baseURL = server.URL
+	tp.httpClient = server.Client()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Millisecond)
 	defer cancel()
@@ -181,21 +200,154 @@ func TestTokenProviderDetachedContext(t *testing.T) {
 	}
 }
 
-func TestTokenProviderErrorRecovery(t *testing.T) {
+func TestNewTokenProvider_Validation(t *testing.T) {
 	t.Parallel()
 
 	_, privPEM := generateTestRSAPEM(t)
-	var callCount int64
+
+	// 1. Empty app ID
+	_, err := NewTokenProvider("", privPEM, testNoopTokenCacher{})
+	if !errors.Is(err, ErrEmptyAppID) {
+		t.Errorf("expected ErrEmptyAppID, got: %v", err)
+	}
+
+	// 2. Invalid PEM block
+	_, err = NewTokenProvider("app-99", []byte("invalid pem data"), testNoopTokenCacher{})
+	if !errors.Is(err, ErrInvalidPrivateKey) {
+		t.Errorf("expected ErrInvalidPrivateKey, got: %v", err)
+	}
+}
+
+func TestTokenProvider_CacheExpiration(t *testing.T) {
+	t.Parallel()
+
+	_, privPEM := generateTestRSAPEM(t)
+	var requestCount int64
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		count := atomic.AddInt64(&callCount, 1)
-		if count == 1 {
-			w.WriteHeader(http.StatusInternalServerError)
-			_, _ = w.Write([]byte("internal github error"))
+		count := atomic.AddInt64(&requestCount, 1)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(testTokenResp{
+			Token:     fmt.Sprintf("token-version-%d", count),
+			ExpiresAt: time.Now().UTC().Add(1 * time.Hour),
+		})
+	}))
+	defer server.Close()
 
-			return
+	cacher := newMockTokenCacher()
+	tp, err := NewTokenProvider("app-99", privPEM, cacher)
+	if err != nil {
+		t.Fatalf("NewTokenProvider failed: %v", err)
+	}
+	tp.baseURL = server.URL
+	tp.httpClient = server.Client()
+
+	// 1. Manually insert expired token into cache
+	expiredJSON, _ := json.Marshal(cachedInstallationToken{
+		Token:     "expired-token",
+		ExpiresAt: time.Now().UTC().Add(-10 * time.Minute), // expired in past
+	})
+	_ = cacher.Cache(context.Background(), "gh:inst_token:123", expiredJSON)
+
+	// 2. Fetch should ignore expired cache entry and fetch fresh token
+	token, err := tp.GetInstallationToken(context.Background(), "123")
+	if err != nil {
+		t.Fatalf("GetInstallationToken failed: %v", err)
+	}
+	if token != "token-version-1" {
+		t.Errorf("expected fresh token-version-1, got: %s", token)
+	}
+	if count := atomic.LoadInt64(&requestCount); count != 1 {
+		t.Errorf("expected 1 HTTP request, got %d", count)
+	}
+
+	// 3. Second call with fresh unexpired cache entry should reuse token without HTTP request
+	token2, err := tp.GetInstallationToken(context.Background(), "123")
+	if err != nil {
+		t.Fatalf("second GetInstallationToken failed: %v", err)
+	}
+	if token2 != "token-version-1" {
+		t.Errorf("expected cached token-version-1, got: %s", token2)
+	}
+	if count := atomic.LoadInt64(&requestCount); count != 1 {
+		t.Errorf("expected still 1 HTTP request, got %d", count)
+	}
+}
+
+func TestTokenProvider_SingleflightCoalescing(t *testing.T) {
+	t.Parallel()
+
+	_, privPEM := generateTestRSAPEM(t)
+	var requestCount int64
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		atomic.AddInt64(&requestCount, 1)
+		time.Sleep(30 * time.Millisecond) // slow server to ensure concurrent in-flight requests
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(testTokenResp{
+			Token:     mockInstToken2,
+			ExpiresAt: time.Now().UTC().Add(1 * time.Hour),
+		})
+	}))
+	defer server.Close()
+
+	cacher := newMockTokenCacher()
+	tp, err := NewTokenProvider("app-99", privPEM, cacher)
+	if err != nil {
+		t.Fatalf("NewTokenProvider failed: %v", err)
+	}
+	tp.baseURL = server.URL
+	tp.httpClient = server.Client()
+
+	const concurrentCallers = 10
+	var wg sync.WaitGroup
+	tokens := make([]string, concurrentCallers)
+	errorsList := make([]error, concurrentCallers)
+
+	for i := range concurrentCallers {
+		wg.Add(1)
+		go func(idx int) {
+			defer wg.Done()
+			tok, callErr := tp.GetInstallationToken(context.Background(), "999")
+			tokens[idx] = tok
+			errorsList[idx] = callErr
+		}(i)
+	}
+	wg.Wait()
+
+	for i := range concurrentCallers {
+		if errorsList[i] != nil {
+			t.Errorf("caller %d failed: %v", i, errorsList[i])
 		}
+		if tokens[i] != mockInstToken2 {
+			t.Errorf("caller %d got %s, want %s", i, tokens[i], mockInstToken2)
+		}
+	}
 
+	// Concurrent requests should coalesce into exactly 1 HTTP request
+	if count := atomic.LoadInt64(&requestCount); count != 1 {
+		t.Errorf("expected exactly 1 HTTP request due to concurrent coalescing, got %d", count)
+	}
+}
+
+type errorTokenCacher struct{}
+
+func (e errorTokenCacher) Get(_ context.Context, _ string) ([]byte, error) {
+	return nil, errors.New("cache get failed")
+}
+
+func (e errorTokenCacher) Cache(_ context.Context, _ string, _ []byte) error {
+	return errors.New("cache write failed")
+}
+
+func TestTokenProvider_CacheFailureGracefulDegradation(t *testing.T) {
+	t.Parallel()
+
+	_, privPEM := generateTestRSAPEM(t)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		_ = json.NewEncoder(w).Encode(testTokenResp{
@@ -205,22 +357,18 @@ func TestTokenProviderErrorRecovery(t *testing.T) {
 	}))
 	defer server.Close()
 
-	tp := NewTokenProvider("app-99", privPEM,
-		WithTokenProviderBaseURL(server.URL),
-		WithTokenProviderHTTPClient(server.Client()))
-
-	// First call fails
-	_, err := tp.GetInstallationToken(context.Background(), "456")
-	if err == nil {
-		t.Fatalf("expected error on first call, got nil")
-	}
-
-	// Second call should succeed
-	token, err := tp.GetInstallationToken(context.Background(), "456")
+	tp, err := NewTokenProvider("app-99", privPEM, errorTokenCacher{})
 	if err != nil {
-		t.Fatalf("expected second call to succeed, got: %v", err)
+		t.Fatalf("NewTokenProvider failed: %v", err)
+	}
+	tp.baseURL = server.URL
+	tp.httpClient = server.Client()
+
+	token, err := tp.GetInstallationToken(context.Background(), "444")
+	if err != nil {
+		t.Fatalf("expected token fetch to succeed despite cache errors, got: %v", err)
 	}
 	if token != mockInstToken4 {
-		t.Errorf("unexpected token: %s", token)
+		t.Errorf("expected token %s, got %s", mockInstToken4, token)
 	}
 }

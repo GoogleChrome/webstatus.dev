@@ -14,6 +14,7 @@ require (
 	github.com/antlr4-go/antlr/v4 v4.13.1
 	github.com/cenkalti/backoff/v5 v5.0.3
 	github.com/deckarep/golang-set v1.8.0
+	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/go-github/v79 v79.0.0
 	github.com/oapi-codegen/runtime v1.7.0
 	github.com/stretchr/testify v1.12.1
@@ -45,7 +46,6 @@ require (
 	github.com/getkin/kin-openapi v0.146.0 // indirect
 	github.com/go-jose/go-jose/v4 v4.1.4 // indirect
 	github.com/go-openapi/jsonpointer v1.0.0 // indirect
-	github.com/golang-jwt/jwt/v5 v5.3.1 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/go-github/v89 v89.0.0 // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
