@@ -28,7 +28,7 @@ describe('webstatus-code-subscriptions-page', () => {
   let user: UserContext;
   let element: WebstatusCodeSubscriptionsPage;
 
-  const mockRepositories: components['schemas']['VCSRepositoryListResponse'] = {
+  const mockRepositories: components['schemas']['VCSRepositoryPage'] = {
     data: [
       {
         id: 'repo-1',
@@ -43,35 +43,34 @@ describe('webstatus-code-subscriptions-page', () => {
     ],
   };
 
-  const mockSubscriptions: components['schemas']['CodeSubscriptionListResponse'] =
-    {
-      data: [
-        {
-          id: 'sub-1',
-          vcs_provider: 'github',
-          vcs_installation_id: '12345',
-          vcs_repository_id: '67890',
-          repository_owner: 'GoogleChrome',
-          repository_name: 'webstatus.dev',
-          repository_full_name: 'GoogleChrome/webstatus.dev',
-          feature_id: 'css-subgrid',
-          target_query: 'id:css-subgrid',
-          triggers: ['feature_baseline_to_widely'],
-          occurrences: [
-            {
-              file_path: 'src/grid.css',
-              line_number: 42,
-              comment_snippet:
-                '/* TODO(baseline/subgrid): Remove flexbox fallback */',
-            },
-          ],
-          occurrence_count: 1,
-          status: 'ACTIVE',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-      ],
-    };
+  const mockSubscriptions: components['schemas']['CodeSubscriptionPage'] = {
+    data: [
+      {
+        id: 'sub-1',
+        vcs_provider: 'github',
+        vcs_installation_id: '12345',
+        vcs_repository_id: '67890',
+        repository_owner: 'GoogleChrome',
+        repository_name: 'webstatus.dev',
+        repository_full_name: 'GoogleChrome/webstatus.dev',
+        feature_id: 'css-subgrid',
+        target_query: 'id:css-subgrid',
+        triggers: ['feature_baseline_to_widely'],
+        occurrences: [
+          {
+            file_path: 'src/grid.css',
+            line_number: 42,
+            comment_snippet:
+              '/* TODO(baseline/subgrid): Remove flexbox fallback */',
+          },
+        ],
+        occurrence_count: 1,
+        status: 'ACTIVE',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+    ],
+  };
 
   beforeEach(async () => {
     sandbox = sinon.createSandbox();

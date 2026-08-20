@@ -183,7 +183,7 @@ export class WebstatusCodeSubscriptionsPage extends LitElement {
           activeRepoID,
           token,
         );
-        subscriptions = subsResp.data;
+        subscriptions = subsResp.data ?? [];
       }
 
       return {
@@ -352,7 +352,10 @@ export class WebstatusCodeSubscriptionsPage extends LitElement {
           <sl-skeleton effect="sheen" style="height: 200px;"></sl-skeleton>
         </div>
       `,
-      error: error => this.renderWhenError(error instanceof Error ? error : new Error(String(error))),
+      error: error =>
+        this.renderWhenError(
+          error instanceof Error ? error : new Error(String(error)),
+        ),
       complete: data => {
         if (!data || data.repositories.length === 0) {
           return html`
