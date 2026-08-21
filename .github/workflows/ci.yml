@@ -32,38 +32,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Maximize build space
-        uses: easimon/maximize-build-space@fc881a613ad2a34aca9c9624518214ebc21dfc0c
-        with:
-          remove-dotnet: 'true'
-          remove-android: 'true'
-          remove-haskell: 'true'
-          remove-codeql: 'true'
-          # Lower reserve to 2GB just for OS overhead; Docker moves to the big partition below
-          root-reserve-mb: 2048
-          overprovision-lvm: 'true'
-          build-mount-path: '/home/runner/work/webstatus.dev'
-        continue-on-error: true
-      #  Create the folder structure on the new disk
-      #  We need to recreate the repo folder because the mount starts empty.
-      - name: Create Workspace
-        run: mkdir -p ${{ github.workspace }}
       - name: Checkout (GitHub)
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Move Docker
-        run: |
-          sudo service docker stop
-          mkdir -p ../docker-storage
-          sudo rm -rf /var/lib/docker
-          sudo ln -s $(realpath ../docker-storage) /var/lib/docker
-          sudo service docker start
-      - name: check storage
-        run: |
-          sudo df -h
-          echo "Docker Root Dir:"
-          sudo docker info | grep "Docker Root Dir"
       - name: Get Repo Owner
         id: get_repo_owner
         run: echo "REPO_OWNER=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" > $GITHUB_ENV
@@ -122,38 +94,10 @@ jobs:
           - suite: functional
             project: webkit
     steps:
-      - name: Maximize build space
-        uses: easimon/maximize-build-space@fc881a613ad2a34aca9c9624518214ebc21dfc0c
-        with:
-          remove-dotnet: 'true'
-          remove-android: 'true'
-          remove-haskell: 'true'
-          remove-codeql: 'true'
-          # Lower reserve to 2GB just for OS overhead; Docker moves to the big partition below
-          root-reserve-mb: 2048
-          overprovision-lvm: 'true'
-          build-mount-path: '/home/runner/work/webstatus.dev'
-        continue-on-error: true
-      #  Create the folder structure on the new disk
-      #  We need to recreate the repo folder because the mount starts empty.
-      - name: Create Workspace
-        run: mkdir -p ${{ github.workspace }}
       - name: Checkout (GitHub)
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Move Docker
-        run: |
-          sudo service docker stop
-          mkdir -p ../docker-storage
-          sudo rm -rf /var/lib/docker
-          sudo ln -s $(realpath ../docker-storage) /var/lib/docker
-          sudo service docker start
-      - name: check storage
-        run: |
-          sudo df -h
-          echo "Docker Root Dir:"
-          sudo docker info | grep "Docker Root Dir"
       - name: Get Repo Owner
         id: get_repo_owner
         run: echo "REPO_OWNER=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" > $GITHUB_ENV
