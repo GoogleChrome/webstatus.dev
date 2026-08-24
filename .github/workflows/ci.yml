@@ -82,36 +82,54 @@ jobs:
           # Fast visual tests (static fixtures, ~1 min)
           - suite: visual
             project: chromium
+            shard: ''
+            shard-suffix: ''
           - suite: visual
             project: firefox
+            shard: ''
+            shard-suffix: ''
           - suite: visual
             project: webkit
+            shard: ''
+            shard-suffix: ''
           # Synthetic smoke probes (lightweight end-to-end cluster health, ~15s test run)
           - suite: synthetic
             project: chromium
+            shard: ''
+            shard-suffix: ''
           - suite: synthetic
             project: firefox
+            shard: ''
+            shard-suffix: ''
           - suite: synthetic
             project: webkit
+            shard: ''
+            shard-suffix: ''
           # Stateful functional tests (sharded 1/2 and 2/2)
           - suite: functional
             project: chromium
             shard: '1/2'
+            shard-suffix: '-1-2'
           - suite: functional
             project: chromium
             shard: '2/2'
+            shard-suffix: '-2-2'
           - suite: functional
             project: firefox
             shard: '1/2'
+            shard-suffix: '-1-2'
           - suite: functional
             project: firefox
             shard: '2/2'
+            shard-suffix: '-2-2'
           - suite: functional
             project: webkit
             shard: '1/2'
+            shard-suffix: '-1-2'
           - suite: functional
             project: webkit
             shard: '2/2'
+            shard-suffix: '-2-2'
     steps:
       - name: Checkout (GitHub)
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -159,7 +177,7 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: ${{ !cancelled() }}
         with:
-          name: blob-report-${{ matrix.suite }}-${{ matrix.project }}${{ matrix.shard && format('-{0}', replace(matrix.shard, '/', '-')) || '' }}
+          name: blob-report-${{ matrix.suite }}-${{ matrix.project }}${{ matrix.shard-suffix }}
           path: blob-report/
           retention-days: 1
 
