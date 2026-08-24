@@ -20,11 +20,12 @@ import (
 	"fmt"
 	"log/slog"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
-	"github.com/GoogleChrome/webstatus.dev/lib/backendtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/codescan"
+	codescantaskv1 "github.com/GoogleChrome/webstatus.dev/lib/event/codescantask/v1"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/google/go-github/v79/github"
 	"github.com/google/uuid"
@@ -50,7 +51,7 @@ type GitFetcher interface {
 
 type SpannerSyncer interface {
 	SynchronizeRepositoryCodeSubscriptions(
-		ctx context.Context, provider gcpspanner.VCSProvider, repoID string, subs []gcpspanner.CodeSubscription) error
+		ctx context.Context, provider gcpspanner.VCSProvider, repoID string, subs []gcpspanner.CodeSubscriptionInput) error
 	InsertCodeSubscriptionScanLog(ctx context.Context, scanLog gcpspanner.CodeSubscriptionScanLog) error
 }
 
@@ -77,7 +78,7 @@ func splitOwnerRepo(fullName string) (string, string) {
 
 func (s *Scanner) recordFailedScanLog(
 	ctx context.Context,
-	task backendtypes.CodeScanTaskMessage,
+	task codescantaskv1.CodeScanTaskEvent,
 	now time.Time,
 	errMsg string,
 ) {
@@ -106,12 +107,12 @@ func (s *Scanner) recordFailedScanLog(
 
 func (s *Scanner) scanFiles(
 	ctx context.Context,
-	task backendtypes.CodeScanTaskMessage,
+	task codescantaskv1.CodeScanTaskEvent,
 	entries []*github.TreeEntry,
-) (map[string][]gcpspanner.SubscriptionOccurrence, map[string]codescan.Directive, int64) {
+) (map[string][]gcpspanner.SubscriptionOccurrence, map[string]map[string]struct{}, int64) {
 	owner, repo := splitOwnerRepo(task.RepositoryFullName)
 	occurrencesByQuery := make(map[string][]gcpspanner.SubscriptionOccurrence)
-	directivesByQuery := make(map[string]codescan.Directive)
+	triggersByQuery := make(map[string]map[string]struct{})
 	var filesScanned int64
 
 	for _, entry := range entries {
@@ -130,12 +131,20 @@ func (s *Scanner) scanFiles(
 
 			continue
 		}
+		if int64(len(content)) > MaxBlobSizeBytes {
+			slog.WarnContext(ctx, "skipping giant file exceeding 1MB after fetch", "path", entry.GetPath(), "size", len(content))
+
+			continue
+		}
 		filesScanned++
 
 		directives := codescan.ParseFileDirectives(content, entry.GetPath(), "")
 		for _, d := range directives {
-			queryKey := d.TargetQuery
-			directivesByQuery[queryKey] = d
+			queryKey := strings.ToLower(strings.TrimSpace(d.TargetQuery))
+			if _, exists := triggersByQuery[queryKey]; !exists {
+				triggersByQuery[queryKey] = make(map[string]struct{})
+			}
+			triggersByQuery[queryKey][string(d.Trigger)] = struct{}{}
 			occurrencesByQuery[queryKey] = append(occurrencesByQuery[queryKey], gcpspanner.SubscriptionOccurrence{
 				FilePath:       d.FilePath,
 				LineNumber:     int64(d.LineNumber),
@@ -144,17 +153,16 @@ func (s *Scanner) scanFiles(
 		}
 	}
 
-	return occurrencesByQuery, directivesByQuery, filesScanned
+	return occurrencesByQuery, triggersByQuery, filesScanned
 }
 
 func (s *Scanner) buildSubscriptions(
-	task backendtypes.CodeScanTaskMessage,
-	now time.Time,
+	task codescantaskv1.CodeScanTaskEvent,
 	occurrencesByQuery map[string][]gcpspanner.SubscriptionOccurrence,
-	directivesByQuery map[string]codescan.Directive,
-) ([]gcpspanner.CodeSubscription, gcpspanner.ScanStatus) {
+	triggersByQuery map[string]map[string]struct{},
+) ([]gcpspanner.CodeSubscriptionInput, gcpspanner.ScanStatus) {
 	scanStatus := gcpspanner.ScanStatusSuccess
-	subscriptions := make([]gcpspanner.CodeSubscription, 0, len(occurrencesByQuery))
+	subscriptions := make([]gcpspanner.CodeSubscriptionInput, 0, len(occurrencesByQuery))
 
 	for queryKey, occurrences := range occurrencesByQuery {
 		if len(subscriptions) >= MaxSubscriptionsPerRepo {
@@ -163,24 +171,26 @@ func (s *Scanner) buildSubscriptions(
 			break
 		}
 
-		d := directivesByQuery[queryKey]
 		vcsProvider, err := gcpspanner.ParseVCSProvider(task.VCSProvider)
 		if err != nil {
 			vcsProvider = gcpspanner.VCSProviderGitHub
 		}
 
-		subscriptions = append(subscriptions, gcpspanner.CodeSubscription{
-			ID:                 uuid.NewString(),
+		triggersMap := triggersByQuery[queryKey]
+		triggers := make([]string, 0, len(triggersMap))
+		for t := range triggersMap {
+			triggers = append(triggers, t)
+		}
+		slices.Sort(triggers)
+
+		subscriptions = append(subscriptions, gcpspanner.CodeSubscriptionInput{
 			VCSProvider:        vcsProvider,
 			VCSInstallationID:  task.VCSInstallationID,
 			VCSRepositoryID:    task.VCSRepositoryID,
 			RepositoryFullName: task.RepositoryFullName,
-			TargetQuery:        d.TargetQuery,
-			Triggers:           []string{string(d.Trigger)},
-			Status:             gcpspanner.SubscriptionActive,
+			TargetQuery:        queryKey,
+			Triggers:           triggers,
 			Occurrences:        occurrences,
-			CreatedAt:          now,
-			UpdatedAt:          now,
 		})
 	}
 
@@ -188,7 +198,7 @@ func (s *Scanner) buildSubscriptions(
 }
 
 // ProcessTask handles full tree scanning and Spanner subscription synchronization.
-func (s *Scanner) ProcessTask(ctx context.Context, task backendtypes.CodeScanTaskMessage) error {
+func (s *Scanner) ProcessTask(ctx context.Context, task codescantaskv1.CodeScanTaskEvent) error {
 	now := time.Now().UTC()
 
 	if task.CommitSHA == DeletedBranchSHA {
@@ -218,8 +228,8 @@ func (s *Scanner) ProcessTask(ctx context.Context, task backendtypes.CodeScanTas
 		return fmt.Errorf("failed to fetch git tree: %w", err)
 	}
 
-	occurrencesByQuery, directivesByQuery, filesScanned := s.scanFiles(ctx, task, tree.Entries)
-	subscriptions, scanStatus := s.buildSubscriptions(task, now, occurrencesByQuery, directivesByQuery)
+	occurrencesByQuery, triggersByQuery, filesScanned := s.scanFiles(ctx, task, tree.Entries)
+	subscriptions, scanStatus := s.buildSubscriptions(task, occurrencesByQuery, triggersByQuery)
 
 	if tree.GetTruncated() {
 		scanStatus = gcpspanner.ScanStatusTruncated

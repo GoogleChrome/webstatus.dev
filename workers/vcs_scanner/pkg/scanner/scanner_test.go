@@ -19,7 +19,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/GoogleChrome/webstatus.dev/lib/backendtypes"
+	codescantaskv1 "github.com/GoogleChrome/webstatus.dev/lib/event/codescantask/v1"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/google/go-github/v79/github"
 )
@@ -50,7 +50,7 @@ func (m *mockGitFetcher) GetBlobContent(
 }
 
 type mockSpannerSyncer struct {
-	syncedSubs []gcpspanner.CodeSubscription
+	syncedSubs []gcpspanner.CodeSubscriptionInput
 	syncErr    error
 	scanLogs   []gcpspanner.CodeSubscriptionScanLog
 	logErr     error
@@ -60,7 +60,7 @@ func (m *mockSpannerSyncer) SynchronizeRepositoryCodeSubscriptions(
 	_ context.Context,
 	_ gcpspanner.VCSProvider,
 	_ string,
-	desired []gcpspanner.CodeSubscription,
+	desired []gcpspanner.CodeSubscriptionInput,
 ) error {
 	m.syncedSubs = desired
 
@@ -76,8 +76,8 @@ func (m *mockSpannerSyncer) InsertCodeSubscriptionScanLog(
 	return m.logErr
 }
 
-func sampleTask() backendtypes.CodeScanTaskMessage {
-	return backendtypes.CodeScanTaskMessage{
+func sampleTask() codescantaskv1.CodeScanTaskEvent {
+	return codescantaskv1.CodeScanTaskEvent{
 		VCSProvider:        "github",
 		VCSInstallationID:  "12345",
 		VCSRepositoryID:    "67890",
