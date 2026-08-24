@@ -86,13 +86,32 @@ jobs:
             project: firefox
           - suite: visual
             project: webkit
-          # Stateful functional & synthetic tests (live backend + DB, ~4 mins)
+          # Synthetic smoke probes (lightweight end-to-end cluster health, ~15s test run)
+          - suite: synthetic
+            project: chromium
+          - suite: synthetic
+            project: firefox
+          - suite: synthetic
+            project: webkit
+          # Stateful functional tests (sharded 1/2 and 2/2)
           - suite: functional
             project: chromium
+            shard: '1/2'
+          - suite: functional
+            project: chromium
+            shard: '2/2'
           - suite: functional
             project: firefox
+            shard: '1/2'
+          - suite: functional
+            project: firefox
+            shard: '2/2'
           - suite: functional
             project: webkit
+            shard: '1/2'
+          - suite: functional
+            project: webkit
+            shard: '2/2'
     steps:
       - name: Checkout (GitHub)
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -135,12 +154,12 @@ jobs:
             export GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}"
             export GITHUB_ACTOR="${{ github.actor }}"
             export REPO_OWNER="${{ env.REPO_OWNER }}"
-            CI=true make playwright-${{ matrix.suite }} PLAYWRIGHT_PROJECT=${{ matrix.project }}
+            CI=true make playwright-${{ matrix.suite }} PLAYWRIGHT_PROJECT=${{ matrix.project }} PLAYWRIGHT_SHARD=${{ matrix.shard }}
       - name: Upload blob report
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: ${{ !cancelled() }}
         with:
-          name: blob-report-${{ matrix.suite }}-${{ matrix.project }}
+          name: blob-report-${{ matrix.suite }}-${{ matrix.project }}${{ matrix.shard && format('-{0}', replace(matrix.shard, '/', '-')) || '' }}
           path: blob-report/
           retention-days: 1
 

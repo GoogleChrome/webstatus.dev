@@ -413,9 +413,11 @@ unstaged-changes:
 # fresh-env-for-playwright prerequisite. If unset, the fresh environment will be created.
 SKIP_FRESH_ENV ?=
 PLAYWRIGHT_PROJECT ?=
+PLAYWRIGHT_SHARD ?=
+PLAYWRIGHT_FLAGS ?= $(if $(PLAYWRIGHT_PROJECT),--project=$(PLAYWRIGHT_PROJECT),) $(if $(PLAYWRIGHT_SHARD),--shard=$(PLAYWRIGHT_SHARD),)
 PLAYWRIGHT_BROWSER ?= $(PLAYWRIGHT_PROJECT)
 
-fresh-env-for-playwright: $(if $(SKIP_FRESH_ENV),,playwright-install delete-local pull-cached-services build deploy-local port-forward-manual dev_fake_users dev_fake_data)
+fresh-env-for-playwright: $(if $(SKIP_FRESH_ENV),,playwright-install pull-cached-services deploy-local port-forward-manual dev_fake_users dev_fake_data)
 
 playwright-install:
 	npx playwright install --with-deps $(PLAYWRIGHT_BROWSER)
@@ -424,16 +426,16 @@ playwright-update-snapshots: fresh-env-for-playwright
 	npx playwright test --update-snapshots
 
 playwright-test: fresh-env-for-playwright
-	npx playwright test $(if $(PLAYWRIGHT_PROJECT),--project=$(PLAYWRIGHT_PROJECT),)
+	npx playwright test $(PLAYWRIGHT_FLAGS)
 
 playwright-functional: fresh-env-for-playwright
-	npx playwright test e2e/functional e2e/synthetic $(if $(PLAYWRIGHT_PROJECT),--project=$(PLAYWRIGHT_PROJECT),)
+	npx playwright test e2e/functional $(PLAYWRIGHT_FLAGS)
 
 playwright-visual: fresh-env-for-playwright
-	npx playwright test e2e/visual $(if $(PLAYWRIGHT_PROJECT),--project=$(PLAYWRIGHT_PROJECT),)
+	npx playwright test e2e/visual $(PLAYWRIGHT_FLAGS)
 
 playwright-synthetic: fresh-env-for-playwright
-	npx playwright test e2e/synthetic $(if $(PLAYWRIGHT_PROJECT),--project=$(PLAYWRIGHT_PROJECT),)
+	npx playwright test e2e/synthetic $(PLAYWRIGHT_FLAGS)
 
 playwright-ui:
 	npx playwright test --ui --ui-port=8123
@@ -561,11 +563,11 @@ chromium_histogram_enums_workflow:
 web_features_mapping_workflow:
 	./util/run_job.sh web-features-mapping-consumer images/go_service.Dockerfile workflows/steps/services/web_features_mapping_consumer \
 		workflows/steps/services/web_features_mapping_consumer/manifests/job.yaml web-features-mapping-consumer
-dev_fake_users: build
+dev_fake_users: gen
 	fuser -k 9099/tcp || true
 	kubectl port-forward --address 127.0.0.1 pod/auth 9099:9099 2>&1 >/dev/null &
 	go run util/cmd/load_test_users/main.go -project=local
-dev_fake_data: build is_local_migration_ready check-local-ports
+dev_fake_data: gen is_local_migration_ready check-local-ports
 	SPANNER_EMULATOR_HOST=localhost:9010 DATASTORE_EMULATOR_HOST=localhost:8086 FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 \
 		go run ./util/cmd/load_fake_data/main.go \
 			-spanner_project=local \
