@@ -19,12 +19,10 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gh"
 	"github.com/GoogleChrome/webstatus.dev/lib/opentelemetry"
-	"github.com/GoogleChrome/webstatus.dev/lib/valkeycache"
 	"github.com/GoogleChrome/webstatus.dev/workers/github_issue_delivery/pkg/delivery"
 )
 
@@ -77,45 +75,14 @@ func main() {
 		}
 	}
 
-	valkeyHost := os.Getenv("VALKEYHOST")
-	valkeyPort := os.Getenv("VALKEYPORT")
-	var tokenCacher gh.TokenCacher
-	if valkeyHost != "" && valkeyPort != "" {
-		vc, err := valkeycache.NewValkeyDataCache[string, []byte](
-			"github-tokens",
-			valkeyHost,
-			valkeyPort,
-			50*time.Minute,
-		)
-		if err != nil {
-			slog.WarnContext(ctx, "unable to initialize valkey cache for token provider", "error", err)
-		} else {
-			tokenCacher = &valkeyTokenAdapter{cache: vc}
-		}
+	tokenProvider, err := gh.NewTokenProvider(appID, privateKeyPEM, nil)
+	if err != nil {
+		slog.WarnContext(ctx, "unable to create token provider", "error", err)
 	}
-
-	var tpOpts []gh.TokenProviderOption
-	if tokenCacher != nil {
-		tpOpts = append(tpOpts, gh.WithTokenCacher(tokenCacher))
-	}
-
-	tokenProvider := gh.NewTokenProvider(appID, privateKeyPEM, tpOpts...)
 	_ = tokenProvider
 	ghClient := gh.NewClient("")
 	_ = spannerClient
 	_ = delivery.NewDeliverer(ghClient, nil, "worker-main")
 
 	slog.InfoContext(ctx, "GitHub issue delivery worker initialized successfully")
-}
-
-type valkeyTokenAdapter struct {
-	cache *valkeycache.ValkeyDataCache[string, []byte]
-}
-
-func (v *valkeyTokenAdapter) Get(ctx context.Context, key string) ([]byte, error) {
-	return v.cache.Get(ctx, key)
-}
-
-func (v *valkeyTokenAdapter) Cache(ctx context.Context, key string, in []byte) error {
-	return v.cache.Cache(ctx, key, in)
 }

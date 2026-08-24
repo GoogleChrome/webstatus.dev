@@ -20,7 +20,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
+	githubissuedeliveryv1 "github.com/GoogleChrome/webstatus.dev/lib/event/githubissuedelivery/v1"
 	"github.com/GoogleChrome/webstatus.dev/lib/gh"
 	"github.com/google/go-github/v79/github"
 )
@@ -129,8 +129,8 @@ func (m *mockDeliveryStorer) ReleaseDeliveryLock(
 	return m.releaseErr
 }
 
-func sampleJob() IssueDeliveryJob {
-	return IssueDeliveryJob{
+func sampleJob() githubissuedeliveryv1.GitHubIssueDeliveryEvent {
+	return githubissuedeliveryv1.GitHubIssueDeliveryEvent{
 		DeliveryID:         "del-123",
 		SubscriptionID:     "sub-456",
 		VCSProvider:        "github",
@@ -141,9 +141,9 @@ func sampleJob() IssueDeliveryJob {
 		RepositoryFullName: "GoogleChrome/webstatus.dev",
 		FeatureID:          "css-subgrid",
 		FeatureName:        "CSS Subgrid",
-		Trigger:            gcpspanner.SubscriptionTriggerFeatureBaselinePromoteToWidely,
+		Trigger:            "feature_baseline_to_widely",
 		CommitSHA:          "abcdef1234567890abcdef1234567890abcdef12",
-		Occurrences: []gcpspanner.SubscriptionOccurrence{
+		Occurrences: []githubissuedeliveryv1.IssueOccurrence{
 			{
 				FilePath:       "src/grid.css",
 				LineNumber:     42,

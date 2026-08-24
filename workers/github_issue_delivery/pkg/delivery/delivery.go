@@ -22,27 +22,27 @@ import (
 	"strconv"
 	"time"
 
+	githubissuedeliveryv1 "github.com/GoogleChrome/webstatus.dev/lib/event/githubissuedelivery/v1"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gh"
 	"github.com/google/go-github/v79/github"
 )
 
-// IssueDeliveryJob represents the Pub/Sub job payload for creating a notification issue.
-type IssueDeliveryJob struct {
-	DeliveryID         string                              `json:"delivery_id"`
-	SubscriptionID     string                              `json:"subscription_id"`
-	VCSProvider        string                              `json:"vcs_provider"`
-	VCSInstallationID  string                              `json:"vcs_installation_id"`
-	VCSRepositoryID    string                              `json:"vcs_repository_id"`
-	RepositoryOwner    string                              `json:"repository_owner"`
-	RepositoryName     string                              `json:"repository_name"`
-	RepositoryFullName string                              `json:"repository_full_name"`
-	FeatureID          string                              `json:"feature_id"`
-	FeatureName        string                              `json:"feature_name"`
-	Trigger            gcpspanner.SubscriptionTrigger      `json:"trigger"`
-	CommitSHA          string                              `json:"commit_sha"`
-	Occurrences        []gcpspanner.SubscriptionOccurrence `json:"occurrences"`
-	WebStatusURL       string                              `json:"webstatus_url"`
+func toSpannerOccurrences(occs []githubissuedeliveryv1.IssueOccurrence) []gcpspanner.SubscriptionOccurrence {
+	if occs == nil {
+		return nil
+	}
+
+	res := make([]gcpspanner.SubscriptionOccurrence, len(occs))
+	for i, occ := range occs {
+		res[i] = gcpspanner.SubscriptionOccurrence{
+			FilePath:       occ.FilePath,
+			LineNumber:     occ.LineNumber,
+			CommentSnippet: occ.CommentSnippet,
+		}
+	}
+
+	return res
 }
 
 // GitHubIssueCreator defines the GitHub issue creation operations.
@@ -78,7 +78,7 @@ func NewDeliverer(creator GitHubIssueCreator, storer LockStorer, workerLockID st
 }
 
 // ProcessJob executes the issue delivery workflow with distributed lock protection.
-func (d *Deliverer) ProcessJob(ctx context.Context, job IssueDeliveryJob) error {
+func (d *Deliverer) ProcessJob(ctx context.Context, job githubissuedeliveryv1.GitHubIssueDeliveryEvent) error {
 	// 1. Acquire 30s atomic delivery lock
 	lockAcquired, err := d.storer.AcquireDeliveryLock(
 		ctx,
@@ -97,14 +97,17 @@ func (d *Deliverer) ProcessJob(ctx context.Context, job IssueDeliveryJob) error 
 	}
 
 	// 2. Render issue title and markdown body
-	title := gh.RenderIssueTitle(job.FeatureName, job.Trigger)
+	spannerTrigger := gcpspanner.SubscriptionTrigger(job.Trigger)
+	spannerOccs := toSpannerOccurrences(job.Occurrences)
+
+	title := gh.RenderIssueTitle(job.FeatureName, spannerTrigger)
 	body := gh.RenderIssueBody(gh.IssueRenderParams{
 		FeatureID:          job.FeatureID,
 		FeatureName:        job.FeatureName,
-		Trigger:            job.Trigger,
+		Trigger:            spannerTrigger,
 		RepositoryFullName: job.RepositoryFullName,
 		CommitSHA:          job.CommitSHA,
-		Occurrences:        job.Occurrences,
+		Occurrences:        spannerOccs,
 		WebStatusURL:       job.WebStatusURL,
 	})
 
