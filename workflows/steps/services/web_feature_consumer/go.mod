@@ -6,7 +6,7 @@ require (
 	github.com/GoogleChrome/webstatus.dev/lib v0.0.0-20260715085327-f8709240bafb
 	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-20260715085327-f8709240bafb
 	github.com/google/go-cmp v0.7.0
-	golang.org/x/mod v0.39.0
+	golang.org/x/mod v0.40.0
 )
 
 require (
