@@ -92,7 +92,7 @@ pull-cached-services: configure-skaffold
 deploy-local: configure-skaffold
 	skaffold run $(SKAFFOLD_RUN_FLAGS) --status-check=true
 
-SKAFFOLD_VISUAL_RUN_FLAGS = -m visual $(if $(SKAFFOLD_DEFAULT_REPO),--default-repo=$(SKAFFOLD_DEFAULT_REPO),) --build-concurrency=$(NPROCS) --no-prune=false --cache-artifacts=$(SKAFFOLD_CACHE_ARTIFACTS) --port-forward=off
+SKAFFOLD_VISUAL_RUN_FLAGS = -m visual -p local $(if $(SKAFFOLD_DEFAULT_REPO),--default-repo=$(SKAFFOLD_DEFAULT_REPO),) --build-concurrency=$(NPROCS) --no-prune=false --cache-artifacts=$(SKAFFOLD_CACHE_ARTIFACTS) --port-forward=off
 
 deploy-visual: configure-skaffold
 	skaffold run $(SKAFFOLD_VISUAL_RUN_FLAGS) --status-check=true
