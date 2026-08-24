@@ -18,7 +18,7 @@
   // Features to add to the dev container. More info: https://containers.dev/features.
   "features": {
     "ghcr.io/devcontainers/features/go:1": {
-      "version": "1.26.5",
+      "version": "1.26.6",
       // Reminder: bump this whenever we bump the go version.
       "golangciLintVersion": "2.12.2"
     },
