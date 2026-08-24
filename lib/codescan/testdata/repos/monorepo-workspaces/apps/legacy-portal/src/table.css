@@ -1,0 +1,5 @@
+/* Legacy portal table */
+.table {
+  display: block;
+  /* TODO(baseline/subgrid): modernize nested table cells */
+}
