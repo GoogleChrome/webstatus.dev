@@ -19,3 +19,9 @@ metadata:
 requires:
   - path: ./backend
   - path: ./frontend
+profiles:
+  - name: visual
+    requires:
+      - path: ./.dev/auth
+      - path: ./.dev/wiremock
+      - path: ./frontend

@@ -92,8 +92,27 @@ pull-cached-services: configure-skaffold
 deploy-local: configure-skaffold
 	skaffold run $(SKAFFOLD_RUN_FLAGS) --status-check=true
 
+SKAFFOLD_VISUAL_RUN_FLAGS = -p visual $(if $(SKAFFOLD_DEFAULT_REPO),--default-repo=$(SKAFFOLD_DEFAULT_REPO),) --build-concurrency=$(NPROCS) --no-prune=false --cache-artifacts=$(SKAFFOLD_CACHE_ARTIFACTS) --port-forward=off
+
+deploy-visual: configure-skaffold
+	skaffold run $(SKAFFOLD_VISUAL_RUN_FLAGS) --status-check=true
+
 delete-local:
 	skaffold delete $(SKAFFOLD_FLAGS) || true
+
+port-forward-visual: port-forward-terminate
+	kubectl wait --for=condition=ready --timeout=120s pod/frontend
+	kubectl wait --for=condition=ready --timeout=120s pod/auth
+	kubectl wait --for=condition=ready --timeout=120s pod/wiremock
+	fuser -k 5555/tcp || true
+	fuser -k 9099/tcp || true
+	fuser -k 8087/tcp || true
+	kubectl port-forward --address 127.0.0.1 pod/frontend 5555:5555 2>&1 >/dev/null &
+	kubectl port-forward --address 127.0.0.1 pod/auth 9099:9099 2>&1 >/dev/null &
+	kubectl port-forward --address 127.0.0.1 pod/wiremock 8087:8087 2>&1 >/dev/null &
+	$(call wait_for_port,5555,frontend)
+	$(call wait_for_port,9099,auth-main)
+	$(call wait_for_port,8087,wiremock)
 
 define wait_for_port
     @echo "Waiting for $(2) on port $(1) to respond..."
@@ -431,7 +450,9 @@ playwright-test: fresh-env-for-playwright
 playwright-functional: fresh-env-for-playwright
 	npx playwright test e2e/functional $(PLAYWRIGHT_FLAGS)
 
-playwright-visual: fresh-env-for-playwright
+env-for-playwright-visual: $(if $(SKIP_FRESH_ENV),,playwright-install pull-cached-services deploy-visual port-forward-visual dev_fake_users)
+
+playwright-visual: env-for-playwright-visual
 	npx playwright test e2e/visual $(PLAYWRIGHT_FLAGS)
 
 playwright-synthetic: fresh-env-for-playwright
