@@ -441,8 +441,8 @@ fresh-env-for-playwright: $(if $(SKIP_FRESH_ENV),,playwright-install pull-cached
 playwright-install:
 	npx playwright install --with-deps $(PLAYWRIGHT_BROWSER)
 
-playwright-update-snapshots: fresh-env-for-playwright
-	npx playwright test --update-snapshots
+playwright-update-snapshots: env-for-playwright-visual
+	npx playwright test e2e/visual --update-snapshots $(PLAYWRIGHT_FLAGS)
 
 playwright-test: fresh-env-for-playwright
 	npx playwright test $(PLAYWRIGHT_FLAGS)
