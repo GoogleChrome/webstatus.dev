@@ -8,7 +8,7 @@ require (
 	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-20260715085327-f8709240bafb
 	github.com/go-chi/cors v1.2.2
 	github.com/google/go-cmp v0.7.0
-	github.com/oapi-codegen/runtime v1.6.0
+	github.com/oapi-codegen/runtime v1.7.0
 )
 
 require (
