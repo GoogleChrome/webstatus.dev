@@ -1,0 +1,50 @@
+{
+  "scenario": "Monorepo Workspaces with Hierarchical Overrides",
+  "description": "Demonstrates a multi-package monorepo where the root sets target=widely, legacy apps inherit it, modern sub-apps override with target=newly, and shared packages use explicit modifiers.",
+  "files": {
+    ".browserslistrc": {
+      "purpose": "Root monorepo browserslist configuration setting target=widely",
+      "expectedDirectives": []
+    },
+    "apps/legacy-portal/src/table.css": {
+      "purpose": "Legacy portal application inheriting root target=widely with CSS block comment directive",
+      "expectedDirectives": [
+        {
+          "file_path": "apps/legacy-portal/src/table.css",
+          "target_query": "id:subgrid",
+          "trigger": "feature.baseline.promote_to_widely",
+          "line_number": 4,
+          "raw_snippet": "/* TODO(baseline/subgrid): modernize nested table cells */"
+        }
+      ]
+    },
+    "apps/modern-pwa/.browserslistrc": {
+      "purpose": "Sub-app workspace browserslist configuration setting target to newly",
+      "expectedDirectives": []
+    },
+    "apps/modern-pwa/src/camera.ts": {
+      "purpose": "Modern PWA app using explicit baseline-newly modifier",
+      "expectedDirectives": [
+        {
+          "file_path": "apps/modern-pwa/src/camera.ts",
+          "target_query": "id:view-transitions",
+          "trigger": "feature.baseline.promote_to_newly",
+          "line_number": 3,
+          "raw_snippet": "// TODO(baseline/view-transitions, newly): animate camera viewport"
+        }
+      ]
+    },
+    "packages/ui-components/src/dialog.ts": {
+      "purpose": "Shared component package with native dialog directive",
+      "expectedDirectives": [
+        {
+          "file_path": "packages/ui-components/src/dialog.ts",
+          "target_query": "id:dialog",
+          "trigger": "feature.baseline.promote_to_widely",
+          "line_number": 2,
+          "raw_snippet": "// TODO(baseline/dialog): native dialog wrapper"
+        }
+      ]
+    }
+  }
+}

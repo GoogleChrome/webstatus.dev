@@ -1,0 +1,51 @@
+{
+  "scenario": "Single-File Components (Vue / Svelte)",
+  "description": "Demonstrates directives inside template, script, and style blocks of modern SFC formats (Vue .vue and Svelte .svelte).",
+  "files": {
+    "Modal.vue": {
+      "purpose": "Vue SFC with directives in <template>, <script>, and <style> blocks",
+      "expectedDirectives": [
+        {
+          "file_path": "Modal.vue",
+          "target_query": "id:dialog",
+          "trigger": "feature.baseline.promote_to_widely",
+          "line_number": 2,
+          "raw_snippet": "<!-- TODO(baseline/dialog): replace modal container with native dialog -->"
+        },
+        {
+          "file_path": "Modal.vue",
+          "target_query": "id:popover",
+          "trigger": "feature.baseline.promote_to_newly",
+          "line_number": 9,
+          "raw_snippet": "// TODO(baseline/popover, newly): use popover for action menu"
+        },
+        {
+          "file_path": "Modal.vue",
+          "target_query": "id:anchor-positioning",
+          "trigger": "feature.baseline.promote_to_widely",
+          "line_number": 14,
+          "raw_snippet": "/* TODO(baseline/anchor-positioning): position modal anchored to trigger */"
+        }
+      ]
+    },
+    "Tooltip.svelte": {
+      "purpose": "Svelte SFC with directives in <script> and template sections",
+      "expectedDirectives": [
+        {
+          "file_path": "Tooltip.svelte",
+          "target_query": "id:popover",
+          "trigger": "feature.baseline.promote_to_widely",
+          "line_number": 2,
+          "raw_snippet": "// TODO(baseline/popover): use native popover"
+        },
+        {
+          "file_path": "Tooltip.svelte",
+          "target_query": "id:anchor-positioning",
+          "trigger": "feature.baseline.promote_to_widely",
+          "line_number": 6,
+          "raw_snippet": "<!-- TODO(baseline/anchor-positioning): anchor tooltip -->"
+        }
+      ]
+    }
+  }
+}
