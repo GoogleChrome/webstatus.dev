@@ -182,6 +182,11 @@ variable "web_features_mapping_region_schedules" {
   description = "Cloud Scheduler cron schedules for Web Features mapping ingestion, keyed by region"
 }
 
+variable "vcs_sync_region_schedules" {
+  type        = map(string)
+  description = "Cloud Scheduler cron schedules for VCS sync ingestion, keyed by region"
+}
+
 
 variable "firebase_api_key_location" {
   description = "Location of the firebase api key in secret manager"
@@ -194,6 +199,12 @@ variable "auth_github_config_locations" {
     client_id     = string
     client_secret = string
   })
+}
+
+variable "github_app_id" {
+  description = "GitHub App ID"
+  type        = string
+  default     = "webstatus-dev"
 }
 
 variable "backend_min_instance_count" {
@@ -256,9 +267,11 @@ variable "chime_details" {
 variable "worker_manual_instance_counts" {
   description = "Manual instance counts for background workers."
   type = object({
-    event_producer = number
-    push_delivery  = number
-    email          = number
-    webhook        = number
+    event_producer        = number
+    push_delivery         = number
+    email                 = number
+    webhook               = number
+    vcs_scanner           = number
+    github_issue_delivery = number
   })
 }

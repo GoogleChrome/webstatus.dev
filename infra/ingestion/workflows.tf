@@ -324,3 +324,52 @@ module "web_features_mapping_workflow" {
   otel_collector_config_mount_path = var.otel_collector_config_mount_path
   otel_collector_endpoint          = var.otel_collector_endpoint
 }
+
+module "vcs_sync_workflow" {
+  source = "../modules/single_stage_go_workflow"
+  providers = {
+    google.internal_project = google.internal_project
+    google.public_project   = google.public_project
+  }
+  regions                       = var.regions
+  short_name                    = "vcs-sync"
+  full_name                     = "VCS Sync Workflow"
+  deletion_protection           = var.deletion_protection
+  project_id                    = var.spanner_datails.project_id
+  timeout_seconds               = 3600 # 1 hour
+  image_name                    = "vcs_sync_image"
+  spanner_details               = var.spanner_datails
+  notification_channel_ids      = var.notification_channel_ids
+  env_id                        = var.env_id
+  region_schedules              = var.vcs_sync_region_schedules
+  docker_repository_url         = var.docker_repository_details.url
+  go_module_path                = "workflows/steps/services/vcs_sync"
+  does_process_write_to_spanner = true
+  resource_job_limits = {
+    cpu    = "1"
+    memory = "512Mi"
+  }
+  env_vars = [
+    {
+      name  = "PROJECT_ID"
+      value = var.spanner_datails.project_id
+    },
+    {
+      name  = "SPANNER_DATABASE"
+      value = var.spanner_datails.database
+    },
+    {
+      name  = "SPANNER_INSTANCE"
+      value = var.spanner_datails.instance
+    },
+    {
+      name  = "VCS_SCAN_TASKS_TOPIC"
+      value = "vcs-scan-tasks-${var.env_id}"
+    }
+  ]
+  otel_config_secret_id            = var.otel_config_secret_id
+  otel_project_id                  = var.otel_project_id
+  otel_collector_image             = var.otel_collector_image
+  otel_collector_config_mount_path = var.otel_collector_config_mount_path
+  otel_collector_endpoint          = var.otel_collector_endpoint
+}

@@ -101,6 +101,11 @@ wpt_region_schedules = {
   "europe-west1" = "30 4,10,16,22 * * *"
 }
 
+vcs_sync_region_schedules = {
+  "us-central1"  = "0 5,11,17,23 * * *"
+  "europe-west1" = "30 5,11,17,23 * * *"
+}
+
 firebase_api_key_location = "prod-firebase-app-api-key"
 
 auth_github_config_locations = {
@@ -120,8 +125,10 @@ chime_details = {
 }
 
 worker_manual_instance_counts = {
-  event_producer = 4
-  push_delivery  = 2
-  email          = 2
-  webhook        = 2
+  event_producer        = 4
+  push_delivery         = 2
+  email                 = 2
+  webhook               = 2
+  vcs_scanner           = 2
+  github_issue_delivery = 2
 }

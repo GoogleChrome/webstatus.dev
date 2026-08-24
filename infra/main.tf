@@ -96,6 +96,7 @@ module "ingestion" {
   web_features_region_schedules         = var.web_features_region_schedules
   developer_signals_region_schedules    = var.developer_signals_region_schedules
   web_features_mapping_region_schedules = var.web_features_mapping_region_schedules
+  vcs_sync_region_schedules             = var.vcs_sync_region_schedules
   notification_channel_ids              = var.notification_channel_ids
   otel_config_secret_id                 = google_secret_manager_secret.otel_config.id
   otel_project_id                       = var.projects.internal
@@ -193,25 +194,32 @@ module "workers" {
   state_bucket_name         = module.storage.notification_state_bucket_name
 
   pubsub_details = {
-    ingestion_subscription_id    = module.pubsub.ingestion_subscription_id
-    ingestion_topic_id           = module.pubsub.ingestion_topic_id
-    batch_topic_id               = module.pubsub.batch_updates_topic_id
-    batch_subscription_id        = module.pubsub.batch_updates_subscription_id
-    notification_topic_id        = module.pubsub.notification_topic_id
-    notification_subscription_id = module.pubsub.notification_subscription_id
-    email_topic_id               = module.pubsub.email_delivery_topic_id
-    email_subscription_id        = module.pubsub.email_delivery_subscription_id
-    webhook_topic_id             = module.pubsub.webhook_delivery_topic_id
-    webhook_subscription_id      = module.pubsub.webhook_delivery_subscription_id
+    ingestion_subscription_id             = module.pubsub.ingestion_subscription_id
+    ingestion_topic_id                    = module.pubsub.ingestion_topic_id
+    batch_topic_id                        = module.pubsub.batch_updates_topic_id
+    batch_subscription_id                 = module.pubsub.batch_updates_subscription_id
+    notification_topic_id                 = module.pubsub.notification_topic_id
+    notification_subscription_id          = module.pubsub.notification_subscription_id
+    email_topic_id                        = module.pubsub.email_delivery_topic_id
+    email_subscription_id                 = module.pubsub.email_delivery_subscription_id
+    webhook_topic_id                      = module.pubsub.webhook_delivery_topic_id
+    webhook_subscription_id               = module.pubsub.webhook_delivery_subscription_id
+    vcs_scan_tasks_topic_id               = module.pubsub.vcs_scan_tasks_topic_id
+    vcs_scan_tasks_subscription_id        = module.pubsub.vcs_scan_tasks_subscription_id
+    github_issue_delivery_topic_id        = module.pubsub.github_issue_delivery_topic_id
+    github_issue_delivery_subscription_id = module.pubsub.github_issue_delivery_subscription_id
   }
 
   worker_instance_count = {
-    event_producer_count = var.worker_manual_instance_counts.event_producer
-    push_delivery_count  = var.worker_manual_instance_counts.push_delivery
-    email_count          = var.worker_manual_instance_counts.email
-    webhook_count        = var.worker_manual_instance_counts.webhook
+    event_producer_count        = var.worker_manual_instance_counts.event_producer
+    push_delivery_count         = var.worker_manual_instance_counts.push_delivery
+    email_count                 = var.worker_manual_instance_counts.email
+    webhook_count               = var.worker_manual_instance_counts.webhook
+    vcs_scanner_count           = var.worker_manual_instance_counts.vcs_scanner
+    github_issue_delivery_count = var.worker_manual_instance_counts.github_issue_delivery
   }
   frontend_base_url = var.frontend_base_url
+  github_app_id     = var.github_app_id
 
   chime_details = var.chime_details
 
