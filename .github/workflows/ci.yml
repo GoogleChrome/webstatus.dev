@@ -105,55 +105,31 @@ jobs:
             project: webkit
             shard: ''
             shard-suffix: ''
-          # Stateful functional tests (sharded 1/4, 2/4, 3/4, 4/4)
+          # Stateful functional tests (sharded 1/2 and 2/2)
           - suite: functional
             project: chromium
-            shard: '1/4'
-            shard-suffix: '-1-4'
+            shard: '1/2'
+            shard-suffix: '-1-2'
           - suite: functional
             project: chromium
-            shard: '2/4'
-            shard-suffix: '-2-4'
-          - suite: functional
-            project: chromium
-            shard: '3/4'
-            shard-suffix: '-3-4'
-          - suite: functional
-            project: chromium
-            shard: '4/4'
-            shard-suffix: '-4-4'
+            shard: '2/2'
+            shard-suffix: '-2-2'
           - suite: functional
             project: firefox
-            shard: '1/4'
-            shard-suffix: '-1-4'
+            shard: '1/2'
+            shard-suffix: '-1-2'
           - suite: functional
             project: firefox
-            shard: '2/4'
-            shard-suffix: '-2-4'
-          - suite: functional
-            project: firefox
-            shard: '3/4'
-            shard-suffix: '-3-4'
-          - suite: functional
-            project: firefox
-            shard: '4/4'
-            shard-suffix: '-4-4'
+            shard: '2/2'
+            shard-suffix: '-2-2'
           - suite: functional
             project: webkit
-            shard: '1/4'
-            shard-suffix: '-1-4'
+            shard: '1/2'
+            shard-suffix: '-1-2'
           - suite: functional
             project: webkit
-            shard: '2/4'
-            shard-suffix: '-2-4'
-          - suite: functional
-            project: webkit
-            shard: '3/4'
-            shard-suffix: '-3-4'
-          - suite: functional
-            project: webkit
-            shard: '4/4'
-            shard-suffix: '-4-4'
+            shard: '2/2'
+            shard-suffix: '-2-2'
     steps:
       - name: Checkout (GitHub)
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

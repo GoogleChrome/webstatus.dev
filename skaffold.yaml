@@ -19,12 +19,3 @@ metadata:
 requires:
   - path: ./backend
   - path: ./frontend
----
-apiVersion: skaffold/v4beta9
-kind: Config
-metadata:
-  name: visual
-requires:
-  - path: ./.dev/auth
-  - path: ./.dev/wiremock
-  - path: ./frontend

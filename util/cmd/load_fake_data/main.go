@@ -46,9 +46,17 @@ import (
 	"golang.org/x/text/language"
 )
 
-const releasesPerBrowser = 30
-const runsPerBrowserPerChannel = 35
-const numberOfFeatures = 80
+const (
+	defaultReleasesPerBrowser       = 20
+	defaultRunsPerBrowserPerChannel = 20
+	defaultNumberOfFeatures         = 40
+)
+
+var (
+	releasesPerBrowser       = defaultReleasesPerBrowser
+	runsPerBrowserPerChannel = defaultRunsPerBrowserPerChannel
+	numberOfFeatures         = defaultNumberOfFeatures
+)
 
 const (
 	featurePageFeatureKey = "anchor-positioning"
@@ -1545,15 +1553,22 @@ func main() {
 	// Use the grpc port from spanner in .dev/spanner/skaffold.yaml
 	// Describe the command line flags and parse the flags
 	var (
-		spannerProject    = flag.String("spanner_project", "", "Spanner Project")
-		spannerInstance   = flag.String("spanner_instance", "", "Spanner Instance")
-		spannerDatabase   = flag.String("spanner_database", "", "Spanner Database")
-		datastoreProject  = flag.String("datastore_project", "", "Datastore Project")
-		datastoreDatabase = flag.String("datastore_database", "", "Datastore Database")
-		scope             = flag.String("scope", "all", "Scope of data generation: all, user")
-		resetFlag         = flag.Bool("reset", false, "Reset test user data before loading")
+		spannerProject            = flag.String("spanner_project", "", "Spanner Project")
+		spannerInstance           = flag.String("spanner_instance", "", "Spanner Instance")
+		spannerDatabase           = flag.String("spanner_database", "", "Spanner Database")
+		datastoreProject          = flag.String("datastore_project", "", "Datastore Project")
+		datastoreDatabase         = flag.String("datastore_database", "", "Datastore Database")
+		scope                     = flag.String("scope", "all", "Scope of data generation: all, user")
+		resetFlag                 = flag.Bool("reset", false, "Reset test user data before loading")
+		releasesPerBrowserFlag    = flag.Int("releases_per_browser", defaultReleasesPerBrowser, "Number of releases per browser")
+		runsPerBrowserChannelFlag = flag.Int("runs_per_browser_channel", defaultRunsPerBrowserPerChannel, "Number of runs per browser per channel")
+		numFeaturesFlag           = flag.Int("num_features", defaultNumberOfFeatures, "Number of features to generate")
 	)
 	flag.Parse()
+
+	releasesPerBrowser = *releasesPerBrowserFlag
+	runsPerBrowserPerChannel = *runsPerBrowserChannelFlag
+	numberOfFeatures = *numFeaturesFlag
 
 	slog.InfoContext(context.TODO(), "establishing spanner client",
 		"project", *spannerProject,
