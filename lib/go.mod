@@ -15,13 +15,13 @@ require (
 	github.com/cenkalti/backoff/v5 v5.0.3
 	github.com/deckarep/golang-set v1.8.0
 	github.com/google/go-github/v79 v79.0.0
-	github.com/oapi-codegen/runtime v1.6.0
-	github.com/stretchr/testify v1.12.0
+	github.com/oapi-codegen/runtime v1.7.0
+	github.com/stretchr/testify v1.12.1
 	github.com/testcontainers/testcontainers-go v0.44.0
-	github.com/valkey-io/valkey-go v1.0.76
+	github.com/valkey-io/valkey-go v1.0.77
 	github.com/web-platform-tests/wpt.fyi v0.0.0-20260714195540-37f3c47bb00b
 	go.opentelemetry.io/contrib/detectors/gcp v1.45.0
-	golang.org/x/mod v0.39.0
+	golang.org/x/mod v0.40.0
 	google.golang.org/api v0.293.0
 	google.golang.org/grpc v1.83.0
 )
@@ -67,6 +67,7 @@ require (
 	go.opentelemetry.io/otel/exporters/stdout/stdoutlog v0.21.0 // indirect
 	go.opentelemetry.io/otel/log v0.21.0 // indirect
 	go.opentelemetry.io/otel/sdk/log v0.21.0 // indirect
+	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	google.golang.org/appengine/v2 v2.0.6 // indirect
 )
 
@@ -155,7 +156,7 @@ require (
 	golang.org/x/oauth2 v0.36.0
 	golang.org/x/sync v0.22.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect
-	golang.org/x/text v0.40.0 // indirect
+	golang.org/x/text v0.41.0 // indirect
 	golang.org/x/time v0.15.0 // indirect
 	google.golang.org/genproto v0.0.0-20260713224248-f5fc221cf8c4 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260803160001-6ac0973c030d // indirect
