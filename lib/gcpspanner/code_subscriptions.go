@@ -589,7 +589,7 @@ func (c *Client) AcquireDeliveryLock(
 		},
 	)
 
-	if errors.Is(err, ErrDeliveryAlreadyDelivered) || errors.Is(err, ErrDeliveryAlreadyLocked) {
+	if errors.Is(err, ErrDeliveryAlreadyDelivered) {
 		return false, nil
 	}
 	if err != nil {
