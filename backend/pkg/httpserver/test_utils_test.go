@@ -62,6 +62,7 @@ func setupTestServer(t *testing.T, options ...TestServerOption) *Server {
 		validateQueryReferencesCfg:                        nil,
 		listGlobalSavedSearchesCfg:                        nil,
 		listVCSInstallationsCfg:                           nil,
+		listVCSRepositoriesCfg:                            nil,
 		callCountListMetricsForFeatureIDBrowserAndChannel: 0,
 		callCountListMetricsOverTimeWithAggregatedTotals:  0,
 		callCountListChromeDailyUsageStats:                0,

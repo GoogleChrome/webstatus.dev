@@ -337,6 +337,14 @@ type MockListVCSInstallationsConfig struct {
 	err               error
 }
 
+type MockListVCSRepositoriesConfig struct {
+	expectedProvider  string
+	expectedPageSize  int
+	expectedPageToken *string
+	result            *backend.VCSRepositoryPage
+	err               error
+}
+
 type basicHTTPTestCase[T any] struct {
 	name             string
 	cfg              *T
@@ -379,6 +387,7 @@ type MockWPTMetricsStorer struct {
 	validateQueryReferencesCfg                        *MockValidateQueryReferencesConfig
 	listGlobalSavedSearchesCfg                        *MockListGlobalSavedSearchesConfig
 	listVCSInstallationsCfg                           *MockListVCSInstallationsConfig
+	listVCSRepositoriesCfg                            *MockListVCSRepositoriesConfig
 	t                                                 *testing.T
 	callCountListMissingOneImplCounts                 int
 	callCountListMissingOneImplFeatures               int
@@ -1024,6 +1033,28 @@ func (m *MockWPTMetricsStorer) ListVCSInstallations(
 	}
 
 	return m.listVCSInstallationsCfg.result, m.listVCSInstallationsCfg.err
+}
+
+func (m *MockWPTMetricsStorer) ListVCSRepositories(
+	_ context.Context,
+	provider string,
+	pageSize int,
+	pageToken *string,
+) (*backend.VCSRepositoryPage, error) {
+	if provider != m.listVCSRepositoriesCfg.expectedProvider {
+		m.t.Errorf("provider mismatch: got %s, want %s",
+			provider, m.listVCSRepositoriesCfg.expectedProvider)
+	}
+	if pageSize != m.listVCSRepositoriesCfg.expectedPageSize {
+		m.t.Errorf("pageSize mismatch: got %d, want %d",
+			pageSize, m.listVCSRepositoriesCfg.expectedPageSize)
+	}
+	if !reflect.DeepEqual(pageToken, m.listVCSRepositoriesCfg.expectedPageToken) {
+		m.t.Errorf("pageToken mismatch: got %v, want %v",
+			pageToken, m.listVCSRepositoriesCfg.expectedPageToken)
+	}
+
+	return m.listVCSRepositoriesCfg.result, m.listVCSRepositoriesCfg.err
 }
 
 func (m *MockWPTMetricsStorer) DeleteNotificationChannel(

@@ -199,6 +199,12 @@ type WPTMetricsStorer interface {
 		pageSize int,
 		pageToken *string,
 	) (*backend.VCSInstallationPage, error)
+	ListVCSRepositories(
+		ctx context.Context,
+		provider string,
+		pageSize int,
+		pageToken *string,
+	) (*backend.VCSRepositoryPage, error)
 }
 
 type Server struct {

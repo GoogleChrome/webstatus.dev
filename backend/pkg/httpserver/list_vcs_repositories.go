@@ -12,20 +12,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//nolint:dupl // Similar structure across listing handlers
 package httpserver
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"log/slog"
+	"net/http"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/backendtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 )
 
-// ListVCSRepositories handles GET /v1/users/me/vcs-installations/{id}/repositories.
+// ListVCSRepositories handles GET /v1/vcs/{provider}/repositories.
 //
-//nolint:ireturn, revive // Expected ireturn for openapi generation.
+//nolint:ireturn, revive, dupl // Expected ireturn for openapi generation.
 func (s *Server) ListVCSRepositories(
 	ctx context.Context,
-	_ backend.ListVCSRepositoriesRequestObject,
+	request backend.ListVCSRepositoriesRequestObject,
 ) (backend.ListVCSRepositoriesResponseObject, error) {
 	userCheck := CheckAuthenticatedUser[backend.ListVCSRepositoriesResponseObject](
 		ctx, "ListVCSRepositories",
@@ -37,10 +43,35 @@ func (s *Server) ListVCSRepositories(
 		return userCheck.Response, nil
 	}
 
-	data := []backend.VCSRepositorySummary{}
+	pageSize := getPageSizeOrDefault(request.Params.PageSize)
 
-	return backend.ListVCSRepositories200JSONResponse{
-		Data:     &data,
-		Metadata: nil,
-	}, nil
+	page, err := s.wptMetricsStorer.ListVCSRepositories(
+		ctx, request.Provider, pageSize, request.Params.PageToken)
+	if err != nil {
+		if errors.Is(err, backendtypes.ErrInvalidPageToken) {
+			return backend.ListVCSRepositories400JSONResponse(
+				backend.BasicErrorModel{
+					Code:    http.StatusBadRequest,
+					Message: errMsgInvalidPageToken,
+				}), nil
+		}
+		if errors.Is(err, backendtypes.ErrUnsupportedVCSProvider) {
+			return backend.ListVCSRepositories400JSONResponse(
+				backend.BasicErrorModel{
+					Code:    http.StatusBadRequest,
+					Message: fmt.Sprintf("unsupported VCS provider: %s", request.Provider),
+				}), nil
+		}
+
+		slog.ErrorContext(ctx, "failed to list VCS repositories", "error", err,
+			"provider", request.Provider)
+
+		return backend.ListVCSRepositories500JSONResponse(
+			backend.BasicErrorModel{
+				Code:    http.StatusInternalServerError,
+				Message: "failed to list VCS repositories",
+			}), nil
+	}
+
+	return backend.ListVCSRepositories200JSONResponse(*page), nil
 }
