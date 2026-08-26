@@ -22,14 +22,14 @@ flowchart LR
 
 ## 2. Canonical Directive Syntax & Configuration (Rick Viscomi Guidance)
 
-### 2.1 Single Unified Comment Syntax
+### 2.1 Supported Comment Syntax
 
 Developers use standard, intuitive `TODO` comments without custom DSL syntax:
 
 - **Standard Baseline Widely (Default / Replacement)**:
   `// TODO(baseline/popover): remove modal fallback`
   `// TODO(web-feature: subgrid): upgrade grid layout`
-  - _Trigger_: Emits when the feature reaches **Baseline Widely Available** (`feature_baseline_to_widely`) or the repository's configured Baseline target year.
+  - _Trigger_: Emits when the feature reaches **Baseline Widely Available** (`feature_baseline_to_widely`).
 - **Progressive Enhancement (Newly Available)**:
   `// TODO(baseline/view-transitions, newly): add page transition animation`
   - _Trigger_: Emits immediately when the feature reaches **Baseline Newly Available** (`feature_baseline_to_newly`, interoperable across all 4 major engines).
@@ -38,20 +38,6 @@ Developers use standard, intuitive `TODO` comments without custom DSL syntax:
   - CSS: `/* TODO(baseline/anchor-positioning): ... */`
   - HTML / Templates: `<!-- TODO(baseline/dialog): ... -->`
   - Hash / Config: `# TODO(baseline/subgrid): ...`
-
-### 2.2 Project-Level Configuration (`.baseline.json` or `package.json`)
-
-Repositories can set an **ECMAScript-style annual target** (e.g., Target 2024) in their root:
-
-```json
-{
-  "$schema": "https://webstatus.dev/schemas/v1/baseline.json",
-  "target": "2024"
-}
-```
-
-- Supported Targets: `"widely"` (default), `"newly"`, `"2024"`, `"2023"`.
-- All standard `// TODO(baseline/<id>)` comments automatically inherit this project target.
 
 ## 3. Core Subsystem Components
 
@@ -88,23 +74,7 @@ Repositories can set an **ECMAScript-style annual target** (e.g., Target 2024) i
 - **BOLA / IDOR Defense**: Always return standard `404 Not Found` for unauthorized private repository queries.
 - **Lean Telemetry**: All metrics and lifecycle tracking are handled directly via **Cloud Spanner** and **Google Cloud Monitoring** (no BigQuery required).
 
-## 5. Downstream Generational Roadmap (V2 & V3)
-
-### V2: Autonomous Refactoring Engine (Google ADK & Gemini)
-
-- **2-Phase Architecture**: Phase 1 Investigator Agent (Tree-sitter, CSSTree, PurgeCSS extraction) $\rightarrow$ Phase 2 Execution Agent (AST diff generation).
-- **Core Invariants**:
-  - **Draft PRs Only**: All automated PRs opened with `draft: true` via GitHub Git Data API.
-  - **3-Attempt CI Ceiling**: Hard circuit breaker terminating auto-patch commits after 3 failed CI runs.
-  - **Read-Only Workflow Scope**: Bot strictly prohibited from modifying `.github/workflows/*`.
-  - **Declaration-Only CSS**: Restricting stylesheet edits to property declarations, preventing global selector deletion.
-
-### V3: Onboarding Opportunity Scanner
-
-- On GitHub App connection, runs static analysis detecting legacy polyfills (`dialog-polyfill`, `lodash.cloneDeep`, manual scroll listeners).
-- Generates a single consolidated Draft Onboarding PR seeding `// TODO(baseline/<id>)` comments in-place across the repository.
-
-## 6. Architectural Learnings & Spanner Best Practices
+## 5. Architectural Learnings & Spanner Best Practices
 
 ### 6.1 Natural Key Persistence via `entityWriterWithIDRetrieval`
 
