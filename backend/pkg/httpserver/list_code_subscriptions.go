@@ -17,6 +17,7 @@ package httpserver
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -53,11 +54,18 @@ func (s *Server) ListCodeSubscriptions(
 					Message: errMsgInvalidPageToken,
 				}), nil
 		}
-		if errors.Is(err, backendtypes.ErrUnsupportedVCSProvider) || errors.Is(err, backendtypes.ErrEntityDoesNotExist) {
+		if errors.Is(err, backendtypes.ErrUnsupportedVCSProvider) {
+			return backend.ListCodeSubscriptions400JSONResponse(
+				backend.BasicErrorModel{
+					Code:    http.StatusBadRequest,
+					Message: fmt.Sprintf("unsupported VCS provider: %s", request.Provider),
+				}), nil
+		}
+		if errors.Is(err, backendtypes.ErrEntityDoesNotExist) {
 			return backend.ListCodeSubscriptions404JSONResponse(
 				backend.BasicErrorModel{
 					Code:    http.StatusNotFound,
-					Message: "repository or VCS provider not found",
+					Message: "repository not found",
 				}), nil
 		}
 

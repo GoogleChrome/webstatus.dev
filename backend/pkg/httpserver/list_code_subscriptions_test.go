@@ -132,9 +132,9 @@ func TestListCodeSubscriptions(t *testing.T) {
 			}`),
 		},
 		{
-			name: "Unsupported VCS Provider (404 Not Found)",
+			name: "Unsupported VCS Provider (400 Bad Request)",
 			cfg: &MockListCodeSubscriptionsConfig{
-				expectedProvider:     "github",
+				expectedProvider:     "gitlab",
 				expectedRepositoryID: "repo-1",
 				expectedPageSize:     100,
 				expectedPageToken:    nil,
@@ -144,10 +144,10 @@ func TestListCodeSubscriptions(t *testing.T) {
 			expectedCallCount:    1,
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
 			request: httptest.NewRequestWithContext(t.Context(),
-				http.MethodGet, "/v1/vcs/github/repositories/repo-1/code-subscriptions", nil),
-			expectedResponse: testJSONResponse(http.StatusNotFound, `{
-				"code": 404,
-				"message": "repository or VCS provider not found"
+				http.MethodGet, "/v1/vcs/gitlab/repositories/repo-1/code-subscriptions", nil),
+			expectedResponse: testJSONResponse(http.StatusBadRequest, `{
+				"code": 400,
+				"message": "unsupported VCS provider: gitlab"
 			}`),
 		},
 		{
@@ -166,7 +166,7 @@ func TestListCodeSubscriptions(t *testing.T) {
 				http.MethodGet, "/v1/vcs/github/repositories/repo-999/code-subscriptions", nil),
 			expectedResponse: testJSONResponse(http.StatusNotFound, `{
 				"code": 404,
-				"message": "repository or VCS provider not found"
+				"message": "repository not found"
 			}`),
 		},
 		{
