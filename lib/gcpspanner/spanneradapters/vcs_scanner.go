@@ -16,7 +16,6 @@ package spanneradapters
 
 import (
 	"context"
-	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/codescan"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
@@ -26,9 +25,9 @@ import (
 type VCSScannerSpannerClient interface {
 	SynchronizeRepositoryCodeSubscriptions(
 		ctx context.Context,
-		vcsProvider, vcsInstallationID, vcsRepositoryID string,
-		subscriptions []gcpspanner.CodeSubscription,
-		now time.Time,
+		vcsProvider gcpspanner.VCSProvider,
+		vcsRepositoryID string,
+		subscriptions []gcpspanner.CodeSubscriptionInput,
 	) error
 	InsertCodeSubscriptionScanLog(ctx context.Context, scanLog gcpspanner.CodeSubscriptionScanLog) error
 }
@@ -46,11 +45,15 @@ func NewVCSScannerAdapter(client VCSScannerSpannerClient) *VCSScannerAdapter {
 // SynchronizeScanResult adapts and persists a domain ScanResult into Spanner.
 func (a *VCSScannerAdapter) SynchronizeScanResult(
 	ctx context.Context,
-	vcsProvider, vcsInstallationID, vcsRepositoryID string,
+	vcsProvider, _, vcsRepositoryID string,
 	result *codescan.ScanResult,
-	now time.Time,
 ) error {
-	spannerSubs := make([]gcpspanner.CodeSubscription, 0, len(result.Subscriptions))
+	provider, err := toSpannerVCSProvider(vcsProvider)
+	if err != nil {
+		return err
+	}
+
+	spannerInputs := make([]gcpspanner.CodeSubscriptionInput, 0, len(result.Subscriptions))
 	for _, sub := range result.Subscriptions {
 		occurrences := make([]gcpspanner.SubscriptionOccurrence, 0, len(sub.Occurrences))
 		for _, occ := range sub.Occurrences {
@@ -66,33 +69,22 @@ func (a *VCSScannerAdapter) SynchronizeScanResult(
 			triggers = append(triggers, string(trig))
 		}
 
-		provider, err := toSpannerVCSProvider(sub.VCSProvider)
-		if err != nil {
-			return err
-		}
-
-		spannerSubs = append(spannerSubs, gcpspanner.CodeSubscription{
-			ID:                 sub.ID,
+		spannerInputs = append(spannerInputs, gcpspanner.CodeSubscriptionInput{
 			VCSProvider:        provider,
 			VCSInstallationID:  sub.VCSInstallationID,
 			VCSRepositoryID:    sub.VCSRepositoryID,
 			RepositoryFullName: sub.RepositoryFullName,
 			TargetQuery:        sub.TargetQuery,
 			Triggers:           triggers,
-			Status:             gcpspanner.SubscriptionActive,
 			Occurrences:        occurrences,
-			CreatedAt:          sub.CreatedAt,
-			UpdatedAt:          sub.UpdatedAt,
 		})
 	}
 
 	return a.client.SynchronizeRepositoryCodeSubscriptions(
 		ctx,
-		vcsProvider,
-		vcsInstallationID,
+		provider,
 		vcsRepositoryID,
-		spannerSubs,
-		now,
+		spannerInputs,
 	)
 }
 
