@@ -47,11 +47,12 @@ import (
 )
 
 const (
-	defaultReleasesPerBrowser       = 20
-	defaultRunsPerBrowserPerChannel = 20
-	defaultNumberOfFeatures         = 40
+	defaultReleasesPerBrowser       = 30
+	defaultRunsPerBrowserPerChannel = 35
+	defaultNumberOfFeatures         = 80
 )
 
+// nolint: gochecknoglobals
 var (
 	releasesPerBrowser       = defaultReleasesPerBrowser
 	runsPerBrowserPerChannel = defaultRunsPerBrowserPerChannel
@@ -1560,9 +1561,12 @@ func main() {
 		datastoreDatabase         = flag.String("datastore_database", "", "Datastore Database")
 		scope                     = flag.String("scope", "all", "Scope of data generation: all, user")
 		resetFlag                 = flag.Bool("reset", false, "Reset test user data before loading")
-		releasesPerBrowserFlag    = flag.Int("releases_per_browser", defaultReleasesPerBrowser, "Number of releases per browser")
-		runsPerBrowserChannelFlag = flag.Int("runs_per_browser_channel", defaultRunsPerBrowserPerChannel, "Number of runs per browser per channel")
-		numFeaturesFlag           = flag.Int("num_features", defaultNumberOfFeatures, "Number of features to generate")
+		releasesPerBrowserFlag = flag.Int(
+			"releases_per_browser", defaultReleasesPerBrowser, "Number of releases per browser")
+		runsPerBrowserChannelFlag = flag.Int(
+			"runs_per_browser_channel", defaultRunsPerBrowserPerChannel, "Number of runs per browser per channel")
+		numFeaturesFlag = flag.Int(
+			"num_features", defaultNumberOfFeatures, "Number of features to generate")
 	)
 	flag.Parse()
 
