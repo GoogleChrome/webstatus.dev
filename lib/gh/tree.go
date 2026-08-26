@@ -45,6 +45,9 @@ func (c *Client) GetCommitTree(ctx context.Context, owner, repo, sha string) (*g
 }
 
 // GetBlobContent fetches raw content of a git blob by SHA, enforcing a 1MB limit.
+// Note for callers: To prevent unnecessary network I/O and memory allocation,
+// callers should pre-filter git tree entries by relevant file extension and size
+// before requesting blob contents.
 func (c *Client) GetBlobContent(ctx context.Context, owner, repo, sha string) ([]byte, error) {
 	blob, _, err := c.gitClient.GetBlobRaw(ctx, owner, repo, sha)
 	if err != nil {

@@ -115,6 +115,7 @@ func TestGetCommitTree(t *testing.T) {
 				repoClient:   nil,
 				gitClient:    &MockGitClient{GetTreeFunc: tc.mockFunc, GetBlobRawFunc: nil},
 				issuesClient: nil,
+				appsClient:   nil,
 			}
 
 			tree, err := client.GetCommitTree(context.Background(), "owner", "repo", "sha123")
@@ -176,6 +177,7 @@ func TestGetBlobContent(t *testing.T) {
 				repoClient:   nil,
 				gitClient:    &MockGitClient{GetTreeFunc: nil, GetBlobRawFunc: tc.mockFunc},
 				issuesClient: nil,
+				appsClient:   nil,
 			}
 
 			content, err := client.GetBlobContent(context.Background(), "owner", "repo", "blob-sha")

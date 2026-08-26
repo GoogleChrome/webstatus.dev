@@ -16,6 +16,7 @@ package gh
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/url"
 
@@ -44,6 +45,11 @@ type IssuesClient interface {
 	Create(ctx context.Context, owner, repo string, issue *github.IssueRequest) (*github.Issue, *github.Response, error)
 }
 
+type AppsClient interface {
+	ListRepos(ctx context.Context, opts *github.ListOptions) (*github.ListRepositories, *github.Response, error)
+	ListInstallations(ctx context.Context, opts *github.ListOptions) ([]*github.Installation, *github.Response, error)
+}
+
 type UsersClient interface {
 	ListEmails(ctx context.Context, opts *github.ListOptions) ([]*github.UserEmail, *github.Response, error)
 	Get(ctx context.Context, user string) (*github.User, *github.Response, error)
@@ -53,6 +59,7 @@ type Client struct {
 	repoClient   RepoClient
 	gitClient    GitClient
 	issuesClient IssuesClient
+	appsClient   AppsClient
 }
 
 // NewClient creates a new Github Client. If the token is not empty, it will
@@ -75,7 +82,43 @@ func NewClientWithHTTPClient(httpClient *http.Client, token string, opts ...Clie
 		repoClient:   ghClient.Repositories,
 		gitClient:    ghClient.Git,
 		issuesClient: ghClient.Issues,
+		appsClient:   ghClient.Apps,
 	}
+}
+
+// ListAppInstallations returns all installations of the authenticated GitHub App.
+func (c *Client) ListAppInstallations(
+	ctx context.Context,
+	opts *github.ListOptions,
+) ([]*github.Installation, error) {
+	if c.appsClient == nil {
+		return nil, errors.New("apps client not initialized")
+	}
+	result, _, err := c.appsClient.ListInstallations(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+// ListInstallationRepositories returns all repositories accessible to the installation.
+func (c *Client) ListInstallationRepositories(
+	ctx context.Context,
+	opts *github.ListOptions,
+) ([]*github.Repository, error) {
+	if c.appsClient == nil {
+		return nil, errors.New("apps client not initialized")
+	}
+	result, _, err := c.appsClient.ListRepos(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+	if result == nil {
+		return nil, nil
+	}
+
+	return result.Repositories, nil
 }
 
 // UserGitHubClient is a client that receives a token from a user that has installed our GitHub App.

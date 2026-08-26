@@ -19,7 +19,6 @@ import (
 	"errors"
 	"net/http"
 	"testing"
-	"time"
 
 	"github.com/google/go-github/v79/github"
 )
@@ -45,39 +44,13 @@ func (m *MockIssuesClient) Create(
 }
 
 func mockHTTPResponse(statusCode int) *github.Response {
+	// nolint:exhaustruct // Test helper
 	return &github.Response{
 		Response: &http.Response{
-			Status:           "",
-			StatusCode:       statusCode,
-			Proto:            "",
-			ProtoMajor:       0,
-			ProtoMinor:       0,
-			Header:           nil,
-			Body:             nil,
-			ContentLength:    0,
-			TransferEncoding: nil,
-			Close:            false,
-			Uncompressed:     false,
-			Trailer:          nil,
-			Request:          nil,
-			TLS:              nil,
+			StatusCode: statusCode,
+			Header:     http.Header{},
+			Body:       http.NoBody,
 		},
-		NextPage:      0,
-		PrevPage:      0,
-		FirstPage:     0,
-		LastPage:      0,
-		NextPageToken: "",
-		Cursor:        "",
-		Before:        "",
-		After:         "",
-		Rate: github.Rate{
-			Limit:     0,
-			Remaining: 0,
-			Reset:     github.Timestamp{Time: time.Time{}},
-			Used:      0,
-			Resource:  "",
-		},
-		TokenExpiration: github.Timestamp{Time: time.Time{}},
 	}
 }
 
@@ -197,6 +170,7 @@ func TestCreateIssue(t *testing.T) {
 				repoClient:   nil,
 				gitClient:    nil,
 				issuesClient: &MockIssuesClient{CreateFunc: tc.mockFunc},
+				appsClient:   nil,
 			}
 
 			issue, err := client.CreateIssue(context.Background(), "owner", "repo", tc.req)
