@@ -57,8 +57,9 @@ type LockStorer interface {
 		subscriptionID, deliveryID, workerLockID string,
 		ttl time.Duration,
 	) (bool, error)
-	RecordDeliverySuccess(ctx context.Context, deliveryID string, issueID string, issueURL string) error
-	ReleaseDeliveryLock(ctx context.Context, deliveryID string) error
+	RecordDeliverySuccess(
+		ctx context.Context, deliveryID string, workerLockID string, issueID string, issueURL string) error
+	ReleaseDeliveryLock(ctx context.Context, deliveryID string, workerLockID string) error
 }
 
 // Deliverer coordinates lock acquisition, issue rendering, and issue creation.
@@ -130,7 +131,7 @@ func (d *Deliverer) ProcessJob(ctx context.Context, job githubissuedeliveryv1.Gi
 		if errors.Is(createErr, gh.ErrSecondaryRateLimit) {
 			slog.WarnContext(ctx, "hit secondary rate limit, releasing lock for retry backoff",
 				"repo", job.RepositoryFullName)
-			if relErr := d.storer.ReleaseDeliveryLock(ctx, job.DeliveryID); relErr != nil {
+			if relErr := d.storer.ReleaseDeliveryLock(ctx, job.DeliveryID, d.workerLockID); relErr != nil {
 				slog.ErrorContext(ctx, "failed to release lock after rate limit", "error", relErr)
 			}
 
@@ -144,7 +145,7 @@ func (d *Deliverer) ProcessJob(ctx context.Context, job githubissuedeliveryv1.Gi
 	issueURL := issue.GetHTMLURL()
 
 	// 4. Record successful delivery
-	if recErr := d.storer.RecordDeliverySuccess(ctx, job.DeliveryID, issueID, issueURL); recErr != nil {
+	if recErr := d.storer.RecordDeliverySuccess(ctx, job.DeliveryID, d.workerLockID, issueID, issueURL); recErr != nil {
 		slog.ErrorContext(ctx, "failed to record delivery success", "error", recErr, "issueURL", issueURL)
 
 		return fmt.Errorf("failed to record delivery success: %w", recErr)

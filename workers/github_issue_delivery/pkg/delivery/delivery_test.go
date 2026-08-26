@@ -110,6 +110,7 @@ func (m *mockDeliveryStorer) AcquireDeliveryLock(
 func (m *mockDeliveryStorer) RecordDeliverySuccess(
 	_ context.Context,
 	_ string,
+	_ string,
 	issueID string,
 	issueURL string,
 ) error {
@@ -122,6 +123,7 @@ func (m *mockDeliveryStorer) RecordDeliverySuccess(
 
 func (m *mockDeliveryStorer) ReleaseDeliveryLock(
 	_ context.Context,
+	_ string,
 	_ string,
 ) error {
 	m.lockReleased = true
