@@ -1554,13 +1554,13 @@ func main() {
 	// Use the grpc port from spanner in .dev/spanner/skaffold.yaml
 	// Describe the command line flags and parse the flags
 	var (
-		spannerProject            = flag.String("spanner_project", "", "Spanner Project")
-		spannerInstance           = flag.String("spanner_instance", "", "Spanner Instance")
-		spannerDatabase           = flag.String("spanner_database", "", "Spanner Database")
-		datastoreProject          = flag.String("datastore_project", "", "Datastore Project")
-		datastoreDatabase         = flag.String("datastore_database", "", "Datastore Database")
-		scope                     = flag.String("scope", "all", "Scope of data generation: all, user")
-		resetFlag                 = flag.Bool("reset", false, "Reset test user data before loading")
+		spannerProject         = flag.String("spanner_project", "", "Spanner Project")
+		spannerInstance        = flag.String("spanner_instance", "", "Spanner Instance")
+		spannerDatabase        = flag.String("spanner_database", "", "Spanner Database")
+		datastoreProject       = flag.String("datastore_project", "", "Datastore Project")
+		datastoreDatabase      = flag.String("datastore_database", "", "Datastore Database")
+		scope                  = flag.String("scope", "all", "Scope of data generation: all, user")
+		resetFlag              = flag.Bool("reset", false, "Reset test user data before loading")
 		releasesPerBrowserFlag = flag.Int(
 			"releases_per_browser", defaultReleasesPerBrowser, "Number of releases per browser")
 		runsPerBrowserChannelFlag = flag.Int(
