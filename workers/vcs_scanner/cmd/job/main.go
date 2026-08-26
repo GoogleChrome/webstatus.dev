@@ -20,6 +20,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/gcppubsub"
+	"github.com/GoogleChrome/webstatus.dev/lib/gcppubsub/gcppubsubadapters"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gh"
 	"github.com/GoogleChrome/webstatus.dev/lib/opentelemetry"
@@ -45,6 +47,12 @@ func main() {
 	projectID := os.Getenv("PROJECT_ID")
 	if projectID == "" {
 		slog.ErrorContext(ctx, "PROJECT_ID is not set. exiting...")
+		os.Exit(1)
+	}
+
+	subID := os.Getenv("VCS_SCAN_SUBSCRIPTION_ID")
+	if subID == "" {
+		slog.ErrorContext(ctx, "VCS_SCAN_SUBSCRIPTION_ID is not set. exiting...")
 		os.Exit(1)
 	}
 
@@ -80,8 +88,19 @@ func main() {
 		slog.WarnContext(ctx, "unable to create token provider", "error", err)
 	}
 	_ = tokenProvider
-	ghClient := gh.NewClient("")
-	_ = scanner.NewScanner(ghClient, spannerClient)
 
-	slog.InfoContext(ctx, "VCS scanner worker initialized successfully")
+	queueClient, err := gcppubsub.NewClient(ctx, projectID)
+	if err != nil {
+		slog.ErrorContext(ctx, "unable to create pub sub client", "error", err)
+		os.Exit(1)
+	}
+
+	ghClient := gh.NewClient("")
+	scannerInstance := scanner.NewScanner(ghClient, spannerClient)
+
+	listener := gcppubsubadapters.NewVCSScannerSubscriberAdapter(scannerInstance, queueClient, subID)
+	if err := listener.Subscribe(ctx); err != nil {
+		slog.ErrorContext(ctx, "vcs scanner worker subscriber failed", "error", err)
+		os.Exit(1)
+	}
 }
