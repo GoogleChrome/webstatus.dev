@@ -23,6 +23,7 @@ import (
 
 	"cloud.google.com/go/spanner"
 	"github.com/google/uuid"
+	"google.golang.org/api/iterator"
 )
 
 var (
@@ -30,6 +31,8 @@ var (
 	ErrDeliveryAlreadyDelivered = errors.New("delivery already delivered")
 	// ErrDeliveryAlreadyLocked indicates the delivery task is currently leased by another worker.
 	ErrDeliveryAlreadyLocked = errors.New("delivery already locked by another worker")
+	// ErrDeliveryLockMismatch indicates worker does not own active lease.
+	ErrDeliveryLockMismatch = errors.New("delivery lock mismatch: worker does not own active lease")
 	// ErrWebhookAlreadyDelivered indicates the webhook delivery GUID was already processed.
 	ErrWebhookAlreadyDelivered = errors.New("webhook delivery already recorded")
 	// ErrDuplicateTargetQuery indicates multiple incoming subscriptions have the same TargetQuery.
@@ -163,7 +166,7 @@ func readExistingRepositorySubscriptions(
 }
 
 func computeSyncMutations(
-	incoming []CodeSubscription,
+	incoming []CodeSubscriptionInput,
 	existingMap map[string]CodeSubscription,
 	now time.Time,
 ) ([]*spanner.Mutation, error) {
@@ -181,20 +184,41 @@ func computeSyncMutations(
 
 	for _, in := range incoming {
 		incomingMatched[in.TargetQuery] = true
+		var sub CodeSubscription
 		if existing, found := existingMap[in.TargetQuery]; found {
 			// Existing subscription or re-added subscription:
-			// Preserve original ID and CreatedAt, update occurrences, and ensure Status = ACTIVE (revival).
-			in.ID = existing.ID
-			in.CreatedAt = existing.CreatedAt
-			in.Status = SubscriptionActive
+			// Preserve original ID and CreatedAt, update occurrences/triggers, and ensure Status = ACTIVE (revival).
+			sub = CodeSubscription{
+				ID:                 existing.ID,
+				VCSProvider:        in.VCSProvider,
+				VCSInstallationID:  in.VCSInstallationID,
+				VCSRepositoryID:    in.VCSRepositoryID,
+				RepositoryFullName: in.RepositoryFullName,
+				TargetQuery:        in.TargetQuery,
+				Triggers:           in.Triggers,
+				Status:             SubscriptionActive,
+				Occurrences:        in.Occurrences,
+				CreatedAt:          existing.CreatedAt,
+				UpdatedAt:          now,
+			}
 		} else {
-			// New subscription:
-			in.CreatedAt = now
-			in.Status = SubscriptionActive
+			// New subscription: assign fresh UUID only upon database insertion
+			sub = CodeSubscription{
+				ID:                 uuid.NewString(),
+				VCSProvider:        in.VCSProvider,
+				VCSInstallationID:  in.VCSInstallationID,
+				VCSRepositoryID:    in.VCSRepositoryID,
+				RepositoryFullName: in.RepositoryFullName,
+				TargetQuery:        in.TargetQuery,
+				Triggers:           in.Triggers,
+				Status:             SubscriptionActive,
+				Occurrences:        in.Occurrences,
+				CreatedAt:          now,
+				UpdatedAt:          now,
+			}
 		}
-		in.UpdatedAt = now
 
-		scs := fromCodeSubscription(&in)
+		scs := fromCodeSubscription(&sub)
 		mut, mutErr := spanner.InsertOrUpdateStruct(codeSubscriptionTable, scs)
 		if mutErr != nil {
 			return nil, fmt.Errorf("failed to create code subscription mutation: %w", mutErr)
@@ -226,7 +250,7 @@ func (c *Client) SynchronizeRepositoryCodeSubscriptions(
 	ctx context.Context,
 	vcsProvider VCSProvider,
 	repoID string,
-	incoming []CodeSubscription,
+	incoming []CodeSubscriptionInput,
 ) error {
 	now := c.timeNow()
 
@@ -251,6 +275,145 @@ func (c *Client) SynchronizeRepositoryCodeSubscriptions(
 	})
 
 	return err
+}
+
+// VCSRepository represents a distinct version-controlled repository configured in webstatus.dev.
+type VCSRepository struct {
+	ID                 string
+	VCSProvider        VCSProvider
+	VCSInstallationID  string
+	VCSRepositoryID    string
+	RepositoryFullName string
+}
+
+// ListVCSRepositoriesByProvider returns distinct repositories tracked in CodeSubscriptions for a given VCS provider.
+func (c *Client) ListVCSRepositoriesByProvider(
+	ctx context.Context,
+	provider VCSProvider,
+) ([]VCSRepository, error) {
+	stmt := spanner.Statement{
+		SQL: `SELECT DISTINCT VCSProvider, VCSInstallationID, VCSRepositoryID, RepositoryFullName
+		FROM CodeSubscriptions
+		WHERE VCSProvider = @vcsProvider
+		ORDER BY RepositoryFullName ASC`,
+		Params: map[string]any{
+			"vcsProvider": string(provider),
+		},
+	}
+	txn := c.Single()
+	defer txn.Close()
+	iter := txn.Query(ctx, stmt)
+	defer iter.Stop()
+
+	var repos []VCSRepository
+	for {
+		row, err := iter.Next()
+		if errors.Is(err, iterator.Done) {
+			break
+		}
+		if err != nil {
+			return nil, fmt.Errorf("failed to query repositories: %w", err)
+		}
+		var s struct {
+			VCSProvider        string `spanner:"VCSProvider"`
+			VCSInstallationID  string `spanner:"VCSInstallationID"`
+			VCSRepositoryID    string `spanner:"VCSRepositoryID"`
+			RepositoryFullName string `spanner:"RepositoryFullName"`
+		}
+		if err := row.ToStruct(&s); err != nil {
+			return nil, fmt.Errorf("failed to parse repository row: %w", err)
+		}
+		p, err := ParseVCSProvider(s.VCSProvider)
+		if err != nil {
+			return nil, err
+		}
+		repos = append(repos, VCSRepository{
+			ID:                 s.VCSRepositoryID,
+			VCSProvider:        p,
+			VCSInstallationID:  s.VCSInstallationID,
+			VCSRepositoryID:    s.VCSRepositoryID,
+			RepositoryFullName: s.RepositoryFullName,
+		})
+	}
+
+	return repos, nil
+}
+
+// ListVCSInstallations returns all VCS installations stored in Spanner.
+func (c *Client) ListVCSInstallations(ctx context.Context) ([]VCSInstallation, error) {
+	stmt := spanner.NewStatement(`SELECT ID, VCSProvider, VCSInstallationID, AccountLogin, AccountType,
+			RepositorySelection, Permissions, CreatedAt, UpdatedAt
+		FROM VCSInstallations`)
+	txn := c.Single()
+	defer txn.Close()
+	iter := txn.Query(ctx, stmt)
+	defer iter.Stop()
+
+	var installations []VCSInstallation
+	for {
+		row, err := iter.Next()
+		if errors.Is(err, iterator.Done) {
+			break
+		}
+		if err != nil {
+			return nil, fmt.Errorf("failed to query installations: %w", err)
+		}
+		var s spannerVCSInstallation
+		if err := row.ToStruct(&s); err != nil {
+			return nil, fmt.Errorf("failed to parse installation row: %w", err)
+		}
+		inst, err := s.toVCSInstallation()
+		if err != nil {
+			return nil, err
+		}
+		installations = append(installations, *inst)
+	}
+
+	return installations, nil
+}
+
+// ListVCSInstallationsByAccount returns active installations for a specific provider and account login.
+func (c *Client) ListVCSInstallationsByAccount(
+	ctx context.Context,
+	provider VCSProvider,
+	accountLogin string,
+) ([]VCSInstallation, error) {
+	stmt := spanner.Statement{
+		SQL: `SELECT ID, VCSProvider, VCSInstallationID, AccountLogin, AccountType,
+			RepositorySelection, Permissions, CreatedAt, UpdatedAt
+		FROM VCSInstallations
+		WHERE VCSProvider = @vcsProvider AND AccountLogin = @accountLogin`,
+		Params: map[string]any{
+			"vcsProvider":  string(provider),
+			"accountLogin": accountLogin,
+		},
+	}
+	txn := c.Single()
+	defer txn.Close()
+	iter := txn.Query(ctx, stmt)
+	defer iter.Stop()
+
+	var installations []VCSInstallation
+	for {
+		row, err := iter.Next()
+		if errors.Is(err, iterator.Done) {
+			break
+		}
+		if err != nil {
+			return nil, fmt.Errorf("failed to query installations: %w", err)
+		}
+		var s spannerVCSInstallation
+		if err := row.ToStruct(&s); err != nil {
+			return nil, fmt.Errorf("failed to parse installation row: %w", err)
+		}
+		inst, err := s.toVCSInstallation()
+		if err != nil {
+			return nil, err
+		}
+		installations = append(installations, *inst)
+	}
+
+	return installations, nil
 }
 
 // ListCodeSubscriptionsByRepository returns active code subscriptions for a repository with pagination.
@@ -437,9 +600,10 @@ func (c *Client) AcquireDeliveryLock(
 }
 
 // RecordDeliverySuccess records successful issue delivery.
+// Fencing check: verifies that the workerID owns the active lock lease before recording success.
 func (c *Client) RecordDeliverySuccess(
 	ctx context.Context,
-	deliveryID, issueID, issueURL string,
+	deliveryID, workerID, issueID, issueURL string,
 ) error {
 	mutator := newEntityMutator[codeSubscriptionDeliveryMapper, spannerCodeSubscriptionDelivery, string](c)
 
@@ -449,6 +613,11 @@ func (c *Client) RecordDeliverySuccess(
 		func(_ context.Context, existing *spannerCodeSubscriptionDelivery) (*spanner.Mutation, error) {
 			if existing == nil {
 				return nil, ErrCodeSubscriptionDeliveryNotFound
+			}
+
+			// Lock fencing check: verify worker ownership
+			if existing.WorkerLockID.Valid && existing.WorkerLockID.StringVal != workerID {
+				return nil, ErrDeliveryLockMismatch
 			}
 
 			now := c.timeNow()
@@ -466,8 +635,9 @@ func (c *Client) RecordDeliverySuccess(
 }
 
 // ReleaseDeliveryLock clears worker lock lease on transient errors.
-// This operation is idempotent and returns nil if the delivery record does not exist.
-func (c *Client) ReleaseDeliveryLock(ctx context.Context, deliveryID string) error {
+// Fencing check: only clears the lock if the specified workerID owns the active lock lease.
+// If the caller does not own the lock, ErrDeliveryLockMismatch is returned.
+func (c *Client) ReleaseDeliveryLock(ctx context.Context, deliveryID, workerID string) error {
 	mutator := newEntityMutator[codeSubscriptionDeliveryMapper, spannerCodeSubscriptionDelivery, string](c)
 
 	err := mutator.readInspectMutate(
@@ -476,6 +646,11 @@ func (c *Client) ReleaseDeliveryLock(ctx context.Context, deliveryID string) err
 		func(_ context.Context, existing *spannerCodeSubscriptionDelivery) (*spanner.Mutation, error) {
 			if existing == nil {
 				return nil, ErrCodeSubscriptionDeliveryNotFound
+			}
+
+			// Lock fencing: verify worker ownership
+			if !existing.WorkerLockID.Valid || existing.WorkerLockID.StringVal != workerID {
+				return nil, ErrDeliveryLockMismatch
 			}
 
 			existing.DeliveryStatus = string(DeliveryStatusPending)
