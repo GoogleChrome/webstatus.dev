@@ -193,6 +193,12 @@ type WPTMetricsStorer interface {
 		userID, subscriptionID string,
 		req backend.UpdateSubscriptionRequest,
 	) (*backend.SubscriptionResponse, error)
+	ListVCSInstallations(
+		ctx context.Context,
+		provider string,
+		pageSize int,
+		pageToken *string,
+	) (*backend.VCSInstallationPage, error)
 }
 
 type Server struct {

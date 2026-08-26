@@ -12,20 +12,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//nolint:dupl // Similar structure across listing handlers
 package httpserver
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"log/slog"
+	"net/http"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/backendtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 )
 
-// ListVCSInstallations handles GET /v1/users/me/vcs-installations.
+// ListVCSInstallations handles GET /v1/vcs/{provider}/installations.
 //
-//nolint:ireturn, revive // Expected ireturn for openapi generation.
+//nolint:ireturn, revive, dupl // Expected ireturn for openapi generation.
 func (s *Server) ListVCSInstallations(
 	ctx context.Context,
-	_ backend.ListVCSInstallationsRequestObject,
+	request backend.ListVCSInstallationsRequestObject,
 ) (backend.ListVCSInstallationsResponseObject, error) {
 	userCheck := CheckAuthenticatedUser[backend.ListVCSInstallationsResponseObject](
 		ctx, "ListVCSInstallations",
@@ -37,10 +43,35 @@ func (s *Server) ListVCSInstallations(
 		return userCheck.Response, nil
 	}
 
-	data := []backend.VCSInstallationSummary{}
+	pageSize := getPageSizeOrDefault(request.Params.PageSize)
 
-	return backend.ListVCSInstallations200JSONResponse{
-		Data:     &data,
-		Metadata: nil,
-	}, nil
+	page, err := s.wptMetricsStorer.ListVCSInstallations(
+		ctx, request.Provider, pageSize, request.Params.PageToken)
+	if err != nil {
+		if errors.Is(err, backendtypes.ErrInvalidPageToken) {
+			return backend.ListVCSInstallations400JSONResponse(
+				backend.BasicErrorModel{
+					Code:    http.StatusBadRequest,
+					Message: errMsgInvalidPageToken,
+				}), nil
+		}
+		if errors.Is(err, backendtypes.ErrUnsupportedVCSProvider) {
+			return backend.ListVCSInstallations400JSONResponse(
+				backend.BasicErrorModel{
+					Code:    http.StatusBadRequest,
+					Message: fmt.Sprintf("unsupported VCS provider: %s", request.Provider),
+				}), nil
+		}
+
+		slog.ErrorContext(ctx, "failed to list VCS installations", "error", err,
+			"provider", request.Provider)
+
+		return backend.ListVCSInstallations500JSONResponse(
+			backend.BasicErrorModel{
+				Code:    http.StatusInternalServerError,
+				Message: "failed to list VCS installations",
+			}), nil
+	}
+
+	return backend.ListVCSInstallations200JSONResponse(*page), nil
 }

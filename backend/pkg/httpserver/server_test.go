@@ -329,6 +329,14 @@ type MockUpdateSavedSearchSubscriptionConfig struct {
 	err                    error
 }
 
+type MockListVCSInstallationsConfig struct {
+	expectedProvider  string
+	expectedPageSize  int
+	expectedPageToken *string
+	result            *backend.VCSInstallationPage
+	err               error
+}
+
 type basicHTTPTestCase[T any] struct {
 	name             string
 	cfg              *T
@@ -370,6 +378,7 @@ type MockWPTMetricsStorer struct {
 	updateSavedSearchSubscriptionCfg                  *MockUpdateSavedSearchSubscriptionConfig
 	validateQueryReferencesCfg                        *MockValidateQueryReferencesConfig
 	listGlobalSavedSearchesCfg                        *MockListGlobalSavedSearchesConfig
+	listVCSInstallationsCfg                           *MockListVCSInstallationsConfig
 	t                                                 *testing.T
 	callCountListMissingOneImplCounts                 int
 	callCountListMissingOneImplFeatures               int
@@ -993,6 +1002,28 @@ func (m *MockWPTMetricsStorer) ListNotificationChannels(
 	}
 
 	return m.listNotificationChannelsCfg.output, m.listNotificationChannelsCfg.err
+}
+
+func (m *MockWPTMetricsStorer) ListVCSInstallations(
+	_ context.Context,
+	provider string,
+	pageSize int,
+	pageToken *string,
+) (*backend.VCSInstallationPage, error) {
+	if provider != m.listVCSInstallationsCfg.expectedProvider {
+		m.t.Errorf("provider mismatch: got %s, want %s",
+			provider, m.listVCSInstallationsCfg.expectedProvider)
+	}
+	if pageSize != m.listVCSInstallationsCfg.expectedPageSize {
+		m.t.Errorf("pageSize mismatch: got %d, want %d",
+			pageSize, m.listVCSInstallationsCfg.expectedPageSize)
+	}
+	if !reflect.DeepEqual(pageToken, m.listVCSInstallationsCfg.expectedPageToken) {
+		m.t.Errorf("pageToken mismatch: got %v, want %v",
+			pageToken, m.listVCSInstallationsCfg.expectedPageToken)
+	}
+
+	return m.listVCSInstallationsCfg.result, m.listVCSInstallationsCfg.err
 }
 
 func (m *MockWPTMetricsStorer) DeleteNotificationChannel(
