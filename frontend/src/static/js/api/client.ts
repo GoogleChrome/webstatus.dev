@@ -57,7 +57,10 @@ type PageablePath =
   | '/v1/users/me/subscriptions'
   | '/v1/stats/baseline_status/low_date_feature_counts'
   | '/v1/stats/features/browsers/{browser}/missing_one_implementation_counts'
-  | '/v1/stats/features/browsers/{browser}/missing_one_implementation_counts/{date}/features';
+  | '/v1/stats/features/browsers/{browser}/missing_one_implementation_counts/{date}/features'
+  | '/v1/vcs/{provider}/installations'
+  | '/v1/vcs/{provider}/repositories'
+  | '/v1/vcs/{provider}/repositories/{repository_id}/code-subscriptions';
 
 /**
  * Utility to extract the item type from a paginated API response.
@@ -1028,9 +1031,12 @@ export class APIClient {
   public listVCSInstallations(
     provider: 'github',
     token: string,
-  ): Promise<components['schemas']['VCSInstallationPage']> {
-    return this.handleResponse(
-      this.client.GET('/v1/vcs/{provider}/installations', {
+    pageSize?: number,
+    pageToken?: string,
+  ): Promise<SuccessResponsePageableData<'/v1/vcs/{provider}/installations'>> {
+    return this.getPageOfData(
+      '/v1/vcs/{provider}/installations',
+      {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -1039,18 +1045,37 @@ export class APIClient {
             provider,
           },
         },
-      }),
-      '/v1/vcs/{provider}/installations',
-      'get',
+      },
+      pageToken,
+      pageSize,
     );
+  }
+
+  public getAllVCSInstallations(
+    provider: 'github',
+    token: string,
+  ): Promise<components['schemas']['VCSInstallationSummary'][]> {
+    return this.getAllPagesOfData('/v1/vcs/{provider}/installations', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      params: {
+        path: {
+          provider,
+        },
+      },
+    });
   }
 
   public listVCSRepositories(
     provider: 'github',
     token: string,
-  ): Promise<components['schemas']['VCSRepositoryPage']> {
-    return this.handleResponse(
-      this.client.GET('/v1/vcs/{provider}/repositories', {
+    pageSize?: number,
+    pageToken?: string,
+  ): Promise<SuccessResponsePageableData<'/v1/vcs/{provider}/repositories'>> {
+    return this.getPageOfData(
+      '/v1/vcs/{provider}/repositories',
+      {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -1059,34 +1084,73 @@ export class APIClient {
             provider,
           },
         },
-      }),
-      '/v1/vcs/{provider}/repositories',
-      'get',
+      },
+      pageToken,
+      pageSize,
     );
+  }
+
+  public getAllVCSRepositories(
+    provider: 'github',
+    token: string,
+  ): Promise<components['schemas']['VCSRepositorySummary'][]> {
+    return this.getAllPagesOfData('/v1/vcs/{provider}/repositories', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      params: {
+        path: {
+          provider,
+        },
+      },
+    });
   }
 
   public listCodeSubscriptions(
     provider: 'github',
     repositoryId: string,
     token: string,
-  ): Promise<components['schemas']['CodeSubscriptionPage']> {
-    return this.handleResponse(
-      this.client.GET(
-        '/v1/vcs/{provider}/repositories/{repository_id}/code-subscriptions',
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          params: {
-            path: {
-              provider,
-              repository_id: repositoryId,
-            },
+    pageSize?: number,
+    pageToken?: string,
+  ): Promise<
+    SuccessResponsePageableData<'/v1/vcs/{provider}/repositories/{repository_id}/code-subscriptions'>
+  > {
+    return this.getPageOfData(
+      '/v1/vcs/{provider}/repositories/{repository_id}/code-subscriptions',
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        params: {
+          path: {
+            provider,
+            repository_id: repositoryId,
           },
         },
-      ),
+      },
+      pageToken,
+      pageSize,
+    );
+  }
+
+  public getAllCodeSubscriptions(
+    provider: 'github',
+    repositoryId: string,
+    token: string,
+  ): Promise<components['schemas']['CodeSubscriptionResponse'][]> {
+    return this.getAllPagesOfData(
       '/v1/vcs/{provider}/repositories/{repository_id}/code-subscriptions',
-      'get',
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        params: {
+          path: {
+            provider,
+            repository_id: repositoryId,
+          },
+        },
+      },
     );
   }
 }
