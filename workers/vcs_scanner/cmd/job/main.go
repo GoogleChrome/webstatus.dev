@@ -50,9 +50,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	subID := os.Getenv("VCS_SCAN_SUBSCRIPTION_ID")
+	subID := os.Getenv("VCS_SCAN_TASKS_SUBSCRIPTION_ID")
 	if subID == "" {
-		slog.ErrorContext(ctx, "VCS_SCAN_SUBSCRIPTION_ID is not set. exiting...")
+		slog.ErrorContext(ctx, "VCS_SCAN_TASKS_SUBSCRIPTION_ID is not set. exiting...")
 		os.Exit(1)
 	}
 

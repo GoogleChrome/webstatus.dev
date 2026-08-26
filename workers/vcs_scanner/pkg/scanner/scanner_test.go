@@ -19,6 +19,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/event"
 	codescantaskv1 "github.com/GoogleChrome/webstatus.dev/lib/event/codescantask/v1"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/google/go-github/v79/github"
@@ -195,8 +196,8 @@ func TestProcessTaskDeletedBranch(t *testing.T) {
 	task.CommitSHA = DeletedBranchSHA
 
 	err := s.ProcessTask(context.Background(), task)
-	if !errors.Is(err, ErrDeletedBranch) {
-		t.Fatalf("expected ErrDeletedBranch, got %v", err)
+	if err != nil {
+		t.Fatalf("expected nil error on deleted branch, got %v", err)
 	}
 }
 
@@ -221,8 +222,45 @@ func TestProcessTaskNonDefaultBranch(t *testing.T) {
 	task.IsDefaultBranch = false
 
 	err := s.ProcessTask(context.Background(), task)
-	if !errors.Is(err, ErrNonDefaultBranch) {
-		t.Fatalf("expected ErrNonDefaultBranch, got %v", err)
+	if err != nil {
+		t.Fatalf("expected nil error on non-default branch, got %v", err)
+	}
+}
+
+func TestProcessTaskBlobFetchError(t *testing.T) {
+	t.Parallel()
+
+	fetcher := &mockGitFetcher{
+		treeResp: &github.Tree{
+			SHA: nil,
+			Entries: []*github.TreeEntry{
+				{
+					Path: new("src/app.ts"),
+					Type: new("blob"),
+					Size: new(100),
+					SHA:  new("blob-sha-1"),
+				},
+			},
+			Truncated: new(false),
+		},
+		treeErr: nil,
+		blobs:   nil,
+		blobErr: errors.New("blob fetch timeout"),
+	}
+	syncer := &mockSpannerSyncer{
+		syncedSubs: nil,
+		syncErr:    nil,
+		scanLogs:   nil,
+		logErr:     nil,
+	}
+	s := NewScanner(fetcher, syncer)
+
+	err := s.ProcessTask(context.Background(), sampleTask())
+	if err == nil {
+		t.Fatalf("expected blob fetch error, got nil")
+	}
+	if !errors.Is(err, event.ErrTransientFailure) {
+		t.Errorf("expected ErrTransientFailure, got %v", err)
 	}
 }
 

@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/codescan"
+	"github.com/GoogleChrome/webstatus.dev/lib/event"
 	codescantaskv1 "github.com/GoogleChrome/webstatus.dev/lib/event/codescantask/v1"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/google/go-github/v79/github"
@@ -109,7 +110,7 @@ func (s *Scanner) scanFiles(
 	ctx context.Context,
 	task codescantaskv1.CodeScanTaskEvent,
 	entries []*github.TreeEntry,
-) (map[string][]gcpspanner.SubscriptionOccurrence, map[string]map[string]struct{}, int64) {
+) (map[string][]gcpspanner.SubscriptionOccurrence, map[string]map[string]struct{}, int64, error) {
 	owner, repo := splitOwnerRepo(task.RepositoryFullName)
 	occurrencesByQuery := make(map[string][]gcpspanner.SubscriptionOccurrence)
 	triggersByQuery := make(map[string]map[string]struct{})
@@ -127,9 +128,15 @@ func (s *Scanner) scanFiles(
 
 		content, blobErr := s.gitFetcher.GetBlobContent(ctx, owner, repo, entry.GetSHA())
 		if blobErr != nil {
-			slog.WarnContext(ctx, "failed to get blob content", "path", entry.GetPath(), "error", blobErr)
+			slog.ErrorContext(ctx, "failed to get blob content, aborting scan for retry",
+				"path", entry.GetPath(), "error", blobErr)
 
-			continue
+			return nil, nil, 0, fmt.Errorf(
+				"%w: failed to fetch blob for %s: %w",
+				event.ErrTransientFailure,
+				entry.GetPath(),
+				blobErr,
+			)
 		}
 		if int64(len(content)) > MaxBlobSizeBytes {
 			slog.WarnContext(ctx, "skipping giant file exceeding 1MB after fetch", "path", entry.GetPath(), "size", len(content))
@@ -153,7 +160,7 @@ func (s *Scanner) scanFiles(
 		}
 	}
 
-	return occurrencesByQuery, triggersByQuery, filesScanned
+	return occurrencesByQuery, triggersByQuery, filesScanned, nil
 }
 
 func (s *Scanner) buildSubscriptions(
@@ -204,12 +211,12 @@ func (s *Scanner) ProcessTask(ctx context.Context, task codescantaskv1.CodeScanT
 	if task.CommitSHA == DeletedBranchSHA {
 		slog.InfoContext(ctx, "skipping deleted branch commit", "repo", task.RepositoryFullName)
 
-		return ErrDeletedBranch
+		return nil
 	}
 	if !task.IsDefaultBranch {
 		slog.InfoContext(ctx, "skipping non-default branch commit", "repo", task.RepositoryFullName, "branch", task.Branch)
 
-		return ErrNonDefaultBranch
+		return nil
 	}
 
 	vcsProvider, provErr := gcpspanner.ParseVCSProvider(task.VCSProvider)
@@ -225,10 +232,16 @@ func (s *Scanner) ProcessTask(ctx context.Context, task codescantaskv1.CodeScanT
 		slog.ErrorContext(ctx, "failed to fetch git tree", "error", err, "repo", task.RepositoryFullName)
 		s.recordFailedScanLog(ctx, task, now, fmt.Sprintf("failed to fetch git tree: %v", err))
 
-		return fmt.Errorf("failed to fetch git tree: %w", err)
+		return fmt.Errorf("%w: failed to fetch git tree: %w", event.ErrTransientFailure, err)
 	}
 
-	occurrencesByQuery, triggersByQuery, filesScanned := s.scanFiles(ctx, task, tree.Entries)
+	occurrencesByQuery, triggersByQuery, filesScanned, scanErr := s.scanFiles(ctx, task, tree.Entries)
+	if scanErr != nil {
+		slog.ErrorContext(ctx, "failed to scan repository files", "error", scanErr, "repo", task.RepositoryFullName)
+		s.recordFailedScanLog(ctx, task, now, fmt.Sprintf("failed to scan files: %v", scanErr))
+
+		return scanErr
+	}
 	subscriptions, scanStatus := s.buildSubscriptions(task, occurrencesByQuery, triggersByQuery)
 
 	if tree.GetTruncated() {
@@ -245,7 +258,7 @@ func (s *Scanner) ProcessTask(ctx context.Context, task codescantaskv1.CodeScanT
 		slog.ErrorContext(ctx, "failed to synchronize code subscriptions", "error", syncErr, "repo", task.RepositoryFullName)
 		s.recordFailedScanLog(ctx, task, now, fmt.Sprintf("spanner sync error: %v", syncErr))
 
-		return fmt.Errorf("failed to sync code subscriptions: %w", syncErr)
+		return fmt.Errorf("%w: failed to sync code subscriptions: %w", event.ErrTransientFailure, syncErr)
 	}
 
 	scanLog := gcpspanner.CodeSubscriptionScanLog{
