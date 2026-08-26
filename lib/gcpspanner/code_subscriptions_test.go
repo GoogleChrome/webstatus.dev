@@ -204,8 +204,8 @@ func testDeliveryLocking(ctx context.Context, t *testing.T, list []CodeSubscript
 	}
 
 	secondLock, err := spannerClient.AcquireDeliveryLock(ctx, list[0].ID, delID1, "worker-2", 30*time.Second)
-	if err != nil {
-		t.Fatalf("AcquireDeliveryLock 2 failed: %v", err)
+	if !errors.Is(err, ErrDeliveryAlreadyLocked) {
+		t.Fatalf("expected ErrDeliveryAlreadyLocked from AcquireDeliveryLock 2, got %v", err)
 	}
 	if secondLock {
 		t.Errorf("expected second lock acquisition to fail")
@@ -224,7 +224,7 @@ func testDeliveryLocking(ctx context.Context, t *testing.T, list []CodeSubscript
 		t.Fatalf("RecordDeliverySuccess failed: %v", err)
 	}
 
-	// Verify delivery is marked delivered and cannot be re-locked
+	// Verify delivery is marked delivered and cannot be re-locked (returns false, nil)
 	lockedAgain, err := spannerClient.AcquireDeliveryLock(ctx, list[0].ID, delID1, "worker-3", 30*time.Second)
 	if err != nil {
 		t.Fatalf("AcquireDeliveryLock after delivery failed: %v", err)
@@ -246,8 +246,12 @@ func testDeliveryLocking(ctx context.Context, t *testing.T, list []CodeSubscript
 	}
 	// Lock should still be held by worker-temp, so worker-next cannot acquire yet
 	blockedAcquire, err := spannerClient.AcquireDeliveryLock(ctx, list[1].ID, delID2, "worker-next", 30*time.Second)
-	if err != nil || blockedAcquire {
-		t.Fatalf("expected lock to still be held by worker-temp, got acquired=%v, err=%v", blockedAcquire, err)
+	if !errors.Is(err, ErrDeliveryAlreadyLocked) || blockedAcquire {
+		t.Fatalf(
+			"expected lock to still be held by worker-temp (ErrDeliveryAlreadyLocked), got acquired=%v, err=%v",
+			blockedAcquire,
+			err,
+		)
 	}
 
 	// Now legitimate owner releases lock
