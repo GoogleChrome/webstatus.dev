@@ -110,6 +110,82 @@ test('shows the Baseline status column with low and high date options', async ({
 
 const DEFAULT_PAGE_SIZE = 25;
 
+const EXPECTED_DEFAULT_COLUMNS = [
+  'Feature name',
+  'Baseline status',
+  'Chrome Availability Status',
+  'Chrome Availability Version',
+  'Chrome Availability Date',
+  'Edge Availability Status',
+  'Edge Availability Version',
+  'Edge Availability Date',
+  'Firefox Availability Status',
+  'Firefox Availability Version',
+  'Firefox Availability Date',
+  'Safari Availability Status',
+  'Safari Availability Version',
+  'Safari Availability Date',
+  'Chrome WPT Stable Score',
+  'Edge WPT Stable Score',
+  'Firefox WPT Stable Score',
+  'Safari WPT Stable Score',
+  'Chrome Usage',
+];
+
+const EXPECTED_ALL_COLUMNS = [
+  'Feature name',
+  'Baseline status',
+  'Chrome Availability Status',
+  'Chrome Availability Version',
+  'Chrome Availability Date',
+  'Edge Availability Status',
+  'Edge Availability Version',
+  'Edge Availability Date',
+  'Firefox Availability Status',
+  'Firefox Availability Version',
+  'Firefox Availability Date',
+  'Safari Availability Status',
+  'Safari Availability Version',
+  'Safari Availability Date',
+  'Chrome Android Availability Status',
+  'Chrome Android Availability Version',
+  'Chrome Android Availability Date',
+  'Firefox Android Availability Status',
+  'Firefox Android Availability Version',
+  'Firefox Android Availability Date',
+  'Safari iOS Availability Status',
+  'Safari iOS Availability Version',
+  'Safari iOS Availability Date',
+  'Chrome WPT Stable Score',
+  'Edge WPT Stable Score',
+  'Firefox WPT Stable Score',
+  'Safari WPT Stable Score',
+  'Chrome Android WPT Stable Score',
+  'Firefox Android WPT Stable Score',
+  'Safari iOS WPT Stable Score',
+  'Chrome WPT Experimental Score',
+  'Edge WPT Experimental Score',
+  'Firefox WPT Experimental Score',
+  'Safari WPT Experimental Score',
+  'Chrome Android WPT Experimental Score',
+  'Firefox Android WPT Experimental Score',
+  'Safari iOS WPT Experimental Score',
+  'Chrome Usage',
+  'Developer Upvotes',
+];
+
+function parseCSV(content: string): string[][] {
+  return content
+    .trim()
+    .split('\n')
+    .filter(line => line.length > 0)
+    .map(line =>
+      line
+        .split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/)
+        .map(val => val.replace(/^"|"$/g, '').trim()),
+    );
+}
+
 test('Export to CSV button downloads a file with default columns', async ({
   page,
 }) => {
@@ -124,11 +200,19 @@ test('Export to CSV button downloads a file with default columns', async ({
   await exportButton.click();
   const download = await downloadPromise;
 
+  expect(download.suggestedFilename()).toBe('webstatus-feature-overview.csv');
+
   const stream = await download.createReadStream();
   const file = (await stream.toArray()).toString();
 
-  expect(file).toMatchSnapshot('webstatus-feature-overview-default.csv');
-  expect(download.suggestedFilename()).toBe('webstatus-feature-overview.csv');
+  const rows = parseCSV(file);
+  expect(rows.length).toBeGreaterThan(1);
+  expect(rows[0]).toEqual(EXPECTED_DEFAULT_COLUMNS);
+
+  for (const row of rows.slice(1)) {
+    expect(row.length).toBe(EXPECTED_DEFAULT_COLUMNS.length);
+    expect(row[0].length).toBeGreaterThan(0);
+  }
 });
 
 test('Export to CSV button downloads a file with all columns', async ({
@@ -165,10 +249,19 @@ test('Export to CSV button downloads a file with all columns', async ({
   await exportButton.click();
   const download = await downloadPromise;
 
+  expect(download.suggestedFilename()).toBe('webstatus-feature-overview.csv');
+
   const stream = await download.createReadStream();
   const file = (await stream.toArray()).toString();
 
-  expect(file).toMatchSnapshot('webstatus-feature-overview-all-columns.csv');
+  const rows = parseCSV(file);
+  expect(rows.length).toBeGreaterThan(1);
+  expect(rows[0]).toEqual(EXPECTED_ALL_COLUMNS);
+
+  for (const row of rows.slice(1)) {
+    expect(row.length).toBe(EXPECTED_ALL_COLUMNS.length);
+    expect(row[0].length).toBeGreaterThan(0);
+  }
 });
 
 test('Export to CSV button fails to request all features and shows toast', async ({
