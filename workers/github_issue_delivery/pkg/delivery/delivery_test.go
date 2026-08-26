@@ -20,7 +20,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/event"
 	githubissuedeliveryv1 "github.com/GoogleChrome/webstatus.dev/lib/event/githubissuedelivery/v1"
+	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gh"
 	"github.com/google/go-github/v79/github"
 )
@@ -192,7 +194,7 @@ func TestDelivererSuccess(t *testing.T) {
 	}
 }
 
-func TestDelivererLockAlreadyHeld(t *testing.T) {
+func TestDelivererAlreadyDelivered(t *testing.T) {
 	t.Parallel()
 
 	creator := &mockIssueCreator{
@@ -290,5 +292,37 @@ func TestDelivererCreateIssueError(t *testing.T) {
 	}
 	if storer.recordedSuccess {
 		t.Errorf("delivery success should not be recorded on failure")
+	}
+}
+
+func TestDelivererLockAlreadyHeld(t *testing.T) {
+	t.Parallel()
+
+	creator := &mockIssueCreator{
+		createdTitle: "",
+		createdBody:  "",
+		issueID:      0,
+		issueURL:     "",
+		createErr:    nil,
+	}
+
+	storer := &mockDeliveryStorer{
+		lockAcquired:    false,
+		acquireErr:      gcpspanner.ErrDeliveryAlreadyLocked,
+		recordedSuccess: false,
+		recordedIssueID: "",
+		recordedURL:     "",
+		recordErr:       nil,
+		lockReleased:    false,
+		releaseErr:      nil,
+	}
+
+	deliverer := NewDeliverer(creator, storer, "worker-1")
+	err := deliverer.ProcessJob(context.Background(), sampleJob())
+	if err == nil {
+		t.Fatalf("expected error on lock collision, got nil")
+	}
+	if !errors.Is(err, event.ErrTransientFailure) {
+		t.Errorf("expected ErrTransientFailure on lock collision, got %v", err)
 	}
 }

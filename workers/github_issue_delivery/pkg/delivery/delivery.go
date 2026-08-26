@@ -22,6 +22,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/event"
 	githubissuedeliveryv1 "github.com/GoogleChrome/webstatus.dev/lib/event/githubissuedelivery/v1"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gh"
@@ -88,11 +89,16 @@ func (d *Deliverer) ProcessJob(ctx context.Context, job githubissuedeliveryv1.Gi
 		d.workerLockID,
 		30*time.Second,
 	)
+	if errors.Is(err, gcpspanner.ErrDeliveryAlreadyLocked) {
+		slog.InfoContext(ctx, "delivery lock held by another worker, backing off", "deliveryID", job.DeliveryID)
+
+		return fmt.Errorf("%w: delivery lock held by another worker: %w", event.ErrTransientFailure, err)
+	}
 	if err != nil {
-		return fmt.Errorf("failed to acquire delivery lock: %w", err)
+		return fmt.Errorf("%w: failed to acquire delivery lock: %w", event.ErrTransientFailure, err)
 	}
 	if !lockAcquired {
-		slog.InfoContext(ctx, "delivery lock already held or completed, skipping", "deliveryID", job.DeliveryID)
+		slog.InfoContext(ctx, "delivery lock already delivered, skipping", "deliveryID", job.DeliveryID)
 
 		return nil
 	}
@@ -135,7 +141,7 @@ func (d *Deliverer) ProcessJob(ctx context.Context, job githubissuedeliveryv1.Gi
 				slog.ErrorContext(ctx, "failed to release lock after rate limit", "error", relErr)
 			}
 
-			return fmt.Errorf("rate limited on issue creation: %w", createErr)
+			return fmt.Errorf("%w: rate limited on issue creation: %w", event.ErrTransientFailure, createErr)
 		}
 
 		return fmt.Errorf("failed to create issue: %w", createErr)
