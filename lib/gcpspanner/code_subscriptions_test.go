@@ -60,40 +60,32 @@ func TestCodeSubscriptions(t *testing.T) {
 	}
 
 	// 2. Test SynchronizeRepositoryCodeSubscriptions (Initial Ingestion)
-	sub1 := CodeSubscription{
-		ID:                 uuid.NewString(),
+	sub1 := CodeSubscriptionInput{
 		VCSProvider:        VCSProviderGitHub,
 		VCSInstallationID:  installationID,
 		VCSRepositoryID:    repoID,
 		RepositoryFullName: repoFullName,
 		TargetQuery:        "id:view-transitions",
 		Triggers:           []string{"feature_baseline_to_widely"},
-		Status:             SubscriptionActive,
 		Occurrences: []SubscriptionOccurrence{
 			{FilePath: "src/app.ts", LineNumber: 10, CommentSnippet: "// TODO(baseline/view-transitions): transition"},
 		},
-		CreatedAt: now,
-		UpdatedAt: now,
 	}
 
-	sub2 := CodeSubscription{
-		ID:                 uuid.NewString(),
+	sub2 := CodeSubscriptionInput{
 		VCSProvider:        VCSProviderGitHub,
 		VCSInstallationID:  installationID,
 		VCSRepositoryID:    repoID,
 		RepositoryFullName: repoFullName,
 		TargetQuery:        "id:subgrid",
 		Triggers:           []string{"feature_baseline_to_widely"},
-		Status:             SubscriptionActive,
 		Occurrences: []SubscriptionOccurrence{
 			{FilePath: "src/grid.css", LineNumber: 5, CommentSnippet: "// TODO(baseline/subgrid): grid"},
 		},
-		CreatedAt: now,
-		UpdatedAt: now,
 	}
 
 	if err := spannerClient.SynchronizeRepositoryCodeSubscriptions(
-		ctx, VCSProviderGitHub, repoID, []CodeSubscription{sub1, sub2}); err != nil {
+		ctx, VCSProviderGitHub, repoID, []CodeSubscriptionInput{sub1, sub2}); err != nil {
 		t.Fatalf("SynchronizeRepositoryCodeSubscriptions failed: %v", err)
 	}
 
@@ -177,21 +169,23 @@ func TestCodeSubscriptions(t *testing.T) {
 
 	// 9. Test Webhook Replay Protection and Scan Log insertion
 	testWebhookDeduplicationAndScanLog(ctx, t, repoID, now)
+
+	// 10. Test ListVCSRepositoriesByProvider and ListVCSInstallationsByAccount
+	testListVCSRepositoriesAndInstallations(ctx, t, repoID)
 }
 
 func testDuplicateTargetQuery(
 	ctx context.Context,
 	t *testing.T,
 	repoID string,
-	sub1 CodeSubscription,
+	sub1 CodeSubscriptionInput,
 ) {
 	t.Helper()
 
 	dupSub := sub1
-	dupSub.ID = uuid.NewString()
 
 	err := spannerClient.SynchronizeRepositoryCodeSubscriptions(
-		ctx, VCSProviderGitHub, repoID, []CodeSubscription{sub1, dupSub})
+		ctx, VCSProviderGitHub, repoID, []CodeSubscriptionInput{sub1, dupSub})
 	if !errors.Is(err, ErrDuplicateTargetQuery) {
 		t.Fatalf("expected ErrDuplicateTargetQuery, got: %v", err)
 	}
@@ -217,8 +211,15 @@ func testDeliveryLocking(ctx context.Context, t *testing.T, list []CodeSubscript
 		t.Errorf("expected second lock acquisition to fail")
 	}
 
+	// Test lock fencing: worker-wrong cannot record delivery success
+	wrongWorkerErr := spannerClient.RecordDeliverySuccess(
+		ctx, delID1, "worker-wrong", "issue-123", "https://github.com/owner/repo/issues/123")
+	if !errors.Is(wrongWorkerErr, ErrDeliveryLockMismatch) {
+		t.Fatalf("expected ErrDeliveryLockMismatch from worker-wrong, got %v", wrongWorkerErr)
+	}
+
 	err = spannerClient.RecordDeliverySuccess(
-		ctx, delID1, "issue-123", "https://github.com/owner/repo/issues/123")
+		ctx, delID1, "worker-1", "issue-123", "https://github.com/owner/repo/issues/123")
 	if err != nil {
 		t.Fatalf("RecordDeliverySuccess failed: %v", err)
 	}
@@ -238,7 +239,19 @@ func testDeliveryLocking(ctx context.Context, t *testing.T, list []CodeSubscript
 		t.Fatalf("failed to acquire initial lock for delivery 2: %v", err)
 	}
 
-	if err := spannerClient.ReleaseDeliveryLock(ctx, delID2); err != nil {
+	// Test lock fencing on release: worker-other cannot clear worker-temp's lock
+	errReleaseOther := spannerClient.ReleaseDeliveryLock(ctx, delID2, "worker-other")
+	if !errors.Is(errReleaseOther, ErrDeliveryLockMismatch) {
+		t.Fatalf("expected ErrDeliveryLockMismatch from worker-other, got %v", errReleaseOther)
+	}
+	// Lock should still be held by worker-temp, so worker-next cannot acquire yet
+	blockedAcquire, err := spannerClient.AcquireDeliveryLock(ctx, list[1].ID, delID2, "worker-next", 30*time.Second)
+	if err != nil || blockedAcquire {
+		t.Fatalf("expected lock to still be held by worker-temp, got acquired=%v, err=%v", blockedAcquire, err)
+	}
+
+	// Now legitimate owner releases lock
+	if err := spannerClient.ReleaseDeliveryLock(ctx, delID2, "worker-temp"); err != nil {
 		t.Fatalf("ReleaseDeliveryLock failed: %v", err)
 	}
 
@@ -266,7 +279,7 @@ func testDeclarativeObsolescenceAndRevival(
 	ctx context.Context,
 	t *testing.T,
 	repoID string,
-	sub1, sub2 CodeSubscription,
+	sub1, sub2 CodeSubscriptionInput,
 	initialList []CodeSubscription,
 ) {
 	t.Helper()
@@ -281,7 +294,7 @@ func testDeclarativeObsolescenceAndRevival(
 	}
 
 	if err := spannerClient.SynchronizeRepositoryCodeSubscriptions(
-		ctx, VCSProviderGitHub, repoID, []CodeSubscription{sub2}); err != nil {
+		ctx, VCSProviderGitHub, repoID, []CodeSubscriptionInput{sub2}); err != nil {
 		t.Fatalf("SynchronizeRepositoryCodeSubscriptions (obsolete sub1) failed: %v", err)
 	}
 	activeList, _, err := spannerClient.ListCodeSubscriptionsByRepository(ctx, ListCodeSubscriptionsRequest{
@@ -298,7 +311,7 @@ func testDeclarativeObsolescenceAndRevival(
 	}
 
 	if err := spannerClient.SynchronizeRepositoryCodeSubscriptions(
-		ctx, VCSProviderGitHub, repoID, []CodeSubscription{sub1, sub2}); err != nil {
+		ctx, VCSProviderGitHub, repoID, []CodeSubscriptionInput{sub1, sub2}); err != nil {
 		t.Fatalf("SynchronizeRepositoryCodeSubscriptions (revival) failed: %v", err)
 	}
 	revivedList, _, err := spannerClient.ListCodeSubscriptionsByRepository(ctx, ListCodeSubscriptionsRequest{
@@ -314,9 +327,12 @@ func testDeclarativeObsolescenceAndRevival(
 		t.Fatalf("expected 2 active subscriptions after revival, got %d", len(revivedList))
 	}
 
-	// Assert original CreatedAt was preserved upon revival
+	// Assert original ID and CreatedAt were preserved upon revival
 	for _, revived := range revivedList {
 		if revived.TargetQuery == sub1.TargetQuery {
+			if revived.ID != originalSub1.ID {
+				t.Errorf("expected durable ID preserved on revival: want %s, got %s", originalSub1.ID, revived.ID)
+			}
 			if !revived.CreatedAt.Equal(originalSub1.CreatedAt) {
 				t.Errorf("expected CreatedAt preserved on revival: want %v, got %v", originalSub1.CreatedAt, revived.CreatedAt)
 			}
@@ -369,5 +385,67 @@ func testWebhookDeduplicationAndScanLog(
 	}
 	if err := spannerClient.InsertCodeSubscriptionScanLog(ctx, scanLog); err != nil {
 		t.Fatalf("InsertCodeSubscriptionScanLog failed: %v", err)
+	}
+}
+
+func testListVCSRepositoriesAndInstallations(
+	ctx context.Context,
+	t *testing.T,
+	repoID string,
+) {
+	t.Helper()
+
+	repos, err := spannerClient.ListVCSRepositoriesByProvider(ctx, VCSProviderGitHub)
+	if err != nil {
+		t.Fatalf("ListVCSRepositoriesByProvider failed: %v", err)
+	}
+	if len(repos) == 0 {
+		t.Errorf("expected at least 1 repository, got 0")
+	}
+	found := false
+	for _, r := range repos {
+		if r.VCSRepositoryID == repoID {
+			found = true
+			if r.RepositoryFullName != "GoogleChrome/webstatus.dev" {
+				t.Errorf("unexpected repo full name: %s", r.RepositoryFullName)
+			}
+		}
+	}
+	if !found {
+		t.Errorf("expected repoID %s in ListVCSRepositoriesByProvider results", repoID)
+	}
+
+	inst := VCSInstallation{
+		ID:                  uuid.NewString(),
+		VCSProvider:         VCSProviderGitHub,
+		VCSInstallationID:   "inst-acct-test-1",
+		AccountLogin:        "TestAccountLogin",
+		AccountType:         "Organization",
+		RepositorySelection: "all",
+		Permissions:         VCSPermissions{GitHub: nil},
+		CreatedAt:           time.Now().UTC(),
+		UpdatedAt:           time.Now().UTC(),
+	}
+	if _, err := spannerClient.UpsertVCSInstallation(ctx, inst); err != nil {
+		t.Fatalf("UpsertVCSInstallation failed: %v", err)
+	}
+
+	allInstallations, err := spannerClient.ListVCSInstallations(ctx)
+	if err != nil {
+		t.Fatalf("ListVCSInstallations failed: %v", err)
+	}
+	if len(allInstallations) < 1 {
+		t.Fatalf("expected at least 1 installation, got %d", len(allInstallations))
+	}
+
+	installations, err := spannerClient.ListVCSInstallationsByAccount(ctx, VCSProviderGitHub, "TestAccountLogin")
+	if err != nil {
+		t.Fatalf("ListVCSInstallationsByAccount failed: %v", err)
+	}
+	if len(installations) != 1 {
+		t.Fatalf("expected 1 installation for account, got %d", len(installations))
+	}
+	if installations[0].AccountLogin != "TestAccountLogin" {
+		t.Errorf("unexpected account login: %s", installations[0].AccountLogin)
 	}
 }
