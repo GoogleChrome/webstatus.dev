@@ -37,8 +37,8 @@ Every Pull Request undergoes automated validation:
 
 ## 4. Data Population Strategies
 
-| Command | Tool | Purpose / Flags |
-| :--- | :--- | :--- |
-| `make dev_fake_users` | [`util/cmd/load_test_users`](../../../util/cmd/load_test_users/main.go) | Seeds predictable test accounts into the Auth emulator. |
-| `make dev_fake_data` | [`util/cmd/load_fake_data`](../../../util/cmd/load_fake_data/main.go) | Seeds consistent entities into Spanner.<br>• `-num_features=N` (default `80`)<br>• `-releases_per_browser=N` (default `30`)<br>• `-runs_per_browser_channel=N` (default `35`)<br>• `-reset=true` (reset test user data)<br>• `-scope=all\|user` |
-| `make dev_workflows` | [`util/run_job.sh`](../../../util/run_job.sh) | Orchestrates a real ingestion run using live data sources. |
+| Command               | Tool                                                                    | Purpose / Flags                                                                                                                                                                                                                                 |
+| :-------------------- | :---------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `make dev_fake_users` | [`util/cmd/load_test_users`](../../../util/cmd/load_test_users/main.go) | Seeds predictable test accounts into the Auth emulator.                                                                                                                                                                                         |
+| `make dev_fake_data`  | [`util/cmd/load_fake_data`](../../../util/cmd/load_fake_data/main.go)   | Seeds consistent entities into Spanner.<br>• `-num_features=N` (default `80`)<br>• `-releases_per_browser=N` (default `30`)<br>• `-runs_per_browser_channel=N` (default `35`)<br>• `-reset=true` (reset test user data)<br>• `-scope=all\|user` |
+| `make dev_workflows`  | [`util/run_job.sh`](../../../util/run_job.sh)                           | Orchestrates a real ingestion run using live data sources.                                                                                                                                                                                      |
