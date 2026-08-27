@@ -6,7 +6,7 @@
 </template>
 
 <script setup lang="ts">
-// TODO(baseline/popover, newly): use popover for action menu
+// TODO(baseline/popover): use popover for action menu
 import { ref } from 'vue';
 </script>
 

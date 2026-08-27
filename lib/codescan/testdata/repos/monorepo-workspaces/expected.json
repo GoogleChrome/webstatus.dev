@@ -28,9 +28,9 @@
         {
           "file_path": "apps/modern-pwa/src/camera.ts",
           "target_query": "id:view-transitions",
-          "trigger": "feature.baseline.promote_to_newly",
+          "trigger": "feature.baseline.promote_to_widely",
           "line_number": 3,
-          "raw_snippet": "// TODO(baseline/view-transitions, newly): animate camera viewport"
+          "raw_snippet": "// TODO(baseline/view-transitions): animate camera viewport"
         }
       ]
     },

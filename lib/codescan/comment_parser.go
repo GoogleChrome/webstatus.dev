@@ -17,7 +17,6 @@ package codescan
 import (
 	"bufio"
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io"
 	"regexp"
@@ -35,7 +34,7 @@ const (
 	TargetNewly  = "newly"
 )
 
-// Directive represents a single parsed @webstatus AST comment directive.
+// Directive represents a single parsed TODO(baseline/<id>) AST comment directive.
 type Directive struct {
 	TargetQuery string              `json:"target_query"`
 	Trigger     SubscriptionTrigger `json:"trigger"`
@@ -44,22 +43,14 @@ type Directive struct {
 	FilePath    string              `json:"file_path"`
 }
 
-// Regex matching @webstatus comment directives.
-var webstatusDirectiveRegex = regexp.MustCompile(`(?i)^@webstatus:\s*(.*?)$`)
+// Regex matching canonical TODO(baseline/<id>) comments.
+var baselineTodoRegex = regexp.MustCompile(`(?i)TODO\(baseline/([\w-]+)\)`)
 
-// Regex matching idiomatic TODO(baseline/<id>) or TODO(baseline/<id>, newly) comments.
-var inlineTodoRegex = regexp.MustCompile(
-	`(?i)TODO\(` +
-		`(?:web-features?:\s*([\w-]+)|baseline/\s*([\w-]+)(?:\s*,\s*(newly|widely))?)\s*\)` +
-		`(?::\s*([^,\n]+))?`,
-)
-
-// ParseReader reads from an io.Reader and extracts all valid @webstatus and TODO directives.
+// ParseReader reads from an io.Reader and extracts all valid TODO(baseline/<id>) directives.
 func ParseReader(
 	r io.Reader,
 	filePath string,
 	defaultTrigger SubscriptionTrigger,
-	defaultTargetQuery string,
 ) ([]Directive, error) {
 	var directives []Directive
 	scanner := bufio.NewScanner(r)
@@ -92,12 +83,16 @@ func ParseReader(
 
 		cleaned := cleanCommentLine(rawLine, inCBlock, inHTMLBlock)
 
-		if todoDirs := extractTodoDirectives(cleaned, rawLine, lineNum, filePath, defaultTrigger); len(todoDirs) > 0 {
-			directives = append(directives, todoDirs...)
-		} else if dirs, ok := extractWebstatusDirective(
-			cleaned, rawLine, lineNum, filePath, defaultTargetQuery, defaultTrigger,
-		); ok {
-			directives = append(directives, dirs...)
+		matches := baselineTodoRegex.FindAllStringSubmatch(cleaned, -1)
+		for _, m := range matches {
+			featureID := m[1]
+			directives = append(directives, Directive{
+				TargetQuery: "id:" + featureID,
+				Trigger:     defaultTrigger,
+				RawSnippet:  strings.TrimSpace(rawLine),
+				LineNumber:  lineNum,
+				FilePath:    filePath,
+			})
 		}
 
 		if hasCloseC {
@@ -115,14 +110,13 @@ func ParseReader(
 	return directives, nil
 }
 
-// ParseFileDirectives scans the lines of a source file and extracts all valid @webstatus directives.
+// ParseFileDirectives scans source bytes and extracts all valid TODO(baseline/<id>) directives.
 func ParseFileDirectives(
 	content []byte,
 	filePath string,
 	defaultTrigger SubscriptionTrigger,
-	defaultTargetQuery string,
 ) []Directive {
-	directives, _ := ParseReader(bytes.NewReader(content), filePath, defaultTrigger, defaultTargetQuery)
+	directives, _ := ParseReader(bytes.NewReader(content), filePath, defaultTrigger)
 
 	return directives
 }
@@ -149,156 +143,4 @@ func cleanCommentLine(rawLine string, inCBlock, inHTMLBlock bool) string {
 	trimmed = strings.TrimSuffix(trimmed, "-->")
 
 	return strings.TrimSpace(trimmed)
-}
-
-func extractTodoDirectives(
-	cleanedLine, rawLine string,
-	lineNum int,
-	filePath string,
-	defaultTrigger SubscriptionTrigger,
-) []Directive {
-	matches := inlineTodoRegex.FindAllStringSubmatch(cleanedLine, -1)
-	if len(matches) == 0 {
-		return nil
-	}
-
-	var results []Directive
-	for _, m := range matches {
-		var featureID string
-		var mod string
-
-		if m[1] != "" {
-			featureID = m[1]
-		} else {
-			featureID = m[2]
-			mod = strings.ToLower(m[3])
-		}
-
-		trigger := defaultTrigger
-		if trigger == "" {
-			trigger = SubscriptionTriggerFeatureBaselinePromoteToWidely
-		}
-		switch mod {
-		case TargetNewly:
-			trigger = SubscriptionTriggerFeatureBaselinePromoteToNewly
-		case TargetWidely:
-			trigger = SubscriptionTriggerFeatureBaselinePromoteToWidely
-		}
-
-		results = append(results, Directive{
-			TargetQuery: "id:" + featureID,
-			Trigger:     trigger,
-			RawSnippet:  strings.TrimSpace(rawLine),
-			LineNumber:  lineNum,
-			FilePath:    filePath,
-		})
-	}
-
-	return results
-}
-
-func extractWebstatusDirective(
-	cleanedLine, rawLine string,
-	lineNum int,
-	filePath, defaultTargetQuery string,
-	defaultTrigger SubscriptionTrigger,
-) ([]Directive, bool) {
-	matches := webstatusDirectiveRegex.FindStringSubmatch(cleanedLine)
-	if len(matches) < 2 {
-		return nil, false
-	}
-
-	annotationBody := matches[1]
-	tokens := parseAnnotationTokens(annotationBody)
-
-	var ids []string
-	trigger := defaultTrigger
-
-	for _, token := range tokens {
-		parts := strings.SplitN(token, ":", 2)
-		if len(parts) != 2 {
-			continue
-		}
-		key := strings.ToLower(strings.TrimSpace(parts[0]))
-		val := strings.TrimSpace(parts[1])
-
-		switch key {
-		case "id":
-			val = strings.TrimPrefix(val, "id:")
-			ids = append(ids, val)
-		case "trigger":
-			switch strings.ToLower(val) {
-			case "newly_available", "newly", string(SubscriptionTriggerFeatureBaselinePromoteToNewly):
-				trigger = SubscriptionTriggerFeatureBaselinePromoteToNewly
-			case "widely_available", "widely", string(SubscriptionTriggerFeatureBaselinePromoteToWidely):
-				trigger = SubscriptionTriggerFeatureBaselinePromoteToWidely
-			}
-		}
-	}
-
-	if len(ids) == 0 {
-		if defaultTargetQuery != "" {
-			cleanID := strings.TrimPrefix(defaultTargetQuery, "id:")
-			ids = append(ids, cleanID)
-		} else {
-			return nil, false
-		}
-	}
-
-	var results []Directive
-	for _, id := range ids {
-		targetQuery := id
-		if !strings.HasPrefix(id, "id:") && !strings.HasPrefix(id, "group:") {
-			targetQuery = "id:" + id
-		}
-		results = append(results, Directive{
-			TargetQuery: targetQuery,
-			Trigger:     trigger,
-			RawSnippet:  strings.TrimSpace(rawLine),
-			LineNumber:  lineNum,
-			FilePath:    filePath,
-		})
-	}
-
-	return results, true
-}
-
-func parseAnnotationTokens(body string) []string {
-	var tokens []string
-	fields := strings.FieldsSeq(body)
-	for field := range fields {
-		sub := strings.SplitSeq(field, ",")
-		for s := range sub {
-			trimmed := strings.TrimSpace(s)
-			if trimmed != "" {
-				tokens = append(tokens, trimmed)
-			}
-		}
-	}
-
-	return tokens
-}
-
-// ParseProjectDefaults extracts baseline target from .baseline.json or AGENTS.md.
-func ParseProjectDefaults(content []byte, fileName string) (string, error) {
-	if fileName == ".baseline.json" {
-		var cfg struct {
-			Target string `json:"target"`
-		}
-		if err := json.Unmarshal(content, &cfg); err != nil {
-			return "", err
-		}
-
-		return cfg.Target, nil
-	}
-
-	if fileName == "AGENTS.md" {
-		re := regexp.MustCompile(`(?i)(?:@webstatus:\s*target:|baseline\s*target\s*:\s*"?)\s*([\w-]+)"?`)
-		matches := re.FindSubmatch(content)
-		if len(matches) >= 2 {
-			return string(matches[1]), nil
-		}
-	}
-
-	return "", nil
 }

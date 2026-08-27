@@ -7,7 +7,7 @@
       "expectedDirectives": []
     },
     "src/app.ts": {
-      "purpose": "Main TypeScript application logic with inline TODO(baseline/popover) and TODO(baseline/view-transitions, newly) comments",
+      "purpose": "Main TypeScript application logic with inline TODO(baseline/popover) and TODO(baseline/view-transitions) comments",
       "expectedDirectives": [
         {
           "file_path": "src/app.ts",
@@ -19,9 +19,9 @@
         {
           "file_path": "src/app.ts",
           "target_query": "id:view-transitions",
-          "trigger": "feature.baseline.promote_to_newly",
+          "trigger": "feature.baseline.promote_to_widely",
           "line_number": 7,
-          "raw_snippet": "// TODO(baseline/view-transitions, newly): smooth page transitions"
+          "raw_snippet": "// TODO(baseline/view-transitions): smooth page transitions"
         }
       ]
     },

@@ -31,23 +31,16 @@ func TestParseFileDirectives(t *testing.T) {
 // Normal comment
 const x = 1;
 // TODO(baseline/popover): refactor modal to native popover
-// TODO(baseline/view-transitions, newly): progressive enhancement
-// TODO(web-feature: subgrid): upgrade layout
+// TODO(baseline/view-transitions): progressive enhancement
 /* TODO(baseline/anchor-positioning): anchor tooltip */
 <!-- TODO(baseline/dialog): replace polyfill -->
-// @webstatus: id:view-transitions
-# @webstatus: id:subgrid trigger:newly_available
-/* @webstatus: id:anchor-positioning trigger:widely_available */
-<!-- @webstatus: id:backdrop-filter -->
-// @webstatus: id:compression-streams, id:badging
-// @webstatus: trigger:newly_available
+# TODO(baseline/subgrid): python comment
 `
 
 	directives := ParseFileDirectives(
 		[]byte(sourceCode),
 		"src/app.ts",
 		SubscriptionTriggerFeatureBaselinePromoteToWidely,
-		"id:default-feature",
 	)
 
 	expected := []Directive{
@@ -60,79 +53,30 @@ const x = 1;
 		},
 		{
 			TargetQuery: "id:view-transitions",
-			Trigger:     SubscriptionTriggerFeatureBaselinePromoteToNewly,
-			RawSnippet:  "// TODO(baseline/view-transitions, newly): progressive enhancement",
-			LineNumber:  5,
-			FilePath:    "src/app.ts",
-		},
-		{
-			TargetQuery: "id:subgrid",
 			Trigger:     SubscriptionTriggerFeatureBaselinePromoteToWidely,
-			RawSnippet:  "// TODO(web-feature: subgrid): upgrade layout",
-			LineNumber:  6,
+			RawSnippet:  "// TODO(baseline/view-transitions): progressive enhancement",
+			LineNumber:  5,
 			FilePath:    "src/app.ts",
 		},
 		{
 			TargetQuery: "id:anchor-positioning",
 			Trigger:     SubscriptionTriggerFeatureBaselinePromoteToWidely,
 			RawSnippet:  "/* TODO(baseline/anchor-positioning): anchor tooltip */",
-			LineNumber:  7,
+			LineNumber:  6,
 			FilePath:    "src/app.ts",
 		},
 		{
 			TargetQuery: "id:dialog",
 			Trigger:     SubscriptionTriggerFeatureBaselinePromoteToWidely,
 			RawSnippet:  "<!-- TODO(baseline/dialog): replace polyfill -->",
-			LineNumber:  8,
-			FilePath:    "src/app.ts",
-		},
-		{
-			TargetQuery: "id:view-transitions",
-			Trigger:     SubscriptionTriggerFeatureBaselinePromoteToWidely,
-			RawSnippet:  "// @webstatus: id:view-transitions",
-			LineNumber:  9,
+			LineNumber:  7,
 			FilePath:    "src/app.ts",
 		},
 		{
 			TargetQuery: "id:subgrid",
-			Trigger:     SubscriptionTriggerFeatureBaselinePromoteToNewly,
-			RawSnippet:  "# @webstatus: id:subgrid trigger:newly_available",
-			LineNumber:  10,
-			FilePath:    "src/app.ts",
-		},
-		{
-			TargetQuery: "id:anchor-positioning",
 			Trigger:     SubscriptionTriggerFeatureBaselinePromoteToWidely,
-			RawSnippet:  "/* @webstatus: id:anchor-positioning trigger:widely_available */",
-			LineNumber:  11,
-			FilePath:    "src/app.ts",
-		},
-		{
-			TargetQuery: "id:backdrop-filter",
-			Trigger:     SubscriptionTriggerFeatureBaselinePromoteToWidely,
-			RawSnippet:  "<!-- @webstatus: id:backdrop-filter -->",
-			LineNumber:  12,
-			FilePath:    "src/app.ts",
-		},
-		{
-			TargetQuery: "id:compression-streams",
-			Trigger:     SubscriptionTriggerFeatureBaselinePromoteToWidely,
-			RawSnippet:  "// @webstatus: id:compression-streams, id:badging",
-			LineNumber:  13,
-			FilePath:    "src/app.ts",
-		},
-		{
-			TargetQuery: "id:badging",
-			Trigger:     SubscriptionTriggerFeatureBaselinePromoteToWidely,
-			RawSnippet:  "// @webstatus: id:compression-streams, id:badging",
-			LineNumber:  13,
-			FilePath:    "src/app.ts",
-		},
-		{
-			TargetQuery: "id:default-feature",
-			Trigger:     SubscriptionTriggerFeatureBaselinePromoteToNewly,
-			RawSnippet:  "// @webstatus: trigger:newly_available",
-			LineNumber:  14,
+			RawSnippet:  "# TODO(baseline/subgrid): python comment",
+			LineNumber:  8,
 			FilePath:    "src/app.ts",
 		},
 	}
@@ -148,39 +92,6 @@ const x = 1;
 	}
 }
 
-func TestParseProjectDefaults(t *testing.T) {
-	t.Parallel()
-
-	// 1. .baseline.json
-	baselineJSON := []byte(`{"target": "group:css-anchor", "trigger": "newly_available"}`)
-	target, err := ParseProjectDefaults(baselineJSON, ".baseline.json")
-	if err != nil {
-		t.Fatalf("unexpected error parsing .baseline.json: %v", err)
-	}
-	if target != "group:css-anchor" {
-		t.Errorf("target = %q, want %q", target, "group:css-anchor")
-	}
-
-	// 2. AGENTS.md
-	agentsMD := []byte(`# AI Agent Guidelines
-<!-- @webstatus: target:widely_available -->
-`)
-	targetMD, err := ParseProjectDefaults(agentsMD, "AGENTS.md")
-	if err != nil {
-		t.Fatalf("unexpected error parsing AGENTS.md: %v", err)
-	}
-	if targetMD != "widely_available" {
-		t.Errorf("targetMD = %q, want %q", targetMD, "widely_available")
-	}
-
-	// 3. Invalid JSON error
-	invalidJSON := []byte(`{invalid-json-content}`)
-	_, err = ParseProjectDefaults(invalidJSON, ".baseline.json")
-	if err == nil {
-		t.Errorf("expected error parsing invalid .baseline.json, got nil")
-	}
-}
-
 func TestParseFileDirectivesEmptyAndBinary(t *testing.T) {
 	t.Parallel()
 
@@ -189,7 +100,6 @@ func TestParseFileDirectivesEmptyAndBinary(t *testing.T) {
 		[]byte{},
 		"src/empty.ts",
 		SubscriptionTriggerFeatureBaselinePromoteToWidely,
-		"id:default",
 	)
 	if len(emptyDirectives) != 0 {
 		t.Errorf("expected 0 directives for empty buffer, got %d", len(emptyDirectives))
@@ -201,7 +111,6 @@ func TestParseFileDirectivesEmptyAndBinary(t *testing.T) {
 		binaryData,
 		"assets/logo.png",
 		SubscriptionTriggerFeatureBaselinePromoteToWidely,
-		"id:default",
 	)
 	if len(binaryDirectives) != 0 {
 		t.Errorf("expected 0 directives for binary data, got %d", len(binaryDirectives))
@@ -221,20 +130,15 @@ const y = 2;
   TODO(baseline/view-transitions): Multi-line
   HTML block comment transition handler
 -->
-/*
- * @webstatus: id:anchor-positioning trigger:newly_available
- * Multiline webstatus comment
- */
 `
 
 	directives := ParseFileDirectives(
 		[]byte(sourceCode),
 		"src/multi.ts",
 		SubscriptionTriggerFeatureBaselinePromoteToWidely,
-		"id:default",
 	)
-	if len(directives) != 3 {
-		t.Fatalf("got %d directives, want 3", len(directives))
+	if len(directives) != 2 {
+		t.Fatalf("got %d directives, want 2", len(directives))
 	}
 
 	if directives[0].TargetQuery != "id:subgrid" ||
@@ -246,11 +150,6 @@ const y = 2;
 		directives[1].Trigger != SubscriptionTriggerFeatureBaselinePromoteToWidely ||
 		directives[1].LineNumber != 8 {
 		t.Errorf("unexpected directive[1]: %+v", directives[1])
-	}
-	if directives[2].TargetQuery != "id:anchor-positioning" ||
-		directives[2].Trigger != SubscriptionTriggerFeatureBaselinePromoteToNewly ||
-		directives[2].LineNumber != 12 {
-		t.Errorf("unexpected directive[2]: %+v", directives[2])
 	}
 }
 
@@ -314,7 +213,7 @@ func verifyArchetypeDirectives(t *testing.T, arch string) {
 			t.Fatalf("failed reading manifested file %s: %v", fullPath, err)
 		}
 
-		got := ParseFileDirectives(content, cleanRelPath, SubscriptionTriggerFeatureBaselinePromoteToWidely, "id:default")
+		got := ParseFileDirectives(content, cleanRelPath, SubscriptionTriggerFeatureBaselinePromoteToWidely)
 		if len(got) != len(fileExpectation.ExpectedDirectives) {
 			t.Errorf("%s: got %d directives, want %d", cleanRelPath, len(got), len(fileExpectation.ExpectedDirectives))
 
@@ -375,22 +274,21 @@ func TestParseFileDirectives_MultiLineBlocks(t *testing.T) {
 /*
  * Multi-line CSS comment
  * TODO(baseline/subgrid): convert grid fallback
- * TODO(baseline/has, newly): remove polyfill
+ * TODO(baseline/has): remove polyfill
  */
 const y = 2;
 <!--
   Multi-line HTML comment
   TODO(baseline/popover): use native popover
-  TODO(baseline/view-transitions, newly): native transitions
+  TODO(baseline/view-transitions): native transitions
 -->
-/* Same line multi-directive: TODO(baseline/dialog) TODO(baseline/invokers, newly) */
+/* Same line multi-directive: TODO(baseline/dialog) TODO(baseline/invokers) */
 `
 
 	directives := ParseFileDirectives(
 		[]byte(sourceCode),
 		"src/multi.css",
 		SubscriptionTriggerFeatureBaselinePromoteToWidely,
-		"",
 	)
 
 	expected := []Directive{
@@ -403,8 +301,8 @@ const y = 2;
 		},
 		{
 			TargetQuery: "id:has",
-			Trigger:     SubscriptionTriggerFeatureBaselinePromoteToNewly,
-			RawSnippet:  "* TODO(baseline/has, newly): remove polyfill",
+			Trigger:     SubscriptionTriggerFeatureBaselinePromoteToWidely,
+			RawSnippet:  "* TODO(baseline/has): remove polyfill",
 			LineNumber:  5,
 			FilePath:    "src/multi.css",
 		},
@@ -417,22 +315,22 @@ const y = 2;
 		},
 		{
 			TargetQuery: "id:view-transitions",
-			Trigger:     SubscriptionTriggerFeatureBaselinePromoteToNewly,
-			RawSnippet:  "TODO(baseline/view-transitions, newly): native transitions",
+			Trigger:     SubscriptionTriggerFeatureBaselinePromoteToWidely,
+			RawSnippet:  "TODO(baseline/view-transitions): native transitions",
 			LineNumber:  11,
 			FilePath:    "src/multi.css",
 		},
 		{
 			TargetQuery: "id:dialog",
 			Trigger:     SubscriptionTriggerFeatureBaselinePromoteToWidely,
-			RawSnippet:  "/* Same line multi-directive: TODO(baseline/dialog) TODO(baseline/invokers, newly) */",
+			RawSnippet:  "/* Same line multi-directive: TODO(baseline/dialog) TODO(baseline/invokers) */",
 			LineNumber:  13,
 			FilePath:    "src/multi.css",
 		},
 		{
 			TargetQuery: "id:invokers",
-			Trigger:     SubscriptionTriggerFeatureBaselinePromoteToNewly,
-			RawSnippet:  "/* Same line multi-directive: TODO(baseline/dialog) TODO(baseline/invokers, newly) */",
+			Trigger:     SubscriptionTriggerFeatureBaselinePromoteToWidely,
+			RawSnippet:  "/* Same line multi-directive: TODO(baseline/dialog) TODO(baseline/invokers) */",
 			LineNumber:  13,
 			FilePath:    "src/multi.css",
 		},
@@ -455,7 +353,7 @@ func TestParseReader(t *testing.T) {
 	input := "// TODO(baseline/subgrid): layout upgrade\n"
 	r := strings.NewReader(input)
 
-	directives, err := ParseReader(r, "stdin.ts", SubscriptionTriggerFeatureBaselinePromoteToWidely, "")
+	directives, err := ParseReader(r, "stdin.ts", SubscriptionTriggerFeatureBaselinePromoteToWidely)
 	if err != nil {
 		t.Fatalf("ParseReader failed: %v", err)
 	}
@@ -498,37 +396,22 @@ func TestDirective_JSONSerialization(t *testing.T) {
 	}
 }
 
-func TestParseFileDirectives_DefaultTargetInheritance(t *testing.T) {
+func TestParseFileDirectives_DefaultTriggerInheritance(t *testing.T) {
 	t.Parallel()
 
-	sourceCode := `
-// TODO(baseline/popover): standard comment
-// TODO(baseline/dialog, newly): explicit override to newly
-// TODO(baseline/subgrid, widely): explicit override to widely
-// @webstatus: id:anchor-positioning
-`
+	sourceCode := `// TODO(baseline/popover): standard comment`
 
 	// Case 1: defaultTrigger is SubscriptionTriggerFeatureBaselinePromoteToNewly
 	dirsNewly := ParseFileDirectives(
 		[]byte(sourceCode),
 		"src/app.ts",
 		SubscriptionTriggerFeatureBaselinePromoteToNewly,
-		"",
 	)
-	if len(dirsNewly) != 4 {
-		t.Fatalf("got %d directives, want 4", len(dirsNewly))
+	if len(dirsNewly) != 1 {
+		t.Fatalf("got %d directives, want 1", len(dirsNewly))
 	}
 	if dirsNewly[0].Trigger != SubscriptionTriggerFeatureBaselinePromoteToNewly {
 		t.Errorf("dirsNewly[0].Trigger = %s, want newly", dirsNewly[0].Trigger)
-	}
-	if dirsNewly[1].Trigger != SubscriptionTriggerFeatureBaselinePromoteToNewly {
-		t.Errorf("dirsNewly[1].Trigger = %s, want newly", dirsNewly[1].Trigger)
-	}
-	if dirsNewly[2].Trigger != SubscriptionTriggerFeatureBaselinePromoteToWidely {
-		t.Errorf("dirsNewly[2].Trigger = %s, want widely (explicit override)", dirsNewly[2].Trigger)
-	}
-	if dirsNewly[3].Trigger != SubscriptionTriggerFeatureBaselinePromoteToNewly {
-		t.Errorf("dirsNewly[3].Trigger = %s, want newly (inherited from default)", dirsNewly[3].Trigger)
 	}
 
 	// Case 2: defaultTrigger is SubscriptionTriggerFeatureBaselinePromoteToWidely
@@ -536,40 +419,12 @@ func TestParseFileDirectives_DefaultTargetInheritance(t *testing.T) {
 		[]byte(sourceCode),
 		"src/app.ts",
 		SubscriptionTriggerFeatureBaselinePromoteToWidely,
-		"",
 	)
-	if len(dirsWidely) != 4 {
-		t.Fatalf("got %d directives, want 4", len(dirsWidely))
+	if len(dirsWidely) != 1 {
+		t.Fatalf("got %d directives, want 1", len(dirsWidely))
 	}
 	if dirsWidely[0].Trigger != SubscriptionTriggerFeatureBaselinePromoteToWidely {
 		t.Errorf("dirsWidely[0].Trigger = %s, want widely", dirsWidely[0].Trigger)
-	}
-	if dirsWidely[1].Trigger != SubscriptionTriggerFeatureBaselinePromoteToNewly {
-		t.Errorf("dirsWidely[1].Trigger = %s, want newly (explicit override)", dirsWidely[1].Trigger)
-	}
-	if dirsWidely[2].Trigger != SubscriptionTriggerFeatureBaselinePromoteToWidely {
-		t.Errorf("dirsWidely[2].Trigger = %s, want widely", dirsWidely[2].Trigger)
-	}
-	if dirsWidely[3].Trigger != SubscriptionTriggerFeatureBaselinePromoteToWidely {
-		t.Errorf("dirsWidely[3].Trigger = %s, want widely (inherited from default)", dirsWidely[3].Trigger)
-	}
-
-	// Case 3: Bare @webstatus with defaultTargetQuery fallback
-	bareSource := "// @webstatus: trigger:newly_available\n"
-	dirsBare := ParseFileDirectives(
-		[]byte(bareSource),
-		"src/app.ts",
-		SubscriptionTriggerFeatureBaselinePromoteToWidely,
-		"id:fallback-feature",
-	)
-	if len(dirsBare) != 1 {
-		t.Fatalf("got %d directives, want 1", len(dirsBare))
-	}
-	if dirsBare[0].TargetQuery != "id:fallback-feature" {
-		t.Errorf("dirsBare[0].TargetQuery = %s, want id:fallback-feature", dirsBare[0].TargetQuery)
-	}
-	if dirsBare[0].Trigger != SubscriptionTriggerFeatureBaselinePromoteToNewly {
-		t.Errorf("dirsBare[0].Trigger = %s, want newly_available", dirsBare[0].Trigger)
 	}
 }
 
@@ -582,7 +437,7 @@ func (e errReader) Read(_ []byte) (int, error) {
 func TestParseReader_ScannerError(t *testing.T) {
 	t.Parallel()
 
-	_, err := ParseReader(errReader{}, "test.ts", SubscriptionTriggerFeatureBaselinePromoteToWidely, "")
+	_, err := ParseReader(errReader{}, "test.ts", SubscriptionTriggerFeatureBaselinePromoteToWidely)
 	if err == nil {
 		t.Fatal("expected error from errReader, got nil")
 	}
