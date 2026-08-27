@@ -1686,6 +1686,27 @@ func (m *mockServerInterface) GetHealthcheckLiveness(ctx context.Context,
 	panic("unimplemented")
 }
 
+// HandleVCSWebhook implements backend.StrictServerInterface.
+//
+//nolint:ireturn // WONTFIX - generated method signature
+func (m *mockServerInterface) HandleVCSWebhook(_ context.Context,
+	_ backend.HandleVCSWebhookRequestObject) (
+	backend.HandleVCSWebhookResponseObject, error) {
+	m.callCount++
+	panic("unimplemented")
+}
+
+// ListCodeSubscriptions implements backend.StrictServerInterface.
+//
+//nolint:ireturn // WONTFIX - generated method signature
+func (m *mockServerInterface) ListCodeSubscriptions(ctx context.Context,
+	_ backend.ListCodeSubscriptionsRequestObject) (
+	backend.ListCodeSubscriptionsResponseObject, error) {
+	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
+	m.callCount++
+	panic("unimplemented")
+}
+
 func (m *mockServerInterface) assertCallCount(expectedCallCount int) {
 	if m.callCount != expectedCallCount {
 		m.t.Errorf("expected mock server to be used %d times. only used %d times", expectedCallCount, m.callCount)

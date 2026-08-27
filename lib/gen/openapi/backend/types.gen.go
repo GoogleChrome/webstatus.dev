@@ -56,6 +56,39 @@ func (e BrowserImplementationStatus) Valid() bool {
 	}
 }
 
+// Defines values for CodeSubscriptionResponseStatus.
+const (
+	ACTIVE    CodeSubscriptionResponseStatus = "ACTIVE"
+	DELETED   CodeSubscriptionResponseStatus = "DELETED"
+	DELIVERED CodeSubscriptionResponseStatus = "DELIVERED"
+	ERROR     CodeSubscriptionResponseStatus = "ERROR"
+	OBSOLETE  CodeSubscriptionResponseStatus = "OBSOLETE"
+	RESOLVED  CodeSubscriptionResponseStatus = "RESOLVED"
+	TRIGGERED CodeSubscriptionResponseStatus = "TRIGGERED"
+)
+
+// Valid indicates whether the value is a known member of the CodeSubscriptionResponseStatus enum.
+func (e CodeSubscriptionResponseStatus) Valid() bool {
+	switch e {
+	case ACTIVE:
+		return true
+	case DELETED:
+		return true
+	case DELIVERED:
+		return true
+	case ERROR:
+		return true
+	case OBSOLETE:
+		return true
+	case RESOLVED:
+		return true
+	case TRIGGERED:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for EmailConfigType.
 const (
 	EmailConfigTypeEmail EmailConfigType = "email"
@@ -686,6 +719,35 @@ type ChromeUsageStat struct {
 	Usage *float64 `json:"usage,omitempty"`
 }
 
+// CodeSubscriptionPage defines model for CodeSubscriptionPage.
+type CodeSubscriptionPage struct {
+	Data     *[]CodeSubscriptionResponse `json:"data,omitempty"`
+	Metadata *PageMetadata               `json:"metadata,omitempty"`
+}
+
+// CodeSubscriptionResponse defines model for CodeSubscriptionResponse.
+type CodeSubscriptionResponse struct {
+	CreatedAt          time.Time                      `json:"created_at"`
+	FeatureId          *string                        `json:"feature_id,omitempty"`
+	Id                 string                         `json:"id"`
+	OccurrenceCount    int64                          `json:"occurrence_count"`
+	Occurrences        []SubscriptionOccurrence       `json:"occurrences"`
+	RawDirective       *string                        `json:"raw_directive,omitempty"`
+	RepositoryFullName string                         `json:"repository_full_name"`
+	RepositoryName     string                         `json:"repository_name"`
+	RepositoryOwner    string                         `json:"repository_owner"`
+	Status             CodeSubscriptionResponseStatus `json:"status"`
+	TargetQuery        string                         `json:"target_query"`
+	Triggers           []SubscriptionTriggerWritable  `json:"triggers"`
+	UpdatedAt          time.Time                      `json:"updated_at"`
+	VcsInstallationId  *string                        `json:"vcs_installation_id,omitempty"`
+	VcsProvider        string                         `json:"vcs_provider"`
+	VcsRepositoryId    string                         `json:"vcs_repository_id"`
+}
+
+// CodeSubscriptionResponseStatus defines model for CodeSubscriptionResponse.Status.
+type CodeSubscriptionResponseStatus string
+
 // CreateNotificationChannelRequest defines model for CreateNotificationChannelRequest.
 type CreateNotificationChannelRequest struct {
 	// Config Configuration specific to the channel type.
@@ -1004,6 +1066,13 @@ type SubscriptionChannelType string
 // SubscriptionFrequency The frequency for a subscription.
 type SubscriptionFrequency string
 
+// SubscriptionOccurrence defines model for SubscriptionOccurrence.
+type SubscriptionOccurrence struct {
+	CommentSnippet string `json:"comment_snippet"`
+	FilePath       string `json:"file_path"`
+	LineNumber     int64  `json:"line_number"`
+}
+
 // SubscriptionPage defines model for SubscriptionPage.
 type SubscriptionPage struct {
 	Data     *[]SubscriptionResponse `json:"data,omitempty"`
@@ -1102,6 +1171,9 @@ type UserSavedSearchPermissions struct {
 
 // UserSavedSearchRole defines model for UserSavedSearchRole.
 type UserSavedSearchRole string
+
+// VCSWebhookPayload defines model for VCSWebhookPayload.
+type VCSWebhookPayload map[string]interface{}
 
 // VendorPosition A loosely defined object representing a single vendor's standards position. The schema is intentionally open-ended (`additionalProperties: true`) to accommodate the evolving structure of the upstream web-features-mappings data source.
 type VendorPosition map[string]interface{}
@@ -1367,6 +1439,22 @@ type ListSubscriptionsParams struct {
 	PageSize *PaginationSizeParam `form:"page_size,omitempty" json:"page_size,omitempty"`
 }
 
+// ListCodeSubscriptionsParams defines parameters for ListCodeSubscriptions.
+type ListCodeSubscriptionsParams struct {
+	// PageToken Pagination token
+	PageToken *PaginationTokenParam `form:"page_token,omitempty" json:"page_token,omitempty"`
+
+	// PageSize Number of results to return
+	PageSize *PaginationSizeParam `form:"page_size,omitempty" json:"page_size,omitempty"`
+}
+
+// HandleVCSWebhookParams defines parameters for HandleVCSWebhook.
+type HandleVCSWebhookParams struct {
+	XHubSignature256 *string `json:"X-Hub-Signature-256,omitempty"`
+	XGitHubDelivery  *string `json:"X-GitHub-Delivery,omitempty"`
+	XGitHubEvent     *string `json:"X-GitHub-Event,omitempty"`
+}
+
 // CreateSavedSearchJSONRequestBody defines body for CreateSavedSearch for application/json ContentType.
 type CreateSavedSearchJSONRequestBody = SavedSearch
 
@@ -1387,6 +1475,9 @@ type CreateSubscriptionJSONRequestBody = Subscription
 
 // UpdateSubscriptionJSONRequestBody defines body for UpdateSubscription for application/json ContentType.
 type UpdateSubscriptionJSONRequestBody = UpdateSubscriptionRequest
+
+// HandleVCSWebhookJSONRequestBody defines body for HandleVCSWebhook for application/json ContentType.
+type HandleVCSWebhookJSONRequestBody = VCSWebhookPayload
 
 // AsWebhookConfig returns the union data inside the CreateNotificationChannelRequest_Config as a WebhookConfig
 func (t CreateNotificationChannelRequest_Config) AsWebhookConfig() (WebhookConfig, error) {
