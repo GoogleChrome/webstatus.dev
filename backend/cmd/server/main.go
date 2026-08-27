@@ -214,6 +214,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	vcsScanTasksTopicID := os.Getenv("VCS_SCAN_TASKS_TOPIC_ID")
+	if vcsScanTasksTopicID == "" {
+		slog.ErrorContext(ctx, "missing vcs scan tasks topic id")
+		os.Exit(1)
+	}
+
 	queueClient, err := gcppubsub.NewClient(ctx, pubsubProjectID)
 	if err != nil {
 		slog.ErrorContext(ctx, "unable to create pub sub client", "error", err)
@@ -235,7 +241,7 @@ func main() {
 		baseURL,
 		datastoreadapters.NewBackend(fs),
 		spanneradapters.NewBackend(spannerClient),
-		gcppubsubadapters.NewBackendAdapter(queueClient, ingestionTopicID),
+		gcppubsubadapters.NewBackendAdapter(queueClient, ingestionTopicID, vcsScanTasksTopicID),
 		cache,
 		routeCacheOptions,
 		func(token string) *httpserver.UserGitHubClient {

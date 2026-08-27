@@ -65,6 +65,8 @@ spec:
           value: pubsub:8060
         - name: INGESTION_TOPIC_ID
           value: 'ingestion-jobs-topic-id'
+        - name: VCS_SCAN_TASKS_TOPIC_ID
+          value: 'vcs-scan-tasks-topic-id'
         - name: GITHUB_APP_ID
           value: '123456'
         - name: GITHUB_APP_PRIVATE_KEY_PATH

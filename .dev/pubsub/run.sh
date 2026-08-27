@@ -89,6 +89,10 @@ create_subscription "notification-events-dead-letter-topic-id" "notification-eve
 create_topic "delivery-dead-letter-topic-id"
 create_subscription "delivery-dead-letter-topic-id" "delivery-dead-letter-sub-id"
 
+# Code Subscriptions DLQ
+create_topic "code-subscriptions-dead-letter-topic-id"
+create_subscription "code-subscriptions-dead-letter-topic-id" "code-subscriptions-dead-letter-sub-id"
+
 
 # --- 2. Main Topics and Subscriptions ---
 create_topic "batch-updates-topic-id"
@@ -105,6 +109,12 @@ create_subscription "chime-delivery-topic-id" "chime-delivery-sub-id" "delivery-
 
 create_topic "webhook-delivery-topic-id"
 create_subscription "webhook-delivery-topic-id" "webhook-delivery-sub-id" "delivery-dead-letter-topic-id"
+
+create_topic "vcs-scan-tasks-topic-id"
+create_subscription "vcs-scan-tasks-topic-id" "vcs-scan-tasks-sub-id" "code-subscriptions-dead-letter-topic-id"
+
+create_topic "github-issue-delivery-topic-id"
+create_subscription "github-issue-delivery-topic-id" "github-issue-delivery-sub-id" "code-subscriptions-dead-letter-topic-id"
 
 echo "Pub/Sub setup for webstatus.dev finished"
 
