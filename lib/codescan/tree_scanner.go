@@ -356,7 +356,6 @@ func ScanGitTree(
 			bytes.NewReader(content),
 			entry.Path,
 			defaultTrigger,
-			"",
 		)
 		if err != nil {
 			slog.WarnContext(ctx, "failed parsing file directives",

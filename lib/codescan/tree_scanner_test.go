@@ -45,7 +45,7 @@ func TestScanGitTree(t *testing.T) {
 		blobs: map[string][]byte{
 			"sha_file1": []byte("// TODO(baseline/view-transitions): transition\nconst a = 1;\n// TODO(baseline/subgrid): grid"),
 			"sha_file2": []byte("/* TODO(baseline/view-transitions): transition */\nconst b = 2;"),
-			"sha_file3": []byte("<!-- TODO(baseline/view-transitions, newly): anim -->"),
+			"sha_file3": []byte("<!-- TODO(baseline/view-transitions): anim -->"),
 		},
 		calledSHAs: nil,
 	}
@@ -101,8 +101,8 @@ func TestScanGitTree(t *testing.T) {
 	if len(vt.Occurrences) != 3 {
 		t.Errorf("vt.Occurrences len = %d, want 3", len(vt.Occurrences))
 	}
-	if len(vt.Triggers) != 2 {
-		t.Errorf("vt.Triggers len = %d, want 2 triggers, got %v", len(vt.Triggers), vt.Triggers)
+	if len(vt.Triggers) != 1 || vt.Triggers[0] != SubscriptionTriggerFeatureBaselinePromoteToWidely {
+		t.Errorf("vt.Triggers = %v, want [promote_to_widely]", vt.Triggers)
 	}
 }
 
@@ -596,14 +596,14 @@ func TestScanGitTree_WarningBounding(t *testing.T) {
 	}
 }
 
-func TestScanGitTree_MultiTriggerDeduplicationAndSorting(t *testing.T) {
+func TestScanGitTree_DeterministicSortingAndOccurrences(t *testing.T) {
 	t.Parallel()
 
 	reader := &mockBlobReader{
 		blobs: map[string][]byte{
-			"sha_z": []byte("// TODO(baseline/subgrid, widely): widely in z\n" +
-				"// TODO(baseline/subgrid, newly): newly in z"),
-			"sha_a": []byte("// TODO(baseline/subgrid, newly): newly in a\n" +
+			"sha_z": []byte("// TODO(baseline/subgrid): occurrence 1 in z\n" +
+				"// TODO(baseline/subgrid): occurrence 2 in z"),
+			"sha_a": []byte("// TODO(baseline/subgrid): occurrence 1 in a\n" +
 				"// TODO(baseline/dialog): dialog in a"),
 		},
 		calledSHAs: nil,
@@ -642,18 +642,8 @@ func TestScanGitTree_MultiTriggerDeduplicationAndSorting(t *testing.T) {
 		t.Errorf("expected id:subgrid, got %s", subgridSub.TargetQuery)
 	}
 
-	// Triggers should be deduplicated and sorted deterministically: ["newly", "widely"]
-	expectedTriggers := []SubscriptionTrigger{
-		SubscriptionTriggerFeatureBaselinePromoteToNewly,
-		SubscriptionTriggerFeatureBaselinePromoteToWidely,
-	}
-	if len(subgridSub.Triggers) != 2 {
-		t.Fatalf("expected 2 triggers, got %d", len(subgridSub.Triggers))
-	}
-	for i, want := range expectedTriggers {
-		if subgridSub.Triggers[i] != want {
-			t.Errorf("trigger[%d] = %s, want %s", i, subgridSub.Triggers[i], want)
-		}
+	if len(subgridSub.Triggers) != 1 || subgridSub.Triggers[0] != SubscriptionTriggerFeatureBaselinePromoteToWidely {
+		t.Fatalf("expected 1 trigger (promote_to_widely), got %v", subgridSub.Triggers)
 	}
 
 	// Occurrences should be sorted deterministically: a_first.ts:1, z_last.ts:1, z_last.ts:2
@@ -669,6 +659,14 @@ func TestScanGitTree_MultiTriggerDeduplicationAndSorting(t *testing.T) {
 			"expected second occurrence z_last.ts:1, got %s:%d",
 			subgridSub.Occurrences[1].FilePath,
 			subgridSub.Occurrences[1].LineNumber,
+		)
+	}
+	if subgridSub.Occurrences[2].FilePath != "src/z_last.ts" ||
+		subgridSub.Occurrences[2].LineNumber != 2 {
+		t.Errorf(
+			"expected third occurrence z_last.ts:2, got %s:%d",
+			subgridSub.Occurrences[2].FilePath,
+			subgridSub.Occurrences[2].LineNumber,
 		)
 	}
 }
