@@ -26,7 +26,6 @@ import {
 } from '../contexts/firebase-user-context.js';
 import {type components} from 'webstatus.dev-backend';
 import {SHARED_STYLES} from '../css/shared-css.js';
-import {SlSelect} from '@shoelace-style/shoelace';
 
 type CodeSubscription = components['schemas']['CodeSubscriptionResponse'];
 type SubscriptionOccurrence = components['schemas']['SubscriptionOccurrence'];
@@ -40,15 +39,11 @@ export class WebstatusCodeSubscriptionsPage extends LitElement {
       :host {
         display: block;
         padding: var(--sl-spacing-large);
-        color: var(--sl-color-neutral-900);
       }
 
       .container {
         max-width: 1200px;
         margin: 0 auto;
-        display: flex;
-        flex-direction: column;
-        gap: var(--sl-spacing-large);
       }
 
       .header-controls {
@@ -57,47 +52,60 @@ export class WebstatusCodeSubscriptionsPage extends LitElement {
         align-items: center;
         flex-wrap: wrap;
         gap: var(--sl-spacing-medium);
+        margin-bottom: var(--sl-spacing-medium);
       }
 
       .repo-selector {
-        min-width: 320px;
+        min-width: 280px;
+      }
+
+      .admin-notice {
+        display: flex;
+        align-items: center;
+        gap: var(--sl-spacing-small);
+        background-color: var(--sl-color-neutral-100);
+        color: var(--sl-color-neutral-700);
+        padding: var(--sl-spacing-small) var(--sl-spacing-medium);
+        border-radius: var(--sl-border-radius-medium);
+        font-size: var(--sl-font-size-small);
+        margin-bottom: var(--sl-spacing-medium);
       }
 
       .quota-card {
-        background: var(--sl-color-neutral-50);
+        background-color: var(--sl-color-neutral-50);
         border: 1px solid var(--sl-color-neutral-200);
         border-radius: var(--sl-border-radius-medium);
         padding: var(--sl-spacing-medium);
-        display: flex;
-        flex-direction: column;
-        gap: var(--sl-spacing-small);
+        margin-bottom: var(--sl-spacing-large);
       }
 
       .quota-text {
         display: flex;
         justify-content: space-between;
+        margin-bottom: var(--sl-spacing-small);
         font-size: var(--sl-font-size-small);
         color: var(--sl-color-neutral-700);
       }
 
       .table-container {
-        width: 100%;
         overflow-x: auto;
+        border: 1px solid var(--sl-color-neutral-200);
+        border-radius: var(--sl-border-radius-medium);
       }
 
-      table.subscriptions-table {
+      .subscriptions-table {
         width: 100%;
         border-collapse: collapse;
         text-align: left;
       }
 
-      table.subscriptions-table th,
-      table.subscriptions-table td {
-        padding: var(--sl-spacing-small) var(--sl-spacing-medium);
+      .subscriptions-table th,
+      .subscriptions-table td {
+        padding: var(--sl-spacing-medium);
         border-bottom: 1px solid var(--sl-color-neutral-200);
       }
 
-      table.subscriptions-table th {
+      .subscriptions-table th {
         background-color: var(--sl-color-neutral-100);
         font-weight: var(--sl-font-weight-semibold);
       }
@@ -131,6 +139,12 @@ export class WebstatusCodeSubscriptionsPage extends LitElement {
         color: var(--sl-color-neutral-600);
       }
 
+      .last-scanned-text {
+        font-size: var(--sl-font-size-small);
+        color: var(--sl-color-neutral-600);
+        white-space: nowrap;
+      }
+
       .empty-state {
         text-align: center;
         padding: var(--sl-spacing-2x-large);
@@ -153,46 +167,43 @@ export class WebstatusCodeSubscriptionsPage extends LitElement {
   userContext?: UserContext | null;
 
   @state()
-  selectedRepoID?: string;
+  selectedRepo: string = 'GoogleChrome/webstatus.dev';
 
   public _dataTask = new Task(this, {
-    task: async ([user, repoID]) => {
+    task: async ([user, repo]) => {
       if (!user || !this.apiClient) {
         return null;
       }
       const token = await user.getIdToken();
-      const reposResp = await this.apiClient.listVCSRepositories(
+      const activeRepo = repo || 'GoogleChrome/webstatus.dev';
+
+      const subsResp = await this.apiClient.listCodeSubscriptions(
         'github',
+        activeRepo,
         token,
       );
-      const repos = reposResp.data;
-
-      if (!repos || repos.length === 0) {
-        return {repositories: [], subscriptions: []};
-      }
-
-      const activeRepoID = repoID ?? repos[0]?.repository_id;
-      if (!this.selectedRepoID && activeRepoID) {
-        this.selectedRepoID = activeRepoID;
-      }
-
-      let subscriptions: CodeSubscription[] = [];
-      if (activeRepoID) {
-        const subsResp = await this.apiClient.listCodeSubscriptions(
-          'github',
-          activeRepoID,
-          token,
-        );
-        subscriptions = subsResp.data ?? [];
-      }
+      const subscriptions: CodeSubscription[] = subsResp.data ?? [];
 
       return {
-        repositories: repos,
+        repository: activeRepo,
         subscriptions,
       };
     },
-    args: () => [this.userContext?.user, this.selectedRepoID] as const,
+    args: () => [this.userContext?.user, this.selectedRepo] as const,
   });
+
+  private formatTrigger(trigger: SubscriptionTrigger | string): string {
+    switch (trigger) {
+      case 'feature_baseline_to_widely':
+      case 'feature.baseline.promote_to_widely':
+        return 'Widely Available';
+      case 'feature_baseline_to_newly':
+      case 'feature.baseline.promote_to_newly':
+        return 'Newly Available';
+      default:
+        return String(trigger);
+    }
+  }
 
   private renderQuota(count: number): TemplateResult {
     const maxQuota = 500;
@@ -252,6 +263,14 @@ export class WebstatusCodeSubscriptionsPage extends LitElement {
   }
 
   private renderSubscriptionRow(sub: CodeSubscription): TemplateResult {
+    const formattedLastScanned = sub.updated_at
+      ? new Date(sub.updated_at).toLocaleDateString(undefined, {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+        })
+      : 'Never';
+
     return html`
       <tr>
         <td>
@@ -260,7 +279,7 @@ export class WebstatusCodeSubscriptionsPage extends LitElement {
         <td>
           ${sub.triggers.map(
             (tr: SubscriptionTrigger) => html`
-              <sl-badge variant="neutral">${tr}</sl-badge>
+              <sl-badge variant="neutral">${this.formatTrigger(tr)}</sl-badge>
             `,
           )}
         </td>
@@ -269,6 +288,9 @@ export class WebstatusCodeSubscriptionsPage extends LitElement {
           <span class="status-badge status-${sub.status.toLowerCase()}">
             ${sub.status}
           </span>
+        </td>
+        <td>
+          <span class="last-scanned-text">${formattedLastScanned}</span>
         </td>
       </tr>
     `;
@@ -287,12 +309,14 @@ export class WebstatusCodeSubscriptionsPage extends LitElement {
                 <th>Triggers</th>
                 <th>Occurrences</th>
                 <th>Status</th>
+                <th>Last Scanned</th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <td colspan="4" class="empty-state">
-                  No active code subscriptions found in this repository.
+                <td colspan="5" class="empty-state">
+                  No active code subscriptions found for this repository, or you
+                  do not have admin permissions to access it.
                 </td>
               </tr>
             </tbody>
@@ -310,6 +334,7 @@ export class WebstatusCodeSubscriptionsPage extends LitElement {
               <th>Triggers</th>
               <th>Occurrences</th>
               <th>Status</th>
+              <th>Last Scanned</th>
             </tr>
           </thead>
           <tbody>
@@ -326,6 +351,12 @@ export class WebstatusCodeSubscriptionsPage extends LitElement {
         <sl-alert variant="danger" open>
           <sl-icon slot="icon" name="exclamation-octagon"></sl-icon>
           <strong>Error loading code subscriptions:</strong> ${String(err)}
+          <p
+            style="margin: var(--sl-spacing-2x-small) 0 0 0; font-size: var(--sl-font-size-small);"
+          >
+            Please verify that you are logged in with GitHub and have admin
+            permissions on this repository.
+          </p>
         </sl-alert>
         <sl-button @click="${() => this._dataTask.run()}">Retry</sl-button>
       </div>
@@ -357,16 +388,12 @@ export class WebstatusCodeSubscriptionsPage extends LitElement {
           error instanceof Error ? error : new Error(String(error)),
         ),
       complete: data => {
-        if (!data || data.repositories.length === 0) {
+        if (!data) {
           return html`
             <div class="container">
               <h2>Code Subscriptions</h2>
               <div class="empty-state">
-                <p>No connected GitHub repositories found.</p>
-                <p>
-                  Install the webstatus.dev GitHub App on your repositories to
-                  enable automated code subscriptions.
-                </p>
+                <p>No repository selected.</p>
               </div>
             </div>
           `;
@@ -376,27 +403,44 @@ export class WebstatusCodeSubscriptionsPage extends LitElement {
           <div class="container">
             <div class="header-controls">
               <h2>Code Subscriptions</h2>
-              <sl-select
-                class="repo-selector"
-                value="${this.selectedRepoID ?? ''}"
-                @sl-change="${(e: CustomEvent) => {
-                  const select = e.target;
-                  if (
-                    select instanceof SlSelect &&
-                    typeof select.value === 'string'
-                  ) {
-                    this.selectedRepoID = select.value;
-                  }
-                }}"
+              <div
+                style="display: flex; gap: var(--sl-spacing-small); align-items: center; flex-wrap: wrap;"
               >
-                ${data.repositories.map(
-                  repo => html`
-                    <sl-option value="${repo.repository_id}">
-                      ${repo.full_name}
-                    </sl-option>
-                  `,
-                )}
-              </sl-select>
+                <sl-input
+                  class="repo-selector"
+                  placeholder="owner/repo (e.g. GoogleChrome/webstatus.dev)"
+                  value="${this.selectedRepo}"
+                  @sl-change="${(e: Event) => {
+                    const input = e.target;
+                    if (
+                      input &&
+                      'value' in input &&
+                      typeof input.value === 'string'
+                    ) {
+                      this.selectedRepo = input.value.trim();
+                    }
+                  }}"
+                >
+                  <sl-icon slot="prefix" name="search"></sl-icon>
+                </sl-input>
+                <sl-button
+                  href="https://github.com/apps/webstatus-dev/installations/new"
+                  target="_blank"
+                  variant="default"
+                  rel="noopener"
+                >
+                  <sl-icon slot="prefix" name="github"></sl-icon>
+                  Connect Repository
+                </sl-button>
+              </div>
+            </div>
+
+            <div class="admin-notice">
+              <sl-icon name="info-circle"></sl-icon>
+              <span
+                >Viewing and managing code subscriptions requires repository
+                maintainer or admin access.</span
+              >
             </div>
 
             ${this.renderQuota(data.subscriptions.length)}

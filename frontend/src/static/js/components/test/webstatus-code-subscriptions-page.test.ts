@@ -28,21 +28,6 @@ describe('webstatus-code-subscriptions-page', () => {
   let user: UserContext;
   let element: WebstatusCodeSubscriptionsPage;
 
-  const mockRepositories: components['schemas']['VCSRepositoryPage'] = {
-    data: [
-      {
-        id: 'repo-1',
-        vcs_provider: 'github',
-        vcs_installation_id: '12345',
-        repository_id: '67890',
-        owner: 'GoogleChrome',
-        name: 'webstatus.dev',
-        full_name: 'GoogleChrome/webstatus.dev',
-        private: false,
-      },
-    ],
-  };
-
   const mockSubscriptions: components['schemas']['CodeSubscriptionPage'] = {
     data: [
       {
@@ -75,7 +60,6 @@ describe('webstatus-code-subscriptions-page', () => {
   beforeEach(async () => {
     sandbox = sinon.createSandbox();
     apiClient = {
-      listVCSRepositories: sandbox.stub().resolves(mockRepositories),
       listCodeSubscriptions: sandbox.stub().resolves(mockSubscriptions),
     } as unknown as APIClient;
 
@@ -123,10 +107,10 @@ describe('webstatus-code-subscriptions-page', () => {
     expect(table?.textContent).to.include('id:css-subgrid');
   });
 
-  it('renders empty repositories message when user has no connected installations', async () => {
+  it('renders empty subscriptions message when repo has no subscriptions', async () => {
     element.apiClient = {
       ...apiClient,
-      listVCSRepositories: sandbox.stub().resolves({data: []}),
+      listCodeSubscriptions: sandbox.stub().resolves({data: []}),
     } as unknown as APIClient;
     element._dataTask.run();
     await element._dataTask.taskComplete;
@@ -136,14 +120,14 @@ describe('webstatus-code-subscriptions-page', () => {
     const emptyState = element.shadowRoot?.querySelector('.empty-state');
     expect(emptyState).to.exist;
     expect(emptyState?.textContent).to.include(
-      'No connected GitHub repositories',
+      'No active code subscriptions found',
     );
   });
 
   it('renders error alert when API fetch fails and retries on button click', async () => {
     element.apiClient = {
       ...apiClient,
-      listVCSRepositories: sandbox.stub().rejects(new Error('Network error')),
+      listCodeSubscriptions: sandbox.stub().rejects(new Error('Network error')),
     } as unknown as APIClient;
     element._dataTask.run();
     try {
