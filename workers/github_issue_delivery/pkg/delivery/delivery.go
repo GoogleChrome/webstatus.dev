@@ -29,14 +29,14 @@ import (
 	"github.com/google/go-github/v79/github"
 )
 
-func toSpannerOccurrences(occs []githubissuedeliveryv1.IssueOccurrence) []gcpspanner.SubscriptionOccurrence {
+func toGHOccurrences(occs []githubissuedeliveryv1.IssueOccurrence) []gh.IssueOccurrence {
 	if occs == nil {
 		return nil
 	}
 
-	res := make([]gcpspanner.SubscriptionOccurrence, len(occs))
+	res := make([]gh.IssueOccurrence, len(occs))
 	for i, occ := range occs {
-		res[i] = gcpspanner.SubscriptionOccurrence{
+		res[i] = gh.IssueOccurrence{
 			FilePath:       occ.FilePath,
 			LineNumber:     occ.LineNumber,
 			CommentSnippet: occ.CommentSnippet,
@@ -50,6 +50,14 @@ func toSpannerOccurrences(occs []githubissuedeliveryv1.IssueOccurrence) []gcpspa
 type GitHubIssueCreator interface {
 	CreateIssue(ctx context.Context, owner, repo string, req *github.IssueRequest) (*github.Issue, error)
 }
+
+// TokenProvider defines the token retrieval interface for GitHub App installations.
+type TokenProvider interface {
+	GetInstallationToken(ctx context.Context, installationID string) (string, error)
+}
+
+// ClientFactory creates a GitHubIssueCreator for an auth token.
+type ClientFactory func(token string) GitHubIssueCreator
 
 // LockStorer defines the Spanner operations for lock management and delivery recording.
 type LockStorer interface {
@@ -65,17 +73,30 @@ type LockStorer interface {
 
 // Deliverer coordinates lock acquisition, issue rendering, and issue creation.
 type Deliverer struct {
-	issueCreator GitHubIssueCreator
-	storer       LockStorer
-	workerLockID string
+	tokenProvider TokenProvider
+	clientFactory ClientFactory
+	storer        LockStorer
+	workerLockID  string
 }
 
 // NewDeliverer creates a new Deliverer instance.
-func NewDeliverer(creator GitHubIssueCreator, storer LockStorer, workerLockID string) *Deliverer {
+func NewDeliverer(
+	tokenProvider TokenProvider,
+	clientFactory ClientFactory,
+	storer LockStorer,
+	workerLockID string,
+) *Deliverer {
+	if clientFactory == nil {
+		clientFactory = func(token string) GitHubIssueCreator {
+			return gh.NewClient(token)
+		}
+	}
+
 	return &Deliverer{
-		issueCreator: creator,
-		storer:       storer,
-		workerLockID: workerLockID,
+		tokenProvider: tokenProvider,
+		clientFactory: clientFactory,
+		storer:        storer,
+		workerLockID:  workerLockID,
 	}
 }
 
@@ -104,21 +125,37 @@ func (d *Deliverer) ProcessJob(ctx context.Context, job githubissuedeliveryv1.Gi
 	}
 
 	// 2. Render issue title and markdown body
-	spannerTrigger := gcpspanner.SubscriptionTrigger(job.Trigger)
-	spannerOccs := toSpannerOccurrences(job.Occurrences)
+	ghOccs := toGHOccurrences(job.Occurrences)
 
-	title := gh.RenderIssueTitle(job.FeatureName, spannerTrigger)
+	title := gh.RenderIssueTitle(job.FeatureName, job.Trigger)
 	body := gh.RenderIssueBody(gh.IssueRenderParams{
 		FeatureID:          job.FeatureID,
 		FeatureName:        job.FeatureName,
-		Trigger:            spannerTrigger,
+		Trigger:            job.Trigger,
 		RepositoryFullName: job.RepositoryFullName,
 		CommitSHA:          job.CommitSHA,
-		Occurrences:        spannerOccs,
+		Occurrences:        ghOccs,
 		WebStatusURL:       job.WebStatusURL,
 	})
 
-	// 3. Create issue on GitHub
+	// 3. Obtain auth token and initialize issue creator
+	var token string
+	if d.tokenProvider != nil && job.VCSInstallationID != "" {
+		t, tokErr := d.tokenProvider.GetInstallationToken(ctx, job.VCSInstallationID)
+		if tokErr != nil {
+			slog.ErrorContext(ctx, "failed to get installation token for delivery", "error", tokErr)
+			if relErr := d.storer.ReleaseDeliveryLock(ctx, job.DeliveryID, d.workerLockID); relErr != nil {
+				slog.ErrorContext(ctx, "failed to release lock after token error", "error", relErr)
+			}
+
+			return fmt.Errorf("%w: failed to get installation token: %w", event.ErrTransientFailure, tokErr)
+		}
+		token = t
+	}
+
+	creator := d.clientFactory(token)
+
+	// 4. Create issue on GitHub with 25s sub-timeout before 30s lock expiry
 	req := &github.IssueRequest{
 		Title:       &title,
 		Body:        &body,
@@ -131,7 +168,10 @@ func (d *Deliverer) ProcessJob(ctx context.Context, job githubissuedeliveryv1.Gi
 		Type:        nil,
 	}
 
-	issue, createErr := d.issueCreator.CreateIssue(ctx, job.RepositoryOwner, job.RepositoryName, req)
+	createCtx, cancel := context.WithTimeout(ctx, 25*time.Second)
+	defer cancel()
+
+	issue, createErr := creator.CreateIssue(createCtx, job.RepositoryOwner, job.RepositoryName, req)
 	if createErr != nil {
 		// If secondary rate limit or transient error, reset lock so subsequent workers can retry
 		if errors.Is(createErr, gh.ErrSecondaryRateLimit) {
@@ -150,7 +190,7 @@ func (d *Deliverer) ProcessJob(ctx context.Context, job githubissuedeliveryv1.Gi
 	issueID := strconv.FormatInt(issue.GetID(), 10)
 	issueURL := issue.GetHTMLURL()
 
-	// 4. Record successful delivery
+	// 5. Record successful delivery
 	if recErr := d.storer.RecordDeliverySuccess(ctx, job.DeliveryID, d.workerLockID, issueID, issueURL); recErr != nil {
 		slog.ErrorContext(ctx, "failed to record delivery success", "error", recErr, "issueURL", issueURL)
 

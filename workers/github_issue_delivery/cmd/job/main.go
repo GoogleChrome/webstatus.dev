@@ -74,21 +74,21 @@ func main() {
 	appID := os.Getenv("GITHUB_APP_ID")
 	pkPath := os.Getenv("GITHUB_APP_PRIVATE_KEY_PATH")
 
-	var privateKeyPEM []byte
-	if pkPath != "" {
-		pkData, err := os.ReadFile(filepath.Clean(pkPath)) // #nosec G304 G703 -- Admin configured private key path
-		if err != nil {
-			slog.WarnContext(ctx, "unable to read private key file", "path", pkPath, "error", err)
-		} else {
-			privateKeyPEM = pkData
+	var tokenProvider *gh.TokenProvider
+	if appID != "" && pkPath != "" {
+		pkData, readErr := os.ReadFile(filepath.Clean(pkPath)) // #nosec G304 G703 -- Admin configured private key path
+		if readErr != nil {
+			slog.ErrorContext(ctx, "unable to read private key file", "path", pkPath, "error", readErr)
+			os.Exit(1)
 		}
-	}
 
-	tokenProvider, err := gh.NewTokenProvider(appID, privateKeyPEM, nil)
-	if err != nil {
-		slog.WarnContext(ctx, "unable to create token provider", "error", err)
+		tp, tpErr := gh.NewTokenProvider(appID, pkData, nil)
+		if tpErr != nil {
+			slog.ErrorContext(ctx, "unable to create token provider", "error", tpErr)
+			os.Exit(1)
+		}
+		tokenProvider = tp
 	}
-	_ = tokenProvider
 
 	queueClient, err := gcppubsub.NewClient(ctx, projectID)
 	if err != nil {
@@ -97,8 +97,7 @@ func main() {
 	}
 
 	workerID := uuid.NewString()
-	ghClient := gh.NewClient("")
-	deliverer := delivery.NewDeliverer(ghClient, spannerClient, workerID)
+	deliverer := delivery.NewDeliverer(tokenProvider, nil, spannerClient, workerID)
 
 	listener := gcppubsubadapters.NewGitHubIssueDeliverySubscriberAdapter(deliverer, queueClient, subID)
 	if err := listener.Subscribe(ctx); err != nil {

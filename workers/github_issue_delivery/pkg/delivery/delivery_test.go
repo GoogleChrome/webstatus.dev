@@ -50,42 +50,22 @@ func (m *mockIssueCreator) CreateIssue(
 		return nil, m.createErr
 	}
 
+	//nolint:exhaustruct
 	issue := &github.Issue{
-		ID:                &m.issueID,
-		Number:            nil,
-		State:             nil,
-		StateReason:       nil,
-		Locked:            nil,
-		Title:             nil,
-		Body:              nil,
-		AuthorAssociation: nil,
-		User:              nil,
-		Labels:            nil,
-		Assignee:          nil,
-		Comments:          nil,
-		ClosedAt:          nil,
-		CreatedAt:         nil,
-		UpdatedAt:         nil,
-		ClosedBy:          nil,
-		URL:               nil,
-		HTMLURL:           &m.issueURL,
-		CommentsURL:       nil,
-		EventsURL:         nil,
-		LabelsURL:         nil,
-		RepositoryURL:     nil,
-		Milestone:         nil,
-		PullRequestLinks:  nil,
-		Repository:        nil,
-		Reactions:         nil,
-		Assignees:         nil,
-		NodeID:            nil,
-		Draft:             nil,
-		Type:              nil,
-		TextMatches:       nil,
-		ActiveLockReason:  nil,
+		ID:      &m.issueID,
+		HTMLURL: &m.issueURL,
 	}
 
 	return issue, nil
+}
+
+type mockTokenProvider struct {
+	token string
+	err   error
+}
+
+func (m *mockTokenProvider) GetInstallationToken(_ context.Context, _ string) (string, error) {
+	return m.token, m.err
 }
 
 type mockDeliveryStorer struct {
@@ -145,7 +125,7 @@ func sampleJob() githubissuedeliveryv1.GitHubIssueDeliveryEvent {
 		RepositoryFullName: "GoogleChrome/webstatus.dev",
 		FeatureID:          "css-subgrid",
 		FeatureName:        "CSS Subgrid",
-		Trigger:            "feature_baseline_to_widely",
+		Trigger:            "feature.baseline.promote_to_widely",
 		CommitSHA:          "abcdef1234567890abcdef1234567890abcdef12",
 		Occurrences: []githubissuedeliveryv1.IssueOccurrence{
 			{
@@ -180,7 +160,8 @@ func TestDelivererSuccess(t *testing.T) {
 		releaseErr:      nil,
 	}
 
-	deliverer := NewDeliverer(creator, storer, "worker-1")
+	tp := &mockTokenProvider{token: "test-token", err: nil}
+	deliverer := NewDeliverer(tp, func(_ string) GitHubIssueCreator { return creator }, storer, "worker-1")
 	err := deliverer.ProcessJob(context.Background(), sampleJob())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -216,7 +197,7 @@ func TestDelivererAlreadyDelivered(t *testing.T) {
 		releaseErr:      nil,
 	}
 
-	deliverer := NewDeliverer(creator, storer, "worker-1")
+	deliverer := NewDeliverer(nil, func(_ string) GitHubIssueCreator { return creator }, storer, "worker-1")
 	err := deliverer.ProcessJob(context.Background(), sampleJob())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -249,7 +230,7 @@ func TestDelivererSecondaryRateLimit(t *testing.T) {
 		releaseErr:      nil,
 	}
 
-	deliverer := NewDeliverer(creator, storer, "worker-1")
+	deliverer := NewDeliverer(nil, func(_ string) GitHubIssueCreator { return creator }, storer, "worker-1")
 	err := deliverer.ProcessJob(context.Background(), sampleJob())
 	if err == nil {
 		t.Fatalf("expected rate limit error, got nil")
@@ -285,7 +266,7 @@ func TestDelivererCreateIssueError(t *testing.T) {
 		releaseErr:      nil,
 	}
 
-	deliverer := NewDeliverer(creator, storer, "worker-1")
+	deliverer := NewDeliverer(nil, func(_ string) GitHubIssueCreator { return creator }, storer, "worker-1")
 	err := deliverer.ProcessJob(context.Background(), sampleJob())
 	if err == nil {
 		t.Fatalf("expected error from create issue, got nil")
@@ -317,12 +298,48 @@ func TestDelivererLockAlreadyHeld(t *testing.T) {
 		releaseErr:      nil,
 	}
 
-	deliverer := NewDeliverer(creator, storer, "worker-1")
+	deliverer := NewDeliverer(nil, func(_ string) GitHubIssueCreator { return creator }, storer, "worker-1")
 	err := deliverer.ProcessJob(context.Background(), sampleJob())
 	if err == nil {
 		t.Fatalf("expected error on lock collision, got nil")
 	}
 	if !errors.Is(err, event.ErrTransientFailure) {
 		t.Errorf("expected ErrTransientFailure on lock collision, got %v", err)
+	}
+}
+
+func TestDelivererTokenProviderError(t *testing.T) {
+	t.Parallel()
+
+	tp := &mockTokenProvider{token: "", err: errors.New("auth expired")}
+	creator := &mockIssueCreator{
+		createdTitle: "",
+		createdBody:  "",
+		issueID:      0,
+		issueURL:     "",
+		createErr:    nil,
+	}
+
+	storer := &mockDeliveryStorer{
+		lockAcquired:    true,
+		acquireErr:      nil,
+		recordedSuccess: false,
+		recordedIssueID: "",
+		recordedURL:     "",
+		recordErr:       nil,
+		lockReleased:    false,
+		releaseErr:      nil,
+	}
+
+	deliverer := NewDeliverer(tp, func(_ string) GitHubIssueCreator { return creator }, storer, "worker-1")
+	err := deliverer.ProcessJob(context.Background(), sampleJob())
+	if err == nil {
+		t.Fatalf("expected error on token failure, got nil")
+	}
+	if !errors.Is(err, event.ErrTransientFailure) {
+		t.Errorf("expected ErrTransientFailure on token error, got %v", err)
+	}
+	if !storer.lockReleased {
+		t.Errorf("expected lock to be released on token failure")
 	}
 }
