@@ -88,8 +88,8 @@ type webhookTestCase struct {
 	expectTask       bool
 }
 
+//nolint:unparam,exhaustruct // Test helper parameterized for status codes
 func testEmptyResponse(statusCode int) *http.Response {
-	// nolint:exhaustruct // Test helper
 	return &http.Response{
 		StatusCode: statusCode,
 		Header:     http.Header{},
@@ -237,6 +237,30 @@ func TestHandleVCSWebhook(t *testing.T) {
 			deliveryID:       &deliveryGUID,
 			eventHeader:      &eventType,
 			recordResult:     false,
+			recordErr:        nil,
+			expectedResponse: testEmptyResponse(http.StatusAccepted),
+			expectTask:       false,
+		},
+		{
+			name:             "Non-Push Ping Event (Accepted Without Scan Task)",
+			provider:         "github",
+			body:             `{"zen": "Favor focus over features."}`,
+			sigHeader:        &validSignature,
+			deliveryID:       &deliveryGUID,
+			eventHeader:      func(s string) *string { return &s }("ping"),
+			recordResult:     true,
+			recordErr:        nil,
+			expectedResponse: testEmptyResponse(http.StatusAccepted),
+			expectTask:       false,
+		},
+		{
+			name:             "Non-Push Pull Request Event (Accepted Without Scan Task)",
+			provider:         "github",
+			body:             pushBody,
+			sigHeader:        &validSignature,
+			deliveryID:       &deliveryGUID,
+			eventHeader:      func(s string) *string { return &s }("pull_request"),
+			recordResult:     true,
 			recordErr:        nil,
 			expectedResponse: testEmptyResponse(http.StatusAccepted),
 			expectTask:       false,
