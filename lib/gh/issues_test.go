@@ -171,6 +171,7 @@ func TestCreateIssue(t *testing.T) {
 				gitClient:    nil,
 				issuesClient: &MockIssuesClient{CreateFunc: tc.mockFunc},
 				appsClient:   nil,
+				httpClient:   nil,
 			}
 
 			issue, err := client.CreateIssue(context.Background(), "owner", "repo", tc.req)

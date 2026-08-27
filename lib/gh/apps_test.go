@@ -15,8 +15,13 @@
 package gh
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"testing"
 
 	"github.com/google/go-github/v79/github"
@@ -75,7 +80,7 @@ func TestClient_ListInstallationRepositories(t *testing.T) {
 	}{
 		{
 			name:        "uninitialized apps client returns error",
-			client:      &Client{repoClient: nil, gitClient: nil, issuesClient: nil, appsClient: nil},
+			client:      &Client{repoClient: nil, gitClient: nil, issuesClient: nil, appsClient: nil, httpClient: nil},
 			mockFunc:    nil,
 			expectedLen: 0,
 			wantErr:     true,
@@ -123,6 +128,7 @@ func TestClient_ListInstallationRepositories(t *testing.T) {
 					gitClient:    nil,
 					issuesClient: nil,
 					appsClient:   &MockAppsClient{ListReposFunc: tc.mockFunc, ListInstallationsFunc: nil},
+					httpClient:   nil,
 				}
 			}
 
@@ -160,7 +166,7 @@ func TestClient_ListAppInstallations(t *testing.T) {
 	}{
 		{
 			name:        "uninitialized apps client returns error",
-			client:      &Client{repoClient: nil, gitClient: nil, issuesClient: nil, appsClient: nil},
+			client:      &Client{repoClient: nil, gitClient: nil, issuesClient: nil, appsClient: nil, httpClient: nil},
 			mockFunc:    nil,
 			expectedLen: 0,
 			wantErr:     true,
@@ -196,6 +202,7 @@ func TestClient_ListAppInstallations(t *testing.T) {
 					gitClient:    nil,
 					issuesClient: nil,
 					appsClient:   &MockAppsClient{ListReposFunc: nil, ListInstallationsFunc: tc.mockFunc},
+					httpClient:   nil,
 				}
 			}
 
@@ -211,4 +218,136 @@ func TestClient_ListAppInstallations(t *testing.T) {
 			}
 		})
 	}
+}
+
+type mockTarballRepoClient struct {
+	getArchiveLinkFunc func(
+		ctx context.Context,
+		owner, repo string,
+		archiveformat github.ArchiveFormat,
+		opts *github.RepositoryContentGetOptions,
+		maxRedirects int,
+	) (*url.URL, *github.Response, error)
+}
+
+func (m *mockTarballRepoClient) GetLatestRelease(
+	_ context.Context, _, _ string,
+) (*github.RepositoryRelease, *github.Response, error) {
+	return nil, nil, nil
+}
+
+func (m *mockTarballRepoClient) GetArchiveLink(
+	ctx context.Context,
+	owner, repo string,
+	archiveformat github.ArchiveFormat,
+	opts *github.RepositoryContentGetOptions,
+	maxRedirects int,
+) (*url.URL, *github.Response, error) {
+	if m.getArchiveLinkFunc == nil {
+		return nil, nil, nil
+	}
+
+	return m.getArchiveLinkFunc(ctx, owner, repo, archiveformat, opts, maxRedirects)
+}
+
+func TestClient_DownloadTarball(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+
+	t.Run("uninitialized repoClient returns error", func(t *testing.T) {
+		t.Parallel()
+
+		c := &Client{
+			repoClient:   nil,
+			gitClient:    nil,
+			issuesClient: nil,
+			appsClient:   nil,
+			httpClient:   nil,
+		}
+		_, err := c.DownloadTarball(ctx, "owner", "repo", "main")
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+	})
+
+	t.Run("GetArchiveLink error returns error", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr := errors.New("archive link failed")
+		repoMock := &mockTarballRepoClient{
+			getArchiveLinkFunc: func(
+				_ context.Context, _, _ string, _ github.ArchiveFormat, _ *github.RepositoryContentGetOptions, _ int,
+			) (*url.URL, *github.Response, error) {
+				return nil, nil, expectedErr
+			},
+		}
+
+		c := &Client{
+			repoClient:   repoMock,
+			gitClient:    nil,
+			issuesClient: nil,
+			appsClient:   nil,
+			httpClient:   nil,
+		}
+		_, err := c.DownloadTarball(ctx, "owner", "repo", "main")
+		if err == nil || !errors.Is(err, expectedErr) {
+			t.Fatalf("expected %v, got %v", expectedErr, err)
+		}
+	})
+
+	t.Run("successful streaming from archive link", func(t *testing.T) {
+		t.Parallel()
+
+		tarData := []byte("mock-tarball-stream-bytes")
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write(tarData)
+		}))
+		defer srv.Close()
+
+		srvURL, err := url.Parse(srv.URL)
+		if err != nil {
+			t.Fatalf("failed to parse test server url: %v", err)
+		}
+
+		repoMock := &mockTarballRepoClient{
+			getArchiveLinkFunc: func(
+				_ context.Context, owner, repo string, _ github.ArchiveFormat,
+				opts *github.RepositoryContentGetOptions, _ int,
+			) (*url.URL, *github.Response, error) {
+				if owner != "GoogleChrome" || repo != "webstatus.dev" || opts.Ref != "main" {
+					t.Fatalf("unexpected parameters: owner=%s, repo=%s, ref=%s", owner, repo, opts.Ref)
+				}
+
+				return srvURL, nil, nil
+			},
+		}
+
+		c := &Client{
+			repoClient:   repoMock,
+			gitClient:    nil,
+			issuesClient: nil,
+			appsClient:   nil,
+			httpClient:   srv.Client(),
+		}
+
+		stream, err := c.DownloadTarball(ctx, "GoogleChrome", "webstatus.dev", "main")
+		if err != nil {
+			t.Fatalf("DownloadTarball failed: %v", err)
+		}
+		defer func() {
+			if closeErr := stream.Close(); closeErr != nil {
+				t.Fatalf("failed to close stream: %v", closeErr)
+			}
+		}()
+
+		readBytes, err := io.ReadAll(stream)
+		if err != nil {
+			t.Fatalf("failed to read from stream: %v", err)
+		}
+		if !bytes.Equal(readBytes, tarData) {
+			t.Fatalf("expected %s, got %s", string(tarData), string(readBytes))
+		}
+	})
 }
