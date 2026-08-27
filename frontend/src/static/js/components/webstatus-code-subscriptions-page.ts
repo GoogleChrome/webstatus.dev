@@ -347,19 +347,17 @@ export class WebstatusCodeSubscriptionsPage extends LitElement {
 
   private renderWhenError(err: Error | null | undefined): TemplateResult {
     return html`
-      <div class="container">
-        <sl-alert variant="danger" open>
-          <sl-icon slot="icon" name="exclamation-octagon"></sl-icon>
-          <strong>Error loading code subscriptions:</strong> ${String(err)}
-          <p
-            style="margin: var(--sl-spacing-2x-small) 0 0 0; font-size: var(--sl-font-size-small);"
-          >
-            Please verify that you are logged in with GitHub and have admin
-            permissions on this repository.
-          </p>
-        </sl-alert>
-        <sl-button @click="${() => this._dataTask.run()}">Retry</sl-button>
-      </div>
+      <sl-alert variant="danger" open>
+        <sl-icon slot="icon" name="exclamation-octagon"></sl-icon>
+        <strong>Error loading code subscriptions:</strong> ${String(err)}
+        <p
+          style="margin: var(--sl-spacing-2x-small) 0 0 0; font-size: var(--sl-font-size-small);"
+        >
+          Please verify that you are logged in with GitHub and have admin
+          permissions on this repository.
+        </p>
+      </sl-alert>
+      <sl-button @click="${() => this._dataTask.run()}">Retry</sl-button>
     `;
   }
 
@@ -375,81 +373,73 @@ export class WebstatusCodeSubscriptionsPage extends LitElement {
       `;
     }
 
-    const taskResult = this._dataTask.render({
-      pending: () => html`
-        <div class="container">
-          <sl-skeleton effect="sheen" style="height: 40px;"></sl-skeleton>
-          <sl-skeleton effect="sheen" style="height: 100px;"></sl-skeleton>
-          <sl-skeleton effect="sheen" style="height: 200px;"></sl-skeleton>
-        </div>
-      `,
-      error: error =>
-        this.renderWhenError(
-          error instanceof Error ? error : new Error(String(error)),
-        ),
-      complete: data => {
-        if (!data) {
-          return html`
-            <div class="container">
-              <h2>Code Subscriptions</h2>
-              <div class="empty-state">
-                <p>No repository selected.</p>
-              </div>
-            </div>
-          `;
-        }
-
-        return html`
-          <div class="container">
-            <div class="header-controls">
-              <h2>Code Subscriptions</h2>
-              <div
-                style="display: flex; gap: var(--sl-spacing-small); align-items: center; flex-wrap: wrap;"
-              >
-                <sl-input
-                  class="repo-selector"
-                  placeholder="owner/repo (e.g. GoogleChrome/webstatus.dev)"
-                  value="${this.selectedRepo}"
-                  @sl-change="${(e: Event) => {
-                    const input = e.target;
-                    if (
-                      input &&
-                      'value' in input &&
-                      typeof input.value === 'string'
-                    ) {
-                      this.selectedRepo = input.value.trim();
-                    }
-                  }}"
-                >
-                  <sl-icon slot="prefix" name="search"></sl-icon>
-                </sl-input>
-                <sl-button
-                  href="https://github.com/apps/webstatus-dev/installations/new"
-                  target="_blank"
-                  variant="default"
-                  rel="noopener"
-                >
-                  <sl-icon slot="prefix" name="github"></sl-icon>
-                  Connect Repository
-                </sl-button>
-              </div>
-            </div>
-
-            <div class="admin-notice">
-              <sl-icon name="info-circle"></sl-icon>
-              <span
-                >Viewing and managing code subscriptions requires repository
-                maintainer or admin access.</span
-              >
-            </div>
-
-            ${this.renderQuota(data.subscriptions.length)}
-            ${this.renderSubscriptionsTable(data.subscriptions)}
+    return html`
+      <div class="container">
+        <div class="header-controls">
+          <h2>Code Subscriptions</h2>
+          <div
+            style="display: flex; gap: var(--sl-spacing-small); align-items: center; flex-wrap: wrap;"
+          >
+            <sl-input
+              class="repo-selector"
+              placeholder="owner/repo (e.g. GoogleChrome/webstatus.dev)"
+              value="${this.selectedRepo}"
+              @sl-change="${(e: Event) => {
+                const input = e.target;
+                if (
+                  input &&
+                  'value' in input &&
+                  typeof input.value === 'string'
+                ) {
+                  this.selectedRepo = input.value.trim();
+                }
+              }}"
+            >
+              <sl-icon slot="prefix" name="search"></sl-icon>
+            </sl-input>
+            <sl-button
+              href="https://github.com/apps/baselinebot/installations/new"
+              target="_blank"
+              variant="default"
+              rel="noopener"
+            >
+              <sl-icon slot="prefix" name="github"></sl-icon>
+              Connect Repository
+            </sl-button>
           </div>
-        `;
-      },
-    });
+        </div>
 
-    return html`${taskResult}`;
+        <div class="admin-notice">
+          <sl-icon name="info-circle"></sl-icon>
+          <span>Viewing and managing code subscriptions requires repository admin access.</span>
+        </div>
+
+        ${this._dataTask.render({
+          pending: () => html`
+            <sl-skeleton effect="sheen" style="height: 40px; margin-bottom: var(--sl-spacing-medium);"></sl-skeleton>
+            <sl-skeleton effect="sheen" style="height: 100px; margin-bottom: var(--sl-spacing-medium);"></sl-skeleton>
+            <sl-skeleton effect="sheen" style="height: 200px;"></sl-skeleton>
+          `,
+          error: error =>
+            this.renderWhenError(
+              error instanceof Error ? error : new Error(String(error)),
+            ),
+          complete: data => {
+            if (!data) {
+              return html`
+                <div class="empty-state">
+                  <p>No repository selected.</p>
+                </div>
+              `;
+            }
+
+            return html`
+              ${this.renderQuota(data.subscriptions.length)}
+              ${this.renderSubscriptionsTable(data.subscriptions)}
+            `;
+          },
+        })}
+      </div>
+    `;
   }
 }

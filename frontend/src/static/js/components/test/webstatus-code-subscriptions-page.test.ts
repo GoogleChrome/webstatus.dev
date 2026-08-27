@@ -138,6 +138,9 @@ describe('webstatus-code-subscriptions-page', () => {
     await element.requestUpdate();
     await element.updateComplete;
 
+    const repoInput = element.shadowRoot?.querySelector('.repo-selector');
+    expect(repoInput).to.exist;
+
     const errorAlert = element.shadowRoot?.querySelector(
       'sl-alert[variant="danger"]',
     );
@@ -146,8 +149,8 @@ describe('webstatus-code-subscriptions-page', () => {
       'Error loading code subscriptions',
     );
 
-    const retryBtn = errorAlert?.parentElement?.querySelector(
-      'sl-button',
+    const retryBtn = element.shadowRoot?.querySelector(
+      'sl-button[variant="default"]',
     ) as HTMLElement;
     expect(retryBtn).to.exist;
   });
