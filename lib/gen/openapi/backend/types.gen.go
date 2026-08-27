@@ -1172,39 +1172,6 @@ type UserSavedSearchPermissions struct {
 // UserSavedSearchRole defines model for UserSavedSearchRole.
 type UserSavedSearchRole string
 
-// VCSInstallationPage defines model for VCSInstallationPage.
-type VCSInstallationPage struct {
-	Data     *[]VCSInstallationSummary `json:"data,omitempty"`
-	Metadata *PageMetadata             `json:"metadata,omitempty"`
-}
-
-// VCSInstallationSummary defines model for VCSInstallationSummary.
-type VCSInstallationSummary struct {
-	AccountLogin      string `json:"account_login"`
-	AccountType       string `json:"account_type"`
-	Id                string `json:"id"`
-	VcsInstallationId string `json:"vcs_installation_id"`
-	VcsProvider       string `json:"vcs_provider"`
-}
-
-// VCSRepositoryPage defines model for VCSRepositoryPage.
-type VCSRepositoryPage struct {
-	Data     *[]VCSRepositorySummary `json:"data,omitempty"`
-	Metadata *PageMetadata           `json:"metadata,omitempty"`
-}
-
-// VCSRepositorySummary defines model for VCSRepositorySummary.
-type VCSRepositorySummary struct {
-	FullName          string `json:"full_name"`
-	Id                string `json:"id"`
-	Name              string `json:"name"`
-	Owner             string `json:"owner"`
-	Private           bool   `json:"private"`
-	RepositoryId      string `json:"repository_id"`
-	VcsInstallationId string `json:"vcs_installation_id"`
-	VcsProvider       string `json:"vcs_provider"`
-}
-
 // VCSWebhookPayload defines model for VCSWebhookPayload.
 type VCSWebhookPayload map[string]interface{}
 
@@ -1465,24 +1432,6 @@ type ListUserSavedSearchesParams struct {
 
 // ListSubscriptionsParams defines parameters for ListSubscriptions.
 type ListSubscriptionsParams struct {
-	// PageToken Pagination token
-	PageToken *PaginationTokenParam `form:"page_token,omitempty" json:"page_token,omitempty"`
-
-	// PageSize Number of results to return
-	PageSize *PaginationSizeParam `form:"page_size,omitempty" json:"page_size,omitempty"`
-}
-
-// ListVCSInstallationsParams defines parameters for ListVCSInstallations.
-type ListVCSInstallationsParams struct {
-	// PageToken Pagination token
-	PageToken *PaginationTokenParam `form:"page_token,omitempty" json:"page_token,omitempty"`
-
-	// PageSize Number of results to return
-	PageSize *PaginationSizeParam `form:"page_size,omitempty" json:"page_size,omitempty"`
-}
-
-// ListVCSRepositoriesParams defines parameters for ListVCSRepositories.
-type ListVCSRepositoriesParams struct {
 	// PageToken Pagination token
 	PageToken *PaginationTokenParam `form:"page_token,omitempty" json:"page_token,omitempty"`
 
