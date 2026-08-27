@@ -28,28 +28,50 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 )
 
-type pushPayload struct {
-	Ref          string `json:"ref"`
-	Before       string `json:"before"`
-	After        string `json:"after"`
-	Repository   repo   `json:"repository"`
-	Installation inst   `json:"installation"`
+// HandleVCSWebhook handles POST /v1/vcs/webhooks/{provider}.
+//
+//nolint:ireturn, revive // Expected ireturn for openapi generation.
+func (s *Server) HandleVCSWebhook(
+	ctx context.Context,
+	request backend.HandleVCSWebhookRequestObject,
+) (backend.HandleVCSWebhookResponseObject, error) {
+	switch request.Provider {
+	case vcsProviderGitHub:
+		return s.handleGitHubWebhook(ctx, request)
+	default:
+		return backend.HandleVCSWebhook400JSONResponse(backend.BasicErrorModel{
+			Code:    http.StatusBadRequest,
+			Message: fmt.Sprintf("unsupported VCS provider: %s", request.Provider),
+		}), nil
+	}
 }
 
-type repo struct {
-	ID            int64  `json:"id"`
-	Name          string `json:"name"`
-	FullName      string `json:"full_name"`
-	DefaultBranch string `json:"default_branch"`
-	Owner         owner  `json:"owner"`
+// =========================================================================
+// GitHub Webhook Handling
+// =========================================================================
+
+type gitHubPushPayload struct {
+	Ref          string            `json:"ref"`
+	Before       string            `json:"before"`
+	After        string            `json:"after"`
+	Repository   gitHubRepoPayload `json:"repository"`
+	Installation gitHubInstPayload `json:"installation"`
 }
 
-type owner struct {
+type gitHubRepoPayload struct {
+	ID            int64              `json:"id"`
+	Name          string             `json:"name"`
+	FullName      string             `json:"full_name"`
+	DefaultBranch string             `json:"default_branch"`
+	Owner         gitHubOwnerPayload `json:"owner"`
+}
+
+type gitHubOwnerPayload struct {
 	Login string `json:"login"`
 	Name  string `json:"name"`
 }
 
-type inst struct {
+type gitHubInstPayload struct {
 	ID int64 `json:"id"`
 }
 
@@ -70,60 +92,11 @@ func (s *Server) isInvalidSignature(ctx context.Context, rawBody []byte, sigHead
 	return false
 }
 
-func (s *Server) dispatchPushScanTask(
-	ctx context.Context,
-	provider string,
-	rawBody []byte,
-) error {
-	var payload pushPayload
-	if err := json.Unmarshal(rawBody, &payload); err != nil {
-		slog.WarnContext(ctx, "failed to unmarshal push payload", "error", err)
-
-		return fmt.Errorf("failed to unmarshal push payload: %w", err)
-	}
-
-	isDefault := payload.Ref == fmt.Sprintf("refs/heads/%s", payload.Repository.DefaultBranch)
-
-	task := codescantaskv1.CodeScanTaskEvent{
-		VCSProvider:        provider,
-		VCSInstallationID:  strconv.FormatInt(payload.Installation.ID, 10),
-		VCSRepositoryID:    strconv.FormatInt(payload.Repository.ID, 10),
-		RepositoryFullName: payload.Repository.FullName,
-		CommitSHA:          payload.After,
-		Branch:             payload.Ref,
-		IsDefaultBranch:    isDefault,
-		ModifiedFiles:      nil,
-	}
-
-	if pubErr := s.eventPublisher.PublishCodeScanTask(ctx, task); pubErr != nil {
-		slog.ErrorContext(ctx, "failed to publish scan task", "error", pubErr, "repo", task.RepositoryFullName)
-
-		return fmt.Errorf("failed to publish scan task: %w", pubErr)
-	}
-
-	return nil
-}
-
-func getEventTypeOrDefault(headerVal *string) string {
-	if headerVal != nil && *headerVal != "" {
-		return *headerVal
-	}
-
-	return "push"
-}
-
 //nolint:ireturn, revive, gocognit // Expected ireturn for openapi generation.
-func (s *Server) HandleVCSWebhook(
+func (s *Server) handleGitHubWebhook(
 	ctx context.Context,
 	request backend.HandleVCSWebhookRequestObject,
 ) (backend.HandleVCSWebhookResponseObject, error) {
-	if request.Provider != "github" {
-		return backend.HandleVCSWebhook400JSONResponse(backend.BasicErrorModel{
-			Code:    http.StatusBadRequest,
-			Message: fmt.Sprintf("unsupported VCS provider: %s", request.Provider),
-		}), nil
-	}
-
 	if request.Params.XGitHubDelivery == nil || *request.Params.XGitHubDelivery == "" {
 		return backend.HandleVCSWebhook400JSONResponse(backend.BasicErrorModel{
 			Code:    http.StatusBadRequest,
@@ -149,12 +122,12 @@ func (s *Server) HandleVCSWebhook(
 	}
 
 	deliveryGUID := *request.Params.XGitHubDelivery
-	eventType := getEventTypeOrDefault(request.Params.XGitHubEvent)
+	eventType := getGitHubEventTypeOrDefault(request.Params.XGitHubEvent)
 	now := time.Now().UTC()
 
-	var payload pushPayload
-	if err := json.Unmarshal(rawBody, &payload); err != nil {
-		slog.WarnContext(ctx, "failed to unmarshal webhook payload", "error", err)
+	var payload gitHubPushPayload
+	if unmarshalErr := json.Unmarshal(rawBody, &payload); unmarshalErr != nil {
+		slog.WarnContext(ctx, "failed to unmarshal webhook payload", "error", unmarshalErr)
 	}
 	repoID := strconv.FormatInt(payload.Repository.ID, 10)
 
@@ -184,7 +157,7 @@ func (s *Server) HandleVCSWebhook(
 	}
 
 	if eventType == "push" && s.eventPublisher != nil {
-		if err := s.dispatchPushScanTask(ctx, request.Provider, rawBody); err != nil {
+		if dispatchErr := s.dispatchGitHubPushScanTask(ctx, rawBody); dispatchErr != nil {
 			//nolint:nilerr // Return 500 response per OpenAPI spec
 			return backend.HandleVCSWebhook500JSONResponse(backend.BasicErrorModel{
 				Code:    http.StatusInternalServerError,
@@ -194,4 +167,45 @@ func (s *Server) HandleVCSWebhook(
 	}
 
 	return backend.HandleVCSWebhook202Response{}, nil
+}
+
+func (s *Server) dispatchGitHubPushScanTask(
+	ctx context.Context,
+	rawBody []byte,
+) error {
+	var payload gitHubPushPayload
+	if err := json.Unmarshal(rawBody, &payload); err != nil {
+		slog.WarnContext(ctx, "failed to unmarshal push payload", "error", err)
+
+		return fmt.Errorf("failed to unmarshal push payload: %w", err)
+	}
+
+	isDefault := payload.Ref == fmt.Sprintf("refs/heads/%s", payload.Repository.DefaultBranch)
+
+	task := codescantaskv1.CodeScanTaskEvent{
+		VCSProvider:        vcsProviderGitHub,
+		VCSInstallationID:  strconv.FormatInt(payload.Installation.ID, 10),
+		VCSRepositoryID:    strconv.FormatInt(payload.Repository.ID, 10),
+		RepositoryFullName: payload.Repository.FullName,
+		CommitSHA:          payload.After,
+		Branch:             payload.Ref,
+		IsDefaultBranch:    isDefault,
+		ModifiedFiles:      nil,
+	}
+
+	if pubErr := s.eventPublisher.PublishCodeScanTask(ctx, task); pubErr != nil {
+		slog.ErrorContext(ctx, "failed to publish scan task", "error", pubErr, "repo", task.RepositoryFullName)
+
+		return fmt.Errorf("failed to publish scan task: %w", pubErr)
+	}
+
+	return nil
+}
+
+func getGitHubEventTypeOrDefault(headerVal *string) string {
+	if headerVal != nil && *headerVal != "" {
+		return *headerVal
+	}
+
+	return "push"
 }

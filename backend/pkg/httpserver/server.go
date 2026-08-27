@@ -33,6 +33,8 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/gh"
 )
 
+const vcsProviderGitHub = "github"
+
 type WebFeatureMetadataStorer interface {
 	GetFeatureMetadata(
 		ctx context.Context,
