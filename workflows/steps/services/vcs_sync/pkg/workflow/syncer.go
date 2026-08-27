@@ -35,22 +35,25 @@ func NewJobArguments() JobArguments {
 	return JobArguments{}
 }
 
-// InstallationLister retrieves all active VCS installations from Spanner.
-type InstallationLister interface {
+// InstallationStorer handles reading and persisting VCS installations in Spanner.
+type InstallationStorer interface {
 	ListVCSInstallations(ctx context.Context) ([]gcpspanner.VCSInstallation, error)
+	UpsertVCSInstallation(ctx context.Context, in gcpspanner.VCSInstallation) (*string, error)
 }
 
-// TokenProvider mints installation access tokens for VCS providers.
+// TokenProvider mints installation and app-level access tokens for VCS providers.
 type TokenProvider interface {
 	GetInstallationToken(ctx context.Context, installationID string) (string, error)
+	GetAppToken() (string, error)
 }
 
-// GitHubRepoLister abstracts listing installation repositories from GitHub.
+// GitHubRepoLister abstracts listing installation repositories and app installations from GitHub.
 type GitHubRepoLister interface {
 	ListInstallationRepositories(ctx context.Context, token string, opts *github.ListOptions) ([]*github.Repository, error)
+	ListAppInstallations(ctx context.Context, token string, opts *github.ListOptions) ([]*github.Installation, error)
 }
 
-// DefaultGitHubRepoLister creates default *gh.Client instances and lists repositories.
+// DefaultGitHubRepoLister creates default *gh.Client instances and lists repositories/installations.
 type DefaultGitHubRepoLister struct{}
 
 func (l DefaultGitHubRepoLister) ListInstallationRepositories(
@@ -61,6 +64,14 @@ func (l DefaultGitHubRepoLister) ListInstallationRepositories(
 	return gh.NewClient(token).ListInstallationRepositories(ctx, opts)
 }
 
+func (l DefaultGitHubRepoLister) ListAppInstallations(
+	ctx context.Context,
+	token string,
+	opts *github.ListOptions,
+) ([]*github.Installation, error) {
+	return gh.NewClient(token).ListAppInstallations(ctx, opts)
+}
+
 // TaskPublisher publishes scan tasks to Pub/Sub.
 type TaskPublisher interface {
 	PublishCodeScanTask(ctx context.Context, task codescantaskv1.CodeScanTaskEvent) error
@@ -68,7 +79,7 @@ type TaskPublisher interface {
 
 // VCSSyncProcessor orchestrates the scheduled discovery and scan triggering of repositories.
 type VCSSyncProcessor struct {
-	installationLister InstallationLister
+	installationStorer InstallationStorer
 	tokenProvider      TokenProvider
 	repoLister         GitHubRepoLister
 	taskPublisher      TaskPublisher
@@ -76,17 +87,13 @@ type VCSSyncProcessor struct {
 
 // NewVCSSyncProcessor constructs a new scheduled VCS sync processor.
 func NewVCSSyncProcessor(
-	installationLister InstallationLister,
+	installationStorer InstallationStorer,
 	tokenProvider TokenProvider,
 	repoLister GitHubRepoLister,
 	taskPublisher TaskPublisher,
 ) *VCSSyncProcessor {
-	if repoLister == nil {
-		repoLister = DefaultGitHubRepoLister{}
-	}
-
 	return &VCSSyncProcessor{
-		installationLister: installationLister,
+		installationStorer: installationStorer,
 		tokenProvider:      tokenProvider,
 		repoLister:         repoLister,
 		taskPublisher:      taskPublisher,
@@ -97,7 +104,14 @@ func NewVCSSyncProcessor(
 func (p *VCSSyncProcessor) Process(ctx context.Context, _ JobArguments) error {
 	slog.InfoContext(ctx, "starting scheduled VCS repository sync")
 
-	installations, err := p.installationLister.ListVCSInstallations(ctx)
+	// Tier 1: Reconcile GitHub App installations (healing any missed installation webhooks)
+	if err := p.reconcileGitHubAppInstallations(ctx); err != nil {
+		slog.WarnContext(ctx, "failed to reconcile GitHub App installations from API, falling back to database",
+			"error", err)
+	}
+
+	// Tier 2: Read active installations from database and discover repositories
+	installations, err := p.installationStorer.ListVCSInstallations(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to list VCS installations: %w", err)
 	}
@@ -126,6 +140,72 @@ func (p *VCSSyncProcessor) Process(ctx context.Context, _ JobArguments) error {
 	}
 
 	slog.InfoContext(ctx, "completed scheduled VCS repository sync successfully")
+
+	return nil
+}
+
+func (p *VCSSyncProcessor) reconcileGitHubAppInstallations(ctx context.Context) error {
+	appToken, err := p.tokenProvider.GetAppToken()
+	if err != nil {
+		return fmt.Errorf("failed to get app JWT token: %w", err)
+	}
+
+	page := 1
+
+	for {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+
+		opts := &github.ListOptions{
+			Page:    page,
+			PerPage: 100,
+		}
+
+		installations, err := p.repoLister.ListAppInstallations(ctx, appToken, opts)
+		if err != nil {
+			return fmt.Errorf("failed to list app installations page %d: %w", page, err)
+		}
+
+		if len(installations) == 0 {
+			break
+		}
+
+		for _, inst := range installations {
+			if inst == nil || inst.Account == nil {
+				continue
+			}
+
+			accountLogin := inst.Account.GetLogin()
+			accountType := inst.Account.GetType()
+			installationID := strconv.FormatInt(inst.GetID(), 10)
+
+			spannerInst := gcpspanner.VCSInstallation{
+				ID:                  "",
+				VCSProvider:         gcpspanner.VCSProviderGitHub,
+				VCSInstallationID:   installationID,
+				AccountLogin:        accountLogin,
+				AccountType:         accountType,
+				RepositorySelection: inst.GetRepositorySelection(),
+				Permissions:         gcpspanner.VCSPermissions{GitHub: nil},
+				CreatedAt:           inst.GetCreatedAt().Time,
+				UpdatedAt:           inst.GetUpdatedAt().Time,
+			}
+
+			if _, err := p.installationStorer.UpsertVCSInstallation(ctx, spannerInst); err != nil {
+				slog.ErrorContext(ctx, "failed to upsert VCS installation",
+					"installation_id", installationID,
+					"account", accountLogin,
+					"error", err,
+				)
+			}
+		}
+
+		if len(installations) < 100 {
+			break
+		}
+		page++
+	}
 
 	return nil
 }

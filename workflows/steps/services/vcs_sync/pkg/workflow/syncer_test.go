@@ -26,13 +26,34 @@ import (
 	"github.com/google/go-github/v79/github"
 )
 
-type mockInstallationLister struct {
+type mockInstallationStorer struct {
+	mu            sync.Mutex
 	installations []gcpspanner.VCSInstallation
-	err           error
+	listErr       error
+	upserted      []gcpspanner.VCSInstallation
+	upsertErr     error
 }
 
-func (m *mockInstallationLister) ListVCSInstallations(_ context.Context) ([]gcpspanner.VCSInstallation, error) {
-	return m.installations, m.err
+func (m *mockInstallationStorer) ListVCSInstallations(_ context.Context) ([]gcpspanner.VCSInstallation, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	return m.installations, m.listErr
+}
+
+func (m *mockInstallationStorer) UpsertVCSInstallation(
+	_ context.Context,
+	in gcpspanner.VCSInstallation,
+) (*string, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.upsertErr != nil {
+		return nil, m.upsertErr
+	}
+	m.upserted = append(m.upserted, in)
+	id := "upserted-id"
+
+	return &id, nil
 }
 
 type mockTokenProvider struct {
@@ -51,8 +72,17 @@ func (m *mockTokenProvider) GetInstallationToken(_ context.Context, installation
 	return "mock-token-" + installationID, nil
 }
 
+func (m *mockTokenProvider) GetAppToken() (string, error) {
+	if m.err != nil {
+		return "", m.err
+	}
+
+	return "mock-app-token", nil
+}
+
 type mockGitHubRepoLister struct {
 	listReposFunc func(ctx context.Context, token string, opts *github.ListOptions) ([]*github.Repository, error)
+	listInstFunc  func(ctx context.Context, token string, opts *github.ListOptions) ([]*github.Installation, error)
 }
 
 func (m *mockGitHubRepoLister) ListInstallationRepositories(
@@ -65,6 +95,18 @@ func (m *mockGitHubRepoLister) ListInstallationRepositories(
 	}
 
 	return m.listReposFunc(ctx, token, opts)
+}
+
+func (m *mockGitHubRepoLister) ListAppInstallations(
+	ctx context.Context,
+	token string,
+	opts *github.ListOptions,
+) ([]*github.Installation, error) {
+	if m.listInstFunc == nil {
+		return nil, nil
+	}
+
+	return m.listInstFunc(ctx, token, opts)
 }
 
 type mockTaskPublisher struct {
@@ -84,6 +126,7 @@ func (m *mockTaskPublisher) PublishCodeScanTask(_ context.Context, task codescan
 	return nil
 }
 
+//nolint:exhaustruct
 func TestVCSSyncProcessor_Process(t *testing.T) {
 	t.Parallel()
 
@@ -240,9 +283,12 @@ func TestVCSSyncProcessor_Process(t *testing.T) {
 				cancel()
 			}
 
-			lister := &mockInstallationLister{
+			storer := &mockInstallationStorer{
+				mu:            sync.Mutex{},
 				installations: tc.installations,
-				err:           tc.listInstErr,
+				listErr:       tc.listInstErr,
+				upserted:      nil,
+				upsertErr:     nil,
 			}
 			tokenProvider := &mockTokenProvider{
 				tokenMap: nil,
@@ -250,6 +296,7 @@ func TestVCSSyncProcessor_Process(t *testing.T) {
 			}
 			repoLister := &mockGitHubRepoLister{
 				listReposFunc: tc.listReposFunc,
+				listInstFunc:  nil,
 			}
 			publisher := &mockTaskPublisher{
 				mu:        sync.Mutex{},
@@ -257,7 +304,7 @@ func TestVCSSyncProcessor_Process(t *testing.T) {
 				err:       tc.publishErr,
 			}
 
-			proc := NewVCSSyncProcessor(lister, tokenProvider, repoLister, publisher)
+			proc := NewVCSSyncProcessor(storer, tokenProvider, repoLister, publisher)
 			err := proc.Process(ctx, NewJobArguments())
 
 			if (err != nil) != tc.wantErr {
@@ -268,5 +315,68 @@ func TestVCSSyncProcessor_Process(t *testing.T) {
 				t.Errorf("published tasks count = %d, want %d", len(publisher.published), tc.expectedPublished)
 			}
 		})
+	}
+}
+
+//nolint:exhaustruct
+func TestVCSSyncProcessor_ReconcileAppInstallations(t *testing.T) {
+	t.Parallel()
+
+	instID := int64(98765)
+	login := "OrgFromGitHubAPI"
+	accType := "Organization"
+	accID := int64(456)
+	repoSel := "all"
+	now := time.Now().UTC()
+
+	ghInstallations := []*github.Installation{
+		{
+			ID: &instID,
+			Account: &github.User{
+				Login:     &login,
+				Type:      &accType,
+				ID:        &accID,
+				AvatarURL: new("https://avatars.github.com/u/456"),
+			},
+			RepositorySelection: &repoSel,
+			CreatedAt:           &github.Timestamp{Time: now},
+			UpdatedAt:           &github.Timestamp{Time: now},
+		},
+	}
+
+	storer := &mockInstallationStorer{
+		mu:            sync.Mutex{},
+		installations: nil,
+		listErr:       nil,
+		upserted:      nil,
+		upsertErr:     nil,
+	}
+	tokenProvider := &mockTokenProvider{tokenMap: nil, err: nil}
+	repoLister := &mockGitHubRepoLister{
+		listReposFunc: nil,
+		listInstFunc: func(_ context.Context, _ string, opts *github.ListOptions) ([]*github.Installation, error) {
+			if opts.Page > 1 {
+				return []*github.Installation{}, nil
+			}
+
+			return ghInstallations, nil
+		},
+	}
+	publisher := &mockTaskPublisher{mu: sync.Mutex{}, published: nil, err: nil}
+
+	proc := NewVCSSyncProcessor(storer, tokenProvider, repoLister, publisher)
+	err := proc.reconcileGitHubAppInstallations(context.Background())
+	if err != nil {
+		t.Fatalf("reconcileGitHubAppInstallations() unexpected error: %v", err)
+	}
+
+	if len(storer.upserted) != 1 {
+		t.Fatalf("expected 1 upserted installation, got %d", len(storer.upserted))
+	}
+	if storer.upserted[0].VCSInstallationID != "98765" {
+		t.Errorf("expected installation ID '98765', got '%s'", storer.upserted[0].VCSInstallationID)
+	}
+	if storer.upserted[0].AccountLogin != login {
+		t.Errorf("expected login '%s', got '%s'", login, storer.upserted[0].AccountLogin)
 	}
 }
