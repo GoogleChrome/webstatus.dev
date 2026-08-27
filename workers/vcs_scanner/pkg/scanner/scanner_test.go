@@ -15,39 +15,39 @@
 package scanner
 
 import (
+	"archive/tar"
+	"bytes"
+	"compress/gzip"
 	"context"
 	"errors"
+	"io"
 	"testing"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/event"
 	codescantaskv1 "github.com/GoogleChrome/webstatus.dev/lib/event/codescantask/v1"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
-	"github.com/google/go-github/v79/github"
 )
 
-type mockGitFetcher struct {
-	treeResp *github.Tree
-	treeErr  error
-	blobs    map[string][]byte
-	blobErr  error
+type mockTarballFetcher struct {
+	archiveData []byte
+	err         error
 }
 
-func (m *mockGitFetcher) GetCommitTree(
-	_ context.Context,
-	_, _, _ string,
-) (*github.Tree, error) {
-	return m.treeResp, m.treeErr
-}
-
-func (m *mockGitFetcher) GetBlobContent(
-	_ context.Context,
-	_, _, sha string,
-) ([]byte, error) {
-	if m.blobErr != nil {
-		return nil, m.blobErr
+func (m *mockTarballFetcher) DownloadTarball(_ context.Context, _, _, _ string) (io.ReadCloser, error) {
+	if m.err != nil {
+		return nil, m.err
 	}
 
-	return m.blobs[sha], nil
+	return io.NopCloser(bytes.NewReader(m.archiveData)), nil
+}
+
+type mockTokenProvider struct {
+	token string
+	err   error
+}
+
+func (m *mockTokenProvider) GetInstallationToken(_ context.Context, _ string) (string, error) {
+	return m.token, m.err
 }
 
 type mockSpannerSyncer struct {
@@ -77,6 +77,37 @@ func (m *mockSpannerSyncer) InsertCodeSubscriptionScanLog(
 	return m.logErr
 }
 
+func createTarGzArchive(files map[string][]byte) []byte {
+	var buf bytes.Buffer
+	gzw := gzip.NewWriter(&buf)
+	tw := tar.NewWriter(gzw)
+
+	for name, content := range files {
+		//nolint:exhaustruct
+		hdr := &tar.Header{
+			Name:     "repo-root-dir/" + name,
+			Mode:     0o600,
+			Size:     int64(len(content)),
+			Typeflag: tar.TypeReg,
+		}
+		if err := tw.WriteHeader(hdr); err != nil {
+			panic(err)
+		}
+		if _, err := tw.Write(content); err != nil {
+			panic(err)
+		}
+	}
+
+	if err := tw.Close(); err != nil {
+		panic(err)
+	}
+	if err := gzw.Close(); err != nil {
+		panic(err)
+	}
+
+	return buf.Bytes()
+}
+
 func sampleTask() codescantaskv1.CodeScanTaskEvent {
 	return codescantaskv1.CodeScanTaskEvent{
 		VCSProvider:        "github",
@@ -101,55 +132,22 @@ function enableSubgrid() {}
 /* TODO(baseline/view-transitions, newly): anim */
 .page { view-transition-name: root; }
 `
-	fetcher := &mockGitFetcher{
-		treeResp: &github.Tree{
-			SHA: nil,
-			Entries: []*github.TreeEntry{
-				{
-					SHA:     new("sha_ts"),
-					Path:    new("src/index.ts"),
-					Mode:    nil,
-					Type:    new("blob"),
-					Size:    new(100),
-					Content: nil,
-					URL:     nil,
-				},
-				{
-					SHA:     new("sha_css"),
-					Path:    new("styles/main.css"),
-					Mode:    nil,
-					Type:    new("blob"),
-					Size:    new(100),
-					Content: nil,
-					URL:     nil,
-				},
-				{
-					SHA:     new("sha_png"),
-					Path:    new("assets/logo.png"),
-					Mode:    nil,
-					Type:    new("blob"),
-					Size:    new(500),
-					Content: nil,
-					URL:     nil,
-				},
-			},
-			Truncated: new(false),
-		},
-		treeErr: nil,
-		blobs: map[string][]byte{
-			"sha_ts":  []byte(tsFileContent),
-			"sha_css": []byte(cssFileContent),
-		},
-		blobErr: nil,
-	}
+	archiveBytes := createTarGzArchive(map[string][]byte{
+		"src/index.ts":    []byte(tsFileContent),
+		"styles/main.css": []byte(cssFileContent),
+		"assets/logo.png": []byte("fake-binary-png-data"),
+	})
 
+	fetcher := &mockTarballFetcher{archiveData: archiveBytes, err: nil}
+	tp := &mockTokenProvider{token: "mock-token", err: nil}
 	syncer := &mockSpannerSyncer{
 		syncedSubs: nil,
 		syncErr:    nil,
 		scanLogs:   nil,
 		logErr:     nil,
 	}
-	s := NewScanner(fetcher, syncer)
+
+	s := NewScanner(tp, func(_ string) TarballFetcher { return fetcher }, syncer)
 
 	err := s.ProcessTask(context.Background(), sampleTask())
 	if err != nil {
@@ -178,19 +176,14 @@ function enableSubgrid() {}
 func TestProcessTaskDeletedBranch(t *testing.T) {
 	t.Parallel()
 
-	fetcher := &mockGitFetcher{
-		treeResp: nil,
-		treeErr:  nil,
-		blobs:    nil,
-		blobErr:  nil,
-	}
+	fetcher := &mockTarballFetcher{archiveData: nil, err: nil}
 	syncer := &mockSpannerSyncer{
 		syncedSubs: nil,
 		syncErr:    nil,
 		scanLogs:   nil,
 		logErr:     nil,
 	}
-	s := NewScanner(fetcher, syncer)
+	s := NewScanner(nil, func(_ string) TarballFetcher { return fetcher }, syncer)
 
 	task := sampleTask()
 	task.CommitSHA = DeletedBranchSHA
@@ -204,19 +197,14 @@ func TestProcessTaskDeletedBranch(t *testing.T) {
 func TestProcessTaskNonDefaultBranch(t *testing.T) {
 	t.Parallel()
 
-	fetcher := &mockGitFetcher{
-		treeResp: nil,
-		treeErr:  nil,
-		blobs:    nil,
-		blobErr:  nil,
-	}
+	fetcher := &mockTarballFetcher{archiveData: nil, err: nil}
 	syncer := &mockSpannerSyncer{
 		syncedSubs: nil,
 		syncErr:    nil,
 		scanLogs:   nil,
 		logErr:     nil,
 	}
-	s := NewScanner(fetcher, syncer)
+	s := NewScanner(nil, func(_ string) TarballFetcher { return fetcher }, syncer)
 
 	task := sampleTask()
 	task.IsDefaultBranch = false
@@ -227,63 +215,55 @@ func TestProcessTaskNonDefaultBranch(t *testing.T) {
 	}
 }
 
-func TestProcessTaskBlobFetchError(t *testing.T) {
+func TestProcessTaskTarballDownloadError(t *testing.T) {
 	t.Parallel()
 
-	fetcher := &mockGitFetcher{
-		treeResp: &github.Tree{
-			SHA: nil,
-			Entries: []*github.TreeEntry{
-				{
-					Path: new("src/app.ts"),
-					Type: new("blob"),
-					Size: new(100),
-					SHA:  new("blob-sha-1"),
-				},
-			},
-			Truncated: new(false),
-		},
-		treeErr: nil,
-		blobs:   nil,
-		blobErr: errors.New("blob fetch timeout"),
-	}
+	expectedErr := errors.New("tarball download failed")
+	fetcher := &mockTarballFetcher{archiveData: nil, err: expectedErr}
 	syncer := &mockSpannerSyncer{
 		syncedSubs: nil,
 		syncErr:    nil,
 		scanLogs:   nil,
 		logErr:     nil,
 	}
-	s := NewScanner(fetcher, syncer)
+	s := NewScanner(nil, func(_ string) TarballFetcher { return fetcher }, syncer)
 
 	err := s.ProcessTask(context.Background(), sampleTask())
 	if err == nil {
-		t.Fatalf("expected blob fetch error, got nil")
+		t.Fatalf("expected tarball download error, got nil")
 	}
 	if !errors.Is(err, event.ErrTransientFailure) {
 		t.Errorf("expected ErrTransientFailure, got %v", err)
 	}
+
+	if len(syncer.scanLogs) != 1 {
+		t.Fatalf("expected 1 scan log recorded for failed scan, got %d", len(syncer.scanLogs))
+	}
+	if syncer.scanLogs[0].ScanStatus != gcpspanner.ScanStatusFailed {
+		t.Errorf("scan log status = %v, want FAILED", syncer.scanLogs[0].ScanStatus)
+	}
 }
 
-func TestProcessTaskTreeFetchError(t *testing.T) {
+func TestProcessTaskTokenProviderError(t *testing.T) {
 	t.Parallel()
 
-	fetcher := &mockGitFetcher{
-		treeResp: nil,
-		treeErr:  errors.New("github tree 500 error"),
-		blobs:    nil,
-		blobErr:  nil,
-	}
+	expectedErr := errors.New("token provider expired")
+	tp := &mockTokenProvider{token: "", err: expectedErr}
+	fetcher := &mockTarballFetcher{archiveData: nil, err: nil}
 	syncer := &mockSpannerSyncer{
 		syncedSubs: nil,
 		syncErr:    nil,
 		scanLogs:   nil,
 		logErr:     nil,
 	}
-	s := NewScanner(fetcher, syncer)
+	s := NewScanner(tp, func(_ string) TarballFetcher { return fetcher }, syncer)
 
 	err := s.ProcessTask(context.Background(), sampleTask())
 	if err == nil {
-		t.Fatalf("expected tree fetch error, got nil")
+		t.Fatalf("expected token provider error, got nil")
+	}
+	if !errors.Is(err, event.ErrTransientFailure) {
+		t.Errorf("expected ErrTransientFailure, got %v", err)
 	}
 
 	if len(syncer.scanLogs) != 1 {
