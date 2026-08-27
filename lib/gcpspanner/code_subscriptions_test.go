@@ -264,7 +264,7 @@ func testDeliveryLocking(ctx context.Context, t *testing.T, list []CodeSubscript
 		t.Fatalf("failed to reacquire lock after release: %v", err)
 	}
 
-	// Automatic TTL expiry: acquire short lease, sleep past TTL, then acquire with another worker
+	// Automatic TTL expiry: acquire short lease, sleep past TTL, then test expired release and reacquisition
 	delID3 := uuid.NewString()
 	shortLock, err := spannerClient.AcquireDeliveryLock(ctx, list[0].ID, delID3, "worker-short", 50*time.Millisecond)
 	if err != nil || !shortLock {
@@ -272,6 +272,12 @@ func testDeliveryLocking(ctx context.Context, t *testing.T, list []CodeSubscript
 	}
 
 	time.Sleep(100 * time.Millisecond)
+
+	// Trying to release an already-expired lock should fail with ErrDeliveryLockExpired
+	errExpiredRelease := spannerClient.ReleaseDeliveryLock(ctx, delID3, "worker-short")
+	if !errors.Is(errExpiredRelease, ErrDeliveryLockExpired) {
+		t.Fatalf("expected ErrDeliveryLockExpired for expired worker-short, got %v", errExpiredRelease)
+	}
 
 	expiredLock, err := spannerClient.AcquireDeliveryLock(ctx, list[0].ID, delID3, "worker-after-expiry", 30*time.Second)
 	if err != nil || !expiredLock {

@@ -33,6 +33,8 @@ var (
 	ErrDeliveryAlreadyLocked = errors.New("delivery already locked by another worker")
 	// ErrDeliveryLockMismatch indicates worker does not own active lease.
 	ErrDeliveryLockMismatch = errors.New("delivery lock mismatch: worker does not own active lease")
+	// ErrDeliveryLockExpired indicates the delivery lock lease has expired.
+	ErrDeliveryLockExpired = errors.New("delivery lock expired")
 	// ErrWebhookAlreadyDelivered indicates the webhook delivery GUID was already processed.
 	ErrWebhookAlreadyDelivered = errors.New("webhook delivery already recorded")
 	// ErrDuplicateTargetQuery indicates multiple incoming subscriptions have the same TargetQuery.
@@ -615,12 +617,18 @@ func (c *Client) RecordDeliverySuccess(
 				return nil, ErrCodeSubscriptionDeliveryNotFound
 			}
 
+			now := c.timeNow()
+
+			// Lock fencing check: verify lock has not expired
+			if !existing.LockExpiresAt.Valid || !existing.LockExpiresAt.Time.After(now) {
+				return nil, ErrDeliveryLockExpired
+			}
+
 			// Lock fencing check: verify worker ownership
 			if existing.WorkerLockID.Valid && existing.WorkerLockID.StringVal != workerID {
 				return nil, ErrDeliveryLockMismatch
 			}
 
-			now := c.timeNow()
 			existing.DeliveryStatus = string(DeliveryStatusDelivered)
 			existing.DeliveredAt = spanner.NullTime{Valid: true, Time: now}
 			existing.ExternalIssueID = spanner.NullString{Valid: true, StringVal: issueID}
@@ -635,8 +643,10 @@ func (c *Client) RecordDeliverySuccess(
 }
 
 // ReleaseDeliveryLock clears worker lock lease on transient errors.
-// Fencing check: only clears the lock if the specified workerID owns the active lock lease.
+// Fencing check: only clears the lock if the specified workerID owns the active lock lease
+// and the lease has not expired.
 // If the caller does not own the lock, ErrDeliveryLockMismatch is returned.
+// If the lock lease has expired, ErrDeliveryLockExpired is returned.
 func (c *Client) ReleaseDeliveryLock(ctx context.Context, deliveryID, workerID string) error {
 	mutator := newEntityMutator[codeSubscriptionDeliveryMapper, spannerCodeSubscriptionDelivery, string](c)
 
@@ -648,6 +658,13 @@ func (c *Client) ReleaseDeliveryLock(ctx context.Context, deliveryID, workerID s
 				return nil, ErrCodeSubscriptionDeliveryNotFound
 			}
 
+			now := c.timeNow()
+
+			// Lock fencing: verify lock has not expired
+			if !existing.LockExpiresAt.Valid || !existing.LockExpiresAt.Time.After(now) {
+				return nil, ErrDeliveryLockExpired
+			}
+
 			// Lock fencing: verify worker ownership
 			if !existing.WorkerLockID.Valid || existing.WorkerLockID.StringVal != workerID {
 				return nil, ErrDeliveryLockMismatch
@@ -656,7 +673,7 @@ func (c *Client) ReleaseDeliveryLock(ctx context.Context, deliveryID, workerID s
 			existing.DeliveryStatus = string(DeliveryStatusPending)
 			existing.LockExpiresAt = spanner.NullTime{Valid: false, Time: time.Time{}}
 			existing.WorkerLockID = spanner.NullString{Valid: false, StringVal: ""}
-			existing.UpdatedAt = c.timeNow()
+			existing.UpdatedAt = now
 
 			return spanner.UpdateStruct(codeSubscriptionDeliveryTable, *existing)
 		},
