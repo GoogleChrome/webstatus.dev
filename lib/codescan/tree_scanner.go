@@ -347,7 +347,17 @@ func ScanGitTree(
 		scannedCount++
 		totalBytes += contentLen
 
-		directives, err := ParseReader(bytes.NewReader(content), entry.Path, defaultTarget)
+		defaultTrigger := SubscriptionTriggerFeatureBaselinePromoteToWidely
+		if strings.EqualFold(defaultTarget, TargetNewly) {
+			defaultTrigger = SubscriptionTriggerFeatureBaselinePromoteToNewly
+		}
+
+		directives, err := ParseReader(
+			bytes.NewReader(content),
+			entry.Path,
+			defaultTrigger,
+			"",
+		)
 		if err != nil {
 			slog.WarnContext(ctx, "failed parsing file directives",
 				"path", entry.Path,
