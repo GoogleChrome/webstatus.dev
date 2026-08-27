@@ -19,18 +19,23 @@ import (
 	"html"
 	"path/filepath"
 	"strings"
-
-	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 )
+
+// IssueOccurrence represents a code location occurrence in a repository.
+type IssueOccurrence struct {
+	FilePath       string
+	LineNumber     int64
+	CommentSnippet string
+}
 
 // IssueRenderParams contains all parameters needed to render a GitHub issue notification.
 type IssueRenderParams struct {
 	FeatureID          string
 	FeatureName        string
-	Trigger            gcpspanner.SubscriptionTrigger
+	Trigger            string
 	RepositoryFullName string
 	CommitSHA          string
-	Occurrences        []gcpspanner.SubscriptionOccurrence
+	Occurrences        []IssueOccurrence
 	WebStatusURL       string
 }
 
@@ -43,19 +48,15 @@ func sanitizePath(p string) string {
 }
 
 // RenderIssueTitle generates a descriptive issue title based on feature and trigger.
-func RenderIssueTitle(featureName string, trigger gcpspanner.SubscriptionTrigger) string {
+func RenderIssueTitle(featureName string, trigger string) string {
 	switch trigger {
-	case gcpspanner.SubscriptionTriggerFeatureBaselinePromoteToWidely:
+	case "feature.baseline.promote_to_widely":
 		return fmt.Sprintf("🚀 Baseline Update: %s is now Widely Available!", featureName)
-	case gcpspanner.SubscriptionTriggerFeatureBaselinePromoteToNewly:
+	case "feature.baseline.promote_to_newly":
 		return fmt.Sprintf("✨ Baseline Update: %s is now Newly Available!", featureName)
-	case gcpspanner.SubscriptionTriggerBrowserImplementationAnyComplete,
-		gcpspanner.SubscriptionTriggerFeatureBaselineRegressionToLimited,
-		gcpspanner.SubscriptionTriggerUnknown:
+	default:
 		return fmt.Sprintf("🚀 Web Feature Ready: %s", featureName)
 	}
-
-	return fmt.Sprintf("🚀 Web Feature Ready: %s", featureName)
 }
 
 // RenderIssueBody generates markdown body for a GitHub notification issue.
@@ -69,7 +70,7 @@ func RenderIssueBody(params IssueRenderParams) string {
 	fmt.Fprintf(&sb, "## %s\n\n", title)
 
 	statusText := "Baseline Widely Available"
-	if params.Trigger == gcpspanner.SubscriptionTriggerFeatureBaselinePromoteToNewly {
+	if params.Trigger == "feature.baseline.promote_to_newly" {
 		statusText = "Baseline Newly Available"
 	}
 

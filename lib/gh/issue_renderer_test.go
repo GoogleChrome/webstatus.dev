@@ -17,8 +17,6 @@ package gh
 import (
 	"strings"
 	"testing"
-
-	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 )
 
 func TestRenderIssueTitle(t *testing.T) {
@@ -27,25 +25,25 @@ func TestRenderIssueTitle(t *testing.T) {
 	testCases := []struct {
 		name        string
 		featureName string
-		trigger     gcpspanner.SubscriptionTrigger
+		trigger     string
 		expected    string
 	}{
 		{
 			name:        "Widely Available Trigger",
 			featureName: "CSS Subgrid",
-			trigger:     gcpspanner.SubscriptionTriggerFeatureBaselinePromoteToWidely,
+			trigger:     "feature.baseline.promote_to_widely",
 			expected:    "🚀 Baseline Update: CSS Subgrid is now Widely Available!",
 		},
 		{
 			name:        "Newly Available Trigger",
 			featureName: "View Transitions API",
-			trigger:     gcpspanner.SubscriptionTriggerFeatureBaselinePromoteToNewly,
+			trigger:     "feature.baseline.promote_to_newly",
 			expected:    "✨ Baseline Update: View Transitions API is now Newly Available!",
 		},
 		{
 			name:        "Default Trigger",
 			featureName: "Popover API",
-			trigger:     gcpspanner.SubscriptionTriggerBrowserImplementationAnyComplete,
+			trigger:     "any_other_trigger",
 			expected:    "🚀 Web Feature Ready: Popover API",
 		},
 	}
@@ -67,10 +65,10 @@ func TestRenderIssueBody(t *testing.T) {
 	params := IssueRenderParams{
 		FeatureID:          "css-subgrid",
 		FeatureName:        "CSS Subgrid",
-		Trigger:            gcpspanner.SubscriptionTriggerFeatureBaselinePromoteToWidely,
+		Trigger:            "feature.baseline.promote_to_widely",
 		RepositoryFullName: "GoogleChrome/webstatus.dev",
 		CommitSHA:          "abcdef1234567890abcdef1234567890abcdef12",
-		Occurrences: []gcpspanner.SubscriptionOccurrence{
+		Occurrences: []IssueOccurrence{
 			{
 				FilePath:       "src/components/grid.css",
 				LineNumber:     42,
@@ -112,10 +110,10 @@ func TestRenderIssueBodySanitization(t *testing.T) {
 	params := IssueRenderParams{
 		FeatureID:          "injection<script>",
 		FeatureName:        "Feature & Name",
-		Trigger:            gcpspanner.SubscriptionTriggerFeatureBaselinePromoteToNewly,
+		Trigger:            "feature.baseline.promote_to_newly",
 		RepositoryFullName: "org/repo",
 		CommitSHA:          "sha123",
-		Occurrences: []gcpspanner.SubscriptionOccurrence{
+		Occurrences: []IssueOccurrence{
 			{
 				FilePath:       "../../etc/passwd",
 				LineNumber:     1,
