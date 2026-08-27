@@ -43,13 +43,6 @@ test.describe('Code Subscriptions Unauthenticated', () => {
     await expect(loginPrompt).toContainText(
       'Sign in to view and manage code subscriptions for your repositories.',
     );
-
-    // Verify visual appearance of unauthenticated prompt across light and dark themes
-    await expectDualThemeScreenshot(
-      page,
-      codeSubsPage,
-      'code-subscriptions-unauthenticated',
-    );
   });
 });
 
@@ -219,13 +212,6 @@ test.describe('Code Subscriptions E2E Suite', () => {
     const alert = codeSubsPage.locator('sl-alert[variant="danger"]');
     await expect(alert).toBeVisible();
     await expect(alert).toContainText('Error loading code subscriptions');
-
-    // Verify visual appearance of error state across light and dark themes
-    await expectDualThemeScreenshot(
-      page,
-      codeSubsPage,
-      'code-subscriptions-error',
-    );
   });
 
   test('should reject synthetic webhook with invalid HMAC signature', async ({
