@@ -189,11 +189,6 @@ type BackendSpannerClient interface {
 		ctx context.Context,
 		req gcpspanner.ListCodeSubscriptionsRequest,
 	) ([]gcpspanner.CodeSubscription, *string, error)
-	ListVCSInstallations(ctx context.Context) ([]gcpspanner.VCSInstallation, error)
-	ListVCSRepositoriesByProvider(
-		ctx context.Context,
-		provider gcpspanner.VCSProvider,
-	) ([]gcpspanner.VCSRepository, error)
 	RecordVCSWebhookDelivery(
 		ctx context.Context,
 		delivery gcpspanner.VCSWebhookDelivery,
@@ -2270,9 +2265,9 @@ func toBackendSubscriptionTrigger(
 	trigger string,
 ) (backend.SubscriptionTriggerWritable, error) {
 	switch trigger {
-	case string(backend.SubscriptionTriggerFeatureBaselineToWidely):
+	case string(backend.SubscriptionTriggerFeatureBaselineToWidely), "feature.baseline.promote_to_widely":
 		return backend.SubscriptionTriggerFeatureBaselineToWidely, nil
-	case string(backend.SubscriptionTriggerFeatureBaselineToNewly):
+	case string(backend.SubscriptionTriggerFeatureBaselineToNewly), "feature.baseline.promote_to_newly":
 		return backend.SubscriptionTriggerFeatureBaselineToNewly, nil
 	case string(backend.SubscriptionTriggerFeatureBaselineRegressionToLimited):
 		return backend.SubscriptionTriggerFeatureBaselineRegressionToLimited, nil
@@ -2378,78 +2373,6 @@ func (s *Backend) ListCodeSubscriptions(
 	return &backend.CodeSubscriptionPage{
 		Data:     &backendSubs,
 		Metadata: metadata,
-	}, nil
-}
-
-func (s *Backend) ListVCSInstallations(
-	ctx context.Context,
-	vcsProvider string,
-	_ int,
-	_ *string,
-) (*backend.VCSInstallationPage, error) {
-	provider, err := toSpannerVCSProvider(vcsProvider)
-	if err != nil {
-		return nil, errors.Join(err, backendtypes.ErrUnsupportedVCSProvider)
-	}
-
-	installations, err := s.client.ListVCSInstallations(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	results := make([]backend.VCSInstallationSummary, 0, len(installations))
-	for _, inst := range installations {
-		if inst.VCSProvider == provider {
-			results = append(results, backend.VCSInstallationSummary{
-				AccountLogin:      inst.AccountLogin,
-				AccountType:       inst.AccountType,
-				Id:                inst.ID,
-				VcsInstallationId: inst.VCSInstallationID,
-				VcsProvider:       string(inst.VCSProvider),
-			})
-		}
-	}
-
-	return &backend.VCSInstallationPage{
-		Data:     &results,
-		Metadata: nil,
-	}, nil
-}
-
-func (s *Backend) ListVCSRepositories(
-	ctx context.Context,
-	vcsProvider string,
-	_ int,
-	_ *string,
-) (*backend.VCSRepositoryPage, error) {
-	provider, err := toSpannerVCSProvider(vcsProvider)
-	if err != nil {
-		return nil, errors.Join(err, backendtypes.ErrUnsupportedVCSProvider)
-	}
-
-	repos, err := s.client.ListVCSRepositoriesByProvider(ctx, provider)
-	if err != nil {
-		return nil, err
-	}
-
-	results := make([]backend.VCSRepositorySummary, 0, len(repos))
-	for _, r := range repos {
-		owner, name, _ := strings.Cut(r.RepositoryFullName, "/")
-		results = append(results, backend.VCSRepositorySummary{
-			FullName:          r.RepositoryFullName,
-			Id:                r.VCSRepositoryID,
-			Name:              name,
-			Owner:             owner,
-			Private:           false,
-			RepositoryId:      r.VCSRepositoryID,
-			VcsInstallationId: r.VCSInstallationID,
-			VcsProvider:       string(r.VCSProvider),
-		})
-	}
-
-	return &backend.VCSRepositoryPage{
-		Data:     &results,
-		Metadata: nil,
 	}, nil
 }
 

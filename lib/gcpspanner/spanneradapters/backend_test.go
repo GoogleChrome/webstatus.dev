@@ -250,17 +250,6 @@ type mockRecordVCSWebhookDeliveryConfig struct {
 	returnedError    error
 }
 
-type mockListVCSInstallationsConfig struct {
-	result        []gcpspanner.VCSInstallation
-	returnedError error
-}
-
-type mockListVCSRepositoriesConfig struct {
-	expectedProvider gcpspanner.VCSProvider
-	result           []gcpspanner.VCSRepository
-	returnedError    error
-}
-
 type mockBackendSpannerClient struct {
 	t                                        *testing.T
 	aggregationData                          []gcpspanner.WPTRunAggregationMetricWithTime
@@ -296,8 +285,6 @@ type mockBackendSpannerClient struct {
 	mockGetSavedSearchCfg                    *mockGetSavedSearchConfig
 	mockGetReferencingSavedSearchIDsCfg      *mockGetReferencingSavedSearchIDsConfig
 	mockListCodeSubscriptionsCfg             *mockListCodeSubscriptionsByRepositoryConfig
-	mockListVCSInstallationsCfg              *mockListVCSInstallationsConfig
-	mockListVCSRepositoriesCfg               *mockListVCSRepositoriesConfig
 	mockRecordVCSWebhookDeliveryCfg          *mockRecordVCSWebhookDeliveryConfig
 	pageToken                                *string
 	err                                      error
@@ -838,31 +825,6 @@ func (c mockBackendSpannerClient) ListCodeSubscriptionsByRepository(
 	}
 
 	return nil, nil, nil
-}
-
-func (c mockBackendSpannerClient) ListVCSInstallations(_ context.Context) ([]gcpspanner.VCSInstallation, error) {
-	if c.mockListVCSInstallationsCfg != nil {
-		return c.mockListVCSInstallationsCfg.result, c.mockListVCSInstallationsCfg.returnedError
-	}
-
-	return nil, nil
-}
-
-func (c mockBackendSpannerClient) ListVCSRepositoriesByProvider(
-	_ context.Context,
-	provider gcpspanner.VCSProvider,
-) ([]gcpspanner.VCSRepository, error) {
-	if c.mockListVCSRepositoriesCfg != nil {
-		if c.mockListVCSRepositoriesCfg.expectedProvider != "" &&
-			c.mockListVCSRepositoriesCfg.expectedProvider != provider {
-			c.t.Errorf("provider mismatch: got %v, want %v",
-				provider, c.mockListVCSRepositoriesCfg.expectedProvider)
-		}
-
-		return c.mockListVCSRepositoriesCfg.result, c.mockListVCSRepositoriesCfg.returnedError
-	}
-
-	return nil, nil
 }
 
 func (c mockBackendSpannerClient) RecordVCSWebhookDelivery(
@@ -5604,117 +5566,5 @@ func TestBackend_RecordVCSWebhookDelivery(t *testing.T) {
 	}
 	if !isNew {
 		t.Errorf("expected isNew=true, got false")
-	}
-}
-
-func TestBackend_ListVCSInstallations(t *testing.T) {
-	t.Parallel()
-
-	ctx := context.Background()
-	now := time.Now().UTC()
-	instID := "inst-123"
-
-	mockInstallations := []gcpspanner.VCSInstallation{
-		{
-			ID:                  instID,
-			VCSProvider:         gcpspanner.VCSProviderGitHub,
-			VCSInstallationID:   "12345",
-			AccountLogin:        "GoogleChrome",
-			AccountType:         "Organization",
-			RepositorySelection: "all",
-			Permissions:         gcpspanner.VCSPermissions{GitHub: nil},
-			CreatedAt:           now,
-			UpdatedAt:           now,
-		},
-	}
-
-	//nolint:exhaustruct
-	mockClient := &mockBackendSpannerClient{
-		t: t,
-		mockListVCSInstallationsCfg: &mockListVCSInstallationsConfig{
-			result:        mockInstallations,
-			returnedError: nil,
-		},
-	}
-	backendObj := &Backend{client: mockClient}
-
-	resp, err := backendObj.ListVCSInstallations(ctx, "github", 10, nil)
-	if err != nil {
-		t.Fatalf("ListVCSInstallations failed: %v", err)
-	}
-
-	if resp.Data == nil || len(*resp.Data) != 1 {
-		t.Fatalf("expected 1 installation summary, got %+v", resp.Data)
-	}
-	insts := *resp.Data
-	if insts[0].Id != instID {
-		t.Errorf("expected ID %s, got %s", instID, insts[0].Id)
-	}
-	if insts[0].AccountLogin != "GoogleChrome" {
-		t.Errorf("expected AccountLogin GoogleChrome, got %s", insts[0].AccountLogin)
-	}
-	if insts[0].VcsProvider != "github" {
-		t.Errorf("expected VcsProvider github, got %s", insts[0].VcsProvider)
-	}
-
-	// Test unsupported provider
-	_, err = backendObj.ListVCSInstallations(ctx, "unsupported", 10, nil)
-	if !errors.Is(err, backendtypes.ErrUnsupportedVCSProvider) {
-		t.Errorf("expected ErrUnsupportedVCSProvider, got %v", err)
-	}
-}
-
-func TestBackend_ListVCSRepositories(t *testing.T) {
-	t.Parallel()
-
-	ctx := context.Background()
-	repoID := "repo-456"
-	mockRepos := []gcpspanner.VCSRepository{
-		{
-			ID:                 repoID,
-			VCSProvider:        gcpspanner.VCSProviderGitHub,
-			VCSInstallationID:  "12345",
-			VCSRepositoryID:    repoID,
-			RepositoryFullName: "GoogleChrome/webstatus.dev",
-		},
-	}
-
-	//nolint:exhaustruct
-	mockClient := &mockBackendSpannerClient{
-		t: t,
-		mockListVCSRepositoriesCfg: &mockListVCSRepositoriesConfig{
-			expectedProvider: gcpspanner.VCSProviderGitHub,
-			result:           mockRepos,
-			returnedError:    nil,
-		},
-	}
-	backendObj := &Backend{client: mockClient}
-
-	resp, err := backendObj.ListVCSRepositories(ctx, "github", 10, nil)
-	if err != nil {
-		t.Fatalf("ListVCSRepositories failed: %v", err)
-	}
-
-	if resp.Data == nil || len(*resp.Data) != 1 {
-		t.Fatalf("expected 1 repository summary, got %+v", resp.Data)
-	}
-	repos := *resp.Data
-	if repos[0].Id != repoID {
-		t.Errorf("expected ID %s, got %s", repoID, repos[0].Id)
-	}
-	if repos[0].Owner != "GoogleChrome" {
-		t.Errorf("expected Owner GoogleChrome, got %s", repos[0].Owner)
-	}
-	if repos[0].Name != "webstatus.dev" {
-		t.Errorf("expected Name webstatus.dev, got %s", repos[0].Name)
-	}
-	if repos[0].FullName != "GoogleChrome/webstatus.dev" {
-		t.Errorf("expected FullName GoogleChrome/webstatus.dev, got %s", repos[0].FullName)
-	}
-
-	// Test unsupported provider
-	_, err = backendObj.ListVCSRepositories(ctx, "unsupported", 10, nil)
-	if !errors.Is(err, backendtypes.ErrUnsupportedVCSProvider) {
-		t.Errorf("expected ErrUnsupportedVCSProvider, got %v", err)
 	}
 }
