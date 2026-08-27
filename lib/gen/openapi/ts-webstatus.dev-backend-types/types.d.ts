@@ -443,44 +443,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/vcs/{provider}/installations": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                provider: "github";
-            };
-            cookie?: never;
-        };
-        /** List VCS installations accessible to the authenticated user */
-        get: operations["listVCSInstallations"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/vcs/{provider}/repositories": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                provider: "github";
-            };
-            cookie?: never;
-        };
-        /** List VCS repositories accessible to the authenticated user */
-        get: operations["listVCSRepositories"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/vcs/{provider}/repositories/{repository_id}/code-subscriptions": {
         parameters: {
             query?: never;
@@ -956,31 +918,6 @@ export interface components {
         MissingOneImplFeaturesPage: {
             metadata?: components["schemas"]["PageMetadata"];
             data: components["schemas"]["MissingOneImplFeature"][];
-        };
-        VCSInstallationSummary: {
-            id: string;
-            vcs_provider: string;
-            vcs_installation_id: string;
-            account_login: string;
-            account_type: string;
-        };
-        VCSInstallationPage: {
-            metadata?: components["schemas"]["PageMetadata"];
-            data?: components["schemas"]["VCSInstallationSummary"][];
-        };
-        VCSRepositorySummary: {
-            id: string;
-            vcs_provider: string;
-            vcs_installation_id: string;
-            repository_id: string;
-            owner: string;
-            name: string;
-            full_name: string;
-            private: boolean;
-        };
-        VCSRepositoryPage: {
-            metadata?: components["schemas"]["PageMetadata"];
-            data?: components["schemas"]["VCSRepositorySummary"][];
         };
         SubscriptionOccurrence: {
             file_path: string;
@@ -2978,114 +2915,6 @@ export interface operations {
                 };
             };
             /** @description Internal Service Error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BasicErrorModel"];
-                };
-            };
-        };
-    };
-    listVCSInstallations: {
-        parameters: {
-            query?: {
-                /** @description Pagination token */
-                page_token?: components["parameters"]["paginationTokenParam"];
-                /** @description Number of results to return */
-                page_size?: components["parameters"]["paginationSizeParam"];
-            };
-            header?: never;
-            path: {
-                provider: "github";
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["VCSInstallationPage"];
-                };
-            };
-            /** @description Bad Input */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BasicErrorModel"];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BasicErrorModel"];
-                };
-            };
-            /** @description Internal Error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BasicErrorModel"];
-                };
-            };
-        };
-    };
-    listVCSRepositories: {
-        parameters: {
-            query?: {
-                /** @description Pagination token */
-                page_token?: components["parameters"]["paginationTokenParam"];
-                /** @description Number of results to return */
-                page_size?: components["parameters"]["paginationSizeParam"];
-            };
-            header?: never;
-            path: {
-                provider: "github";
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["VCSRepositoryPage"];
-                };
-            };
-            /** @description Bad Input */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BasicErrorModel"];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BasicErrorModel"];
-                };
-            };
-            /** @description Internal Error */
             500: {
                 headers: {
                     [name: string]: unknown;
