@@ -53,6 +53,17 @@ type SubscriptionOccurrence struct {
 	CommentSnippet string `json:"comment_snippet"`
 }
 
+// CodeSubscriptionInput represents an AST scan result to be synchronized in Spanner.
+type CodeSubscriptionInput struct {
+	VCSProvider        VCSProvider
+	VCSInstallationID  string
+	VCSRepositoryID    string
+	RepositoryFullName string
+	TargetQuery        string
+	Triggers           []string
+	Occurrences        []SubscriptionOccurrence
+}
+
 // CodeSubscription represents a subscription anchored to a code repository AST pattern.
 type CodeSubscription struct {
 	ID                 string
