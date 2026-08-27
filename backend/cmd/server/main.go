@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"slices"
 	"time"
 
@@ -218,7 +219,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	vcsPermissionChecker := gh.NewGitHubPermissionCheckerWithBaseURL(gitHubAPIBaseURL)
+	tokenProvider := initTokenProvider(ctx)
+	vcsPermissionChecker := gh.NewGitHubPermissionCheckerWithTokenProvider(tokenProvider, gitHubAPIBaseURL)
 
 	srv := httpserver.NewHTTPServer(
 		"8080",
@@ -243,4 +245,26 @@ func main() {
 		slog.ErrorContext(ctx, "unable to start server", "error", err.Error())
 		os.Exit(1)
 	}
+}
+
+func initTokenProvider(ctx context.Context) *gh.TokenProvider {
+	appID := os.Getenv("GITHUB_APP_ID")
+	pkPath := os.Getenv("GITHUB_APP_PRIVATE_KEY_PATH")
+	if appID == "" || pkPath == "" {
+		return nil
+	}
+
+	pkData, readErr := os.ReadFile(filepath.Clean(pkPath)) // #nosec G304 G703 -- Admin configured private key path
+	if readErr != nil {
+		slog.ErrorContext(ctx, "unable to read private key file", "path", pkPath, "error", readErr)
+		os.Exit(1)
+	}
+
+	tp, tpErr := gh.NewTokenProvider(appID, pkData, nil)
+	if tpErr != nil {
+		slog.ErrorContext(ctx, "unable to create token provider", "error", tpErr)
+		os.Exit(1)
+	}
+
+	return tp
 }

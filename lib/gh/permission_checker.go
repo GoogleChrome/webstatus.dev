@@ -63,6 +63,12 @@ func NewGitHubPermissionChecker(
 
 // NewGitHubPermissionCheckerWithBaseURL creates a GitHubPermissionChecker with an optional custom base URL.
 func NewGitHubPermissionCheckerWithBaseURL(baseURL *url.URL) *GitHubPermissionChecker {
+	return NewGitHubPermissionCheckerWithTokenProvider(nil, baseURL)
+}
+
+// NewGitHubPermissionCheckerWithTokenProvider creates a GitHubPermissionChecker with an optional
+// TokenProvider and custom base URL.
+func NewGitHubPermissionCheckerWithTokenProvider(_ *TokenProvider, baseURL *url.URL) *GitHubPermissionChecker {
 	ghClient := github.NewClient(nil)
 	if baseURL != nil {
 		ghClient.BaseURL = baseURL

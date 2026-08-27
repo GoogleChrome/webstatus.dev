@@ -278,3 +278,21 @@ func TestNewGitHubPermissionCheckerWithBaseURL(t *testing.T) {
 		t.Error("expected non-nil usersClient")
 	}
 }
+
+func TestNewGitHubPermissionCheckerWithTokenProvider(t *testing.T) {
+	baseURL, err := url.Parse("https://custom.github.com/api/v3")
+	if err != nil {
+		t.Fatalf("failed to parse url: %v", err)
+	}
+
+	checker := NewGitHubPermissionCheckerWithTokenProvider(nil, baseURL)
+	if checker == nil {
+		t.Fatal("expected non-nil checker")
+	}
+	if checker.reposClient == nil {
+		t.Error("expected non-nil reposClient")
+	}
+	if checker.usersClient == nil {
+		t.Error("expected non-nil usersClient")
+	}
+}
