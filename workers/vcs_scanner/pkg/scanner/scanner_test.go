@@ -129,7 +129,7 @@ func TestProcessTask(t *testing.T) {
 function enableSubgrid() {}
 `
 	cssFileContent := `
-/* TODO(baseline/view-transitions, newly): anim */
+/* TODO(baseline/view-transitions): anim */
 .page { view-transition-name: root; }
 `
 	archiveBytes := createTarGzArchive(map[string][]byte{
