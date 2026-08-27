@@ -71,7 +71,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	publisher := gcppubsubadapters.NewBackendAdapter(pubsubClient, scanTasksTopic)
+	publisher := gcppubsubadapters.NewBackendAdapter(pubsubClient, "", scanTasksTopic)
 	tokenProvider, err := gh.NewTokenProvider(appID, privateKeyPEM, nil)
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to create token provider", "error", err)
