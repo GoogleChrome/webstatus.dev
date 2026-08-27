@@ -51,9 +51,14 @@ func (s *Server) ListCodeSubscriptions(
 			}), nil
 	}
 
-	owner, repo := "", request.RepositoryId
-	if parts := strings.Split(request.RepositoryId, "/"); len(parts) == 2 {
-		owner, repo = parts[0], parts[1]
+	owner, repo, err := parseGitHubRepositoryID(request.RepositoryId)
+	if err != nil {
+		//nolint:nilerr // WONTFIX - false positive when returning structured 400 response instead of Go error.
+		return backend.ListCodeSubscriptions400JSONResponse(
+			backend.BasicErrorModel{
+				Code:    http.StatusBadRequest,
+				Message: err.Error(),
+			}), nil
 	}
 
 	if userCheck.User.GitHubUserID == nil || *userCheck.User.GitHubUserID == "" {
@@ -124,4 +129,13 @@ func (s *Server) ListCodeSubscriptions(
 	}
 
 	return backend.ListCodeSubscriptions200JSONResponse(*page), nil
+}
+
+func parseGitHubRepositoryID(repositoryID string) (string, string, error) {
+	parts := strings.Split(repositoryID, "/")
+	if len(parts) == 2 && parts[0] != "" && parts[1] != "" {
+		return parts[0], parts[1], nil
+	}
+
+	return "", "", fmt.Errorf("invalid repository format for GitHub: %q (expected owner/repo)", repositoryID)
 }

@@ -72,7 +72,7 @@ func TestListCodeSubscriptions(t *testing.T) {
 			name: "Success with Pagination and Permitted Admin",
 			cfg: &MockListCodeSubscriptionsConfig{
 				expectedProvider:     "github",
-				expectedRepositoryID: "repo-1",
+				expectedRepositoryID: "GoogleChrome/webstatus.dev",
 				expectedPageSize:     10,
 				expectedPageToken:    new("cur-tok"),
 				output:               samplePage,
@@ -82,7 +82,9 @@ func TestListCodeSubscriptions(t *testing.T) {
 			expectedCallCount:    1,
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
 			request: httptest.NewRequestWithContext(t.Context(),
-				http.MethodGet, "/v1/vcs/github/repositories/repo-1/code-subscriptions?page_size=10&page_token=cur-tok", nil),
+				http.MethodGet,
+				"/v1/vcs/github/repositories/GoogleChrome%2Fwebstatus.dev/code-subscriptions?page_size=10&page_token=cur-tok",
+				nil),
 			expectedResponse: testJSONResponse(http.StatusOK, `{
 				"data": [
 					{
@@ -126,7 +128,7 @@ func TestListCodeSubscriptions(t *testing.T) {
 			expectedCallCount:    0,
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
 			request: httptest.NewRequestWithContext(t.Context(),
-				http.MethodGet, "/v1/vcs/github/repositories/repo-1/code-subscriptions", nil),
+				http.MethodGet, "/v1/vcs/github/repositories/GoogleChrome%2Fwebstatus.dev/code-subscriptions", nil),
 			expectedResponse: testJSONResponse(http.StatusNotFound, `{
 				"code": 404,
 				"message": "repository not found"
@@ -143,17 +145,34 @@ func TestListCodeSubscriptions(t *testing.T) {
 			expectedCallCount:    0,
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
 			request: httptest.NewRequestWithContext(t.Context(),
-				http.MethodGet, "/v1/vcs/github/repositories/repo-1/code-subscriptions", nil),
+				http.MethodGet, "/v1/vcs/github/repositories/GoogleChrome%2Fwebstatus.dev/code-subscriptions", nil),
 			expectedResponse: testJSONResponse(http.StatusInternalServerError, `{
 				"code": 500,
 				"message": "failed to check repository permissions"
 			}`),
 		},
 		{
+			name: "Invalid GitHub Repository ID Format (400 Bad Request)",
+			cfg:  nil,
+			permChecker: &MockVCSPermissionChecker{
+				hasAdminAccess: true,
+				err:            nil,
+				called:         false,
+			},
+			expectedCallCount:    0,
+			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
+			request: httptest.NewRequestWithContext(t.Context(),
+				http.MethodGet, "/v1/vcs/github/repositories/repo-without-slash/code-subscriptions", nil),
+			expectedResponse: testJSONResponse(http.StatusBadRequest, `{
+				"code": 400,
+				"message": "invalid repository format for GitHub: \"repo-without-slash\" (expected owner/repo)"
+			}`),
+		},
+		{
 			name: "Invalid Page Token (400 Bad Request)",
 			cfg: &MockListCodeSubscriptionsConfig{
 				expectedProvider:     "github",
-				expectedRepositoryID: "repo-1",
+				expectedRepositoryID: "GoogleChrome/webstatus.dev",
 				expectedPageSize:     100,
 				expectedPageToken:    new("invalid-tok"),
 				output:               nil,
@@ -163,7 +182,9 @@ func TestListCodeSubscriptions(t *testing.T) {
 			expectedCallCount:    1,
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
 			request: httptest.NewRequestWithContext(t.Context(),
-				http.MethodGet, "/v1/vcs/github/repositories/repo-1/code-subscriptions?page_token=invalid-tok", nil),
+				http.MethodGet,
+				"/v1/vcs/github/repositories/GoogleChrome%2Fwebstatus.dev/code-subscriptions?page_token=invalid-tok",
+				nil),
 			expectedResponse: testJSONResponse(http.StatusBadRequest, `{
 				"code": 400,
 				"message": "invalid page token"
@@ -190,7 +211,7 @@ func TestListCodeSubscriptions(t *testing.T) {
 			name: "Repository Not Found (404 Not Found)",
 			cfg: &MockListCodeSubscriptionsConfig{
 				expectedProvider:     "github",
-				expectedRepositoryID: "repo-999",
+				expectedRepositoryID: "GoogleChrome/nonexistent",
 				expectedPageSize:     100,
 				expectedPageToken:    nil,
 				output:               nil,
@@ -200,7 +221,7 @@ func TestListCodeSubscriptions(t *testing.T) {
 			expectedCallCount:    1,
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
 			request: httptest.NewRequestWithContext(t.Context(),
-				http.MethodGet, "/v1/vcs/github/repositories/repo-999/code-subscriptions", nil),
+				http.MethodGet, "/v1/vcs/github/repositories/GoogleChrome%2Fnonexistent/code-subscriptions", nil),
 			expectedResponse: testJSONResponse(http.StatusNotFound, `{
 				"code": 404,
 				"message": "repository not found"
@@ -210,7 +231,7 @@ func TestListCodeSubscriptions(t *testing.T) {
 			name: "Database Error (500)",
 			cfg: &MockListCodeSubscriptionsConfig{
 				expectedProvider:     "github",
-				expectedRepositoryID: "repo-1",
+				expectedRepositoryID: "GoogleChrome/webstatus.dev",
 				expectedPageSize:     100,
 				expectedPageToken:    nil,
 				output:               nil,
@@ -220,7 +241,7 @@ func TestListCodeSubscriptions(t *testing.T) {
 			expectedCallCount:    1,
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
 			request: httptest.NewRequestWithContext(t.Context(),
-				http.MethodGet, "/v1/vcs/github/repositories/repo-1/code-subscriptions", nil),
+				http.MethodGet, "/v1/vcs/github/repositories/GoogleChrome%2Fwebstatus.dev/code-subscriptions", nil),
 			expectedResponse: testJSONResponse(http.StatusInternalServerError, `{
 				"code": 500,
 				"message": "failed to list code subscriptions"
@@ -233,7 +254,7 @@ func TestListCodeSubscriptions(t *testing.T) {
 			expectedCallCount:    0,
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(nil)),
 			request: httptest.NewRequestWithContext(t.Context(),
-				http.MethodGet, "/v1/vcs/github/repositories/repo-1/code-subscriptions", nil),
+				http.MethodGet, "/v1/vcs/github/repositories/GoogleChrome%2Fwebstatus.dev/code-subscriptions", nil),
 			expectedResponse: testJSONResponse(http.StatusInternalServerError, `{
 				"code": 500,
 				"message": "internal server error"
