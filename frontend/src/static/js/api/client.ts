@@ -71,7 +71,7 @@ type PageItems<Path extends PageablePath> = paths[Path]['get'] extends {
     200: {
       content: {
         'application/json': {
-          data: (infer U)[];
+          data?: (infer U)[];
         };
       };
     };
