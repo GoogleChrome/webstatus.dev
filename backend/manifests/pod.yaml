@@ -81,14 +81,13 @@ spec:
           memory: 64Mi
   initContainers:
     - name: generate-dev-secrets
-      image: alpine:3.24
+      image: alpine/openssl:3.5.7
       command:
         - sh
         - -c
         - |
           mkdir -p /etc/secrets/github-app
           if [ ! -f /etc/secrets/github-app/private-key.pem ]; then
-            apk add --no-cache openssl >/dev/null 2>&1
             openssl genpkey -algorithm RSA -out /etc/secrets/github-app/private-key.pem -pkeyopt rsa_keygen_bits:2048
           fi
       volumeMounts:
