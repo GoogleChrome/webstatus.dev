@@ -58,8 +58,6 @@ type PageablePath =
   | '/v1/stats/baseline_status/low_date_feature_counts'
   | '/v1/stats/features/browsers/{browser}/missing_one_implementation_counts'
   | '/v1/stats/features/browsers/{browser}/missing_one_implementation_counts/{date}/features'
-  | '/v1/vcs/{provider}/installations'
-  | '/v1/vcs/{provider}/repositories'
   | '/v1/vcs/{provider}/repositories/{repository_id}/code-subscriptions';
 
 /**
@@ -1026,84 +1024,6 @@ export class APIClient {
       '/v1/users/me/subscriptions/{subscription_id}',
       'patch',
     );
-  }
-
-  public listVCSInstallations(
-    provider: 'github',
-    token: string,
-    pageSize?: number,
-    pageToken?: string,
-  ): Promise<SuccessResponsePageableData<'/v1/vcs/{provider}/installations'>> {
-    return this.getPageOfData(
-      '/v1/vcs/{provider}/installations',
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        params: {
-          path: {
-            provider,
-          },
-        },
-      },
-      pageToken,
-      pageSize,
-    );
-  }
-
-  public getAllVCSInstallations(
-    provider: 'github',
-    token: string,
-  ): Promise<components['schemas']['VCSInstallationSummary'][]> {
-    return this.getAllPagesOfData('/v1/vcs/{provider}/installations', {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      params: {
-        path: {
-          provider,
-        },
-      },
-    });
-  }
-
-  public listVCSRepositories(
-    provider: 'github',
-    token: string,
-    pageSize?: number,
-    pageToken?: string,
-  ): Promise<SuccessResponsePageableData<'/v1/vcs/{provider}/repositories'>> {
-    return this.getPageOfData(
-      '/v1/vcs/{provider}/repositories',
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        params: {
-          path: {
-            provider,
-          },
-        },
-      },
-      pageToken,
-      pageSize,
-    );
-  }
-
-  public getAllVCSRepositories(
-    provider: 'github',
-    token: string,
-  ): Promise<components['schemas']['VCSRepositorySummary'][]> {
-    return this.getAllPagesOfData('/v1/vcs/{provider}/repositories', {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      params: {
-        path: {
-          provider,
-        },
-      },
-    });
   }
 
   public listCodeSubscriptions(

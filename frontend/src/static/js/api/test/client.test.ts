@@ -22,10 +22,6 @@ describe('APIClient VCS and Code Subscriptions Methods', () => {
   it('instantiates the APIClient successfully', () => {
     const client = new APIClient('http://localhost:8080');
     assert.exists(client);
-    assert.isFunction(client.listVCSInstallations);
-    assert.isFunction(client.getAllVCSInstallations);
-    assert.isFunction(client.listVCSRepositories);
-    assert.isFunction(client.getAllVCSRepositories);
     assert.isFunction(client.listCodeSubscriptions);
     assert.isFunction(client.getAllCodeSubscriptions);
   });
