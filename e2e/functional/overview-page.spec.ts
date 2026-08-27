@@ -175,15 +175,33 @@ const EXPECTED_ALL_COLUMNS = [
 ];
 
 function parseCSV(content: string): string[][] {
-  return content
+  const lines = content
     .trim()
-    .split('\n')
-    .filter(line => line.length > 0)
-    .map(line =>
-      line
-        .split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/)
-        .map(val => val.replace(/^"|"$/g, '').trim()),
-    );
+    .split(/\r?\n/)
+    .filter(line => line.length > 0);
+  return lines.map(line => {
+    const cells: string[] = [];
+    let cur = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      if (char === '"') {
+        if (inQuotes && line[i + 1] === '"') {
+          cur += '"';
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (char === ',' && !inQuotes) {
+        cells.push(cur.trim());
+        cur = '';
+      } else {
+        cur += char;
+      }
+    }
+    cells.push(cur.trim());
+    return cells;
+  });
 }
 
 test('Export to CSV button downloads a file with default columns', async ({
