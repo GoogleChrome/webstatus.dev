@@ -188,15 +188,16 @@ func main() {
 	}
 
 	var ghOptions []gh.ClientOption
+	var gitHubAPIBaseURL *url.URL
 	if gitHubAPIBaseRawURL := os.Getenv("GITHUB_API_BASE_URL"); gitHubAPIBaseRawURL != "" {
-		gitHubAPIBaseURL, err := url.Parse(gitHubAPIBaseRawURL)
+		var err error
+		gitHubAPIBaseURL, err = url.Parse(gitHubAPIBaseRawURL)
 		if err != nil {
 			slog.ErrorContext(ctx, "unable to parse GITHUB_API_BASE_URL", "error", err)
 			os.Exit(1)
 		}
 		slog.InfoContext(ctx, "using GITHUB_API_BASE_URL", "url", gitHubAPIBaseURL.String())
 		ghOptions = append(ghOptions, gh.WithBaseURL(gitHubAPIBaseURL))
-
 	}
 
 	pubsubProjectID := os.Getenv("PUBSUB_PROJECT_ID")
@@ -217,6 +218,8 @@ func main() {
 		os.Exit(1)
 	}
 
+	vcsPermissionChecker := gh.NewGitHubPermissionCheckerWithBaseURL(gitHubAPIBaseURL)
+
 	srv := httpserver.NewHTTPServer(
 		"8080",
 		baseURL,
@@ -230,6 +233,7 @@ func main() {
 				GitHubUserClient: gh.NewUserGitHubClient(token, ghOptions...),
 			}
 		},
+		vcsPermissionChecker,
 		preRequestMiddlewares,
 		authMiddleware,
 	)

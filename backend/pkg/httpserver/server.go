@@ -201,6 +201,12 @@ type WPTMetricsStorer interface {
 	) (*backend.CodeSubscriptionPage, error)
 }
 
+// VCSPermissionChecker verifies whether an authenticated user has administrative
+// permissions on a given VCS repository.
+type VCSPermissionChecker interface {
+	HasRepositoryAdminAccess(ctx context.Context, owner, repo, githubUserID string) (bool, error)
+}
+
 type Server struct {
 	metadataStorer          WebFeatureMetadataStorer
 	wptMetricsStorer        WPTMetricsStorer
@@ -209,6 +215,7 @@ type Server struct {
 	userGitHubClientFactory UserGitHubClientFactory
 	eventPublisher          EventPublisher
 	rssRenderer             *RSSRenderer
+	vcsPermissionChecker    VCSPermissionChecker
 }
 
 type GitHubUserClient interface {
@@ -274,6 +281,7 @@ func NewHTTPServer(
 	rawBytesDataCacher RawBytesDataCacher,
 	routeCacheOptions RouteCacheOptions,
 	userGitHubClientFactory UserGitHubClientFactory,
+	vcsPermissionChecker VCSPermissionChecker,
 	preRequestValidationMiddlewares []func(http.Handler) http.Handler,
 	authMiddleware func(http.Handler) http.Handler) *http.Server {
 	// Create an instance of our handler which satisfies the generated interface
@@ -285,6 +293,7 @@ func NewHTTPServer(
 		baseURL:                 baseURL,
 		userGitHubClientFactory: userGitHubClientFactory,
 		rssRenderer:             NewRSSRenderer(),
+		vcsPermissionChecker:    vcsPermissionChecker,
 	}
 
 	return createOpenAPIServerServer(port, srv, preRequestValidationMiddlewares, authMiddleware)

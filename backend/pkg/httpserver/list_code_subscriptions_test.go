@@ -15,6 +15,7 @@
 package httpserver
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -61,13 +62,14 @@ func TestListCodeSubscriptions(t *testing.T) {
 	testCases := []struct {
 		name                 string
 		cfg                  *MockListCodeSubscriptionsConfig
+		permChecker          *MockVCSPermissionChecker
 		expectedCallCount    int
 		authMiddlewareOption testServerOption
 		request              *http.Request
 		expectedResponse     *http.Response
 	}{
 		{
-			name: "Success with Pagination",
+			name: "Success with Pagination and Permitted Admin",
 			cfg: &MockListCodeSubscriptionsConfig{
 				expectedProvider:     "github",
 				expectedRepositoryID: "repo-1",
@@ -76,6 +78,7 @@ func TestListCodeSubscriptions(t *testing.T) {
 				output:               samplePage,
 				err:                  nil,
 			},
+			permChecker:          &MockVCSPermissionChecker{hasAdminAccess: true, err: nil, called: false},
 			expectedCallCount:    1,
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
 			request: httptest.NewRequestWithContext(t.Context(),
@@ -113,6 +116,40 @@ func TestListCodeSubscriptions(t *testing.T) {
 			}`),
 		},
 		{
+			name: "Unauthorized / Non-Admin User (404 Not Found BOLA Defense)",
+			cfg:  nil,
+			permChecker: &MockVCSPermissionChecker{
+				hasAdminAccess: false,
+				err:            nil,
+				called:         false,
+			},
+			expectedCallCount:    0,
+			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
+			request: httptest.NewRequestWithContext(t.Context(),
+				http.MethodGet, "/v1/vcs/github/repositories/repo-1/code-subscriptions", nil),
+			expectedResponse: testJSONResponse(http.StatusNotFound, `{
+				"code": 404,
+				"message": "repository not found"
+			}`),
+		},
+		{
+			name: "Permission Checker Error (500 Internal Server Error)",
+			cfg:  nil,
+			permChecker: &MockVCSPermissionChecker{
+				hasAdminAccess: false,
+				err:            errors.New("vcs auth service unavailable"),
+				called:         false,
+			},
+			expectedCallCount:    0,
+			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
+			request: httptest.NewRequestWithContext(t.Context(),
+				http.MethodGet, "/v1/vcs/github/repositories/repo-1/code-subscriptions", nil),
+			expectedResponse: testJSONResponse(http.StatusInternalServerError, `{
+				"code": 500,
+				"message": "failed to check repository permissions"
+			}`),
+		},
+		{
 			name: "Invalid Page Token (400 Bad Request)",
 			cfg: &MockListCodeSubscriptionsConfig{
 				expectedProvider:     "github",
@@ -122,6 +159,7 @@ func TestListCodeSubscriptions(t *testing.T) {
 				output:               nil,
 				err:                  backendtypes.ErrInvalidPageToken,
 			},
+			permChecker:          &MockVCSPermissionChecker{hasAdminAccess: true, err: nil, called: false},
 			expectedCallCount:    1,
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
 			request: httptest.NewRequestWithContext(t.Context(),
@@ -133,15 +171,13 @@ func TestListCodeSubscriptions(t *testing.T) {
 		},
 		{
 			name: "Unsupported VCS Provider (400 Bad Request)",
-			cfg: &MockListCodeSubscriptionsConfig{
-				expectedProvider:     "gitlab",
-				expectedRepositoryID: "repo-1",
-				expectedPageSize:     100,
-				expectedPageToken:    nil,
-				output:               nil,
-				err:                  backendtypes.ErrUnsupportedVCSProvider,
+			cfg:  nil,
+			permChecker: &MockVCSPermissionChecker{
+				hasAdminAccess: true,
+				err:            nil,
+				called:         false,
 			},
-			expectedCallCount:    1,
+			expectedCallCount:    0,
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
 			request: httptest.NewRequestWithContext(t.Context(),
 				http.MethodGet, "/v1/vcs/gitlab/repositories/repo-1/code-subscriptions", nil),
@@ -160,6 +196,7 @@ func TestListCodeSubscriptions(t *testing.T) {
 				output:               nil,
 				err:                  backendtypes.ErrEntityDoesNotExist,
 			},
+			permChecker:          &MockVCSPermissionChecker{hasAdminAccess: true, err: nil, called: false},
 			expectedCallCount:    1,
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
 			request: httptest.NewRequestWithContext(t.Context(),
@@ -179,6 +216,7 @@ func TestListCodeSubscriptions(t *testing.T) {
 				output:               nil,
 				err:                  errors.New("spanner failure"),
 			},
+			permChecker:          &MockVCSPermissionChecker{hasAdminAccess: true, err: nil, called: false},
 			expectedCallCount:    1,
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
 			request: httptest.NewRequestWithContext(t.Context(),
@@ -191,6 +229,7 @@ func TestListCodeSubscriptions(t *testing.T) {
 		{
 			name:                 "Missing User in Context",
 			cfg:                  nil,
+			permChecker:          nil,
 			expectedCallCount:    0,
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(nil)),
 			request: httptest.NewRequestWithContext(t.Context(),
@@ -209,10 +248,29 @@ func TestListCodeSubscriptions(t *testing.T) {
 				listCodeSubscriptionsCfg: tc.cfg,
 				t:                        t,
 			}
-			server := setupTestServer(t, withCustomStorer(mockStorer))
+			var opts []TestServerOption
+			opts = append(opts, withCustomStorer(mockStorer))
+			if tc.permChecker != nil {
+				opts = append(opts, withCustomVCSPermissionChecker(tc.permChecker))
+			}
+			server := setupTestServer(t, opts...)
 			assertTestServerRequest(t, server, tc.request, tc.expectedResponse, tc.authMiddlewareOption)
 			assertMocksExpectations(t, tc.expectedCallCount, mockStorer.callCountListCodeSubscriptions,
 				"ListCodeSubscriptions", nil)
 		})
 	}
+}
+
+type MockVCSPermissionChecker struct {
+	hasAdminAccess bool
+	err            error
+	called         bool
+}
+
+func (m *MockVCSPermissionChecker) HasRepositoryAdminAccess(
+	_ context.Context, _, _, _ string,
+) (bool, error) {
+	m.called = true
+
+	return m.hasAdminAccess, m.err
 }

@@ -18,6 +18,7 @@ const (
 	errMsgInputValidationErrors = "input validation errors"
 	errMsgInternalServerError   = "internal server error"
 	errMsgInvalidPageToken      = "invalid page token"
+	errMsgRepositoryNotFound    = "repository not found"
 	errMsgSavedSearchNotFound   = "saved search not found"
 	errMsgSubscriptionNotFound  = "subscription not found"
 )

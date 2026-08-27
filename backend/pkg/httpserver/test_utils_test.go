@@ -113,6 +113,7 @@ func setupTestServer(t *testing.T, options ...TestServerOption) *Server {
 		userGitHubClientFactory: nil,
 		eventPublisher:          nil,
 		rssRenderer:             NewRSSRenderer(),
+		vcsPermissionChecker:    nil,
 	}
 
 	// Apply Functional Options to override defaults
@@ -124,6 +125,12 @@ func setupTestServer(t *testing.T, options ...TestServerOption) *Server {
 }
 
 // Helper options to set specialized mocks if needed in tests
+
+func withCustomVCSPermissionChecker(c VCSPermissionChecker) TestServerOption {
+	return func(srv *Server) {
+		srv.vcsPermissionChecker = c
+	}
+}
 
 func withCustomStorer(s WPTMetricsStorer) TestServerOption {
 	return func(srv *Server) {

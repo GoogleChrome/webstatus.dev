@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strings"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/backendtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
@@ -40,6 +41,49 @@ func (s *Server) ListCodeSubscriptions(
 		})
 	if userCheck.User == nil {
 		return userCheck.Response, nil
+	}
+
+	if request.Provider != "github" {
+		return backend.ListCodeSubscriptions400JSONResponse(
+			backend.BasicErrorModel{
+				Code:    http.StatusBadRequest,
+				Message: fmt.Sprintf("unsupported VCS provider: %s", request.Provider),
+			}), nil
+	}
+
+	owner, repo := "", request.RepositoryId
+	if parts := strings.Split(request.RepositoryId, "/"); len(parts) == 2 {
+		owner, repo = parts[0], parts[1]
+	}
+
+	if userCheck.User.GitHubUserID == nil || *userCheck.User.GitHubUserID == "" {
+		return backend.ListCodeSubscriptions404JSONResponse(
+			backend.BasicErrorModel{
+				Code:    http.StatusNotFound,
+				Message: errMsgRepositoryNotFound,
+			}), nil
+	}
+
+	if s.vcsPermissionChecker != nil {
+		hasAdminAccess, err := s.vcsPermissionChecker.HasRepositoryAdminAccess(
+			ctx, owner, repo, *userCheck.User.GitHubUserID)
+		if err != nil {
+			slog.ErrorContext(ctx, "failed to check repository permissions", "error", err,
+				"provider", request.Provider, "repo_id", request.RepositoryId)
+
+			return backend.ListCodeSubscriptions500JSONResponse(
+				backend.BasicErrorModel{
+					Code:    http.StatusInternalServerError,
+					Message: "failed to check repository permissions",
+				}), nil
+		}
+		if !hasAdminAccess {
+			return backend.ListCodeSubscriptions404JSONResponse(
+				backend.BasicErrorModel{
+					Code:    http.StatusNotFound,
+					Message: errMsgRepositoryNotFound,
+				}), nil
+		}
 	}
 
 	pageSize := getPageSizeOrDefault(request.Params.PageSize)
@@ -65,7 +109,7 @@ func (s *Server) ListCodeSubscriptions(
 			return backend.ListCodeSubscriptions404JSONResponse(
 				backend.BasicErrorModel{
 					Code:    http.StatusNotFound,
-					Message: "repository not found",
+					Message: errMsgRepositoryNotFound,
 				}), nil
 		}
 
