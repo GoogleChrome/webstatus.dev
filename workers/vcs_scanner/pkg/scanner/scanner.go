@@ -191,7 +191,6 @@ func (s *Scanner) scanTarballStream(
 			limitReader,
 			cleanPath,
 			codescan.SubscriptionTriggerFeatureBaselinePromoteToWidely,
-			"",
 		)
 		if parseErr != nil {
 			slog.WarnContext(ctx, "failed to parse directives from file", "path", cleanPath, "error", parseErr)
