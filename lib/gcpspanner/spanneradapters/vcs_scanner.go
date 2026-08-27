@@ -64,9 +64,9 @@ func (a *VCSScannerAdapter) SynchronizeScanResult(
 			})
 		}
 
-		triggers := make([]string, 0, len(sub.Triggers))
+		triggers := make([]gcpspanner.SubscriptionTrigger, 0, len(sub.Triggers))
 		for _, trig := range sub.Triggers {
-			triggers = append(triggers, string(trig))
+			triggers = append(triggers, toSpannerCodescanSubscriptionTrigger(trig))
 		}
 
 		spannerInputs = append(spannerInputs, gcpspanner.CodeSubscriptionInput{
@@ -86,6 +86,19 @@ func (a *VCSScannerAdapter) SynchronizeScanResult(
 		vcsRepositoryID,
 		spannerInputs,
 	)
+}
+
+func toSpannerCodescanSubscriptionTrigger(
+	trigger codescan.SubscriptionTrigger,
+) gcpspanner.SubscriptionTrigger {
+	switch trigger {
+	case codescan.SubscriptionTriggerFeatureBaselinePromoteToWidely:
+		return gcpspanner.SubscriptionTriggerFeatureBaselinePromoteToWidely
+	case codescan.SubscriptionTriggerFeatureBaselinePromoteToNewly:
+		return gcpspanner.SubscriptionTriggerFeatureBaselinePromoteToNewly
+	default:
+		return gcpspanner.SubscriptionTriggerUnknown
+	}
 }
 
 // RecordScanLog adapts and persists a commit scan log into Spanner.

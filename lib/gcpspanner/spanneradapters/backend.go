@@ -2262,17 +2262,19 @@ func toBackendCodeSubscriptionStatus(
 }
 
 func toBackendSubscriptionTrigger(
-	trigger string,
+	trigger gcpspanner.SubscriptionTrigger,
 ) (backend.SubscriptionTriggerWritable, error) {
 	switch trigger {
-	case string(backend.SubscriptionTriggerFeatureBaselineToWidely), "feature.baseline.promote_to_widely":
+	case gcpspanner.SubscriptionTriggerFeatureBaselinePromoteToWidely:
 		return backend.SubscriptionTriggerFeatureBaselineToWidely, nil
-	case string(backend.SubscriptionTriggerFeatureBaselineToNewly), "feature.baseline.promote_to_newly":
+	case gcpspanner.SubscriptionTriggerFeatureBaselinePromoteToNewly:
 		return backend.SubscriptionTriggerFeatureBaselineToNewly, nil
-	case string(backend.SubscriptionTriggerFeatureBaselineRegressionToLimited):
+	case gcpspanner.SubscriptionTriggerFeatureBaselineRegressionToLimited:
 		return backend.SubscriptionTriggerFeatureBaselineRegressionToLimited, nil
-	case string(backend.SubscriptionTriggerFeatureBrowserImplementationAnyComplete):
+	case gcpspanner.SubscriptionTriggerBrowserImplementationAnyComplete:
 		return backend.SubscriptionTriggerFeatureBrowserImplementationAnyComplete, nil
+	case gcpspanner.SubscriptionTriggerUnknown:
+		return "", fmt.Errorf("%w: %s", ErrUnknownSubscriptionTrigger, trigger)
 	default:
 		return "", fmt.Errorf("%w: %s", ErrUnknownSubscriptionTrigger, trigger)
 	}

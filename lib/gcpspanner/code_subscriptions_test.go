@@ -66,7 +66,7 @@ func TestCodeSubscriptions(t *testing.T) {
 		VCSRepositoryID:    repoID,
 		RepositoryFullName: repoFullName,
 		TargetQuery:        "id:view-transitions",
-		Triggers:           []string{"feature_baseline_to_widely"},
+		Triggers:           []SubscriptionTrigger{SubscriptionTriggerFeatureBaselinePromoteToWidely},
 		Occurrences: []SubscriptionOccurrence{
 			{FilePath: "src/app.ts", LineNumber: 10, CommentSnippet: "// TODO(baseline/view-transitions): transition"},
 		},
@@ -78,7 +78,7 @@ func TestCodeSubscriptions(t *testing.T) {
 		VCSRepositoryID:    repoID,
 		RepositoryFullName: repoFullName,
 		TargetQuery:        "id:subgrid",
-		Triggers:           []string{"feature_baseline_to_widely"},
+		Triggers:           []SubscriptionTrigger{SubscriptionTriggerFeatureBaselinePromoteToWidely},
 		Occurrences: []SubscriptionOccurrence{
 			{FilePath: "src/grid.css", LineNumber: 5, CommentSnippet: "// TODO(baseline/subgrid): grid"},
 		},
@@ -141,7 +141,7 @@ func TestCodeSubscriptions(t *testing.T) {
 
 	// 4. Test ListCodeSubscriptionsByTargetQuery
 	targetList, err := spannerClient.ListCodeSubscriptionsByTargetQuery(
-		ctx, "id:view-transitions", "feature_baseline_to_widely")
+		ctx, "id:view-transitions", SubscriptionTriggerFeatureBaselinePromoteToWidely)
 	if err != nil {
 		t.Fatalf("ListCodeSubscriptionsByTargetQuery failed: %v", err)
 	}

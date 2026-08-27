@@ -43,7 +43,7 @@ func TestCodeSubscriptionConversion(t *testing.T) {
 				VCSRepositoryID:    "987654",
 				RepositoryFullName: "owner/repo",
 				TargetQuery:        "id:css-subgrid AND baseline_status:widely",
-				Triggers:           []string{"feature_baseline_to_widely"},
+				Triggers:           []SubscriptionTrigger{SubscriptionTriggerFeatureBaselinePromoteToWidely},
 				Status:             SubscriptionActive,
 				Occurrences: []SubscriptionOccurrence{
 					{
@@ -73,7 +73,7 @@ func TestCodeSubscriptionConversion(t *testing.T) {
 				VCSRepositoryID:    "987654",
 				RepositoryFullName: "owner/repo",
 				TargetQuery:        "id:css-subgrid",
-				Triggers:           []string{"feature_baseline_to_widely"},
+				Triggers:           []SubscriptionTrigger{SubscriptionTriggerFeatureBaselinePromoteToWidely},
 				Status:             SubscriptionActive,
 				Occurrences:        nil,
 				CreatedAt:          now,
@@ -113,7 +113,7 @@ func TestCodeSubscription_InvalidStatus(t *testing.T) {
 		VCSRepositoryID:    "456",
 		RepositoryFullName: "owner/repo",
 		TargetQuery:        "query",
-		Triggers:           []string{"trigger"},
+		Triggers:           []SubscriptionTrigger{SubscriptionTriggerFeatureBaselinePromoteToWidely},
 		Status:             "INVALID_STATUS",
 		Occurrences:        spanner.NullJSON{Value: nil, Valid: false},
 		CreatedAt:          time.Now(),
@@ -146,7 +146,7 @@ func testCodeSubscriptionInsertWithOccurrences(ctx context.Context, t *testing.T
 		VCSRepositoryID:    "repo-123",
 		RepositoryFullName: "GoogleChrome/webstatus.dev",
 		TargetQuery:        "id:view-transitions",
-		Triggers:           []string{"feature_baseline_to_widely"},
+		Triggers:           []SubscriptionTrigger{SubscriptionTriggerFeatureBaselinePromoteToWidely},
 		Status:             SubscriptionActive,
 		Occurrences: []SubscriptionOccurrence{
 			{
@@ -195,7 +195,7 @@ func testCodeSubscriptionEmptyOccurrences(ctx context.Context, t *testing.T, ins
 		VCSRepositoryID:    "repo-empty-occ",
 		RepositoryFullName: "GoogleChrome/webstatus.dev",
 		TargetQuery:        "id:subgrid",
-		Triggers:           []string{"feature_baseline_to_widely"},
+		Triggers:           []SubscriptionTrigger{SubscriptionTriggerFeatureBaselinePromoteToWidely},
 		Status:             SubscriptionActive,
 		Occurrences:        []SubscriptionOccurrence{},
 		CreatedAt:          now,

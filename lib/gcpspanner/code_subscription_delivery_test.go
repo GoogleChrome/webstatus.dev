@@ -276,7 +276,7 @@ func TestClient_GetCodeSubscriptionDelivery(t *testing.T) {
 		VCSRepositoryID:    "repo-123",
 		RepositoryFullName: "GoogleChrome/webstatus.dev",
 		TargetQuery:        "id:view-transitions",
-		Triggers:           []string{"feature_baseline_to_widely"},
+		Triggers:           []SubscriptionTrigger{SubscriptionTriggerFeatureBaselinePromoteToWidely},
 		Status:             SubscriptionActive,
 		Occurrences: []SubscriptionOccurrence{
 			{

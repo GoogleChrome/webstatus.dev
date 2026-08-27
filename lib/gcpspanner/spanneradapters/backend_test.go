@@ -5416,7 +5416,7 @@ func TestBackend_ListCodeSubscriptions(t *testing.T) {
 			VCSRepositoryID:    "repo-789",
 			RepositoryFullName: "GoogleChrome/webstatus.dev",
 			TargetQuery:        "id:subgrid",
-			Triggers:           []string{"feature_baseline_to_widely"},
+			Triggers:           []gcpspanner.SubscriptionTrigger{gcpspanner.SubscriptionTriggerFeatureBaselinePromoteToWidely},
 			Status:             gcpspanner.SubscriptionActive,
 			Occurrences: []gcpspanner.SubscriptionOccurrence{
 				{
@@ -5523,11 +5523,11 @@ func TestBackend_CodeSubscriptionEnumConversions(t *testing.T) {
 	}
 
 	// 3. toBackendSubscriptionTrigger
-	tr, err := toBackendSubscriptionTrigger("feature_baseline_to_widely")
+	tr, err := toBackendSubscriptionTrigger(gcpspanner.SubscriptionTriggerFeatureBaselinePromoteToWidely)
 	if err != nil || tr != backend.SubscriptionTriggerFeatureBaselineToWidely {
 		t.Errorf("expected SubscriptionTriggerFeatureBaselineToWidely, got %v, err: %v", tr, err)
 	}
-	tr, err = toBackendSubscriptionTrigger("feature_baseline_to_newly")
+	tr, err = toBackendSubscriptionTrigger(gcpspanner.SubscriptionTriggerFeatureBaselinePromoteToNewly)
 	if err != nil || tr != backend.SubscriptionTriggerFeatureBaselineToNewly {
 		t.Errorf("expected SubscriptionTriggerFeatureBaselineToNewly, got %v, err: %v", tr, err)
 	}
