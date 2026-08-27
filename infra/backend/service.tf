@@ -145,6 +145,21 @@ resource "google_cloud_run_v2_service" "service" {
         name  = "PUBSUB_PROJECT_ID"
         value = var.pubsub_project_id
       }
+      env {
+        name  = "GITHUB_APP_ID"
+        value = var.github_app_id
+      }
+      env {
+        name  = "GITHUB_APP_PRIVATE_KEY_PATH"
+        value = var.github_app_private_key_secret_id != "" ? "/etc/secrets/github-app/private-key.pem" : ""
+      }
+      dynamic "volume_mounts" {
+        for_each = var.github_app_private_key_secret_id != "" ? [1] : []
+        content {
+          name       = "github-app-key"
+          mount_path = "/etc/secrets/github-app"
+        }
+      }
     }
     containers {
       name  = "otel"
@@ -192,6 +207,19 @@ resource "google_cloud_run_v2_service" "service" {
         items {
           version = "latest"
           path    = "config.yaml"
+        }
+      }
+    }
+    dynamic "volumes" {
+      for_each = var.github_app_private_key_secret_id != "" ? [1] : []
+      content {
+        name = "github-app-key"
+        secret {
+          secret = var.github_app_private_key_secret_id
+          items {
+            version = "latest"
+            path    = "private-key.pem"
+          }
         }
       }
     }

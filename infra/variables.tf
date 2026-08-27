@@ -207,6 +207,12 @@ variable "github_app_id" {
   default     = "webstatus-dev"
 }
 
+variable "github_app_private_key_secret_id" {
+  description = "The Secret Manager secret ID containing the GitHub App RSA private key"
+  type        = string
+  default     = ""
+}
+
 variable "backend_min_instance_count" {
   type        = number
   description = "Minimum instance count for backend instances"
