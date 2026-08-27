@@ -54,8 +54,13 @@ var inlineTodoRegex = regexp.MustCompile(
 		`(?::\s*([^,\n]+))?`,
 )
 
-// ParseReader reads from an io.Reader and extracts all valid @webstatus directives.
-func ParseReader(r io.Reader, filePath string, defaultTarget string) ([]Directive, error) {
+// ParseReader reads from an io.Reader and extracts all valid @webstatus and TODO directives.
+func ParseReader(
+	r io.Reader,
+	filePath string,
+	defaultTrigger SubscriptionTrigger,
+	defaultTargetQuery string,
+) ([]Directive, error) {
 	var directives []Directive
 	scanner := bufio.NewScanner(r)
 	buf := make([]byte, 64*1024)
@@ -65,10 +70,8 @@ func ParseReader(r io.Reader, filePath string, defaultTarget string) ([]Directiv
 	inCBlock := false
 	inHTMLBlock := false
 
-	defaultTrigger := SubscriptionTriggerFeatureBaselinePromoteToWidely
-	if defaultTarget == TargetNewly || defaultTarget == string(SubscriptionTriggerFeatureBaselinePromoteToNewly) ||
-		defaultTarget == "newly_available" {
-		defaultTrigger = SubscriptionTriggerFeatureBaselinePromoteToNewly
+	if defaultTrigger == "" {
+		defaultTrigger = SubscriptionTriggerFeatureBaselinePromoteToWidely
 	}
 
 	for scanner.Scan() {
@@ -92,7 +95,7 @@ func ParseReader(r io.Reader, filePath string, defaultTarget string) ([]Directiv
 		if todoDirs := extractTodoDirectives(cleaned, rawLine, lineNum, filePath, defaultTrigger); len(todoDirs) > 0 {
 			directives = append(directives, todoDirs...)
 		} else if dirs, ok := extractWebstatusDirective(
-			cleaned, rawLine, lineNum, filePath, defaultTarget, defaultTrigger,
+			cleaned, rawLine, lineNum, filePath, defaultTargetQuery, defaultTrigger,
 		); ok {
 			directives = append(directives, dirs...)
 		}
@@ -113,8 +116,13 @@ func ParseReader(r io.Reader, filePath string, defaultTarget string) ([]Directiv
 }
 
 // ParseFileDirectives scans the lines of a source file and extracts all valid @webstatus directives.
-func ParseFileDirectives(content []byte, filePath string, defaultTarget string) []Directive {
-	directives, _ := ParseReader(bytes.NewReader(content), filePath, defaultTarget)
+func ParseFileDirectives(
+	content []byte,
+	filePath string,
+	defaultTrigger SubscriptionTrigger,
+	defaultTargetQuery string,
+) []Directive {
+	directives, _ := ParseReader(bytes.NewReader(content), filePath, defaultTrigger, defaultTargetQuery)
 
 	return directives
 }
@@ -192,7 +200,7 @@ func extractTodoDirectives(
 func extractWebstatusDirective(
 	cleanedLine, rawLine string,
 	lineNum int,
-	filePath, defaultTarget string,
+	filePath, defaultTargetQuery string,
 	defaultTrigger SubscriptionTrigger,
 ) ([]Directive, bool) {
 	matches := webstatusDirectiveRegex.FindStringSubmatch(cleanedLine)
@@ -219,17 +227,18 @@ func extractWebstatusDirective(
 			val = strings.TrimPrefix(val, "id:")
 			ids = append(ids, val)
 		case "trigger":
-			if strings.EqualFold(val, "newly_available") || strings.EqualFold(val, TargetNewly) {
+			switch strings.ToLower(val) {
+			case "newly_available", "newly", string(SubscriptionTriggerFeatureBaselinePromoteToNewly):
 				trigger = SubscriptionTriggerFeatureBaselinePromoteToNewly
-			} else if strings.EqualFold(val, "widely_available") || strings.EqualFold(val, TargetWidely) {
+			case "widely_available", "widely", string(SubscriptionTriggerFeatureBaselinePromoteToWidely):
 				trigger = SubscriptionTriggerFeatureBaselinePromoteToWidely
 			}
 		}
 	}
 
 	if len(ids) == 0 {
-		if defaultTarget != "" {
-			cleanID := strings.TrimPrefix(defaultTarget, "id:")
+		if defaultTargetQuery != "" {
+			cleanID := strings.TrimPrefix(defaultTargetQuery, "id:")
 			ids = append(ids, cleanID)
 		} else {
 			return nil, false

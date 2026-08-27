@@ -43,7 +43,12 @@ const x = 1;
 // @webstatus: trigger:newly_available
 `
 
-	directives := ParseFileDirectives([]byte(sourceCode), "src/app.ts", "id:default-feature")
+	directives := ParseFileDirectives(
+		[]byte(sourceCode),
+		"src/app.ts",
+		SubscriptionTriggerFeatureBaselinePromoteToWidely,
+		"id:default-feature",
+	)
 
 	expected := []Directive{
 		{
@@ -180,14 +185,24 @@ func TestParseFileDirectivesEmptyAndBinary(t *testing.T) {
 	t.Parallel()
 
 	// 1. Empty buffer
-	emptyDirectives := ParseFileDirectives([]byte{}, "src/empty.ts", "id:default")
+	emptyDirectives := ParseFileDirectives(
+		[]byte{},
+		"src/empty.ts",
+		SubscriptionTriggerFeatureBaselinePromoteToWidely,
+		"id:default",
+	)
 	if len(emptyDirectives) != 0 {
 		t.Errorf("expected 0 directives for empty buffer, got %d", len(emptyDirectives))
 	}
 
 	// 2. Binary bytes (no matching comments)
 	binaryData := []byte{0x00, 0xFF, 0xFE, 0x01, 0x7F, 0x80}
-	binaryDirectives := ParseFileDirectives(binaryData, "assets/logo.png", "id:default")
+	binaryDirectives := ParseFileDirectives(
+		binaryData,
+		"assets/logo.png",
+		SubscriptionTriggerFeatureBaselinePromoteToWidely,
+		"id:default",
+	)
 	if len(binaryDirectives) != 0 {
 		t.Errorf("expected 0 directives for binary data, got %d", len(binaryDirectives))
 	}
@@ -212,7 +227,12 @@ const y = 2;
  */
 `
 
-	directives := ParseFileDirectives([]byte(sourceCode), "src/multi.ts", "id:default")
+	directives := ParseFileDirectives(
+		[]byte(sourceCode),
+		"src/multi.ts",
+		SubscriptionTriggerFeatureBaselinePromoteToWidely,
+		"id:default",
+	)
 	if len(directives) != 3 {
 		t.Fatalf("got %d directives, want 3", len(directives))
 	}
@@ -294,7 +314,7 @@ func verifyArchetypeDirectives(t *testing.T, arch string) {
 			t.Fatalf("failed reading manifested file %s: %v", fullPath, err)
 		}
 
-		got := ParseFileDirectives(content, cleanRelPath, "id:default")
+		got := ParseFileDirectives(content, cleanRelPath, SubscriptionTriggerFeatureBaselinePromoteToWidely, "id:default")
 		if len(got) != len(fileExpectation.ExpectedDirectives) {
 			t.Errorf("%s: got %d directives, want %d", cleanRelPath, len(got), len(fileExpectation.ExpectedDirectives))
 
@@ -366,7 +386,12 @@ const y = 2;
 /* Same line multi-directive: TODO(baseline/dialog) TODO(baseline/invokers, newly) */
 `
 
-	directives := ParseFileDirectives([]byte(sourceCode), "src/multi.css", "")
+	directives := ParseFileDirectives(
+		[]byte(sourceCode),
+		"src/multi.css",
+		SubscriptionTriggerFeatureBaselinePromoteToWidely,
+		"",
+	)
 
 	expected := []Directive{
 		{
@@ -430,7 +455,7 @@ func TestParseReader(t *testing.T) {
 	input := "// TODO(baseline/subgrid): layout upgrade\n"
 	r := strings.NewReader(input)
 
-	directives, err := ParseReader(r, "stdin.ts", "")
+	directives, err := ParseReader(r, "stdin.ts", SubscriptionTriggerFeatureBaselinePromoteToWidely, "")
 	if err != nil {
 		t.Fatalf("ParseReader failed: %v", err)
 	}
@@ -480,12 +505,18 @@ func TestParseFileDirectives_DefaultTargetInheritance(t *testing.T) {
 // TODO(baseline/popover): standard comment
 // TODO(baseline/dialog, newly): explicit override to newly
 // TODO(baseline/subgrid, widely): explicit override to widely
+// @webstatus: id:anchor-positioning
 `
 
-	// Case 1: defaultTarget is "newly"
-	dirsNewly := ParseFileDirectives([]byte(sourceCode), "src/app.ts", "newly")
-	if len(dirsNewly) != 3 {
-		t.Fatalf("got %d directives, want 3", len(dirsNewly))
+	// Case 1: defaultTrigger is SubscriptionTriggerFeatureBaselinePromoteToNewly
+	dirsNewly := ParseFileDirectives(
+		[]byte(sourceCode),
+		"src/app.ts",
+		SubscriptionTriggerFeatureBaselinePromoteToNewly,
+		"",
+	)
+	if len(dirsNewly) != 4 {
+		t.Fatalf("got %d directives, want 4", len(dirsNewly))
 	}
 	if dirsNewly[0].Trigger != SubscriptionTriggerFeatureBaselinePromoteToNewly {
 		t.Errorf("dirsNewly[0].Trigger = %s, want newly", dirsNewly[0].Trigger)
@@ -496,11 +527,19 @@ func TestParseFileDirectives_DefaultTargetInheritance(t *testing.T) {
 	if dirsNewly[2].Trigger != SubscriptionTriggerFeatureBaselinePromoteToWidely {
 		t.Errorf("dirsNewly[2].Trigger = %s, want widely (explicit override)", dirsNewly[2].Trigger)
 	}
+	if dirsNewly[3].Trigger != SubscriptionTriggerFeatureBaselinePromoteToNewly {
+		t.Errorf("dirsNewly[3].Trigger = %s, want newly (inherited from default)", dirsNewly[3].Trigger)
+	}
 
-	// Case 2: defaultTarget is "widely" or empty
-	dirsWidely := ParseFileDirectives([]byte(sourceCode), "src/app.ts", "")
-	if len(dirsWidely) != 3 {
-		t.Fatalf("got %d directives, want 3", len(dirsWidely))
+	// Case 2: defaultTrigger is SubscriptionTriggerFeatureBaselinePromoteToWidely
+	dirsWidely := ParseFileDirectives(
+		[]byte(sourceCode),
+		"src/app.ts",
+		SubscriptionTriggerFeatureBaselinePromoteToWidely,
+		"",
+	)
+	if len(dirsWidely) != 4 {
+		t.Fatalf("got %d directives, want 4", len(dirsWidely))
 	}
 	if dirsWidely[0].Trigger != SubscriptionTriggerFeatureBaselinePromoteToWidely {
 		t.Errorf("dirsWidely[0].Trigger = %s, want widely", dirsWidely[0].Trigger)
@@ -510,6 +549,27 @@ func TestParseFileDirectives_DefaultTargetInheritance(t *testing.T) {
 	}
 	if dirsWidely[2].Trigger != SubscriptionTriggerFeatureBaselinePromoteToWidely {
 		t.Errorf("dirsWidely[2].Trigger = %s, want widely", dirsWidely[2].Trigger)
+	}
+	if dirsWidely[3].Trigger != SubscriptionTriggerFeatureBaselinePromoteToWidely {
+		t.Errorf("dirsWidely[3].Trigger = %s, want widely (inherited from default)", dirsWidely[3].Trigger)
+	}
+
+	// Case 3: Bare @webstatus with defaultTargetQuery fallback
+	bareSource := "// @webstatus: trigger:newly_available\n"
+	dirsBare := ParseFileDirectives(
+		[]byte(bareSource),
+		"src/app.ts",
+		SubscriptionTriggerFeatureBaselinePromoteToWidely,
+		"id:fallback-feature",
+	)
+	if len(dirsBare) != 1 {
+		t.Fatalf("got %d directives, want 1", len(dirsBare))
+	}
+	if dirsBare[0].TargetQuery != "id:fallback-feature" {
+		t.Errorf("dirsBare[0].TargetQuery = %s, want id:fallback-feature", dirsBare[0].TargetQuery)
+	}
+	if dirsBare[0].Trigger != SubscriptionTriggerFeatureBaselinePromoteToNewly {
+		t.Errorf("dirsBare[0].Trigger = %s, want newly_available", dirsBare[0].Trigger)
 	}
 }
 
@@ -522,7 +582,7 @@ func (e errReader) Read(_ []byte) (int, error) {
 func TestParseReader_ScannerError(t *testing.T) {
 	t.Parallel()
 
-	_, err := ParseReader(errReader{}, "test.ts", "")
+	_, err := ParseReader(errReader{}, "test.ts", SubscriptionTriggerFeatureBaselinePromoteToWidely, "")
 	if err == nil {
 		t.Fatal("expected error from errReader, got nil")
 	}
