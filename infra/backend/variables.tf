@@ -110,6 +110,7 @@ variable "backend_api_url" {
 
 variable "pubsub_project_id" { type = string }
 variable "ingestion_topic_id" { type = string }
+variable "vcs_scan_tasks_topic_id" { type = string }
 
 variable "otel_config_secret_id" {
   type        = string

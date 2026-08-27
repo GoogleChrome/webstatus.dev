@@ -28,7 +28,7 @@ resource "google_monitoring_alert_policy" "dlq_non_empty" {
       filter = join(" AND ", [
         "resource.type=\"pubsub_subscription\"",
         "metric.type=\"pubsub.googleapis.com/subscription/num_undelivered_messages\"",
-        "resource.label.subscription_id = one_of(\"${google_pubsub_subscription.ingestion_dlq_sub.name}\", \"${google_pubsub_subscription.notification_dlq_sub.name}\", \"${google_pubsub_subscription.delivery_dlq_sub.name}\")"
+        "resource.label.subscription_id = one_of(\"${google_pubsub_subscription.ingestion_dlq_sub.name}\", \"${google_pubsub_subscription.notification_dlq_sub.name}\", \"${google_pubsub_subscription.delivery_dlq_sub.name}\", \"${google_pubsub_subscription.code_subscriptions_dlq_sub.name}\")"
       ])
 
       duration        = "60s"
@@ -65,7 +65,7 @@ resource "google_monitoring_alert_policy" "queue_latency" {
       filter = join(" AND ", [
         "resource.type=\"pubsub_subscription\"",
         "metric.type=\"pubsub.googleapis.com/subscription/oldest_unacked_message_age\"",
-        "resource.label.subscription_id = one_of(\"${google_pubsub_subscription.ingestion_jobs_sub.name}\", \"${google_pubsub_subscription.notification_events_sub.name}\", \"${google_pubsub_subscription.chime_delivery_sub.name}\")"
+        "resource.label.subscription_id = one_of(\"${google_pubsub_subscription.ingestion_jobs_sub.name}\", \"${google_pubsub_subscription.notification_events_sub.name}\", \"${google_pubsub_subscription.chime_delivery_sub.name}\", \"${google_pubsub_subscription.vcs_scan_tasks_sub.name}\", \"${google_pubsub_subscription.github_issue_delivery_sub.name}\")"
       ])
 
       duration        = "300s" # Condition must persist for 5 minutes

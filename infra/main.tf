@@ -133,6 +133,7 @@ module "backend" {
   }
   pubsub_project_id                = var.projects.internal
   ingestion_topic_id               = module.pubsub.ingestion_topic_id
+  vcs_scan_tasks_topic_id          = module.pubsub.vcs_scan_tasks_topic_id
   github_app_id                    = var.github_app_id
   github_app_private_key_secret_id = var.github_app_private_key_secret_id
   otel_config_secret_id            = google_secret_manager_secret.otel_config.id

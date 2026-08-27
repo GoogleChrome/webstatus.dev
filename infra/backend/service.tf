@@ -142,6 +142,10 @@ resource "google_cloud_run_v2_service" "service" {
         value = var.ingestion_topic_id
       }
       env {
+        name  = "VCS_SCAN_TASKS_TOPIC_ID"
+        value = var.vcs_scan_tasks_topic_id
+      }
+      env {
         name  = "PUBSUB_PROJECT_ID"
         value = var.pubsub_project_id
       }
@@ -270,6 +274,13 @@ resource "google_cloud_run_service_iam_member" "public" {
 
 resource "google_pubsub_topic_iam_member" "pub" {
   topic    = var.ingestion_topic_id
+  role     = "roles/pubsub.publisher"
+  member   = "serviceAccount:${google_service_account.backend.email}"
+  provider = google.internal_project
+}
+
+resource "google_pubsub_topic_iam_member" "vcs_scan_tasks_pub" {
+  topic    = var.vcs_scan_tasks_topic_id
   role     = "roles/pubsub.publisher"
   member   = "serviceAccount:${google_service_account.backend.email}"
   provider = google.internal_project
