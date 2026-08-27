@@ -64,6 +64,12 @@ We use a Hexagonal-style **Adapter Pattern** to decouple application logic from 
 - **DO** use modern Go 1.26+ `new(expr)` built-in syntax (e.g., `new("my-string")` or `new(42)`) when creating pointers to values or literals. **DON'T** introduce custom pointer helper functions (e.g., `stringPtr`, `intPtr`, or generic `ptr(...)`).
 - **DO** resolve entity keys (e.g., `FeatureKey -> WebFeatureID`) upfront and seek directly on secondary indexes (e.g., `@{FORCE_INDEX=MetricsFeatureChannelBrowserTime}`) when querying high-volume timeseries tables (`WPTRunFeatureMetrics`, `DailyChromiumHistogramMetrics`). Never perform an unindexed driving join from parent tables across multi-year timeseries ranges.
 - **DO** match Go parameter types directly to Spanner column types (`civil.Date` for `DATE`, `time.Time` for `TIMESTAMP`) so SQL query predicates remain strictly sargable without wrapping table columns in SQL conversion functions (e.g., avoid `TIMESTAMP(dchm.Day)`).
+- **DO** use CLI flags when running or modifying data seeding tools like [`util/cmd/load_fake_data`](../../../util/cmd/load_fake_data/main.go):
+  - `-num_features=N` (default `80`, minimum `25` for 2-page pagination tests)
+  - `-releases_per_browser=N` (default `30`, produces `N * 7` browser releases)
+  - `-runs_per_browser_channel=N` (default `35`, produces `N * 14` WPT metric runs)
+  - `-reset=true` (resets all test user state before seeding)
+  - `-scope=all|user` (scopes generation to full dataset or user-only)
 
 ## Testing & Linting
 

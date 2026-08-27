@@ -21,6 +21,7 @@ This section describes the tools and commands for local development.
 - **`make start-local`**: Starts the complete local development environment using Skaffold and Minikube. This includes live-reloading for code changes.
 - **`make port-forward-manual`**: After starting the environment, run this to expose the services (frontend, backend, etc.) on `localhost`.
 - **`make test`**: Runs the Go and TypeScript unit tests. Use `make go-test` to run only Go tests.
+- **`make playwright-test`**: Runs all E2E Playwright tests. Use `make playwright-synthetic` for fast canary probes, `make playwright-visual` for visual snapshot tests, or `make playwright-functional` for stateful functional user flows.
 - **`make precommit`**: Runs a comprehensive suite of checks including tests, linting (`golangci-lint` configured via `.golangci.yaml`), and license header verification. This is the main command to run before submitting a pull request. Common linting errors to watch for include `exhaustruct` (missing struct fields) and `nlreturn` (missing newline before return).
 - **`make gen`**: Regenerates all auto-generated code (from OpenAPI, JSON Schema, ANTLR). Use `make openapi` for just OpenAPI changes.
 - **`make dev_workflows`**: Populates the local Spanner database by running the data ingestion jobs against live data sources.

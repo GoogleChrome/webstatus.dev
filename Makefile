@@ -1,6 +1,8 @@
 SHELL := /bin/bash
 NPROCS := $(shell nproc)
 GH_REPO := "GoogleChrome/webstatus.dev"
+REPO_OWNER ?= googlechrome
+REPO_OWNER_LOWER = $(shell echo $(REPO_OWNER) | tr '[:upper:]' '[:lower:]')
 
 DOCKERFILES := \
 	images/go_service.Dockerfile \
@@ -32,6 +34,8 @@ DOCKERFILES := \
 		minikube-clean-restart \
 		start-local \
 		deploy-local \
+		pull-cached-services \
+		configure-ci-registry-auth \
 		stop-local \
 		port-forward-manual \
 		port-forward-terminate \
@@ -46,16 +50,44 @@ precommit: license-check  go-fix go-tidy lint test unstaged-changes
 ################################
 # Local Environment
 ################################
-SKAFFOLD_FLAGS = -p local
-SKAFFOLD_RUN_FLAGS = $(SKAFFOLD_FLAGS) --build-concurrency=$(NPROCS) --no-prune=false --cache-artifacts=false --port-forward=off
+SKAFFOLD_CACHE_ARTIFACTS ?= false
+SKAFFOLD_DEFAULT_REPO ?= $(if $(CI),ghcr.io/$(REPO_OWNER_LOWER)/webstatus.dev,)
+SKAFFOLD_FLAGS = -p local $(if $(SKAFFOLD_DEFAULT_REPO),--default-repo=$(SKAFFOLD_DEFAULT_REPO),)
+SKAFFOLD_RUN_FLAGS = $(SKAFFOLD_FLAGS) --build-concurrency=$(NPROCS) --no-prune=false --cache-artifacts=$(SKAFFOLD_CACHE_ARTIFACTS) --port-forward=off
 start-local: configure-skaffold gen
 	skaffold dev $(SKAFFOLD_RUN_FLAGS)
 
 debug-local: configure-skaffold gen
 	skaffold debug $(SKAFFOLD_RUN_FLAGS)
 
-configure-skaffold: minikube-running
+configure-ci-registry-auth: minikube-running
+	@if [ -n "$$GITHUB_TOKEN" ]; then \
+		echo "Configuring GHCR authentication for Minikube and Kubernetes in CI..."; \
+		echo "$$GITHUB_TOKEN" | docker login ghcr.io -u "$${GITHUB_ACTOR:-$(REPO_OWNER_LOWER)}" --password-stdin 2>/dev/null || true; \
+		minikube cp "$${HOME}/.docker/config.json" /root/.docker/config.json -p "$${MINIKUBE_PROFILE}" 2>/dev/null || true; \
+		eval $$(minikube docker-env -p "$${MINIKUBE_PROFILE}") 2>/dev/null || true; \
+		echo "$$GITHUB_TOKEN" | docker login ghcr.io -u "$${GITHUB_ACTOR:-$(REPO_OWNER_LOWER)}" --password-stdin 2>/dev/null || true; \
+		kubectl create secret docker-registry ghcr-secret \
+			--docker-server=https://ghcr.io \
+			--docker-username="$${GITHUB_ACTOR:-$(REPO_OWNER_LOWER)}" \
+			--docker-password="$$GITHUB_TOKEN" \
+			--docker-email="$${GITHUB_ACTOR:-$(REPO_OWNER_LOWER)}@users.noreply.github.com" \
+			--dry-run=client -o yaml | kubectl apply -f - 2>/dev/null || true; \
+		kubectl patch serviceaccount default -p '{"imagePullSecrets": [{"name": "ghcr-secret"}]}' 2>/dev/null || true; \
+	fi
+
+configure-skaffold: configure-ci-registry-auth
 	skaffold config set --kube-context "$${MINIKUBE_PROFILE}" local-cluster true
+
+pull-cached-services: configure-skaffold
+	@echo "Warming Minikube Docker cache from GHCR..."
+	@eval $$(minikube docker-env -p "$${MINIKUBE_PROFILE}") 2>/dev/null || true; \
+	for svc in backend frontend spanner datastore auth wiremock valkey pubsub; do \
+		(docker pull ghcr.io/$(REPO_OWNER_LOWER)/webstatus.dev/$$svc:latest 2>/dev/null && \
+		 docker tag ghcr.io/$(REPO_OWNER_LOWER)/webstatus.dev/$$svc:latest $$svc:latest 2>/dev/null || true; \
+		 docker pull ghcr.io/$(REPO_OWNER_LOWER)/webstatus.dev/$$svc:cache 2>/dev/null && \
+		 docker tag ghcr.io/$(REPO_OWNER_LOWER)/webstatus.dev/$$svc:cache $$svc:cache 2>/dev/null || true) & \
+	done; wait
 
 deploy-local: configure-skaffold
 	skaffold run $(SKAFFOLD_RUN_FLAGS) --status-check=true
@@ -92,12 +124,12 @@ check-local-ports:
 
 
 port-forward-manual: port-forward-terminate
-	kubectl wait --for=condition=ready pod/frontend
-	kubectl wait --for=condition=ready pod/backend
-	kubectl wait --for=condition=ready pod/auth
-	kubectl wait --for=condition=ready pod/datastore
-	kubectl wait --for=condition=ready pod/spanner
-	kubectl wait --for=condition=ready pod/wiremock
+	kubectl wait --for=condition=ready --timeout=120s pod/frontend
+	kubectl wait --for=condition=ready --timeout=120s pod/backend
+	kubectl wait --for=condition=ready --timeout=120s pod/auth
+	kubectl wait --for=condition=ready --timeout=120s pod/datastore
+	kubectl wait --for=condition=ready --timeout=120s pod/spanner
+	kubectl wait --for=condition=ready --timeout=120s pod/wiremock
 	kubectl port-forward --address 127.0.0.1 pod/frontend 5555:5555 2>&1 >/dev/null &
 	kubectl port-forward --address 127.0.0.1 pod/backend 8080:8080 2>&1 >/dev/null &
 	kubectl port-forward --address 127.0.0.1 pod/auth 9099:9099 2>&1 >/dev/null &
@@ -284,11 +316,8 @@ test: go-test node-test
 
 # Clean up any dangling test containers
 clean-up-go-testcontainers:
-	docker rm -f webstatus-dev-test-valkey webstatus-dev-test-datastore webstatus-dev-test-spanner
-# TODO. We run the tests sequentially with `-p 1` because the testcontainers
-# do not play nicely together when running in parallel and take a long time to
-# reconcile state. Once the testcontainers library becomes stable (goes v1.0.0),
-# we should remove the `-p 1`.
+	docker ps -aq --filter "ancestor=gcr.io/cloud-spanner-emulator/emulator" | xargs -r docker rm -f || true
+
 go-test: clean-up-go-testcontainers go-workspace-setup
 	@declare -a GO_MODULES=(); \
 	readarray -t GO_MODULES <  <(go list -f {{.Dir}} -m); \
@@ -298,7 +327,7 @@ go-test: clean-up-go-testcontainers go-workspace-setup
 			echo "********* Testing module: $${GO_MODULE} *********" ; \
 			GO_COVERAGE_DIR="$${GO_MODULE}/coverage/unit" ; \
 			mkdir -p $${GO_COVERAGE_DIR} ; \
-			go test -race -p 1 -cover -covermode=atomic -coverprofile=$${GO_COVERAGE_DIR}/cover.out "$${GO_MODULE}/..." && \
+			go test -race -cover -covermode=atomic -coverprofile=$${GO_COVERAGE_DIR}/cover.out "$${GO_MODULE}/..." && \
 			echo "Generating coverage report for $${GO_MODULE}" && \
 			go tool cover --func=$${GO_COVERAGE_DIR}/cover.out && \
 			echo -e "\n\n" || exit 1; \
@@ -383,22 +412,35 @@ unstaged-changes:
 # Set this variable to any non-empty value (e.g., SKIP_FRESH_ENV=1) to skip the
 # fresh-env-for-playwright prerequisite. If unset, the fresh environment will be created.
 SKIP_FRESH_ENV ?=
+PLAYWRIGHT_PROJECT ?=
+PLAYWRIGHT_SHARD ?=
+PLAYWRIGHT_FLAGS ?= $(if $(PLAYWRIGHT_PROJECT),--project=$(PLAYWRIGHT_PROJECT),) $(if $(PLAYWRIGHT_SHARD),--shard=$(PLAYWRIGHT_SHARD),)
+PLAYWRIGHT_BROWSER ?= $(PLAYWRIGHT_PROJECT)
 
-fresh-env-for-playwright: $(if $(SKIP_FRESH_ENV),,playwright-install delete-local build deploy-local port-forward-manual dev_fake_users dev_fake_data)
+fresh-env-for-playwright: $(if $(SKIP_FRESH_ENV),,playwright-install pull-cached-services deploy-local port-forward-manual dev_fake_users dev_fake_data)
 
 playwright-install:
-	npx playwright install --with-deps
+	npx playwright install --with-deps $(PLAYWRIGHT_BROWSER)
 
 playwright-update-snapshots: fresh-env-for-playwright
 	npx playwright test --update-snapshots
 
 playwright-test: fresh-env-for-playwright
-	npx playwright test
+	npx playwright test $(PLAYWRIGHT_FLAGS)
 
-playwright-ui: fresh-env-for-playwright
+playwright-functional: fresh-env-for-playwright
+	npx playwright test e2e/functional $(PLAYWRIGHT_FLAGS)
+
+playwright-visual: fresh-env-for-playwright
+	npx playwright test e2e/visual $(PLAYWRIGHT_FLAGS)
+
+playwright-synthetic: fresh-env-for-playwright
+	npx playwright test e2e/synthetic $(PLAYWRIGHT_FLAGS)
+
+playwright-ui:
 	npx playwright test --ui --ui-port=8123
 
-playwright-debug: fresh-env-for-playwright
+playwright-debug:
 	npx playwright test --debug --ui-port=8123
 
 playwright-open-report:
@@ -521,11 +563,11 @@ chromium_histogram_enums_workflow:
 web_features_mapping_workflow:
 	./util/run_job.sh web-features-mapping-consumer images/go_service.Dockerfile workflows/steps/services/web_features_mapping_consumer \
 		workflows/steps/services/web_features_mapping_consumer/manifests/job.yaml web-features-mapping-consumer
-dev_fake_users: build
+dev_fake_users: gen
 	fuser -k 9099/tcp || true
 	kubectl port-forward --address 127.0.0.1 pod/auth 9099:9099 2>&1 >/dev/null &
 	go run util/cmd/load_test_users/main.go -project=local
-dev_fake_data: build is_local_migration_ready check-local-ports
+dev_fake_data: gen is_local_migration_ready check-local-ports
 	SPANNER_EMULATOR_HOST=localhost:9010 DATASTORE_EMULATOR_HOST=localhost:8086 FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 \
 		go run ./util/cmd/load_fake_data/main.go \
 			-spanner_project=local \
@@ -535,11 +577,18 @@ dev_fake_data: build is_local_migration_ready check-local-ports
 			$(LOAD_FAKE_DATA_FLAGS)
 is_local_migration_ready:
 	kubectl wait --for=condition=ready --timeout=300s pod/spanner
-	@MAX_RETRIES=5; SLEEP_INTERVAL=5 ; \
-    for (( i=0; i < $$MAX_RETRIES; i++ )); do \
-		[[ $$(kubectl exec pods/spanner -- wrench migrate version) -eq 1 ]] && break; \
-		echo "Migration not ready (attempt $$i). Retrying in $$SLEEP_INTERVAL seconds..."; sleep $$SLEEP_INTERVAL ; \
-    done
+	@MAX_RETRIES=10; SLEEP_INTERVAL=3; \
+	for (( i=0; i < $$MAX_RETRIES; i++ )); do \
+		VERSION=$$(kubectl exec pods/spanner -- wrench migrate version 2>/dev/null || echo 0); \
+		if [[ "$$VERSION" =~ ^[0-9]+$$ ]] && [ "$$VERSION" -gt 0 ]; then \
+			echo "Spanner migrations ready at version $$VERSION"; \
+			exit 0; \
+		fi; \
+		echo "Migration not ready (attempt $$i). Retrying in $$SLEEP_INTERVAL seconds..."; \
+		sleep $$SLEEP_INTERVAL; \
+	done; \
+	echo "Error: Spanner migrations failed to reach ready state"; \
+	exit 1
 
 
 ################################

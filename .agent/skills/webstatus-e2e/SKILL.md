@@ -9,8 +9,18 @@ This skill provides guidance for working with the End-to-End (E2E) test suite in
 
 ## Architecture & Location
 
-- **Directory**: The E2E tests are located in the `e2e/` directory.
-- **Framework**: **Playwright** with **TypeScript**.
+The E2E test suite is organized into three distinct suites based on scope and execution speed:
+
+- **Synthetic Smoke Probes (`e2e/synthetic/`)**:
+  - **Purpose**: Ultra-lightweight cluster canary probes (~15s execution) checking live frontend routing, search box interactivity, and backend health.
+  - **Execution**: `make playwright-synthetic`
+- **Visual Regression Tests (`e2e/visual/`)**:
+  - **Purpose**: Dual-theme dark/light rendering, layout shift, dialog states, and multi-page pagination testing against deterministic mock fixtures (`setupVisualFixtures`).
+  - **Execution**: `make playwright-visual` (update with `make playwright-update-snapshots`)
+- **Functional User Journeys (`e2e/functional/`)**:
+  - **Purpose**: Stateful end-to-end user workflows against live cluster emulators (Cloud Spanner, Datastore, Valkey, Wiremock).
+  - **Execution**: `make playwright-functional`
+
 - **Configuration**: `playwright.config.ts` handles browser definitions, retries, and worker limits.
 
 ## Architecture
@@ -28,12 +38,14 @@ For a detailed technical guide on the local development environment (Skaffold/Mi
 - **DO** use `waitForChartCompletion` and `waitForTabbedChartCompletion` hooks (from `utils.ts`) for Google Charts instead of naive `.waitForSelector` to avoid timeout races.
 - **DO** use `toBeAttached()` instead of `toBeVisible()` to cleanly bypass WebKit strict-mode 0px bounding box quirks for inline host elements or absolutely positioned fragments.
 - **DO** explicitly use `await` on asynchronous Playwright matchers like `toBeChecked()` to prevent tests from skipping past Lit hydration cycles synchronously.
+- **DO** validate downloaded files (e.g., CSV exports) **structurally** in functional tests by asserting headers, filename, and row counts (`rowCount > 1`), rather than using brittle byte-for-byte `toMatchSnapshot` assertions that break on database seed changes. Exact formatting snapshots belong in visual tests against static fixtures.
 
 ## Configuration & Stability
 
-- **Single Worker**: Tests currently operate on the same end-user accounts, which means they can interfere with each other if run concurrently. To ensure stability, `workers: 1` is strictly enforced in `playwright.config.ts`.
-- **Retries**: Playwright tests are configured to retry twice on failure only when running in a CI environment. If you want to simulate this locally and test flakiness, you can prefix your command with `CI=true` (e.g., `CI=true make playwright-test`).
-- **Browsers**: If you ever need to test against new browsers (e.g., mobile viewports, branded Edge/Chrome), modify the `projects` array within `playwright.config.ts`.
+- **Single Worker**: Tests operate on stateful emulator accounts. To ensure database isolation, `workers: 1` is enforced in `playwright.config.ts`.
+- **Matrix Sharding**: In CI, functional tests are sharded 3-way (`1/3`, `2/3`, `3/3`) to distribute execution evenly across parallel runners.
+- **Retries**: Playwright tests are configured to retry twice on failure only when running in CI (`CI=true`).
+- **Browsers**: Tested across Chromium, Firefox, and WebKit.
 
 ## Execution & Debugging
 
@@ -42,10 +54,13 @@ For a detailed technical guide on the local development environment (Skaffold/Mi
 ## Commands Summary
 
 - Use the `Makefile` in the project root:
-  - `make playwright-test`: Sets up a fresh local environment and runs the test suite.
-  - `SKIP_FRESH_ENV=1 make playwright-test`: Rapidly iterates on E2E tests by skipping the full Skaffold/Minikube setup (requires an already running environment).
-  - `make playwright-ui`: Runs the tests in Playwright's interactive UI mode.
-  - `make playwright-debug`: Runs the tests in debug mode.
+  - `make playwright-synthetic`: Runs only the fast canary smoke probes.
+  - `make playwright-visual`: Runs visual regression snapshots against the cluster.
+  - `make playwright-functional`: Runs stateful functional user workflows.
+  - `make playwright-test`: Runs all Playwright test suites.
+  - `SKIP_FRESH_ENV=1 make playwright-test`: Rapidly iterates on tests by skipping cluster provisioning (requires existing running environment).
+  - `make playwright-ui`: Runs tests in Playwright's interactive UI mode.
+  - `make playwright-debug`: Runs tests in debug mode with inspector.
   - `make playwright-update-snapshots`: Updates visual regression snapshots.
 
 ## Documentation Updates

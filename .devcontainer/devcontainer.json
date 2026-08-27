@@ -13,7 +13,9 @@
     "source=${localWorkspaceFolder}/.devcontainer/cache/go/go-build,target=/home/vscode/.cache/go-build,type=bind,consistency=consistent",
     "source=${localWorkspaceFolder}/.devcontainer/cache/go/pkg,target=/go/pkg,type=bind,consistency=consistent",
     // Mount npm cache
-    "source=${localWorkspaceFolder}/.devcontainer/cache/node/.npm,target=/home/vscode/.npm,type=bind,consistency=consistent"
+    "source=${localWorkspaceFolder}/.devcontainer/cache/node/.npm,target=/home/vscode/.npm,type=bind,consistency=consistent",
+    // Mount Playwright browser cache
+    "source=${localWorkspaceFolder}/.devcontainer/cache/playwright,target=/home/vscode/.cache/ms-playwright,type=bind,consistency=consistent"
   ],
   // Features to add to the dev container. More info: https://containers.dev/features.
   "features": {

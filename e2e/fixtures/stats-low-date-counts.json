@@ -1,0 +1,10 @@
+{
+  "metadata": {},
+  "data": [
+    {"timestamp": "2020-01-01T00:00:00Z", "count": 210},
+    {"timestamp": "2021-01-01T00:00:00Z", "count": 350},
+    {"timestamp": "2022-01-01T00:00:00Z", "count": 520},
+    {"timestamp": "2023-01-01T00:00:00Z", "count": 710},
+    {"timestamp": "2024-01-01T00:00:00Z", "count": 940}
+  ]
+}

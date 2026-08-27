@@ -16,8 +16,6 @@ apiVersion: skaffold/v4beta9
 kind: Config
 metadata:
   name: frontend-config
-requires:
-  - path: ../backend
 profiles:
   - name: local
     build:
@@ -30,6 +28,8 @@ profiles:
             buildArgs:
               service_dir: frontend
               build_env: local
+            cacheFrom:
+              - ghcr.io/googlechrome/webstatus.dev/frontend:cache
             target: static # Can switch to "placeholder" to show placeholder site locally.
       local:
         useBuildkit: true

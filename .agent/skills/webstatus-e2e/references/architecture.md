@@ -21,24 +21,24 @@ To facilitate local testing without cloud dependencies:
 
 ## 2. E2E Testing with Playwright
 
-E2E tests ensure that the entire system (Frontend -> Backend -> Database) functions correctly together.
+E2E tests are split into three decoupled suites in `e2e/`:
 
-- **Source**: [e2e/tests/](../../../e2e/tests/)
-- **Determinism**: Tests rely on a seeded state created via the `make dev_fake_data` and `make dev_fake_users` commands.
-- **Execution**: Run locally using `make playwright-test` or via the VS Code Playwright extension.
+- **Synthetic Smoke Probes (`e2e/synthetic/`)**: Fast health check (~15s) ensuring cluster connectivity and routing (`make playwright-synthetic`).
+- **Visual Regressions (`e2e/visual/`)**: Dual-theme UI and layout checks against static mock fixtures (`make playwright-visual`).
+- **Functional User Journeys (`e2e/functional/`)**: Deep stateful tests against live emulators, sharded 3-way in CI (`make playwright-functional`).
 
 ## 3. CI/PR Validation Lifecycle
 
-Every Pull Request undergoes rigorous automated validation before it is merged into `main`.
+Every Pull Request undergoes automated validation:
 
-1.  **Static Analysis**: `make precommit` runs Go and TS linters, unit tests, and license header checks.
-2.  **E2E Validation**: A full E2E suite is executed against the PR code using a containerized Skaffold environment.
-3.  **Approval**: Both `precommit` and `playwright-test` gates must pass (green checkmarks) for a PR to be eligible for merge.
+1. **Static Analysis (`build` job)**: `make precommit` runs Go/TS linters, unit tests, and license checks.
+2. **Parallel E2E Validation**: Matrix runners execute `synthetic`, `visual`, and 3-way sharded `functional` suites in parallel across Chromium, Firefox, and WebKit.
+3. **Report Merging**: `merge-reports` combines blob reports from all runners into a unified HTML dashboard.
 
 ## 4. Data Population Strategies
 
-| Command               | Tool                                                                    | Purpose                                                      |
-| :-------------------- | :---------------------------------------------------------------------- | :----------------------------------------------------------- |
-| `make dev_fake_users` | [`util/cmd/load_test_users`](../../../util/cmd/load_test_users/main.go) | Seeds predictable test accounts into the Auth emulator.      |
-| `make dev_fake_data`  | [`util/cmd/load_fake_data`](../../../util/cmd/load_fake_data/main.go)   | Seeds consistent entities (Features, Searches) into Spanner. |
-| `make dev_workflows`  | [`util/run_job.sh`](../../../util/run_job.sh)                           | Orchestrates a real ingestion run using live data sources.   |
+| Command               | Tool                                                                    | Purpose / Flags                                                                                                                                                                                                                                 |
+| :-------------------- | :---------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `make dev_fake_users` | [`util/cmd/load_test_users`](../../../util/cmd/load_test_users/main.go) | Seeds predictable test accounts into the Auth emulator.                                                                                                                                                                                         |
+| `make dev_fake_data`  | [`util/cmd/load_fake_data`](../../../util/cmd/load_fake_data/main.go)   | Seeds consistent entities into Spanner.<br>• `-num_features=N` (default `80`)<br>• `-releases_per_browser=N` (default `30`)<br>• `-runs_per_browser_channel=N` (default `35`)<br>• `-reset=true` (reset test user data)<br>• `-scope=all\|user` |
+| `make dev_workflows`  | [`util/run_job.sh`](../../../util/run_job.sh)                           | Orchestrates a real ingestion run using live data sources.                                                                                                                                                                                      |
