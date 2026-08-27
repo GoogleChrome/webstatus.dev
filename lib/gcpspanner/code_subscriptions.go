@@ -449,7 +449,8 @@ func (c *Client) ListCodeSubscriptionsByRepository(
 // ListCodeSubscriptionsByTargetQuery returns all active subscriptions matching targetQuery and trigger.
 func (c *Client) ListCodeSubscriptionsByTargetQuery(
 	ctx context.Context,
-	targetQuery, trigger string,
+	targetQuery string,
+	trigger SubscriptionTrigger,
 ) ([]CodeSubscription, error) {
 	spannerSubs, err := newAllByKeysEntityReader[
 		codeSubscriptionsByTargetQueryMapper, string, spannerCodeSubscription,

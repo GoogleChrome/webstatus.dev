@@ -185,6 +185,14 @@ type BackendSpannerClient interface {
 		pageSize int,
 		pageToken *string,
 	) ([]gcpspanner.SavedSearchNotificationEvent, *string, error)
+	ListCodeSubscriptionsByRepository(
+		ctx context.Context,
+		req gcpspanner.ListCodeSubscriptionsRequest,
+	) ([]gcpspanner.CodeSubscription, *string, error)
+	RecordVCSWebhookDelivery(
+		ctx context.Context,
+		delivery gcpspanner.VCSWebhookDelivery,
+	) (bool, error)
 }
 
 // Backend converts queries to spanner to usable entities for the backend
@@ -2210,4 +2218,169 @@ func (s *Backend) GetGlobalSavedSearch(
 		CreatedAt:    &savedSearch.CreatedAt,
 		UpdatedAt:    &savedSearch.UpdatedAt,
 	}, nil
+}
+
+var (
+	// ErrUnsupportedVCSProvider indicates the requested VCS provider is not supported.
+	ErrUnsupportedVCSProvider = errors.New("unsupported VCS provider")
+	// ErrUnknownSubscriptionStatus indicates an unexpected subscription status was found in the database.
+	ErrUnknownSubscriptionStatus = errors.New("unknown subscription status")
+	// ErrUnknownSubscriptionTrigger indicates an unexpected subscription trigger was found in the database.
+	ErrUnknownSubscriptionTrigger = errors.New("unknown subscription trigger")
+)
+
+func toSpannerVCSProvider(provider string) (gcpspanner.VCSProvider, error) {
+	switch provider {
+	case string(gcpspanner.VCSProviderGitHub):
+		return gcpspanner.VCSProviderGitHub, nil
+	default:
+		return "", fmt.Errorf("%w: %s", ErrUnsupportedVCSProvider, provider)
+	}
+}
+
+func toBackendCodeSubscriptionStatus(
+	status gcpspanner.SubscriptionStatus,
+) (backend.CodeSubscriptionResponseStatus, error) {
+	switch status {
+	case gcpspanner.SubscriptionActive:
+		return backend.ACTIVE, nil
+	case gcpspanner.SubscriptionTriggered:
+		return backend.TRIGGERED, nil
+	case gcpspanner.SubscriptionDelivered:
+		return backend.DELIVERED, nil
+	case gcpspanner.SubscriptionResolved:
+		return backend.RESOLVED, nil
+	case gcpspanner.SubscriptionObsolete:
+		return backend.OBSOLETE, nil
+	case gcpspanner.SubscriptionDeleted:
+		return backend.DELETED, nil
+	case gcpspanner.SubscriptionError:
+		return backend.ERROR, nil
+	default:
+		return "", fmt.Errorf("%w: %s", ErrUnknownSubscriptionStatus, status)
+	}
+}
+
+func toBackendSubscriptionTrigger(
+	trigger gcpspanner.SubscriptionTrigger,
+) (backend.SubscriptionTriggerWritable, error) {
+	switch trigger {
+	case gcpspanner.SubscriptionTriggerFeatureBaselinePromoteToWidely:
+		return backend.SubscriptionTriggerFeatureBaselineToWidely, nil
+	case gcpspanner.SubscriptionTriggerFeatureBaselinePromoteToNewly:
+		return backend.SubscriptionTriggerFeatureBaselineToNewly, nil
+	case gcpspanner.SubscriptionTriggerFeatureBaselineRegressionToLimited:
+		return backend.SubscriptionTriggerFeatureBaselineRegressionToLimited, nil
+	case gcpspanner.SubscriptionTriggerBrowserImplementationAnyComplete:
+		return backend.SubscriptionTriggerFeatureBrowserImplementationAnyComplete, nil
+	case gcpspanner.SubscriptionTriggerUnknown:
+		return "", fmt.Errorf("%w: %s", ErrUnknownSubscriptionTrigger, trigger)
+	default:
+		return "", fmt.Errorf("%w: %s", ErrUnknownSubscriptionTrigger, trigger)
+	}
+}
+
+func toBackendCodeSubscriptionsResponse(
+	subs []gcpspanner.CodeSubscription,
+) ([]backend.CodeSubscriptionResponse, error) {
+	results := make([]backend.CodeSubscriptionResponse, 0, len(subs))
+	for _, sub := range subs {
+		occurrences := make([]backend.SubscriptionOccurrence, 0, len(sub.Occurrences))
+		for _, occ := range sub.Occurrences {
+			occurrences = append(occurrences, backend.SubscriptionOccurrence{
+				CommentSnippet: occ.CommentSnippet,
+				FilePath:       occ.FilePath,
+				LineNumber:     occ.LineNumber,
+			})
+		}
+
+		triggers := make([]backend.SubscriptionTriggerWritable, 0, len(sub.Triggers))
+		for _, tr := range sub.Triggers {
+			bTrig, err := toBackendSubscriptionTrigger(tr)
+			if err != nil {
+				return nil, err
+			}
+			triggers = append(triggers, bTrig)
+		}
+
+		status, err := toBackendCodeSubscriptionStatus(sub.Status)
+		if err != nil {
+			return nil, err
+		}
+
+		instID := sub.VCSInstallationID
+
+		owner, name, _ := strings.Cut(sub.RepositoryFullName, "/")
+
+		results = append(results, backend.CodeSubscriptionResponse{
+			CreatedAt:          sub.CreatedAt,
+			FeatureId:          nil,
+			Id:                 sub.ID,
+			OccurrenceCount:    int64(len(occurrences)),
+			Occurrences:        occurrences,
+			RawDirective:       nil,
+			RepositoryFullName: sub.RepositoryFullName,
+			RepositoryName:     name,
+			RepositoryOwner:    owner,
+			Status:             status,
+			TargetQuery:        sub.TargetQuery,
+			Triggers:           triggers,
+			UpdatedAt:          sub.UpdatedAt,
+			VcsInstallationId:  &instID,
+			VcsProvider:        string(sub.VCSProvider),
+			VcsRepositoryId:    sub.VCSRepositoryID,
+		})
+	}
+
+	return results, nil
+}
+
+func (s *Backend) ListCodeSubscriptions(
+	ctx context.Context,
+	vcsProvider, repoID string,
+	pageSize int,
+	pageToken *string,
+) (*backend.CodeSubscriptionPage, error) {
+	provider, err := toSpannerVCSProvider(vcsProvider)
+	if err != nil {
+		return nil, errors.Join(err, backendtypes.ErrUnsupportedVCSProvider)
+	}
+
+	subs, token, err := s.client.ListCodeSubscriptionsByRepository(ctx, gcpspanner.ListCodeSubscriptionsRequest{
+		VCSProvider: provider,
+		RepoID:      repoID,
+		PageSize:    pageSize,
+		PageToken:   pageToken,
+	})
+	if err != nil {
+		if errors.Is(err, gcpspanner.ErrInvalidCursorFormat) {
+			return nil, errors.Join(err, backendtypes.ErrInvalidPageToken)
+		}
+
+		return nil, err
+	}
+
+	backendSubs, err := toBackendCodeSubscriptionsResponse(subs)
+	if err != nil {
+		return nil, err
+	}
+
+	var metadata *backend.PageMetadata
+	if token != nil {
+		metadata = &backend.PageMetadata{
+			NextPageToken: token,
+		}
+	}
+
+	return &backend.CodeSubscriptionPage{
+		Data:     &backendSubs,
+		Metadata: metadata,
+	}, nil
+}
+
+func (s *Backend) RecordVCSWebhookDelivery(
+	ctx context.Context,
+	delivery gcpspanner.VCSWebhookDelivery,
+) (bool, error) {
+	return s.client.RecordVCSWebhookDelivery(ctx, delivery)
 }

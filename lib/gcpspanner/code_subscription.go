@@ -60,7 +60,7 @@ type CodeSubscriptionInput struct {
 	VCSRepositoryID    string
 	RepositoryFullName string
 	TargetQuery        string
-	Triggers           []string
+	Triggers           []SubscriptionTrigger
 	Occurrences        []SubscriptionOccurrence
 }
 
@@ -72,7 +72,7 @@ type CodeSubscription struct {
 	VCSRepositoryID    string
 	RepositoryFullName string
 	TargetQuery        string
-	Triggers           []string
+	Triggers           []SubscriptionTrigger
 	Status             SubscriptionStatus
 	Occurrences        []SubscriptionOccurrence
 	CreatedAt          time.Time
@@ -81,17 +81,17 @@ type CodeSubscription struct {
 
 // spannerCodeSubscription is the internal struct for Spanner column mapping.
 type spannerCodeSubscription struct {
-	ID                 string           `spanner:"ID"`
-	VCSProvider        string           `spanner:"VCSProvider"`
-	VCSInstallationID  string           `spanner:"VCSInstallationID"`
-	VCSRepositoryID    string           `spanner:"VCSRepositoryID"`
-	RepositoryFullName string           `spanner:"RepositoryFullName"`
-	TargetQuery        string           `spanner:"TargetQuery"`
-	Triggers           []string         `spanner:"Triggers"`
-	Status             string           `spanner:"Status"`
-	Occurrences        spanner.NullJSON `spanner:"Occurrences"`
-	CreatedAt          time.Time        `spanner:"CreatedAt"`
-	UpdatedAt          time.Time        `spanner:"UpdatedAt"`
+	ID                 string                `spanner:"ID"`
+	VCSProvider        string                `spanner:"VCSProvider"`
+	VCSInstallationID  string                `spanner:"VCSInstallationID"`
+	VCSRepositoryID    string                `spanner:"VCSRepositoryID"`
+	RepositoryFullName string                `spanner:"RepositoryFullName"`
+	TargetQuery        string                `spanner:"TargetQuery"`
+	Triggers           []SubscriptionTrigger `spanner:"Triggers"`
+	Status             string                `spanner:"Status"`
+	Occurrences        spanner.NullJSON      `spanner:"Occurrences"`
+	CreatedAt          time.Time             `spanner:"CreatedAt"`
+	UpdatedAt          time.Time             `spanner:"UpdatedAt"`
 }
 
 type codeSubscriptionMapper struct{}

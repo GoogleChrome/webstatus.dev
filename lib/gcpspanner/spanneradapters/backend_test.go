@@ -237,6 +237,19 @@ type mockGetReferencingSavedSearchIDsConfig struct {
 	errs    map[string]error
 }
 
+type mockListCodeSubscriptionsByRepositoryConfig struct {
+	expectedRequest gcpspanner.ListCodeSubscriptionsRequest
+	result          []gcpspanner.CodeSubscription
+	nextPageToken   *string
+	returnedError   error
+}
+
+type mockRecordVCSWebhookDeliveryConfig struct {
+	expectedDelivery gcpspanner.VCSWebhookDelivery
+	result           bool
+	returnedError    error
+}
+
 type mockBackendSpannerClient struct {
 	t                                        *testing.T
 	aggregationData                          []gcpspanner.WPTRunAggregationMetricWithTime
@@ -271,6 +284,8 @@ type mockBackendSpannerClient struct {
 	mockGetSystemGlobalSavedSearchCfg        *mockGetSystemGlobalSavedSearchConfig
 	mockGetSavedSearchCfg                    *mockGetSavedSearchConfig
 	mockGetReferencingSavedSearchIDsCfg      *mockGetReferencingSavedSearchIDsConfig
+	mockListCodeSubscriptionsCfg             *mockListCodeSubscriptionsByRepositoryConfig
+	mockRecordVCSWebhookDeliveryCfg          *mockRecordVCSWebhookDeliveryConfig
 	pageToken                                *string
 	err                                      error
 
@@ -780,6 +795,52 @@ func (c mockBackendSpannerClient) UpdateSavedSearchSubscription(
 	}
 
 	return c.mockUpdateSavedSearchSubscriptionCfg.returnedError
+}
+
+func (c mockBackendSpannerClient) ListCodeSubscriptionsByRepository(
+	_ context.Context,
+	req gcpspanner.ListCodeSubscriptionsRequest,
+) ([]gcpspanner.CodeSubscription, *string, error) {
+	if c.mockListCodeSubscriptionsCfg != nil {
+		if req.VCSProvider != c.mockListCodeSubscriptionsCfg.expectedRequest.VCSProvider {
+			c.t.Errorf("provider mismatch: got %s, want %s",
+				req.VCSProvider, c.mockListCodeSubscriptionsCfg.expectedRequest.VCSProvider)
+		}
+		if req.RepoID != c.mockListCodeSubscriptionsCfg.expectedRequest.RepoID {
+			c.t.Errorf("repoID mismatch: got %s, want %s",
+				req.RepoID, c.mockListCodeSubscriptionsCfg.expectedRequest.RepoID)
+		}
+		if req.PageSize != c.mockListCodeSubscriptionsCfg.expectedRequest.PageSize {
+			c.t.Errorf("pageSize mismatch: got %d, want %d",
+				req.PageSize, c.mockListCodeSubscriptionsCfg.expectedRequest.PageSize)
+		}
+		if !reflect.DeepEqual(req.PageToken, c.mockListCodeSubscriptionsCfg.expectedRequest.PageToken) {
+			c.t.Errorf("pageToken mismatch: got %v, want %v",
+				req.PageToken, c.mockListCodeSubscriptionsCfg.expectedRequest.PageToken)
+		}
+
+		return c.mockListCodeSubscriptionsCfg.result,
+			c.mockListCodeSubscriptionsCfg.nextPageToken,
+			c.mockListCodeSubscriptionsCfg.returnedError
+	}
+
+	return nil, nil, nil
+}
+
+func (c mockBackendSpannerClient) RecordVCSWebhookDelivery(
+	_ context.Context,
+	delivery gcpspanner.VCSWebhookDelivery,
+) (bool, error) {
+	if c.mockRecordVCSWebhookDeliveryCfg != nil {
+		if delivery.DeliveryGUID != c.mockRecordVCSWebhookDeliveryCfg.expectedDelivery.DeliveryGUID {
+			c.t.Errorf("delivery GUID mismatch: got %s, want %s",
+				delivery.DeliveryGUID, c.mockRecordVCSWebhookDeliveryCfg.expectedDelivery.DeliveryGUID)
+		}
+
+		return c.mockRecordVCSWebhookDeliveryCfg.result, c.mockRecordVCSWebhookDeliveryCfg.returnedError
+	}
+
+	return true, nil
 }
 
 func TestCreateSavedSearchSubscriptionMapsLimitError(t *testing.T) {
@@ -5337,5 +5398,173 @@ func TestListSavedSearchNotificationEvents(t *testing.T) {
 	)
 	if err != nil {
 		t.Errorf("expected no error, got %v", err)
+	}
+}
+
+func TestBackend_ListCodeSubscriptions(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	now := time.Now().UTC()
+	subID := "sub-123"
+
+	mockSubs := []gcpspanner.CodeSubscription{
+		{
+			ID:                 subID,
+			VCSProvider:        gcpspanner.VCSProviderGitHub,
+			VCSInstallationID:  "inst-456",
+			VCSRepositoryID:    "repo-789",
+			RepositoryFullName: "GoogleChrome/webstatus.dev",
+			TargetQuery:        "id:subgrid",
+			Triggers:           []gcpspanner.SubscriptionTrigger{gcpspanner.SubscriptionTriggerFeatureBaselinePromoteToWidely},
+			Status:             gcpspanner.SubscriptionActive,
+			Occurrences: []gcpspanner.SubscriptionOccurrence{
+				{
+					FilePath:       "src/app.ts",
+					LineNumber:     10,
+					CommentSnippet: "// TODO(baseline/subgrid)",
+				},
+			},
+			CreatedAt: now,
+			UpdatedAt: now,
+		},
+	}
+
+	//nolint:exhaustruct
+	mockClient := &mockBackendSpannerClient{
+		t: t,
+		mockListCodeSubscriptionsCfg: &mockListCodeSubscriptionsByRepositoryConfig{
+			expectedRequest: gcpspanner.ListCodeSubscriptionsRequest{
+				VCSProvider: gcpspanner.VCSProviderGitHub,
+				RepoID:      "repo-789",
+				PageSize:    10,
+				PageToken:   nil,
+			},
+			result:        mockSubs,
+			nextPageToken: nil,
+			returnedError: nil,
+		},
+	}
+	backendObj := &Backend{client: mockClient}
+
+	resp, err := backendObj.ListCodeSubscriptions(ctx, "github", "repo-789", 10, nil)
+	if err != nil {
+		t.Fatalf("ListCodeSubscriptions failed: %v", err)
+	}
+
+	if resp.Data == nil || len(*resp.Data) != 1 {
+		t.Fatalf("expected 1 subscription response, got %+v", resp.Data)
+	}
+	subs := *resp.Data
+	if subs[0].Id != subID {
+		t.Errorf("expected ID %s, got %s", subID, subs[0].Id)
+	}
+	if subs[0].RepositoryOwner != "GoogleChrome" {
+		t.Errorf("expected RepositoryOwner GoogleChrome, got %s", subs[0].RepositoryOwner)
+	}
+	if subs[0].RepositoryName != "webstatus.dev" {
+		t.Errorf("expected RepositoryName webstatus.dev, got %s", subs[0].RepositoryName)
+	}
+	if subs[0].TargetQuery != "id:subgrid" {
+		t.Errorf("expected TargetQuery id:subgrid, got %s", subs[0].TargetQuery)
+	}
+	if subs[0].Status != backend.ACTIVE {
+		t.Errorf("expected status ACTIVE, got %v", subs[0].Status)
+	}
+
+	// Test invalid VCS provider validation
+	_, err = backendObj.ListCodeSubscriptions(ctx, "invalid-provider", "repo-789", 10, nil)
+	if !errors.Is(err, backendtypes.ErrUnsupportedVCSProvider) {
+		t.Errorf("expected ErrUnsupportedVCSProvider, got %v", err)
+	}
+}
+
+func TestBackend_CodeSubscriptionEnumConversions(t *testing.T) {
+	t.Parallel()
+
+	// 1. toSpannerVCSProvider
+	p, err := toSpannerVCSProvider("github")
+	if err != nil || p != gcpspanner.VCSProviderGitHub {
+		t.Errorf("expected VCSProviderGitHub, got %v, err: %v", p, err)
+	}
+	_, err = toSpannerVCSProvider("unsupported")
+	if !errors.Is(err, ErrUnsupportedVCSProvider) {
+		t.Errorf("expected ErrUnsupportedVCSProvider, got %v", err)
+	}
+
+	// 2. toBackendCodeSubscriptionStatus
+	s, err := toBackendCodeSubscriptionStatus(gcpspanner.SubscriptionActive)
+	if err != nil || s != backend.ACTIVE {
+		t.Errorf("expected ACTIVE, got %v, err: %v", s, err)
+	}
+	s, err = toBackendCodeSubscriptionStatus(gcpspanner.SubscriptionTriggered)
+	if err != nil || s != backend.TRIGGERED {
+		t.Errorf("expected TRIGGERED, got %v, err: %v", s, err)
+	}
+	s, err = toBackendCodeSubscriptionStatus(gcpspanner.SubscriptionDelivered)
+	if err != nil || s != backend.DELIVERED {
+		t.Errorf("expected DELIVERED, got %v, err: %v", s, err)
+	}
+	s, err = toBackendCodeSubscriptionStatus(gcpspanner.SubscriptionResolved)
+	if err != nil || s != backend.RESOLVED {
+		t.Errorf("expected RESOLVED, got %v, err: %v", s, err)
+	}
+	s, err = toBackendCodeSubscriptionStatus(gcpspanner.SubscriptionDeleted)
+	if err != nil || s != backend.DELETED {
+		t.Errorf("expected DELETED, got %v, err: %v", s, err)
+	}
+	s, err = toBackendCodeSubscriptionStatus(gcpspanner.SubscriptionError)
+	if err != nil || s != backend.ERROR {
+		t.Errorf("expected ERROR, got %v, err: %v", s, err)
+	}
+	_, err = toBackendCodeSubscriptionStatus("UNKNOWN_STATUS")
+	if !errors.Is(err, ErrUnknownSubscriptionStatus) {
+		t.Errorf("expected ErrUnknownSubscriptionStatus, got %v", err)
+	}
+
+	// 3. toBackendSubscriptionTrigger
+	tr, err := toBackendSubscriptionTrigger(gcpspanner.SubscriptionTriggerFeatureBaselinePromoteToWidely)
+	if err != nil || tr != backend.SubscriptionTriggerFeatureBaselineToWidely {
+		t.Errorf("expected SubscriptionTriggerFeatureBaselineToWidely, got %v, err: %v", tr, err)
+	}
+	tr, err = toBackendSubscriptionTrigger(gcpspanner.SubscriptionTriggerFeatureBaselinePromoteToNewly)
+	if err != nil || tr != backend.SubscriptionTriggerFeatureBaselineToNewly {
+		t.Errorf("expected SubscriptionTriggerFeatureBaselineToNewly, got %v, err: %v", tr, err)
+	}
+	_, err = toBackendSubscriptionTrigger("unknown_trigger")
+	if !errors.Is(err, ErrUnknownSubscriptionTrigger) {
+		t.Errorf("expected ErrUnknownSubscriptionTrigger, got %v", err)
+	}
+}
+
+func TestBackend_RecordVCSWebhookDelivery(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	delivery := gcpspanner.VCSWebhookDelivery{
+		VCSProvider:     gcpspanner.VCSProviderGitHub,
+		DeliveryGUID:    "guid-xyz-999",
+		EventType:       "push",
+		VCSRepositoryID: "repo-789",
+		ReceivedAt:      time.Now().UTC(),
+	}
+
+	//nolint:exhaustruct
+	mockClient := &mockBackendSpannerClient{
+		t: t,
+		mockRecordVCSWebhookDeliveryCfg: &mockRecordVCSWebhookDeliveryConfig{
+			expectedDelivery: delivery,
+			result:           true,
+			returnedError:    nil,
+		},
+	}
+	backendObj := &Backend{client: mockClient}
+
+	isNew, err := backendObj.RecordVCSWebhookDelivery(ctx, delivery)
+	if err != nil {
+		t.Fatalf("RecordVCSWebhookDelivery failed: %v", err)
+	}
+	if !isNew {
+		t.Errorf("expected isNew=true, got false")
 	}
 }
