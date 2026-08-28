@@ -71,22 +71,27 @@ func main() {
 	}
 
 	appID := os.Getenv("GITHUB_APP_ID")
+	if appID == "" {
+		slog.ErrorContext(ctx, "GITHUB_APP_ID is not set. exiting...")
+		os.Exit(1)
+	}
+
 	pkPath := os.Getenv("GITHUB_APP_PRIVATE_KEY_PATH")
+	if pkPath == "" {
+		slog.ErrorContext(ctx, "GITHUB_APP_PRIVATE_KEY_PATH is not set. exiting...")
+		os.Exit(1)
+	}
 
-	var tokenProvider *gh.TokenProvider
-	if appID != "" && pkPath != "" {
-		pkData, readErr := os.ReadFile(filepath.Clean(pkPath)) // #nosec G304 G703 -- Admin configured private key path
-		if readErr != nil {
-			slog.ErrorContext(ctx, "unable to read private key file", "path", pkPath, "error", readErr)
-			os.Exit(1)
-		}
+	pkData, readErr := os.ReadFile(filepath.Clean(pkPath)) // #nosec G304 G703 -- Admin configured private key path
+	if readErr != nil {
+		slog.ErrorContext(ctx, "unable to read private key file", "path", pkPath, "error", readErr)
+		os.Exit(1)
+	}
 
-		tp, tpErr := gh.NewTokenProvider(appID, pkData, nil)
-		if tpErr != nil {
-			slog.ErrorContext(ctx, "unable to create token provider", "error", tpErr)
-			os.Exit(1)
-		}
-		tokenProvider = tp
+	tokenProvider, tpErr := gh.NewTokenProvider(appID, pkData, nil)
+	if tpErr != nil {
+		slog.ErrorContext(ctx, "unable to create token provider", "error", tpErr)
+		os.Exit(1)
 	}
 
 	queueClient, err := gcppubsub.NewClient(ctx, projectID)

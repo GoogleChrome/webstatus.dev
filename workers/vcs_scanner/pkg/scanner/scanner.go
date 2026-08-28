@@ -36,7 +36,9 @@ import (
 )
 
 const (
-	MaxBlobSizeBytes        int64 = 1024 * 1024 // 1MB per file
+	MaxBlobSizeBytes        int64 = 1024 * 1024       // 1MB per file
+	MaxScanTotalBytes       int64 = 100 * 1024 * 1024 // 100MB aggregate scan limit
+	MaxScannedFiles         int64 = 10_000            // Maximum files to scan per tarball
 	MaxSubscriptionsPerRepo int   = 500
 	DeletedBranchSHA              = "0000000000000000000000000000000000000000"
 )
@@ -153,6 +155,7 @@ func (s *Scanner) scanTarballStream(
 	occurrencesByQuery := make(map[string][]gcpspanner.SubscriptionOccurrence)
 	triggersByQuery := make(map[string]map[gcpspanner.SubscriptionTrigger]struct{})
 	var filesScanned int64
+	var totalBytesScanned int64
 
 	for {
 		if ctxErr := ctx.Err(); ctxErr != nil {
@@ -180,11 +183,27 @@ func (s *Scanner) scanTarballStream(
 			continue
 		}
 
+		if filesScanned >= MaxScannedFiles {
+			slog.WarnContext(ctx, "reached maximum scanned files limit, terminating archive scan",
+				"max_files", MaxScannedFiles)
+
+			break
+		}
+
+		if totalBytesScanned+header.Size > MaxScanTotalBytes {
+			slog.WarnContext(ctx, "reached maximum scan bytes limit, terminating archive scan",
+				"total_bytes", totalBytesScanned, "max_bytes", MaxScanTotalBytes)
+
+			break
+		}
+
 		if header.Size > MaxBlobSizeBytes {
 			slog.WarnContext(ctx, "skipping large file in archive", "path", cleanPath, "size", header.Size)
 
 			continue
 		}
+
+		totalBytesScanned += header.Size
 
 		limitReader := io.LimitReader(tr, MaxBlobSizeBytes+1)
 		directives, parseErr := codescan.ParseReader(
@@ -282,7 +301,7 @@ func (s *Scanner) ProcessTask(ctx context.Context, task codescantaskv1.CodeScanT
 		t, err := s.tokenProvider.GetInstallationToken(ctx, task.VCSInstallationID)
 		if err != nil {
 			s.recordFailedScanLog(ctx, task, now, fmt.Sprintf("failed to get installation token: %v", err))
-			if gh.IsClientError(err) {
+			if gh.IsPermanentClientError(err) {
 				slog.WarnContext(ctx, "client error getting installation token, skipping retry",
 					"error", err, "installation_id", task.VCSInstallationID)
 
@@ -301,7 +320,7 @@ func (s *Scanner) ProcessTask(ctx context.Context, task codescantaskv1.CodeScanT
 	archiveStream, err := fetcher.DownloadTarball(ctx, owner, repo, task.CommitSHA)
 	if err != nil {
 		s.recordFailedScanLog(ctx, task, now, fmt.Sprintf("failed to download tarball: %v", err))
-		if gh.IsClientError(err) {
+		if gh.IsPermanentClientError(err) {
 			slog.WarnContext(ctx, "client error downloading tarball, skipping retry",
 				"error", err, "repo", task.RepositoryFullName)
 
