@@ -204,8 +204,9 @@ module "vcs_scanner" {
   spanner_instance_id = var.spanner_details.instance
   spanner_database_id = var.spanner_details.database
 
-  vcs_scan_tasks_subscription_id = var.pubsub_details.vcs_scan_tasks_subscription_id
-  github_app_id                  = var.github_app_id
+  vcs_scan_tasks_subscription_id   = var.pubsub_details.vcs_scan_tasks_subscription_id
+  github_app_id                    = var.github_app_id
+  github_app_private_key_secret_id = var.github_app_private_key_secret_id
 
   manual_instance_count = var.worker_instance_count.vcs_scanner_count
   regions               = var.regions
@@ -245,11 +246,13 @@ module "github_issue_delivery" {
 
   github_issue_delivery_subscription_id = var.pubsub_details.github_issue_delivery_subscription_id
   github_app_id                         = var.github_app_id
+  github_app_private_key_secret_id      = var.github_app_private_key_secret_id
 
   manual_instance_count = var.worker_instance_count.github_issue_delivery_count
   regions               = var.regions
 
   deletion_protection              = var.deletion_protection
+  frontend_base_url                = var.frontend_base_url
   otel_config_secret_id            = var.otel_config_secret_id
   otel_project_id                  = var.otel_project_id
   otel_collector_image             = var.otel_collector_image

@@ -113,6 +113,12 @@ auth_github_config_locations = {
   client_secret = "prod-github-client-secret"
 }
 
+github_app_config_locations = {
+  app_id          = "prod-github-app-id"
+  private_key_pem = "prod-github-app-private-key-pem"
+  webhook_secret  = "prod-github-app-webhook-secret"
+}
+
 backend_min_instance_count  = 1
 frontend_min_instance_count = 1
 notification_channel_ids    = ["projects/web-compass-prod/notificationChannels/4991947607216940054"]

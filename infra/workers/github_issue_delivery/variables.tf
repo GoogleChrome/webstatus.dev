@@ -22,9 +22,15 @@ variable "github_app_id" {
   type    = string
   default = ""
 }
+variable "github_app_private_key_secret_id" {
+  type        = string
+  description = "The Secret Manager secret ID containing the GitHub App RSA private key"
+  default     = ""
+}
 variable "manual_instance_count" { type = number }
 variable "regions" { type = set(string) }
 variable "deletion_protection" { type = bool }
+variable "frontend_base_url" { type = string }
 
 variable "otel_config_secret_id" {
   type        = string

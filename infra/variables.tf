@@ -213,6 +213,22 @@ variable "github_app_private_key_secret_id" {
   default     = ""
 }
 
+variable "github_app_webhook_secret_id" {
+  description = "The Secret Manager secret ID containing the GitHub App webhook secret"
+  type        = string
+  default     = ""
+}
+
+variable "github_app_config_locations" {
+  description = "Location of the GitHub App configuration in Secret Manager (app_id, private_key_pem, webhook_secret)"
+  type = object({
+    app_id          = optional(string, "")
+    private_key_pem = optional(string, "")
+    webhook_secret  = optional(string, "")
+  })
+  default = {}
+}
+
 variable "backend_min_instance_count" {
   type        = number
   description = "Minimum instance count for backend instances"

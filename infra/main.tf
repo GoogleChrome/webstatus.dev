@@ -14,11 +14,32 @@
 
 locals {
   firebase_api_key = sensitive(data.google_secret_manager_secret_version_access.firebase_api_key.secret_data)
+  github_app_id = (
+    length(data.google_secret_manager_secret_version_access.github_app_id) > 0 ?
+    trimspace(data.google_secret_manager_secret_version_access.github_app_id[0].secret_data) :
+    var.github_app_id
+  )
+  github_app_private_key_secret_id = (
+    try(var.github_app_config_locations.private_key_pem, "") != "" ?
+    var.github_app_config_locations.private_key_pem :
+    var.github_app_private_key_secret_id
+  )
+  github_app_webhook_secret_id = (
+    try(var.github_app_config_locations.webhook_secret, "") != "" ?
+    var.github_app_config_locations.webhook_secret :
+    var.github_app_webhook_secret_id
+  )
 }
 
 data "google_secret_manager_secret_version_access" "firebase_api_key" {
   provider = google.internal_project
   secret   = var.firebase_api_key_location
+}
+
+data "google_secret_manager_secret_version_access" "github_app_id" {
+  count    = try(var.github_app_config_locations.app_id, "") != "" ? 1 : 0
+  provider = google.internal_project
+  secret   = var.github_app_config_locations.app_id
 }
 
 module "auth" {
@@ -103,6 +124,10 @@ module "ingestion" {
   otel_collector_image                  = local.otel_collector_image
   otel_collector_config_mount_path      = local.otel_collector_config_mount_path
   otel_collector_endpoint               = local.otel_collector_endpoint
+  vcs_scan_tasks_topic_id               = module.pubsub.vcs_scan_tasks_topic_id
+  vcs_scan_tasks_topic_name             = module.pubsub.vcs_scan_tasks_topic_name
+  github_app_id                         = local.github_app_id
+  github_app_private_key_secret_id      = local.github_app_private_key_secret_id
 }
 
 module "backend" {
@@ -134,8 +159,9 @@ module "backend" {
   pubsub_project_id                = var.projects.internal
   ingestion_topic_id               = module.pubsub.ingestion_topic_id
   vcs_scan_tasks_topic_id          = module.pubsub.vcs_scan_tasks_topic_id
-  github_app_id                    = var.github_app_id
-  github_app_private_key_secret_id = var.github_app_private_key_secret_id
+  github_app_id                    = local.github_app_id
+  github_app_private_key_secret_id = local.github_app_private_key_secret_id
+  github_app_webhook_secret_id     = local.github_app_webhook_secret_id
   otel_config_secret_id            = google_secret_manager_secret.otel_config.id
   otel_collector_image             = local.otel_collector_image
   otel_collector_config_mount_path = local.otel_collector_config_mount_path
@@ -221,8 +247,9 @@ module "workers" {
     vcs_scanner_count           = var.worker_manual_instance_counts.vcs_scanner
     github_issue_delivery_count = var.worker_manual_instance_counts.github_issue_delivery
   }
-  frontend_base_url = var.frontend_base_url
-  github_app_id     = var.github_app_id
+  frontend_base_url                = var.frontend_base_url
+  github_app_id                    = local.github_app_id
+  github_app_private_key_secret_id = local.github_app_private_key_secret_id
 
   chime_details = var.chime_details
 

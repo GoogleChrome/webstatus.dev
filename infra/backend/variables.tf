@@ -143,3 +143,9 @@ variable "github_app_private_key_secret_id" {
   description = "The Secret Manager secret ID containing the GitHub App RSA private key"
   default     = ""
 }
+
+variable "github_app_webhook_secret_id" {
+  type        = string
+  description = "The Secret Manager secret ID containing the GitHub App webhook secret"
+  default     = ""
+}

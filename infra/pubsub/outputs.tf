@@ -56,12 +56,20 @@ output "vcs_scan_tasks_topic_id" {
   value = google_pubsub_topic.vcs_scan_tasks.id
 }
 
+output "vcs_scan_tasks_topic_name" {
+  value = google_pubsub_topic.vcs_scan_tasks.name
+}
+
 output "vcs_scan_tasks_subscription_id" {
   value = google_pubsub_subscription.vcs_scan_tasks_sub.id
 }
 
 output "github_issue_delivery_topic_id" {
   value = google_pubsub_topic.github_issue_delivery.id
+}
+
+output "github_issue_delivery_topic_name" {
+  value = google_pubsub_topic.github_issue_delivery.name
 }
 
 output "github_issue_delivery_subscription_id" {
