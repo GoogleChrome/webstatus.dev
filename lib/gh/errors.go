@@ -103,3 +103,17 @@ func IsServerError(err error) bool {
 
 	return false
 }
+
+// NewHTTPErrorResponseForTest constructs a *github.ErrorResponse with the given HTTP status code and message.
+// Primarily used for testing error handling and classification across consumers of lib/gh without requiring
+// them to directly import github.com/google/go-github.
+//
+//nolint:exhaustruct // Mock error response for tests only.
+func NewHTTPErrorResponseForTest(statusCode int, message string) error {
+	return &github.ErrorResponse{
+		Response: &http.Response{
+			StatusCode: statusCode,
+		},
+		Message: message,
+	}
+}

@@ -333,3 +333,33 @@ func TestRateLimitAndPermanentClientErrors(t *testing.T) {
 		})
 	}
 }
+
+func TestNewHTTPErrorResponseForTest(t *testing.T) {
+	t.Parallel()
+
+	err := NewHTTPErrorResponseForTest(http.StatusNotFound, "Not Found")
+	if err == nil {
+		t.Fatalf("expected non-nil error")
+	}
+
+	if !IsClientError(err) {
+		t.Errorf("expected IsClientError to return true for 404")
+	}
+	if !IsPermanentClientError(err) {
+		t.Errorf("expected IsPermanentClientError to return true for 404")
+	}
+	if IsServerError(err) {
+		t.Errorf("expected IsServerError to return false for 404")
+	}
+	if IsRateLimitError(err) {
+		t.Errorf("expected IsRateLimitError to return false for 404")
+	}
+
+	serverErr := NewHTTPErrorResponseForTest(http.StatusServiceUnavailable, "Service Unavailable")
+	if !IsServerError(serverErr) {
+		t.Errorf("expected IsServerError to return true for 503")
+	}
+	if IsClientError(serverErr) {
+		t.Errorf("expected IsClientError to return false for 503")
+	}
+}
