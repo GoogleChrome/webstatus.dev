@@ -411,13 +411,22 @@ export class WebstatusCodeSubscriptionsPage extends LitElement {
 
         <div class="admin-notice">
           <sl-icon name="info-circle"></sl-icon>
-          <span>Viewing and managing code subscriptions requires repository admin access.</span>
+          <span
+            >Viewing and managing code subscriptions requires repository admin
+            access.</span
+          >
         </div>
 
         ${this._dataTask.render({
           pending: () => html`
-            <sl-skeleton effect="sheen" style="height: 40px; margin-bottom: var(--sl-spacing-medium);"></sl-skeleton>
-            <sl-skeleton effect="sheen" style="height: 100px; margin-bottom: var(--sl-spacing-medium);"></sl-skeleton>
+            <sl-skeleton
+              effect="sheen"
+              style="height: 40px; margin-bottom: var(--sl-spacing-medium);"
+            ></sl-skeleton>
+            <sl-skeleton
+              effect="sheen"
+              style="height: 100px; margin-bottom: var(--sl-spacing-medium);"
+            ></sl-skeleton>
             <sl-skeleton effect="sheen" style="height: 200px;"></sl-skeleton>
           `,
           error: error =>
