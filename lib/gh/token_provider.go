@@ -27,6 +27,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/localcache"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/go-github/v79/github"
 	"golang.org/x/sync/singleflight"
@@ -37,7 +38,15 @@ const defaultGitHubAPIBaseURL = "https://api.github.com"
 var (
 	// ErrEmptyInstallationID is returned when an installation ID is empty.
 	ErrEmptyInstallationID = errors.New("installation id must not be empty")
+
+	// ErrNilTokenCacher is returned when a nil TokenCacher is provided.
+	ErrNilTokenCacher = errors.New("token cacher must not be nil")
 )
+
+// NewLocalTokenCacher returns an in-memory thread-safe TokenCacher backed by localcache.
+func NewLocalTokenCacher() *localcache.LocalDataCache[string, []byte] {
+	return localcache.NewLocalDataCache[string, []byte](nil)
+}
 
 // InstallationTokenProvider retrieves a valid installation access token for a GitHub App installation.
 type InstallationTokenProvider interface {
@@ -70,6 +79,9 @@ type TokenProvider struct {
 func NewTokenProvider(appID string, privateKeyPEM []byte, cacher TokenCacher) (*TokenProvider, error) {
 	if appID == "" {
 		return nil, ErrEmptyAppID
+	}
+	if cacher == nil {
+		return nil, ErrNilTokenCacher
 	}
 
 	key, err := jwt.ParseRSAPrivateKeyFromPEM(privateKeyPEM)
@@ -250,17 +262,13 @@ func (tp *TokenProvider) GetInstallationTokenForRepo(ctx context.Context, owner,
 	}
 
 	cacheKey := "gh:repo_inst:" + owner + "/" + repo
-	if tp.cacher != nil {
-		if cachedBytes, err := tp.cacher.Get(ctx, cacheKey); err == nil && len(cachedBytes) > 0 {
-			return tp.GetInstallationToken(ctx, string(cachedBytes))
-		}
+	if cachedBytes, err := tp.cacher.Get(ctx, cacheKey); err == nil && len(cachedBytes) > 0 {
+		return tp.GetInstallationToken(ctx, string(cachedBytes))
 	}
 
 	res, err, _ := tp.flight.Do("repo:"+owner+"/"+repo, func() (any, error) {
-		if tp.cacher != nil {
-			if cachedBytes, err := tp.cacher.Get(ctx, cacheKey); err == nil && len(cachedBytes) > 0 {
-				return string(cachedBytes), nil
-			}
+		if cachedBytes, err := tp.cacher.Get(ctx, cacheKey); err == nil && len(cachedBytes) > 0 {
+			return string(cachedBytes), nil
 		}
 
 		instIDStr, err := tp.findRepositoryInstallation(ctx, owner, repo)
@@ -268,11 +276,9 @@ func (tp *TokenProvider) GetInstallationTokenForRepo(ctx context.Context, owner,
 			return "", err
 		}
 
-		if tp.cacher != nil {
-			if cacheErr := tp.cacher.Cache(ctx, cacheKey, []byte(instIDStr)); cacheErr != nil {
-				slog.WarnContext(ctx, "failed to cache repository installation id",
-					"error", cacheErr, "owner", owner, "repo", repo)
-			}
+		if cacheErr := tp.cacher.Cache(ctx, cacheKey, []byte(instIDStr)); cacheErr != nil {
+			slog.WarnContext(ctx, "failed to cache repository installation id",
+				"error", cacheErr, "owner", owner, "repo", repo)
 		}
 
 		return instIDStr, nil

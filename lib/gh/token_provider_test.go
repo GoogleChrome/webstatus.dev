@@ -216,6 +216,25 @@ func TestNewTokenProvider_Validation(t *testing.T) {
 	if !errors.Is(err, ErrInvalidPrivateKey) {
 		t.Errorf("expected ErrInvalidPrivateKey, got: %v", err)
 	}
+
+	// 3. Nil TokenCacher
+	_, err = NewTokenProvider("app-99", privPEM, nil)
+	if !errors.Is(err, ErrNilTokenCacher) {
+		t.Errorf("expected ErrNilTokenCacher, got: %v", err)
+	}
+
+	// 4. Valid with NewLocalTokenCacher
+	localCacher := NewLocalTokenCacher()
+	if localCacher == nil {
+		t.Fatal("expected non-nil local cacher")
+	}
+	tp, err := NewTokenProvider("app-99", privPEM, localCacher)
+	if err != nil {
+		t.Fatalf("expected successful creation with local cacher, got: %v", err)
+	}
+	if tp == nil {
+		t.Fatal("expected non-nil TokenProvider")
+	}
 }
 
 func TestTokenProvider_CacheExpiration(t *testing.T) {

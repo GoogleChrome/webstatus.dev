@@ -260,7 +260,8 @@ func initTokenProvider(ctx context.Context) *gh.TokenProvider {
 		os.Exit(1)
 	}
 
-	tp, tpErr := gh.NewTokenProvider(appID, pkData, nil)
+	cacher := gh.NewLocalTokenCacher()
+	tp, tpErr := gh.NewTokenProvider(appID, pkData, cacher)
 	if tpErr != nil {
 		slog.ErrorContext(ctx, "unable to create token provider", "error", tpErr)
 		os.Exit(1)
