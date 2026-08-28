@@ -174,7 +174,11 @@ func (c *Client) DownloadTarball(
 	if httpResp.StatusCode != http.StatusOK {
 		_ = httpResp.Body.Close()
 
-		return nil, fmt.Errorf("failed to download tarball: unexpected HTTP status %d", httpResp.StatusCode)
+		//nolint:exhaustruct // Only StatusCode and Message required for error classification
+		return nil, fmt.Errorf("failed to download tarball: %w", &github.ErrorResponse{
+			Response: httpResp,
+			Message:  fmt.Sprintf("unexpected HTTP status %d", httpResp.StatusCode),
+		})
 	}
 
 	return httpResp.Body, nil

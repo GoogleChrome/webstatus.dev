@@ -17,9 +17,58 @@ package gh
 import (
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/google/go-github/v79/github"
 )
+
+// IsRateLimitError reports whether err represents a GitHub rate limit error,
+// including primary rate limits (429), secondary/abuse rate limits (403),
+// and ErrSecondaryRateLimit.
+func IsRateLimitError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	if errors.Is(err, ErrSecondaryRateLimit) {
+		return true
+	}
+
+	var rateLimitErr *github.RateLimitError
+	if errors.As(err, &rateLimitErr) {
+		return true
+	}
+
+	var abuseErr *github.AbuseRateLimitError
+	if errors.As(err, &abuseErr) {
+		return true
+	}
+
+	var ghErr *github.ErrorResponse
+	if errors.As(err, &ghErr) && ghErr.Response != nil {
+		if ghErr.Response.StatusCode == http.StatusTooManyRequests {
+			return true
+		}
+
+		if ghErr.Response.StatusCode == http.StatusForbidden &&
+			strings.Contains(strings.ToLower(ghErr.Message), "rate limit") {
+			return true
+		}
+	}
+
+	return false
+}
+
+// IsPermanentClientError reports whether err represents an unretryable 4XX client error
+// (e.g. 400 Bad Request, 401 Unauthorized, 404 Not Found, 422 Unprocessable Entity),
+// explicitly excluding transient rate-limiting errors (429 / secondary rate limits).
+func IsPermanentClientError(err error) bool {
+	if IsRateLimitError(err) {
+		return false
+	}
+
+	return IsClientError(err)
+}
 
 // IsClientError reports whether err represents an HTTP 4XX client error returned by the GitHub API.
 // Common examples include 400 Bad Request, 401 Unauthorized, 403 Forbidden, and 404 Not Found.
