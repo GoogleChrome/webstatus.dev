@@ -195,7 +195,7 @@ type WPTMetricsStorer interface {
 	) (*backend.SubscriptionResponse, error)
 	ListCodeSubscriptions(
 		ctx context.Context,
-		vcsProvider, repoID string,
+		vcsProvider, repoFullName string,
 		pageSize int,
 		pageToken *string,
 	) (*backend.CodeSubscriptionPage, error)

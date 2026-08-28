@@ -65,10 +65,10 @@ func (m codeSubscriptionAllByRepoMapper) SelectAllByKeys(key codeSubscriptionAll
 
 // ListCodeSubscriptionsRequest is a request to list code subscriptions for a repository with pagination.
 type ListCodeSubscriptionsRequest struct {
-	VCSProvider VCSProvider
-	RepoID      string
-	PageSize    int
-	PageToken   *string
+	VCSProvider        VCSProvider
+	RepositoryFullName string
+	PageSize           int
+	PageToken          *string
 }
 
 func (r ListCodeSubscriptionsRequest) GetPageSize() int {
@@ -96,9 +96,9 @@ func (m listCodeSubscriptionsMapper) EncodePageToken(item spannerCodeSubscriptio
 func (m listCodeSubscriptionsMapper) SelectList(req ListCodeSubscriptionsRequest) spanner.Statement {
 	var pageFilter string
 	params := map[string]any{
-		"vcsProvider": string(req.VCSProvider),
-		"repoID":      req.RepoID,
-		"pageSize":    req.PageSize,
+		"vcsProvider":        string(req.VCSProvider),
+		"repositoryFullName": req.RepositoryFullName,
+		"pageSize":           req.PageSize,
 	}
 	if req.PageToken != nil {
 		cursor, err := decodeCursor[codeSubscriptionCursor](*req.PageToken)
@@ -112,7 +112,7 @@ func (m listCodeSubscriptionsMapper) SelectList(req ListCodeSubscriptionsRequest
 		ID, VCSProvider, VCSInstallationID, VCSRepositoryID, RepositoryFullName,
 		TargetQuery, Triggers, Status, Occurrences, CreatedAt, UpdatedAt
 	FROM CodeSubscriptions
-	WHERE VCSProvider = @vcsProvider AND VCSRepositoryID = @repoID AND Status = 'ACTIVE' %s
+	WHERE VCSProvider = @vcsProvider AND LOWER(RepositoryFullName) = LOWER(@repositoryFullName) AND Status = 'ACTIVE' %s
 	ORDER BY CreatedAt DESC, ID ASC
 	LIMIT @pageSize`, pageFilter)
 
