@@ -146,6 +146,11 @@ func (s *Server) handleGitHubWebhook(
 		ReceivedAt:      now,
 	}
 
+	// Dispatch the scan task to Pub/Sub BEFORE recording the delivery in Spanner.
+	// This ensures that if publishing encounters a transient error, the handler
+	// returns HTTP 500 without writing to Spanner, allowing GitHub to retry the
+	// webhook delivery without being prematurely ignored as a duplicate.
+	// Downstream scanner synchronization is fully idempotent.
 	if eventType == "push" && s.eventPublisher != nil {
 		if dispatchErr := s.dispatchGitHubPushScanTask(ctx, rawBody); dispatchErr != nil {
 			//nolint:nilerr // Return 500 response per OpenAPI spec

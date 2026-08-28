@@ -17,6 +17,9 @@ package httpserver
 import (
 	"bytes"
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"io"
 	"net/http"
@@ -26,6 +29,7 @@ import (
 
 	codescantaskv1 "github.com/GoogleChrome/webstatus.dev/lib/event/codescantask/v1"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
+	"github.com/GoogleChrome/webstatus.dev/lib/gh"
 	"github.com/GoogleChrome/webstatus.dev/lib/webhookverifiertypes"
 )
 
@@ -340,4 +344,91 @@ func TestHandleVCSWebhook(t *testing.T) {
 			executeWebhookTest(t, tc, verifier)
 		})
 	}
+}
+
+func computeGitHubHMACSHA256(secret, body []byte) string {
+	mac := hmac.New(sha256.New, secret)
+	mac.Write(body)
+
+	return "sha256=" + hex.EncodeToString(mac.Sum(nil))
+}
+
+func TestHandleVCSWebhook_WireBytesHMACIntegrity(t *testing.T) {
+	secret := []byte("super-secret-hmac-key-12345")
+	realVerifier := gh.NewWebhookVerifier(secret)
+
+	// Construct raw payload with non-canonical formatting, indentation, and trailing spaces
+	// that would be altered if parsed and re-marshaled via json.Marshal.
+	rawWirePayload := []byte("{\n" +
+		"\t\"ref\":   \"refs/heads/main\",\n" +
+		"\t\"after\": \"abc1234\",\n" +
+		"\t\"repository\": {\n" +
+		"\t\t\"id\": 12345,\n" +
+		"\t\t\"default_branch\": \"main\"\n" +
+		"\t}\n" +
+		"}\n")
+
+	validSig := computeGitHubHMACSHA256(secret, rawWirePayload)
+
+	storer := &mockWebhookStorer{
+		MockWPTMetricsStorer: newDefaultMockWPTMetricsStorer(t),
+		recordResult:         true,
+		recordErr:            nil,
+		callCount:            0,
+	}
+	publisher := &mockWebhookPublisher{
+		MockEventPublisher: MockEventPublisher{
+			callCountPublishSearchConfigurationChanged: 0,
+			publishSearchConfigurationChangedCfg:       nil,
+			t:                                          t,
+		},
+		publishedTask: nil,
+		publishErr:    nil,
+	}
+
+	server := setupTestServer(t,
+		withCustomStorer(storer),
+		withCustomEventPublisher(publisher),
+		withWebhookVerifier(realVerifier),
+	)
+
+	t.Run("Valid HMAC on Raw Wire Payload with Non-Canonical Whitespace Succeeds", func(t *testing.T) {
+		req := httptest.NewRequestWithContext(t.Context(),
+			http.MethodPost,
+			"/v1/webhooks/github",
+			bytes.NewReader(rawWirePayload),
+		)
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("X-GitHub-Delivery", "wire-test-delivery-guid-1")
+		req.Header.Set("X-GitHub-Event", "push")
+		req.Header.Set("X-Hub-Signature-256", validSig)
+
+		assertTestServerRequest(t, server, req, testEmptyResponse(http.StatusAccepted))
+
+		if publisher.publishedTask == nil {
+			t.Fatal("expected task to be published upon valid HMAC verification")
+		}
+	})
+
+	t.Run("Altered Wire Payload (Single Space Modified) Fails Cryptographic HMAC Verification", func(t *testing.T) {
+		// Re-marshaled or altered payload: change even a single whitespace byte
+		tamperedPayload := bytes.Replace(rawWirePayload, []byte("   "), []byte(" "), 1)
+
+		req := httptest.NewRequestWithContext(t.Context(),
+			http.MethodPost,
+			"/v1/webhooks/github",
+			bytes.NewReader(tamperedPayload),
+		)
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("X-GitHub-Delivery", "wire-test-delivery-guid-2")
+		req.Header.Set("X-GitHub-Event", "push")
+		req.Header.Set("X-Hub-Signature-256", validSig) // signature was for rawWirePayload
+
+		expectedResponse := testJSONResponse(http.StatusUnauthorized, `{
+			"code": 401,
+			"message": "invalid webhook signature"
+		}`)
+
+		assertTestServerRequest(t, server, req, expectedResponse)
+	})
 }
