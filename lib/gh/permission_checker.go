@@ -17,9 +17,11 @@ package gh
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 
 	"github.com/google/go-github/v79/github"
 )
@@ -46,8 +48,11 @@ type UserLookupService interface {
 // and the repository admin permission result to reduce GitHub API quota usage
 // and optimize response latency under high traffic.
 type GitHubPermissionChecker struct {
-	reposClient CollaboratorPermissionService
-	usersClient UserLookupService
+	reposClient   CollaboratorPermissionService
+	usersClient   UserLookupService
+	tokenProvider *TokenProvider
+	baseURL       *url.URL
+	httpClient    *http.Client
 }
 
 // NewGitHubPermissionChecker creates a new GitHubPermissionChecker with the provided services.
@@ -56,8 +61,11 @@ func NewGitHubPermissionChecker(
 	usersClient UserLookupService,
 ) *GitHubPermissionChecker {
 	return &GitHubPermissionChecker{
-		reposClient: reposClient,
-		usersClient: usersClient,
+		reposClient:   reposClient,
+		usersClient:   usersClient,
+		tokenProvider: nil,
+		baseURL:       nil,
+		httpClient:    nil,
 	}
 }
 
@@ -66,18 +74,42 @@ func NewGitHubPermissionCheckerWithBaseURL(baseURL *url.URL) *GitHubPermissionCh
 	return NewGitHubPermissionCheckerWithTokenProvider(nil, baseURL)
 }
 
+func normalizeBaseURL(u *url.URL) *url.URL {
+	if u == nil {
+		return nil
+	}
+	copyURL := *u
+	if !strings.HasSuffix(copyURL.Path, "/") {
+		copyURL.Path += "/"
+	}
+
+	return &copyURL
+}
+
 // NewGitHubPermissionCheckerWithTokenProvider creates a GitHubPermissionChecker with an optional
 // TokenProvider and custom base URL.
-func NewGitHubPermissionCheckerWithTokenProvider(_ *TokenProvider, baseURL *url.URL) *GitHubPermissionChecker {
-	ghClient := github.NewClient(nil)
-	if baseURL != nil {
-		ghClient.BaseURL = baseURL
-		ghClient.UploadURL = baseURL
+func NewGitHubPermissionCheckerWithTokenProvider(
+	tokenProvider *TokenProvider,
+	baseURL *url.URL,
+) *GitHubPermissionChecker {
+	var httpClient *http.Client
+	if tokenProvider != nil {
+		httpClient = tokenProvider.httpClient
+	}
+
+	normalizedBaseURL := normalizeBaseURL(baseURL)
+	ghClient := github.NewClient(httpClient)
+	if normalizedBaseURL != nil {
+		ghClient.BaseURL = normalizedBaseURL
+		ghClient.UploadURL = normalizedBaseURL
 	}
 
 	return &GitHubPermissionChecker{
-		reposClient: ghClient.Repositories,
-		usersClient: ghClient.Users,
+		reposClient:   ghClient.Repositories,
+		usersClient:   ghClient.Users,
+		tokenProvider: tokenProvider,
+		baseURL:       normalizedBaseURL,
+		httpClient:    httpClient,
 	}
 }
 
@@ -91,13 +123,36 @@ func (c *GitHubPermissionChecker) HasRepositoryAdminAccess(
 		return false, nil
 	}
 
-	if c.reposClient == nil {
+	reposClient := c.reposClient
+	usersClient := c.usersClient
+
+	if c.tokenProvider != nil {
+		token, err := c.tokenProvider.GetInstallationTokenForRepo(ctx, owner, repo)
+		if err != nil {
+			if errors.Is(err, ErrRepositoryInstallationNotFound) {
+				return false, nil
+			}
+
+			return false, fmt.Errorf("failed to get repository installation token: %w", err)
+		}
+
+		ghClient := github.NewClient(c.httpClient).WithAuthToken(token)
+		if c.baseURL != nil {
+			ghClient.BaseURL = c.baseURL
+			ghClient.UploadURL = c.baseURL
+		}
+
+		reposClient = ghClient.Repositories
+		usersClient = ghClient.Users
+	}
+
+	if reposClient == nil {
 		return false, ErrClientNotConfigured
 	}
 
 	login := githubUserID
-	if id, err := strconv.ParseInt(githubUserID, 10, 64); err == nil && c.usersClient != nil {
-		user, resp, userErr := c.usersClient.GetByID(ctx, id)
+	if id, err := strconv.ParseInt(githubUserID, 10, 64); err == nil && usersClient != nil {
+		user, resp, userErr := usersClient.GetByID(ctx, id)
 		if userErr != nil {
 			if resp != nil && resp.StatusCode == http.StatusNotFound {
 				return false, nil
@@ -111,7 +166,7 @@ func (c *GitHubPermissionChecker) HasRepositoryAdminAccess(
 		login = *user.Login
 	}
 
-	perm, resp, err := c.reposClient.GetPermissionLevel(ctx, owner, repo, login)
+	perm, resp, err := reposClient.GetPermissionLevel(ctx, owner, repo, login)
 	if err != nil {
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
 			return false, nil

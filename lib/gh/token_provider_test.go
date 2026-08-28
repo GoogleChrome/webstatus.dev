@@ -372,3 +372,83 @@ func TestTokenProvider_CacheFailureGracefulDegradation(t *testing.T) {
 		t.Errorf("expected token %s, got %s", mockInstToken4, token)
 	}
 }
+
+func TestTokenProvider_GetInstallationTokenForRepo(t *testing.T) {
+	t.Parallel()
+
+	_, privPEM := generateTestRSAPEM(t)
+
+	var installReqCount int64
+	var tokenReqCount int64
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		switch r.URL.Path {
+		case "/repos/valid-owner/valid-repo/installation":
+			atomic.AddInt64(&installReqCount, 1)
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"id": 456}`))
+		case "/repos/unknown-owner/unknown-repo/installation":
+			w.WriteHeader(http.StatusNotFound)
+			_, _ = w.Write([]byte(`{"message": "Not Found"}`))
+		case "/app/installations/456/access_tokens":
+			atomic.AddInt64(&tokenReqCount, 1)
+			w.WriteHeader(http.StatusCreated)
+			_ = json.NewEncoder(w).Encode(testTokenResp{
+				Token:     mockInstToken2,
+				ExpiresAt: time.Now().UTC().Add(1 * time.Hour),
+			})
+		default:
+			t.Errorf("unexpected request path: %s", r.URL.Path)
+			w.WriteHeader(http.StatusBadRequest)
+		}
+	}))
+	defer server.Close()
+
+	cacher := newMockTokenCacher()
+	tp, err := NewTokenProvider("app-99", privPEM, cacher)
+	if err != nil {
+		t.Fatalf("NewTokenProvider failed: %v", err)
+	}
+	tp.baseURL = server.URL
+	tp.httpClient = server.Client()
+
+	// 1. Success on valid repo
+	tok, err := tp.GetInstallationTokenForRepo(context.Background(), "valid-owner", "valid-repo")
+	if err != nil {
+		t.Fatalf("expected success, got %v", err)
+	}
+	if tok != mockInstToken2 {
+		t.Errorf("expected token %s, got %s", mockInstToken2, tok)
+	}
+
+	// 2. Cache hit (neither repo installation nor token should re-query)
+	tok2, err := tp.GetInstallationTokenForRepo(context.Background(), "valid-owner", "valid-repo")
+	if err != nil {
+		t.Fatalf("expected cached success, got %v", err)
+	}
+	if tok2 != mockInstToken2 {
+		t.Errorf("expected cached token %s, got %s", mockInstToken2, tok2)
+	}
+	if got := atomic.LoadInt64(&installReqCount); got != 1 {
+		t.Errorf("expected 1 install request, got %d", got)
+	}
+	if got := atomic.LoadInt64(&tokenReqCount); got != 1 {
+		t.Errorf("expected 1 token request, got %d", got)
+	}
+
+	// 3. Unknown repo returns ErrRepositoryInstallationNotFound
+	_, err = tp.GetInstallationTokenForRepo(context.Background(), "unknown-owner", "unknown-repo")
+	if !errors.Is(err, ErrRepositoryInstallationNotFound) {
+		t.Errorf("expected ErrRepositoryInstallationNotFound, got %v", err)
+	}
+
+	// 4. Empty arguments
+	if _, err := tp.GetInstallationTokenForRepo(context.Background(), "", "valid-repo"); err == nil {
+		t.Error("expected error for empty owner")
+	}
+	if _, err := tp.GetInstallationTokenForRepo(context.Background(), "valid-owner", ""); err == nil {
+		t.Error("expected error for empty repo")
+	}
+}

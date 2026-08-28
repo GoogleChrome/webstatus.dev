@@ -16,10 +16,13 @@ package gh
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"testing"
+	"time"
 
 	"github.com/google/go-github/v79/github"
 )
@@ -294,5 +297,90 @@ func TestNewGitHubPermissionCheckerWithTokenProvider(t *testing.T) {
 	}
 	if checker.usersClient == nil {
 		t.Error("expected non-nil usersClient")
+	}
+}
+
+func TestGitHubPermissionChecker_WithTokenProvider_Integration(t *testing.T) {
+	t.Parallel()
+
+	_, privPEM := generateTestRSAPEM(t)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		// Verify authorization header on all requests
+		authHeader := r.Header.Get("Authorization")
+		if authHeader == "" {
+			t.Errorf("missing Authorization header on path: %s", r.URL.Path)
+		}
+
+		switch r.URL.Path {
+		case "/repos/admin-org/admin-repo/installation":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"id": 789}`))
+		case "/repos/unknown-org/unknown-repo/installation":
+			w.WriteHeader(http.StatusNotFound)
+			_, _ = w.Write([]byte(`{"message": "Not Found"}`))
+		case "/app/installations/789/access_tokens":
+			w.WriteHeader(http.StatusCreated)
+			_ = json.NewEncoder(w).Encode(testTokenResp{
+				Token:     mockInstToken1,
+				ExpiresAt: time.Now().UTC().Add(1 * time.Hour),
+			})
+		case "/user/101":
+			// Numeric user ID lookup
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"login": "admin-user"}`))
+		case "/user/202":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"login": "viewer-user"}`))
+		case "/repos/admin-org/admin-repo/collaborators/admin-user/permission":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"permission": "admin"}`))
+		case "/repos/admin-org/admin-repo/collaborators/viewer-user/permission":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"permission": "read"}`))
+		default:
+			t.Errorf("unexpected test request: %s %s", r.Method, r.URL.Path)
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+
+	tp, err := NewTokenProvider("app-99", privPEM, newMockTokenCacher())
+	if err != nil {
+		t.Fatalf("NewTokenProvider failed: %v", err)
+	}
+	tp.baseURL = server.URL
+	tp.httpClient = server.Client()
+
+	serverURL, _ := url.Parse(server.URL)
+	checker := NewGitHubPermissionCheckerWithTokenProvider(tp, serverURL)
+
+	// 1. Admin user with numeric ID -> true
+	isAdmin, err := checker.HasRepositoryAdminAccess(context.Background(), "admin-org", "admin-repo", "101")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !isAdmin {
+		t.Errorf("expected admin=true, got false")
+	}
+
+	// 2. Viewer user with numeric ID -> false
+	isViewerAdmin, err := checker.HasRepositoryAdminAccess(context.Background(), "admin-org", "admin-repo", "202")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if isViewerAdmin {
+		t.Errorf("expected admin=false, got true")
+	}
+
+	// 3. Unknown repo (not installed) -> false, nil
+	isUnknownAdmin, err := checker.HasRepositoryAdminAccess(context.Background(), "unknown-org", "unknown-repo", "101")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if isUnknownAdmin {
+		t.Errorf("expected admin=false for uninstalled repo, got true")
 	}
 }
