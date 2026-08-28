@@ -1172,9 +1172,6 @@ type UserSavedSearchPermissions struct {
 // UserSavedSearchRole defines model for UserSavedSearchRole.
 type UserSavedSearchRole string
 
-// VCSWebhookPayload defines model for VCSWebhookPayload.
-type VCSWebhookPayload map[string]interface{}
-
 // VendorPosition A loosely defined object representing a single vendor's standards position. The schema is intentionally open-ended (`additionalProperties: true`) to accommodate the evolving structure of the upstream web-features-mappings data source.
 type VendorPosition map[string]interface{}
 
@@ -1475,9 +1472,6 @@ type CreateSubscriptionJSONRequestBody = Subscription
 
 // UpdateSubscriptionJSONRequestBody defines body for UpdateSubscription for application/json ContentType.
 type UpdateSubscriptionJSONRequestBody = UpdateSubscriptionRequest
-
-// HandleVCSWebhookJSONRequestBody defines body for HandleVCSWebhook for application/json ContentType.
-type HandleVCSWebhookJSONRequestBody = VCSWebhookPayload
 
 // AsWebhookConfig returns the union data inside the CreateNotificationChannelRequest_Config as a WebhookConfig
 func (t CreateNotificationChannelRequest_Config) AsWebhookConfig() (WebhookConfig, error) {

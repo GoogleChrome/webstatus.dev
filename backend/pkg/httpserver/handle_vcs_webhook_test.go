@@ -15,6 +15,7 @@
 package httpserver
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"io"
@@ -29,10 +30,11 @@ import (
 )
 
 type mockWebhookVerifier struct {
-	validSignature string
+	expectedPayload []byte
+	validSignature  string
 }
 
-func (m *mockWebhookVerifier) VerifySignature(_ []byte, signature string) error {
+func (m *mockWebhookVerifier) VerifySignature(payload []byte, signature string) error {
 	if m.validSignature == "" {
 		return webhookverifiertypes.ErrSecretNotConfigured
 	}
@@ -42,6 +44,9 @@ func (m *mockWebhookVerifier) VerifySignature(_ []byte, signature string) error 
 	if signature != m.validSignature {
 		return webhookverifiertypes.ErrInvalidSignature
 	}
+	if m.expectedPayload != nil && !bytes.Equal(payload, m.expectedPayload) {
+		return errors.New("signature verification received altered payload bytes")
+	}
 
 	return nil
 }
@@ -50,12 +55,15 @@ type mockWebhookStorer struct {
 	*MockWPTMetricsStorer
 	recordResult bool
 	recordErr    error
+	callCount    int
 }
 
 func (m *mockWebhookStorer) RecordVCSWebhookDelivery(
 	_ context.Context,
 	_ gcpspanner.VCSWebhookDelivery,
 ) (bool, error) {
+	m.callCount++
+
 	return m.recordResult, m.recordErr
 }
 
@@ -97,13 +105,14 @@ func testEmptyResponse(statusCode int) *http.Response {
 	}
 }
 
-func executeWebhookTest(t *testing.T, tc webhookTestCase, verifier WebhookVerifier) {
+func executeWebhookTest(t *testing.T, tc webhookTestCase, verifier *mockWebhookVerifier) {
 	t.Helper()
 
 	storer := &mockWebhookStorer{
 		MockWPTMetricsStorer: newDefaultMockWPTMetricsStorer(t),
 		recordResult:         tc.recordResult,
 		recordErr:            tc.recordErr,
+		callCount:            0,
 	}
 	publisher := &mockWebhookPublisher{
 		MockEventPublisher: MockEventPublisher{
@@ -115,10 +124,15 @@ func executeWebhookTest(t *testing.T, tc webhookTestCase, verifier WebhookVerifi
 		publishErr:    tc.publishErr,
 	}
 
+	testVerifier := &mockWebhookVerifier{
+		expectedPayload: []byte(tc.body),
+		validSignature:  verifier.validSignature,
+	}
+
 	server := setupTestServer(t,
 		withCustomStorer(storer),
 		withCustomEventPublisher(publisher),
-		withWebhookVerifier(verifier),
+		withWebhookVerifier(testVerifier),
 	)
 
 	req := httptest.NewRequestWithContext(t.Context(),
@@ -142,12 +156,19 @@ func executeWebhookTest(t *testing.T, tc webhookTestCase, verifier WebhookVerifi
 	if !tc.expectTask && publisher.publishedTask != nil {
 		t.Errorf("expected no task to be published, but got %+v", publisher.publishedTask)
 	}
+
+	if tc.publishErr != nil && storer.callCount != 0 {
+		t.Errorf("expected RecordVCSWebhookDelivery NOT to be called when publish fails, but got %d calls", storer.callCount)
+	}
 }
 
 func TestHandleVCSWebhook(t *testing.T) {
 	validSignature := "sha256=valid-signature-1234"
 	invalidSignature := "sha256=invalid-signature-0000"
-	verifier := &mockWebhookVerifier{validSignature: validSignature}
+	verifier := &mockWebhookVerifier{
+		expectedPayload: nil,
+		validSignature:  validSignature,
+	}
 
 	pushBody := `{
 		"ref": "refs/heads/main",
@@ -230,7 +251,7 @@ func TestHandleVCSWebhook(t *testing.T) {
 			expectTask: false,
 		},
 		{
-			name:             "Duplicate Webhook Delivery (Replay Ignored)",
+			name:             "Duplicate Webhook Delivery (Replay Accepted)",
 			provider:         "github",
 			body:             pushBody,
 			sigHeader:        &validSignature,
@@ -239,7 +260,7 @@ func TestHandleVCSWebhook(t *testing.T) {
 			recordResult:     false,
 			recordErr:        nil,
 			expectedResponse: testEmptyResponse(http.StatusAccepted),
-			expectTask:       false,
+			expectTask:       true,
 		},
 		{
 			name:             "Non-Push Ping Event (Accepted Without Scan Task)",
@@ -294,7 +315,7 @@ func TestHandleVCSWebhook(t *testing.T) {
 				"code": 500,
 				"message": "failed to record webhook delivery"
 			}`),
-			expectTask: false,
+			expectTask: true,
 		},
 		{
 			name:         "PubSub Publish Error (500)",

@@ -18,6 +18,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -27,6 +28,8 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 )
+
+const maxWebhookBodyBytes = 10 << 20 // 10MB payload ceiling
 
 // HandleVCSWebhook handles POST /v1/vcs/webhooks/{provider}.
 //
@@ -104,14 +107,18 @@ func (s *Server) handleGitHubWebhook(
 		}), nil
 	}
 
-	rawBody, err := json.Marshal(request.Body)
-	if err != nil {
-		slog.WarnContext(ctx, "failed to marshal webhook payload", "error", err)
+	var rawBody []byte
+	if request.Body != nil {
+		var err error
+		rawBody, err = io.ReadAll(io.LimitReader(request.Body, maxWebhookBodyBytes))
+		if err != nil {
+			slog.WarnContext(ctx, "failed to read webhook payload", "error", err)
 
-		return backend.HandleVCSWebhook400JSONResponse(backend.BasicErrorModel{ //nolint:nilerr // Return 400 for bad JSON
-			Code:    http.StatusBadRequest,
-			Message: "invalid webhook payload json",
-		}), nil
+			return backend.HandleVCSWebhook400JSONResponse(backend.BasicErrorModel{
+				Code:    http.StatusBadRequest,
+				Message: "failed to read webhook payload",
+			}), nil
+		}
 	}
 
 	if s.isInvalidSignature(ctx, rawBody, request.Params.XHubSignature256) {
@@ -139,6 +146,16 @@ func (s *Server) handleGitHubWebhook(
 		ReceivedAt:      now,
 	}
 
+	if eventType == "push" && s.eventPublisher != nil {
+		if dispatchErr := s.dispatchGitHubPushScanTask(ctx, rawBody); dispatchErr != nil {
+			//nolint:nilerr // Return 500 response per OpenAPI spec
+			return backend.HandleVCSWebhook500JSONResponse(backend.BasicErrorModel{
+				Code:    http.StatusInternalServerError,
+				Message: "failed to publish scan task",
+			}), nil
+		}
+	}
+
 	if s.wptMetricsStorer != nil {
 		isNew, recordErr := s.wptMetricsStorer.RecordVCSWebhookDelivery(ctx, delivery)
 		if recordErr != nil {
@@ -150,19 +167,7 @@ func (s *Server) handleGitHubWebhook(
 			}), nil
 		}
 		if !isNew {
-			slog.InfoContext(ctx, "duplicate webhook delivery ignored", "guid", deliveryGUID)
-
-			return backend.HandleVCSWebhook202Response{}, nil
-		}
-	}
-
-	if eventType == "push" && s.eventPublisher != nil {
-		if dispatchErr := s.dispatchGitHubPushScanTask(ctx, rawBody); dispatchErr != nil {
-			//nolint:nilerr // Return 500 response per OpenAPI spec
-			return backend.HandleVCSWebhook500JSONResponse(backend.BasicErrorModel{
-				Code:    http.StatusInternalServerError,
-				Message: "failed to publish scan task",
-			}), nil
+			slog.InfoContext(ctx, "duplicate webhook delivery recorded", "guid", deliveryGUID)
 		}
 	}
 
