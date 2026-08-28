@@ -126,7 +126,7 @@ func (p *VCSSyncProcessor) Process(ctx context.Context, _ JobArguments) error {
 		}
 
 		if err := p.syncInstallation(ctx, inst); err != nil {
-			if isClientError(err) {
+			if gh.IsClientError(err) {
 				slog.WarnContext(ctx, "client error syncing installation, skipping",
 					"provider", inst.VCSProvider,
 					"installation_id", inst.VCSInstallationID,
@@ -154,20 +154,6 @@ func (p *VCSSyncProcessor) Process(ctx context.Context, _ JobArguments) error {
 	slog.InfoContext(ctx, "completed scheduled VCS repository sync successfully")
 
 	return nil
-}
-
-func isClientError(err error) bool {
-	if err == nil {
-		return false
-	}
-	var ghErr *github.ErrorResponse
-	if errors.As(err, &ghErr) && ghErr.Response != nil {
-		code := ghErr.Response.StatusCode
-
-		return code >= 400 && code < 500
-	}
-
-	return false
 }
 
 func parseGitHubAppPermissionLevel(level *string) *gcpspanner.GitHubAppPermissionLevel {

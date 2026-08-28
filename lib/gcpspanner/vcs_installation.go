@@ -315,3 +315,80 @@ func (c *Client) UpsertVCSInstallation(ctx context.Context, in VCSInstallation) 
 		vcsInstallationMapper, string, VCSInstallation, spannerVCSInstallation, vcsInstallationKey,
 	](c).upsertAndGetID(ctx, in)
 }
+
+type vcsInstallationGetAllMapper struct{}
+
+func (m vcsInstallationGetAllMapper) SelectAll() spanner.Statement {
+	return spanner.NewStatement(`SELECT ID, VCSProvider, VCSInstallationID, AccountLogin, AccountType,
+			RepositorySelection, Permissions, CreatedAt, UpdatedAt
+		FROM VCSInstallations`)
+}
+
+// ListVCSInstallations returns all VCS installations stored in Spanner using the mapper pattern.
+func (c *Client) ListVCSInstallations(ctx context.Context) ([]VCSInstallation, error) {
+	spannerInsts, err := newAllEntityReader[vcsInstallationGetAllMapper, spannerVCSInstallation](c).readAll(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query installations: %w", err)
+	}
+
+	installations := make([]VCSInstallation, 0, len(spannerInsts))
+	for _, s := range spannerInsts {
+		inst, err := s.toVCSInstallation()
+		if err != nil {
+			return nil, err
+		}
+		installations = append(installations, *inst)
+	}
+
+	return installations, nil
+}
+
+type vcsInstallationByAccountKey struct {
+	Provider     string
+	AccountLogin string
+}
+
+type vcsInstallationByAccountMapper struct{}
+
+func (m vcsInstallationByAccountMapper) SelectAllByKeys(key vcsInstallationByAccountKey) spanner.Statement {
+	return spanner.Statement{
+		SQL: `SELECT ID, VCSProvider, VCSInstallationID, AccountLogin, AccountType,
+			RepositorySelection, Permissions, CreatedAt, UpdatedAt
+		FROM VCSInstallations
+		WHERE VCSProvider = @vcsProvider AND AccountLogin = @accountLogin`,
+		Params: map[string]any{
+			"vcsProvider":  key.Provider,
+			"accountLogin": key.AccountLogin,
+		},
+	}
+}
+
+// ListVCSInstallationsByAccount returns active installations for a specific provider and account login
+// using the mapper pattern.
+func (c *Client) ListVCSInstallationsByAccount(
+	ctx context.Context,
+	provider VCSProvider,
+	accountLogin string,
+) ([]VCSInstallation, error) {
+	key := vcsInstallationByAccountKey{
+		Provider:     string(provider),
+		AccountLogin: accountLogin,
+	}
+	spannerInsts, err := newAllByKeysEntityReader[
+		vcsInstallationByAccountMapper, vcsInstallationByAccountKey, spannerVCSInstallation,
+	](c).readAllByKeys(ctx, key)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query installations by account: %w", err)
+	}
+
+	installations := make([]VCSInstallation, 0, len(spannerInsts))
+	for _, s := range spannerInsts {
+		inst, err := s.toVCSInstallation()
+		if err != nil {
+			return nil, err
+		}
+		installations = append(installations, *inst)
+	}
+
+	return installations, nil
+}
