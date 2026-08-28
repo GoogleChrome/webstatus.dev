@@ -167,25 +167,35 @@ export class WebstatusCodeSubscriptionsPage extends LitElement {
   userContext?: UserContext | null;
 
   @state()
-  selectedRepo: string = 'GoogleChrome/webstatus.dev';
+  selectedRepo: string = '';
+
+  override connectedCallback(): void {
+    super.connectedCallback();
+    if (!this.selectedRepo) {
+      const params = new URLSearchParams(window.location.search);
+      const repoParam = params.get('repository') || params.get('repo');
+      if (repoParam) {
+        this.selectedRepo = repoParam;
+      }
+    }
+  }
 
   public _dataTask = new Task(this, {
     task: async ([user, repo]) => {
-      if (!user || !this.apiClient) {
+      if (!user || !this.apiClient || !repo) {
         return null;
       }
       const token = await user.getIdToken();
-      const activeRepo = repo || 'GoogleChrome/webstatus.dev';
 
       const subsResp = await this.apiClient.listCodeSubscriptions(
         'github',
-        activeRepo,
+        repo,
         token,
       );
       const subscriptions: CodeSubscription[] = subsResp.data ?? [];
 
       return {
-        repository: activeRepo,
+        repository: repo,
         subscriptions,
       };
     },
@@ -438,7 +448,10 @@ export class WebstatusCodeSubscriptionsPage extends LitElement {
             if (!data) {
               return html`
                 <div class="empty-state">
-                  <p>No repository selected.</p>
+                  <p>
+                    Enter a repository above (e.g. owner/repo) to view its code
+                    subscriptions.
+                  </p>
                 </div>
               `;
             }

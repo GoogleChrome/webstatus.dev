@@ -95,7 +95,17 @@ describe('webstatus-code-subscriptions-page', () => {
     expect(loginPrompt?.textContent).to.include('Sign in to view and manage');
   });
 
+  it('renders prompt when no repository is selected', async () => {
+    await element.updateComplete;
+
+    const emptyState = element.shadowRoot?.querySelector('.empty-state');
+    expect(emptyState).to.exist;
+    expect(emptyState?.textContent).to.include('Enter a repository above');
+  });
+
   it('renders subscriptions table and quota bar when data is loaded', async () => {
+    element.selectedRepo = 'GoogleChrome/webstatus.dev';
+    element._dataTask.run();
     await element._dataTask.taskComplete;
     await element.updateComplete;
 
@@ -108,6 +118,7 @@ describe('webstatus-code-subscriptions-page', () => {
   });
 
   it('renders empty subscriptions message when repo has no subscriptions', async () => {
+    element.selectedRepo = 'GoogleChrome/webstatus.dev';
     element.apiClient = {
       ...apiClient,
       listCodeSubscriptions: sandbox.stub().resolves({data: []}),
@@ -125,6 +136,7 @@ describe('webstatus-code-subscriptions-page', () => {
   });
 
   it('renders error alert when API fetch fails and retries on button click', async () => {
+    element.selectedRepo = 'GoogleChrome/webstatus.dev';
     element.apiClient = {
       ...apiClient,
       listCodeSubscriptions: sandbox.stub().rejects(new Error('Network error')),
