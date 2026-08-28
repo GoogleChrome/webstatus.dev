@@ -17,6 +17,7 @@ package delivery
 import (
 	"context"
 	"errors"
+	"net/http"
 	"testing"
 	"time"
 
@@ -28,18 +29,24 @@ import (
 )
 
 type mockIssueCreator struct {
-	createdTitle string
-	createdBody  string
-	issueID      int64
-	issueURL     string
-	createErr    error
+	hasDeadline      bool
+	receivedDeadline time.Time
+	createdTitle     string
+	createdBody      string
+	issueID          int64
+	issueURL         string
+	createErr        error
 }
 
 func (m *mockIssueCreator) CreateIssue(
-	_ context.Context,
+	ctx context.Context,
 	_, _ string,
 	req *github.IssueRequest,
 ) (*github.Issue, error) {
+	if deadline, ok := ctx.Deadline(); ok {
+		m.hasDeadline = true
+		m.receivedDeadline = deadline
+	}
 	if req.Title != nil {
 		m.createdTitle = *req.Title
 	}
@@ -142,11 +149,13 @@ func TestDelivererSuccess(t *testing.T) {
 	t.Parallel()
 
 	creator := &mockIssueCreator{
-		createdTitle: "",
-		createdBody:  "",
-		issueID:      101,
-		issueURL:     "https://github.com/GoogleChrome/webstatus.dev/issues/101",
-		createErr:    nil,
+		hasDeadline:      false,
+		receivedDeadline: time.Time{},
+		createdTitle:     "",
+		createdBody:      "",
+		issueID:          101,
+		issueURL:         "https://github.com/GoogleChrome/webstatus.dev/issues/101",
+		createErr:        nil,
 	}
 
 	storer := &mockDeliveryStorer{
@@ -179,11 +188,13 @@ func TestDelivererAlreadyDelivered(t *testing.T) {
 	t.Parallel()
 
 	creator := &mockIssueCreator{
-		createdTitle: "",
-		createdBody:  "",
-		issueID:      0,
-		issueURL:     "",
-		createErr:    nil,
+		hasDeadline:      false,
+		receivedDeadline: time.Time{},
+		createdTitle:     "",
+		createdBody:      "",
+		issueID:          0,
+		issueURL:         "",
+		createErr:        nil,
 	}
 
 	storer := &mockDeliveryStorer{
@@ -212,11 +223,13 @@ func TestDelivererSecondaryRateLimit(t *testing.T) {
 	t.Parallel()
 
 	creator := &mockIssueCreator{
-		createdTitle: "",
-		createdBody:  "",
-		issueID:      0,
-		issueURL:     "",
-		createErr:    gh.ErrSecondaryRateLimit,
+		hasDeadline:      false,
+		receivedDeadline: time.Time{},
+		createdTitle:     "",
+		createdBody:      "",
+		issueID:          0,
+		issueURL:         "",
+		createErr:        gh.ErrSecondaryRateLimit,
 	}
 
 	storer := &mockDeliveryStorer{
@@ -248,11 +261,13 @@ func TestDelivererCreateIssueError(t *testing.T) {
 	t.Parallel()
 
 	creator := &mockIssueCreator{
-		createdTitle: "",
-		createdBody:  "",
-		issueID:      0,
-		issueURL:     "",
-		createErr:    errors.New("github api 500"),
+		hasDeadline:      false,
+		receivedDeadline: time.Time{},
+		createdTitle:     "",
+		createdBody:      "",
+		issueID:          0,
+		issueURL:         "",
+		createErr:        errors.New("github api 500"),
 	}
 
 	storer := &mockDeliveryStorer{
@@ -280,11 +295,13 @@ func TestDelivererLockAlreadyHeld(t *testing.T) {
 	t.Parallel()
 
 	creator := &mockIssueCreator{
-		createdTitle: "",
-		createdBody:  "",
-		issueID:      0,
-		issueURL:     "",
-		createErr:    nil,
+		hasDeadline:      false,
+		receivedDeadline: time.Time{},
+		createdTitle:     "",
+		createdBody:      "",
+		issueID:          0,
+		issueURL:         "",
+		createErr:        nil,
 	}
 
 	storer := &mockDeliveryStorer{
@@ -313,11 +330,13 @@ func TestDelivererTokenProviderError(t *testing.T) {
 
 	tp := &mockTokenProvider{token: "", err: errors.New("auth expired")}
 	creator := &mockIssueCreator{
-		createdTitle: "",
-		createdBody:  "",
-		issueID:      0,
-		issueURL:     "",
-		createErr:    nil,
+		hasDeadline:      false,
+		receivedDeadline: time.Time{},
+		createdTitle:     "",
+		createdBody:      "",
+		issueID:          0,
+		issueURL:         "",
+		createErr:        nil,
 	}
 
 	storer := &mockDeliveryStorer{
@@ -341,5 +360,172 @@ func TestDelivererTokenProviderError(t *testing.T) {
 	}
 	if !storer.lockReleased {
 		t.Errorf("expected lock to be released on token failure")
+	}
+}
+
+func TestDelivererCreateIssueTimeoutEnforced(t *testing.T) {
+	t.Parallel()
+
+	creator := &mockIssueCreator{
+		hasDeadline:      false,
+		receivedDeadline: time.Time{},
+		createdTitle:     "",
+		createdBody:      "",
+		issueID:          12345,
+		issueURL:         "https://github.com/owner/repo/issues/1",
+		createErr:        nil,
+	}
+
+	storer := &mockDeliveryStorer{
+		lockAcquired:    true,
+		acquireErr:      nil,
+		recordedSuccess: false,
+		recordedIssueID: "",
+		recordedURL:     "",
+		recordErr:       nil,
+		lockReleased:    false,
+		releaseErr:      nil,
+	}
+
+	deliverer := NewDeliverer(nil, func(_ string) GitHubIssueCreator { return creator }, storer, "worker-1")
+	err := deliverer.ProcessJob(context.Background(), sampleJob())
+	if err != nil {
+		t.Fatalf("expected successful delivery, got error: %v", err)
+	}
+
+	if !creator.hasDeadline {
+		t.Fatalf("expected CreateIssue context to have a deadline enforced")
+	}
+
+	remaining := time.Until(creator.receivedDeadline)
+	if remaining > 25*time.Second || remaining < 10*time.Second {
+		t.Errorf("expected deadline ~25s from now (< 30s lock duration), got %v", remaining)
+	}
+}
+
+func TestDelivererCreateIssueDeadlineExceeded(t *testing.T) {
+	t.Parallel()
+
+	creator := &mockIssueCreator{
+		hasDeadline:      false,
+		receivedDeadline: time.Time{},
+		createdTitle:     "",
+		createdBody:      "",
+		issueID:          0,
+		issueURL:         "",
+		createErr:        context.DeadlineExceeded,
+	}
+
+	storer := &mockDeliveryStorer{
+		lockAcquired:    true,
+		acquireErr:      nil,
+		recordedSuccess: false,
+		recordedIssueID: "",
+		recordedURL:     "",
+		recordErr:       nil,
+		lockReleased:    false,
+		releaseErr:      nil,
+	}
+
+	deliverer := NewDeliverer(nil, func(_ string) GitHubIssueCreator { return creator }, storer, "worker-1")
+	err := deliverer.ProcessJob(context.Background(), sampleJob())
+	if err == nil {
+		t.Fatalf("expected error on deadline exceeded, got nil")
+	}
+	if !errors.Is(err, event.ErrTransientFailure) {
+		t.Errorf("expected ErrTransientFailure on timeout, got %v", err)
+	}
+	if !storer.lockReleased {
+		t.Errorf("expected lock to be released on timeout for retry")
+	}
+}
+
+//nolint:exhaustruct
+func TestDelivererCreateIssueServerError(t *testing.T) {
+	t.Parallel()
+
+	serverErr := &github.ErrorResponse{
+		Response: &http.Response{
+			StatusCode: http.StatusInternalServerError,
+		},
+		Message: "Internal Server Error",
+	}
+
+	creator := &mockIssueCreator{
+		hasDeadline:      false,
+		receivedDeadline: time.Time{},
+		createdTitle:     "",
+		createdBody:      "",
+		issueID:          0,
+		issueURL:         "",
+		createErr:        serverErr,
+	}
+
+	storer := &mockDeliveryStorer{
+		lockAcquired:    true,
+		acquireErr:      nil,
+		recordedSuccess: false,
+		recordedIssueID: "",
+		recordedURL:     "",
+		recordErr:       nil,
+		lockReleased:    false,
+		releaseErr:      nil,
+	}
+
+	deliverer := NewDeliverer(nil, func(_ string) GitHubIssueCreator { return creator }, storer, "worker-1")
+	err := deliverer.ProcessJob(context.Background(), sampleJob())
+	if err == nil {
+		t.Fatalf("expected error on 500 server error, got nil")
+	}
+	if !errors.Is(err, event.ErrTransientFailure) {
+		t.Errorf("expected ErrTransientFailure on 500 server error, got %v", err)
+	}
+	if !storer.lockReleased {
+		t.Errorf("expected lock to be released on 500 server error")
+	}
+}
+
+//nolint:exhaustruct
+func TestDelivererCreateIssueClientErrorNotRetried(t *testing.T) {
+	t.Parallel()
+
+	clientErr := &github.ErrorResponse{
+		Response: &http.Response{
+			StatusCode: http.StatusNotFound,
+		},
+		Message: "Not Found",
+	}
+
+	creator := &mockIssueCreator{
+		hasDeadline:      false,
+		receivedDeadline: time.Time{},
+		createdTitle:     "",
+		createdBody:      "",
+		issueID:          0,
+		issueURL:         "",
+		createErr:        clientErr,
+	}
+
+	storer := &mockDeliveryStorer{
+		lockAcquired:    true,
+		acquireErr:      nil,
+		recordedSuccess: false,
+		recordedIssueID: "",
+		recordedURL:     "",
+		recordErr:       nil,
+		lockReleased:    false,
+		releaseErr:      nil,
+	}
+
+	deliverer := NewDeliverer(nil, func(_ string) GitHubIssueCreator { return creator }, storer, "worker-1")
+	err := deliverer.ProcessJob(context.Background(), sampleJob())
+	if err == nil {
+		t.Fatalf("expected error on 404 client error, got nil")
+	}
+	if errors.Is(err, event.ErrTransientFailure) {
+		t.Errorf("expected non-transient error for 404 client error, but got ErrTransientFailure")
+	}
+	if storer.lockReleased {
+		t.Errorf("lock should not be released on permanent client failure")
 	}
 }
