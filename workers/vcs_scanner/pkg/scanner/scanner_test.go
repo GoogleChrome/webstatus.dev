@@ -27,7 +27,7 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/event"
 	codescantaskv1 "github.com/GoogleChrome/webstatus.dev/lib/event/codescantask/v1"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
-	"github.com/google/go-github/v79/github"
+	"github.com/GoogleChrome/webstatus.dev/lib/gh"
 )
 
 type mockTarballFetcher struct {
@@ -280,12 +280,7 @@ func TestProcessTaskTokenProviderError(t *testing.T) {
 func TestProcessTaskTarballDownloadClientErrorNotRetried(t *testing.T) {
 	t.Parallel()
 
-	clientErr := &github.ErrorResponse{
-		Response: &http.Response{
-			StatusCode: http.StatusNotFound,
-		},
-		Message: "Not Found",
-	}
+	clientErr := gh.NewHTTPErrorResponseForTest(http.StatusNotFound, "Not Found")
 	fetcher := &mockTarballFetcher{archiveData: nil, err: clientErr}
 	syncer := &mockSpannerSyncer{
 		syncedSubs: nil,
@@ -315,12 +310,7 @@ func TestProcessTaskTarballDownloadClientErrorNotRetried(t *testing.T) {
 func TestProcessTaskTarballDownloadServerErrorRetried(t *testing.T) {
 	t.Parallel()
 
-	serverErr := &github.ErrorResponse{
-		Response: &http.Response{
-			StatusCode: http.StatusServiceUnavailable,
-		},
-		Message: "Service Unavailable",
-	}
+	serverErr := gh.NewHTTPErrorResponseForTest(http.StatusServiceUnavailable, "Service Unavailable")
 	fetcher := &mockTarballFetcher{archiveData: nil, err: serverErr}
 	syncer := &mockSpannerSyncer{
 		syncedSubs: nil,
@@ -350,12 +340,7 @@ func TestProcessTaskTarballDownloadServerErrorRetried(t *testing.T) {
 func TestProcessTaskTokenProviderClientErrorNotRetried(t *testing.T) {
 	t.Parallel()
 
-	clientErr := &github.ErrorResponse{
-		Response: &http.Response{
-			StatusCode: http.StatusUnauthorized,
-		},
-		Message: "Bad credentials",
-	}
+	clientErr := gh.NewHTTPErrorResponseForTest(http.StatusUnauthorized, "Bad credentials")
 	tp := &mockTokenProvider{token: "", err: clientErr}
 	fetcher := &mockTarballFetcher{archiveData: nil, err: nil}
 	syncer := &mockSpannerSyncer{
