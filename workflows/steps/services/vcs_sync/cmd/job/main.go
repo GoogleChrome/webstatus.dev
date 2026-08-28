@@ -72,7 +72,8 @@ func main() {
 	}
 
 	publisher := gcppubsubadapters.NewVCSSyncPublisherAdapter(pubsubClient, scanTasksTopic)
-	tokenProvider, err := gh.NewTokenProvider(appID, privateKeyPEM, nil)
+	cacher := gh.NewLocalTokenCacher()
+	tokenProvider, err := gh.NewTokenProvider(appID, privateKeyPEM, cacher)
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to create token provider", "error", err)
 		os.Exit(1)
