@@ -79,9 +79,6 @@ type gitHubInstPayload struct {
 }
 
 func (s *Server) isInvalidSignature(ctx context.Context, rawBody []byte, sigHeader *string) bool {
-	if s.webhookVerifier == nil {
-		return false
-	}
 	var sig string
 	if sigHeader != nil {
 		sig = *sigHeader
