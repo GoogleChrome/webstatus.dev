@@ -189,7 +189,8 @@ export class WebstatusCodeSubscriptionsPage extends LitElement {
         subscriptions,
       };
     },
-    args: () => [this.userContext?.user, this.selectedRepo] as const,
+    args: () =>
+      [this.userContext?.user, this.selectedRepo, this.apiClient] as const,
   });
 
   private formatTrigger(trigger: SubscriptionTrigger | string): string {
