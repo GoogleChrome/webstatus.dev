@@ -281,8 +281,15 @@ func (s *Scanner) ProcessTask(ctx context.Context, task codescantaskv1.CodeScanT
 	if s.tokenProvider != nil && task.VCSInstallationID != "" {
 		t, err := s.tokenProvider.GetInstallationToken(ctx, task.VCSInstallationID)
 		if err != nil {
-			slog.ErrorContext(ctx, "failed to get installation token", "error", err, "installation_id", task.VCSInstallationID)
 			s.recordFailedScanLog(ctx, task, now, fmt.Sprintf("failed to get installation token: %v", err))
+			if gh.IsClientError(err) {
+				slog.WarnContext(ctx, "client error getting installation token, skipping retry",
+					"error", err, "installation_id", task.VCSInstallationID)
+
+				return fmt.Errorf("client error getting installation token: %w", err)
+			}
+
+			slog.ErrorContext(ctx, "failed to get installation token", "error", err, "installation_id", task.VCSInstallationID)
 
 			return fmt.Errorf("%w: failed to get installation token: %w", event.ErrTransientFailure, err)
 		}
@@ -293,8 +300,15 @@ func (s *Scanner) ProcessTask(ctx context.Context, task codescantaskv1.CodeScanT
 	fetcher := s.clientFactory(token)
 	archiveStream, err := fetcher.DownloadTarball(ctx, owner, repo, task.CommitSHA)
 	if err != nil {
-		slog.ErrorContext(ctx, "failed to download tarball", "error", err, "repo", task.RepositoryFullName)
 		s.recordFailedScanLog(ctx, task, now, fmt.Sprintf("failed to download tarball: %v", err))
+		if gh.IsClientError(err) {
+			slog.WarnContext(ctx, "client error downloading tarball, skipping retry",
+				"error", err, "repo", task.RepositoryFullName)
+
+			return fmt.Errorf("client error downloading tarball: %w", err)
+		}
+
+		slog.ErrorContext(ctx, "failed to download tarball", "error", err, "repo", task.RepositoryFullName)
 
 		return fmt.Errorf("%w: failed to download tarball: %w", event.ErrTransientFailure, err)
 	}

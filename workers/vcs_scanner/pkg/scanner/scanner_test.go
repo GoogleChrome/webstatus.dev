@@ -21,11 +21,13 @@ import (
 	"context"
 	"errors"
 	"io"
+	"net/http"
 	"testing"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/event"
 	codescantaskv1 "github.com/GoogleChrome/webstatus.dev/lib/event/codescantask/v1"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
+	"github.com/google/go-github/v79/github"
 )
 
 type mockTarballFetcher struct {
@@ -264,6 +266,112 @@ func TestProcessTaskTokenProviderError(t *testing.T) {
 	}
 	if !errors.Is(err, event.ErrTransientFailure) {
 		t.Errorf("expected ErrTransientFailure, got %v", err)
+	}
+
+	if len(syncer.scanLogs) != 1 {
+		t.Fatalf("expected 1 scan log recorded for failed scan, got %d", len(syncer.scanLogs))
+	}
+	if syncer.scanLogs[0].ScanStatus != gcpspanner.ScanStatusFailed {
+		t.Errorf("scan log status = %v, want FAILED", syncer.scanLogs[0].ScanStatus)
+	}
+}
+
+//nolint:exhaustruct
+func TestProcessTaskTarballDownloadClientErrorNotRetried(t *testing.T) {
+	t.Parallel()
+
+	clientErr := &github.ErrorResponse{
+		Response: &http.Response{
+			StatusCode: http.StatusNotFound,
+		},
+		Message: "Not Found",
+	}
+	fetcher := &mockTarballFetcher{archiveData: nil, err: clientErr}
+	syncer := &mockSpannerSyncer{
+		syncedSubs: nil,
+		syncErr:    nil,
+		scanLogs:   nil,
+		logErr:     nil,
+	}
+	s := NewScanner(nil, func(_ string) TarballFetcher { return fetcher }, syncer)
+
+	err := s.ProcessTask(context.Background(), sampleTask())
+	if err == nil {
+		t.Fatalf("expected tarball download error, got nil")
+	}
+	if errors.Is(err, event.ErrTransientFailure) {
+		t.Errorf("expected non-transient error for 404 client error, but got ErrTransientFailure")
+	}
+
+	if len(syncer.scanLogs) != 1 {
+		t.Fatalf("expected 1 scan log recorded for failed scan, got %d", len(syncer.scanLogs))
+	}
+	if syncer.scanLogs[0].ScanStatus != gcpspanner.ScanStatusFailed {
+		t.Errorf("scan log status = %v, want FAILED", syncer.scanLogs[0].ScanStatus)
+	}
+}
+
+//nolint:exhaustruct
+func TestProcessTaskTarballDownloadServerErrorRetried(t *testing.T) {
+	t.Parallel()
+
+	serverErr := &github.ErrorResponse{
+		Response: &http.Response{
+			StatusCode: http.StatusServiceUnavailable,
+		},
+		Message: "Service Unavailable",
+	}
+	fetcher := &mockTarballFetcher{archiveData: nil, err: serverErr}
+	syncer := &mockSpannerSyncer{
+		syncedSubs: nil,
+		syncErr:    nil,
+		scanLogs:   nil,
+		logErr:     nil,
+	}
+	s := NewScanner(nil, func(_ string) TarballFetcher { return fetcher }, syncer)
+
+	err := s.ProcessTask(context.Background(), sampleTask())
+	if err == nil {
+		t.Fatalf("expected tarball download error, got nil")
+	}
+	if !errors.Is(err, event.ErrTransientFailure) {
+		t.Errorf("expected ErrTransientFailure for 503 server error, got %v", err)
+	}
+
+	if len(syncer.scanLogs) != 1 {
+		t.Fatalf("expected 1 scan log recorded for failed scan, got %d", len(syncer.scanLogs))
+	}
+	if syncer.scanLogs[0].ScanStatus != gcpspanner.ScanStatusFailed {
+		t.Errorf("scan log status = %v, want FAILED", syncer.scanLogs[0].ScanStatus)
+	}
+}
+
+//nolint:exhaustruct
+func TestProcessTaskTokenProviderClientErrorNotRetried(t *testing.T) {
+	t.Parallel()
+
+	clientErr := &github.ErrorResponse{
+		Response: &http.Response{
+			StatusCode: http.StatusUnauthorized,
+		},
+		Message: "Bad credentials",
+	}
+	tp := &mockTokenProvider{token: "", err: clientErr}
+	fetcher := &mockTarballFetcher{archiveData: nil, err: nil}
+	syncer := &mockSpannerSyncer{
+		syncedSubs: nil,
+		syncErr:    nil,
+		scanLogs:   nil,
+		logErr:     nil,
+	}
+	s := NewScanner(tp, func(_ string) TarballFetcher { return fetcher }, syncer)
+
+	err := s.ProcessTask(context.Background(), sampleTask())
+	if err == nil {
+		t.Fatalf("expected token provider error, got nil")
+	}
+	if errors.Is(err, event.ErrTransientFailure) {
+		t.Errorf("expected non-transient error for 401 client error, but got ErrTransientFailure")
 	}
 
 	if len(syncer.scanLogs) != 1 {
