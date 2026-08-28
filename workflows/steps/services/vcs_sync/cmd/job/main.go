@@ -24,6 +24,7 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/gcppubsub/gcppubsubadapters"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gh"
+	"github.com/GoogleChrome/webstatus.dev/lib/localcache"
 	"github.com/GoogleChrome/webstatus.dev/lib/opentelemetry"
 	"github.com/GoogleChrome/webstatus.dev/workflows/steps/services/vcs_sync/pkg/workflow"
 )
@@ -72,7 +73,9 @@ func main() {
 	}
 
 	publisher := gcppubsubadapters.NewVCSSyncPublisherAdapter(pubsubClient, scanTasksTopic)
-	cacher := gh.NewLocalTokenCacher()
+	// TODO: Migrate to valkeycache.ValkeyDataCache for cross-instance token caching
+	// once Valkey connectivity is configured.
+	cacher := localcache.NewLocalDataCache[string, []byte](nil)
 	tokenProvider, err := gh.NewTokenProvider(appID, privateKeyPEM, cacher)
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to create token provider", "error", err)
