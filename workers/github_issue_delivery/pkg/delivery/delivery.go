@@ -138,19 +138,9 @@ func (d *Deliverer) ProcessJob(ctx context.Context, job githubissuedeliveryv1.Gi
 		WebStatusURL:       job.WebStatusURL,
 	})
 
-	// 3. Obtain auth token and initialize issue creator
-	var token string
-	if d.tokenProvider != nil && job.VCSInstallationID != "" {
-		t, tokErr := d.tokenProvider.GetInstallationToken(ctx, job.VCSInstallationID)
-		if tokErr != nil {
-			slog.ErrorContext(ctx, "failed to get installation token for delivery", "error", tokErr)
-			if relErr := d.storer.ReleaseDeliveryLock(ctx, job.DeliveryID, d.workerLockID); relErr != nil {
-				slog.ErrorContext(ctx, "failed to release lock after token error", "error", relErr)
-			}
-
-			return fmt.Errorf("%w: failed to get installation token: %w", event.ErrTransientFailure, tokErr)
-		}
-		token = t
+	token, tokErr := d.resolveToken(ctx, job)
+	if tokErr != nil {
+		return tokErr
 	}
 
 	creator := d.clientFactory(token)
@@ -199,8 +189,8 @@ func (d *Deliverer) handleCreateIssueError(
 	job githubissuedeliveryv1.GitHubIssueDeliveryEvent,
 	createErr error,
 ) error {
-	if errors.Is(createErr, gh.ErrSecondaryRateLimit) {
-		slog.WarnContext(ctx, "hit secondary rate limit, releasing lock for retry backoff",
+	if gh.IsRateLimitError(createErr) {
+		slog.WarnContext(ctx, "hit rate limit, releasing lock for retry backoff",
 			"repo", job.RepositoryFullName)
 		if relErr := d.storer.ReleaseDeliveryLock(ctx, job.DeliveryID, d.workerLockID); relErr != nil {
 			slog.ErrorContext(ctx, "failed to release lock after rate limit", "error", relErr)
@@ -209,22 +199,46 @@ func (d *Deliverer) handleCreateIssueError(
 		return fmt.Errorf("%w: rate limited on issue creation: %w", event.ErrTransientFailure, createErr)
 	}
 
-	if errors.Is(createErr, context.DeadlineExceeded) || gh.IsServerError(createErr) {
-		slog.WarnContext(ctx, "transient error creating issue, releasing lock for retry",
-			"repo", job.RepositoryFullName, "error", createErr)
-		if relErr := d.storer.ReleaseDeliveryLock(ctx, job.DeliveryID, d.workerLockID); relErr != nil {
-			slog.ErrorContext(ctx, "failed to release lock after transient error", "error", relErr)
-		}
-
-		return fmt.Errorf("%w: transient error creating issue: %w", event.ErrTransientFailure, createErr)
-	}
-
-	if gh.IsClientError(createErr) {
+	if gh.IsPermanentClientError(createErr) {
 		slog.WarnContext(ctx, "client error creating issue, skipping retry",
 			"repo", job.RepositoryFullName, "error", createErr)
 
 		return fmt.Errorf("client error creating issue: %w", createErr)
 	}
 
-	return fmt.Errorf("failed to create issue: %w", createErr)
+	slog.WarnContext(ctx, "transient error creating issue, releasing lock for retry",
+		"repo", job.RepositoryFullName, "error", createErr)
+	if relErr := d.storer.ReleaseDeliveryLock(ctx, job.DeliveryID, d.workerLockID); relErr != nil {
+		slog.ErrorContext(ctx, "failed to release lock after transient error", "error", relErr)
+	}
+
+	return fmt.Errorf("%w: transient error creating issue: %w", event.ErrTransientFailure, createErr)
+}
+
+func (d *Deliverer) resolveToken(
+	ctx context.Context,
+	job githubissuedeliveryv1.GitHubIssueDeliveryEvent,
+) (string, error) {
+	if d.tokenProvider == nil || job.VCSInstallationID == "" {
+		return "", nil
+	}
+
+	token, tokErr := d.tokenProvider.GetInstallationToken(ctx, job.VCSInstallationID)
+	if tokErr == nil {
+		return token, nil
+	}
+
+	slog.ErrorContext(ctx, "failed to get installation token for delivery", "error", tokErr)
+	if gh.IsPermanentClientError(tokErr) {
+		slog.WarnContext(ctx, "permanent client error getting installation token, skipping retry",
+			"error", tokErr, "installation_id", job.VCSInstallationID)
+
+		return "", fmt.Errorf("permanent client error getting installation token: %w", tokErr)
+	}
+
+	if relErr := d.storer.ReleaseDeliveryLock(ctx, job.DeliveryID, d.workerLockID); relErr != nil {
+		slog.ErrorContext(ctx, "failed to release lock after token error", "error", relErr)
+	}
+
+	return "", fmt.Errorf("%w: failed to get installation token: %w", event.ErrTransientFailure, tokErr)
 }
