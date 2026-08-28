@@ -41,23 +41,32 @@ const (
 	VCSProviderGitHub VCSProvider = "github"
 )
 
-// GitHubPermissionLevel represents a GitHub App permission level.
-type GitHubPermissionLevel string
+// GitHubAppPermissionLevel represents a GitHub App installation permission level.
+type GitHubAppPermissionLevel string
 
 const (
-	GitHubPermissionLevelRead  GitHubPermissionLevel = "read"
-	GitHubPermissionLevelWrite GitHubPermissionLevel = "write"
-	GitHubPermissionLevelAdmin GitHubPermissionLevel = "admin"
+	GitHubAppPermissionLevelRead  GitHubAppPermissionLevel = "read"
+	GitHubAppPermissionLevelWrite GitHubAppPermissionLevel = "write"
+)
+
+// Deprecated: use GitHubAppPermissionLevel instead.
+type GitHubPermissionLevel = GitHubAppPermissionLevel
+
+const (
+	// Deprecated: use GitHubAppPermissionLevelRead instead.
+	GitHubPermissionLevelRead GitHubAppPermissionLevel = GitHubAppPermissionLevelRead
+	// Deprecated: use GitHubAppPermissionLevelWrite instead.
+	GitHubPermissionLevelWrite GitHubAppPermissionLevel = GitHubAppPermissionLevelWrite
 )
 
 // GitHubPermissions represents GitHub App permission levels for an installation.
 type GitHubPermissions struct {
-	Issues       *GitHubPermissionLevel `json:"issues,omitempty"`
-	Contents     *GitHubPermissionLevel `json:"contents,omitempty"`
-	Metadata     *GitHubPermissionLevel `json:"metadata,omitempty"`
-	PullRequests *GitHubPermissionLevel `json:"pull_requests,omitempty"`
-	Workflows    *GitHubPermissionLevel `json:"workflows,omitempty"`
-	Actions      *GitHubPermissionLevel `json:"actions,omitempty"`
+	Issues       *GitHubAppPermissionLevel `json:"issues,omitempty"`
+	Contents     *GitHubAppPermissionLevel `json:"contents,omitempty"`
+	Metadata     *GitHubAppPermissionLevel `json:"metadata,omitempty"`
+	PullRequests *GitHubAppPermissionLevel `json:"pull_requests,omitempty"`
+	Workflows    *GitHubAppPermissionLevel `json:"workflows,omitempty"`
+	Actions      *GitHubAppPermissionLevel `json:"actions,omitempty"`
 }
 
 // VCSPermissions encapsulates provider-specific permissions.

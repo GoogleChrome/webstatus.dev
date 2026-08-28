@@ -17,6 +17,7 @@ package workflow
 import (
 	"context"
 	"errors"
+	"net/http"
 	"sync"
 	"testing"
 	"time"
@@ -260,6 +261,24 @@ func TestVCSSyncProcessor_Process(t *testing.T) {
 			expectCancellation: false,
 		},
 		{
+			name:          "404 client error from github is skipped and does not fail process",
+			installations: []gcpspanner.VCSInstallation{instGitHub},
+			listInstErr:   nil,
+			tokenErr:      nil,
+			listReposFunc: func(_ context.Context, _ string, _ *github.ListOptions) ([]*github.Repository, error) {
+				return nil, &github.ErrorResponse{
+					Response: &http.Response{
+						StatusCode: http.StatusNotFound,
+					},
+					Message: "Not Found",
+				}
+			},
+			publishErr:         nil,
+			expectedPublished:  0,
+			wantErr:            false,
+			expectCancellation: false,
+		},
+		{
 			name:               "cancelled context aborts processing",
 			installations:      []gcpspanner.VCSInstallation{instGitHub},
 			listInstErr:        nil,
@@ -314,6 +333,12 @@ func TestVCSSyncProcessor_Process(t *testing.T) {
 			if len(publisher.published) != tc.expectedPublished {
 				t.Errorf("published tasks count = %d, want %d", len(publisher.published), tc.expectedPublished)
 			}
+
+			if tc.name == "successful sync publishes scan tasks for all repositories" {
+				if len(publisher.published) > 0 && publisher.published[0].CommitSHA != "" {
+					t.Errorf("expected CommitSHA to be empty for scheduled sync, got %s", publisher.published[0].CommitSHA)
+				}
+			}
 		})
 	}
 }
@@ -328,6 +353,7 @@ func TestVCSSyncProcessor_ReconcileAppInstallations(t *testing.T) {
 	accID := int64(456)
 	repoSel := "all"
 	now := time.Now().UTC()
+	issuesPerm := "write"
 
 	ghInstallations := []*github.Installation{
 		{
@@ -337,6 +363,9 @@ func TestVCSSyncProcessor_ReconcileAppInstallations(t *testing.T) {
 				Type:      &accType,
 				ID:        &accID,
 				AvatarURL: new("https://avatars.github.com/u/456"),
+			},
+			Permissions: &github.InstallationPermissions{
+				Issues: &issuesPerm,
 			},
 			RepositorySelection: &repoSel,
 			CreatedAt:           &github.Timestamp{Time: now},
@@ -378,5 +407,56 @@ func TestVCSSyncProcessor_ReconcileAppInstallations(t *testing.T) {
 	}
 	if storer.upserted[0].AccountLogin != login {
 		t.Errorf("expected login '%s', got '%s'", login, storer.upserted[0].AccountLogin)
+	}
+	if storer.upserted[0].Permissions.GitHub == nil ||
+		storer.upserted[0].Permissions.GitHub.Issues == nil ||
+		*storer.upserted[0].Permissions.GitHub.Issues != gcpspanner.GitHubAppPermissionLevelWrite {
+		t.Errorf("expected issues write permission, got %+v", storer.upserted[0].Permissions.GitHub)
+	}
+}
+
+//nolint:exhaustruct
+func TestToGitHubPermissions(t *testing.T) {
+	t.Parallel()
+
+	if perms := toGitHubPermissions(nil); perms != nil {
+		t.Errorf("expected nil for nil permissions, got %+v", perms)
+	}
+
+	read := "read"
+	write := "write"
+	invalid := "unknown"
+
+	ghPerms := &github.InstallationPermissions{
+		Issues:       &write,
+		Contents:     &read,
+		Metadata:     &read,
+		PullRequests: &write,
+		Workflows:    &write,
+		Actions:      &invalid,
+	}
+
+	result := toGitHubPermissions(ghPerms)
+	if result == nil {
+		t.Fatalf("expected non-nil result")
+	}
+
+	if result.Issues == nil || *result.Issues != gcpspanner.GitHubAppPermissionLevelWrite {
+		t.Errorf("expected issues write, got %v", result.Issues)
+	}
+	if result.Contents == nil || *result.Contents != gcpspanner.GitHubAppPermissionLevelRead {
+		t.Errorf("expected contents read, got %v", result.Contents)
+	}
+	if result.Metadata == nil || *result.Metadata != gcpspanner.GitHubAppPermissionLevelRead {
+		t.Errorf("expected metadata read, got %v", result.Metadata)
+	}
+	if result.PullRequests == nil || *result.PullRequests != gcpspanner.GitHubAppPermissionLevelWrite {
+		t.Errorf("expected pull_requests write, got %v", result.PullRequests)
+	}
+	if result.Workflows == nil || *result.Workflows != gcpspanner.GitHubAppPermissionLevelWrite {
+		t.Errorf("expected workflows write, got %v", result.Workflows)
+	}
+	if result.Actions != nil {
+		t.Errorf("expected actions to be nil for unknown permission level, got %v", result.Actions)
 	}
 }

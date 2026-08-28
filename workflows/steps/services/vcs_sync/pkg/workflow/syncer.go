@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"log/slog"
 	"strconv"
+	"strings"
 
 	codescantaskv1 "github.com/GoogleChrome/webstatus.dev/lib/event/codescantask/v1"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
@@ -125,6 +126,17 @@ func (p *VCSSyncProcessor) Process(ctx context.Context, _ JobArguments) error {
 		}
 
 		if err := p.syncInstallation(ctx, inst); err != nil {
+			if isClientError(err) {
+				slog.WarnContext(ctx, "client error syncing installation, skipping",
+					"provider", inst.VCSProvider,
+					"installation_id", inst.VCSInstallationID,
+					"account", inst.AccountLogin,
+					"error", err,
+				)
+
+				continue
+			}
+
 			slog.ErrorContext(ctx, "failed to sync installation",
 				"provider", inst.VCSProvider,
 				"installation_id", inst.VCSInstallationID,
@@ -142,6 +154,53 @@ func (p *VCSSyncProcessor) Process(ctx context.Context, _ JobArguments) error {
 	slog.InfoContext(ctx, "completed scheduled VCS repository sync successfully")
 
 	return nil
+}
+
+func isClientError(err error) bool {
+	if err == nil {
+		return false
+	}
+	var ghErr *github.ErrorResponse
+	if errors.As(err, &ghErr) && ghErr.Response != nil {
+		code := ghErr.Response.StatusCode
+
+		return code >= 400 && code < 500
+	}
+
+	return false
+}
+
+func parseGitHubAppPermissionLevel(level *string) *gcpspanner.GitHubAppPermissionLevel {
+	if level == nil || *level == "" {
+		return nil
+	}
+
+	var perm gcpspanner.GitHubAppPermissionLevel
+	switch strings.ToLower(strings.TrimSpace(*level)) {
+	case "read":
+		perm = gcpspanner.GitHubAppPermissionLevelRead
+	case "write":
+		perm = gcpspanner.GitHubAppPermissionLevelWrite
+	default:
+		return nil
+	}
+
+	return &perm
+}
+
+func toGitHubPermissions(perms *github.InstallationPermissions) *gcpspanner.GitHubPermissions {
+	if perms == nil {
+		return nil
+	}
+
+	return &gcpspanner.GitHubPermissions{
+		Issues:       parseGitHubAppPermissionLevel(perms.Issues),
+		Contents:     parseGitHubAppPermissionLevel(perms.Contents),
+		Metadata:     parseGitHubAppPermissionLevel(perms.Metadata),
+		PullRequests: parseGitHubAppPermissionLevel(perms.PullRequests),
+		Workflows:    parseGitHubAppPermissionLevel(perms.Workflows),
+		Actions:      parseGitHubAppPermissionLevel(perms.Actions),
+	}
 }
 
 func (p *VCSSyncProcessor) reconcileGitHubAppInstallations(ctx context.Context) error {
@@ -187,9 +246,11 @@ func (p *VCSSyncProcessor) reconcileGitHubAppInstallations(ctx context.Context) 
 				AccountLogin:        accountLogin,
 				AccountType:         accountType,
 				RepositorySelection: inst.GetRepositorySelection(),
-				Permissions:         gcpspanner.VCSPermissions{GitHub: nil},
-				CreatedAt:           inst.GetCreatedAt().Time,
-				UpdatedAt:           inst.GetUpdatedAt().Time,
+				Permissions: gcpspanner.VCSPermissions{
+					GitHub: toGitHubPermissions(inst.GetPermissions()),
+				},
+				CreatedAt: inst.GetCreatedAt().Time,
+				UpdatedAt: inst.GetUpdatedAt().Time,
 			}
 
 			if _, err := p.installationStorer.UpsertVCSInstallation(ctx, spannerInst); err != nil {
@@ -259,11 +320,11 @@ func (p *VCSSyncProcessor) syncGitHubInstallation(ctx context.Context, inst gcps
 			}
 
 			task := codescantaskv1.CodeScanTaskEvent{
-				VCSProvider:        string(inst.VCSProvider),
+				VCSProvider:        codescantaskv1.VCSProviderGitHub,
 				VCSInstallationID:  inst.VCSInstallationID,
 				VCSRepositoryID:    strconv.FormatInt(repo.GetID(), 10),
 				RepositoryFullName: repo.GetFullName(),
-				CommitSHA:          branch,
+				CommitSHA:          "",
 				Branch:             branch,
 				IsDefaultBranch:    true,
 				ModifiedFiles:      nil,

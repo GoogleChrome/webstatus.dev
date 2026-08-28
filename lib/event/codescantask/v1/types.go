@@ -14,16 +14,23 @@
 
 package v1
 
+// VCSProvider represents the supported VCS provider types for code scan tasks.
+type VCSProvider string
+
+const (
+	VCSProviderGitHub VCSProvider = "github"
+)
+
 // CodeScanTaskEvent defines the Pub/Sub task payload for scanning a repository.
 type CodeScanTaskEvent struct {
-	VCSProvider        string   `json:"vcs_provider"`
-	VCSInstallationID  string   `json:"vcs_installation_id"`
-	VCSRepositoryID    string   `json:"vcs_repository_id"`
-	RepositoryFullName string   `json:"repository_full_name"`
-	CommitSHA          string   `json:"commit_sha"`
-	Branch             string   `json:"branch"`
-	IsDefaultBranch    bool     `json:"is_default_branch"`
-	ModifiedFiles      []string `json:"modified_files,omitempty"`
+	VCSProvider        VCSProvider `json:"vcs_provider"`
+	VCSInstallationID  string      `json:"vcs_installation_id"`
+	VCSRepositoryID    string      `json:"vcs_repository_id"`
+	RepositoryFullName string      `json:"repository_full_name"`
+	CommitSHA          string      `json:"commit_sha,omitempty"`
+	Branch             string      `json:"branch"`
+	IsDefaultBranch    bool        `json:"is_default_branch"`
+	ModifiedFiles      []string    `json:"modified_files,omitempty"`
 }
 
 func (CodeScanTaskEvent) Kind() string       { return "CodeScanTaskEvent" }
