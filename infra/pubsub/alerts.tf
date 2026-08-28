@@ -82,6 +82,6 @@ resource "google_monitoring_alert_policy" "queue_latency" {
   notification_channels = var.notification_channel_ids
 
   documentation {
-    content = "The oldest message in the queue is > 10 minutes old. Verify that the workers (EventProducer, PushDelivery, EmailWorker) are running and healthy."
+    content = "The oldest message in the queue is > 10 minutes old. Verify that the workers (EventProducer, PushDelivery, EmailWorker, VCS Scanner, GitHub Issue Delivery) are running and healthy."
   }
 }
