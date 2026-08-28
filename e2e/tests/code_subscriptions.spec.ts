@@ -26,7 +26,7 @@ import {
 import {dispatchMockPushWebhook} from './webhook-helper';
 import * as crypto from 'crypto';
 
-const codeSubscriptionsPageURL = `${BASE_URL}/settings/code-subscriptions`;
+const codeSubscriptionsPageURL = `${BASE_URL}/settings/code-subscriptions?repository=GoogleChrome/webstatus.dev`;
 
 test.describe.configure({mode: 'serial'});
 
@@ -42,6 +42,21 @@ test.describe('Code Subscriptions Unauthenticated', () => {
     await expect(loginPrompt).toBeVisible();
     await expect(loginPrompt).toContainText(
       'Sign in to view and manage code subscriptions for your repositories.',
+    );
+  });
+});
+
+test.describe('Code Subscriptions Default State', () => {
+  test('should prompt to enter a repository when none is specified', async ({
+    page,
+  }) => {
+    await resetUserData();
+    await loginAsUser(page, 'test user 1');
+    await page.goto(`${BASE_URL}/settings/code-subscriptions`);
+    const codeSubsPage = page.locator('webstatus-code-subscriptions-page');
+    await expect(codeSubsPage).toBeVisible();
+    await expect(codeSubsPage.locator('.empty-state')).toContainText(
+      'Enter a repository above',
     );
   });
 });
