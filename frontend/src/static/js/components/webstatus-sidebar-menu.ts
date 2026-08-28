@@ -130,6 +130,11 @@ export class WebstatusSidebarMenu extends LitElement {
           text-decoration: none;
         }
 
+        .code-subscriptions-link {
+          color: inherit;
+          text-decoration: none;
+        }
+
         .report-issue-item {
           margin-top: auto;
         }
