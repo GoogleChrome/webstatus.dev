@@ -27,7 +27,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GoogleChrome/webstatus.dev/lib/localcache"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/go-github/v79/github"
 	"golang.org/x/sync/singleflight"
@@ -42,11 +41,6 @@ var (
 	// ErrNilTokenCacher is returned when a nil TokenCacher is provided.
 	ErrNilTokenCacher = errors.New("token cacher must not be nil")
 )
-
-// NewLocalTokenCacher returns an in-memory thread-safe TokenCacher backed by localcache.
-func NewLocalTokenCacher() *localcache.LocalDataCache[string, []byte] {
-	return localcache.NewLocalDataCache[string, []byte](nil)
-}
 
 // InstallationTokenProvider retrieves a valid installation access token for a GitHub App installation.
 type InstallationTokenProvider interface {

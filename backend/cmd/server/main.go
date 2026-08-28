@@ -38,6 +38,7 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 	"github.com/GoogleChrome/webstatus.dev/lib/gh"
 	"github.com/GoogleChrome/webstatus.dev/lib/httpmiddlewares"
+	"github.com/GoogleChrome/webstatus.dev/lib/localcache"
 	"github.com/GoogleChrome/webstatus.dev/lib/opentelemetry"
 	"github.com/GoogleChrome/webstatus.dev/lib/valkeycache"
 	"github.com/go-chi/cors"
@@ -260,7 +261,9 @@ func initTokenProvider(ctx context.Context) *gh.TokenProvider {
 		os.Exit(1)
 	}
 
-	cacher := gh.NewLocalTokenCacher()
+	// TODO: Migrate to valkeycache.ValkeyDataCache for cross-instance token caching
+	// once Valkey connectivity is configured.
+	cacher := localcache.NewLocalDataCache[string, []byte](nil)
 	tp, tpErr := gh.NewTokenProvider(appID, pkData, cacher)
 	if tpErr != nil {
 		slog.ErrorContext(ctx, "unable to create token provider", "error", tpErr)

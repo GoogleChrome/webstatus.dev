@@ -223,14 +223,10 @@ func TestNewTokenProvider_Validation(t *testing.T) {
 		t.Errorf("expected ErrNilTokenCacher, got: %v", err)
 	}
 
-	// 4. Valid with NewLocalTokenCacher
-	localCacher := NewLocalTokenCacher()
-	if localCacher == nil {
-		t.Fatal("expected non-nil local cacher")
-	}
-	tp, err := NewTokenProvider("app-99", privPEM, localCacher)
+	// 4. Valid with TokenCacher
+	tp, err := NewTokenProvider("app-99", privPEM, testNoopTokenCacher{})
 	if err != nil {
-		t.Fatalf("expected successful creation with local cacher, got: %v", err)
+		t.Fatalf("expected successful creation with token cacher, got: %v", err)
 	}
 	if tp == nil {
 		t.Fatal("expected non-nil TokenProvider")
