@@ -2337,7 +2337,7 @@ func toBackendCodeSubscriptionsResponse(
 
 func (s *Backend) ListCodeSubscriptions(
 	ctx context.Context,
-	vcsProvider, repoID string,
+	vcsProvider, repoFullName string,
 	pageSize int,
 	pageToken *string,
 ) (*backend.CodeSubscriptionPage, error) {
@@ -2347,10 +2347,10 @@ func (s *Backend) ListCodeSubscriptions(
 	}
 
 	subs, token, err := s.client.ListCodeSubscriptionsByRepository(ctx, gcpspanner.ListCodeSubscriptionsRequest{
-		VCSProvider: provider,
-		RepoID:      repoID,
-		PageSize:    pageSize,
-		PageToken:   pageToken,
+		VCSProvider:        provider,
+		RepositoryFullName: repoFullName,
+		PageSize:           pageSize,
+		PageToken:          pageToken,
 	})
 	if err != nil {
 		if errors.Is(err, gcpspanner.ErrInvalidCursorFormat) {

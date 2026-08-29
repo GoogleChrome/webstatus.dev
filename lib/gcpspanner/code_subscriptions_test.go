@@ -17,6 +17,7 @@ package gcpspanner
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -91,10 +92,10 @@ func TestCodeSubscriptions(t *testing.T) {
 
 	// 3. Test ListCodeSubscriptionsByRepository with pagination
 	listReq := ListCodeSubscriptionsRequest{
-		VCSProvider: VCSProviderGitHub,
-		RepoID:      repoID,
-		PageSize:    10,
-		PageToken:   nil,
+		VCSProvider:        VCSProviderGitHub,
+		RepositoryFullName: repoFullName,
+		PageSize:           10,
+		PageToken:          nil,
 	}
 	list, nextPageToken, err := spannerClient.ListCodeSubscriptionsByRepository(ctx, listReq)
 	if err != nil {
@@ -109,10 +110,10 @@ func TestCodeSubscriptions(t *testing.T) {
 
 	// 3b. Test pagination page by page (pageSize = 1)
 	pagedReq1 := ListCodeSubscriptionsRequest{
-		VCSProvider: VCSProviderGitHub,
-		RepoID:      repoID,
-		PageSize:    1,
-		PageToken:   nil,
+		VCSProvider:        VCSProviderGitHub,
+		RepositoryFullName: repoFullName,
+		PageSize:           1,
+		PageToken:          nil,
 	}
 	pagedList1, token1, err := spannerClient.ListCodeSubscriptionsByRepository(ctx, pagedReq1)
 	if err != nil {
@@ -123,10 +124,10 @@ func TestCodeSubscriptions(t *testing.T) {
 	}
 
 	pagedReq2 := ListCodeSubscriptionsRequest{
-		VCSProvider: VCSProviderGitHub,
-		RepoID:      repoID,
-		PageSize:    1,
-		PageToken:   token1,
+		VCSProvider:        VCSProviderGitHub,
+		RepositoryFullName: repoFullName,
+		PageSize:           1,
+		PageToken:          token1,
 	}
 	pagedList2, _, err := spannerClient.ListCodeSubscriptionsByRepository(ctx, pagedReq2)
 	if err != nil {
@@ -137,6 +138,21 @@ func TestCodeSubscriptions(t *testing.T) {
 	}
 	if pagedList1[0].ID == pagedList2[0].ID {
 		t.Fatalf("expected different items on pages 1 and 2, got same ID: %s", pagedList1[0].ID)
+	}
+
+	// 3c. Test case-insensitivity of repository full name lookup (e.g. lowercase)
+	lowerListReq := ListCodeSubscriptionsRequest{
+		VCSProvider:        VCSProviderGitHub,
+		RepositoryFullName: strings.ToLower(repoFullName),
+		PageSize:           10,
+		PageToken:          nil,
+	}
+	lowerList, _, err := spannerClient.ListCodeSubscriptionsByRepository(ctx, lowerListReq)
+	if err != nil {
+		t.Fatalf("ListCodeSubscriptionsByRepository with lowercased name failed: %v", err)
+	}
+	if len(lowerList) != 2 {
+		t.Fatalf("expected 2 active subscriptions when queried with lowercased name, got %d", len(lowerList))
 	}
 
 	// 4. Test ListCodeSubscriptionsByTargetQuery
@@ -308,10 +324,10 @@ func testDeclarativeObsolescenceAndRevival(
 		t.Fatalf("SynchronizeRepositoryCodeSubscriptions (obsolete sub1) failed: %v", err)
 	}
 	activeList, _, err := spannerClient.ListCodeSubscriptionsByRepository(ctx, ListCodeSubscriptionsRequest{
-		VCSProvider: VCSProviderGitHub,
-		RepoID:      repoID,
-		PageSize:    10,
-		PageToken:   nil,
+		VCSProvider:        VCSProviderGitHub,
+		RepositoryFullName: sub2.RepositoryFullName,
+		PageSize:           10,
+		PageToken:          nil,
 	})
 	if err != nil {
 		t.Fatalf("ListCodeSubscriptionsByRepository after obsolescence failed: %v", err)
@@ -325,10 +341,10 @@ func testDeclarativeObsolescenceAndRevival(
 		t.Fatalf("SynchronizeRepositoryCodeSubscriptions (revival) failed: %v", err)
 	}
 	revivedList, _, err := spannerClient.ListCodeSubscriptionsByRepository(ctx, ListCodeSubscriptionsRequest{
-		VCSProvider: VCSProviderGitHub,
-		RepoID:      repoID,
-		PageSize:    10,
-		PageToken:   nil,
+		VCSProvider:        VCSProviderGitHub,
+		RepositoryFullName: sub1.RepositoryFullName,
+		PageSize:           10,
+		PageToken:          nil,
 	})
 	if err != nil {
 		t.Fatalf("ListCodeSubscriptionsByRepository after revival failed: %v", err)

@@ -32,9 +32,14 @@ import (
 	"golang.org/x/sync/singleflight"
 )
 
+const defaultGitHubAPIBaseURL = "https://api.github.com"
+
 var (
 	// ErrEmptyInstallationID is returned when an installation ID is empty.
 	ErrEmptyInstallationID = errors.New("installation id must not be empty")
+
+	// ErrNilTokenCacher is returned when a nil TokenCacher is provided.
+	ErrNilTokenCacher = errors.New("token cacher must not be nil")
 )
 
 // InstallationTokenProvider retrieves a valid installation access token for a GitHub App installation.
@@ -69,6 +74,9 @@ func NewTokenProvider(appID string, privateKeyPEM []byte, cacher TokenCacher) (*
 	if appID == "" {
 		return nil, ErrEmptyAppID
 	}
+	if cacher == nil {
+		return nil, ErrNilTokenCacher
+	}
 
 	key, err := jwt.ParseRSAPrivateKeyFromPEM(privateKeyPEM)
 	if err != nil {
@@ -85,7 +93,7 @@ func NewTokenProvider(appID string, privateKeyPEM []byte, cacher TokenCacher) (*
 			Jar:           nil,
 			Timeout:       10 * time.Second,
 		},
-		baseURL: "https://api.github.com",
+		baseURL: defaultGitHubAPIBaseURL,
 		flight:  singleflight.Group{},
 	}, nil
 }
@@ -120,7 +128,7 @@ func (tp *TokenProvider) createInstallationToken(ctx context.Context, instID int
 	defer cancel()
 
 	appClient := github.NewClient(tp.httpClient).WithAuthToken(jwtToken)
-	if tp.baseURL != "https://api.github.com" && tp.baseURL != "" {
+	if tp.baseURL != defaultGitHubAPIBaseURL && tp.baseURL != "" {
 		baseURLWithSlash := strings.TrimRight(tp.baseURL, "/") + "/"
 		customURL, parseErr := url.Parse(baseURLWithSlash)
 		if parseErr == nil {
@@ -200,4 +208,83 @@ func (tp *TokenProvider) GetInstallationToken(ctx context.Context, installationI
 	}
 
 	return tokenStr, nil
+}
+
+// GetAppToken mints a fresh RS256 JWT for GitHub App-level API operations.
+func (tp *TokenProvider) GetAppToken() (string, error) {
+	return mintAppJWTWithKey(tp.appID, tp.privateKey)
+}
+
+// ErrRepositoryInstallationNotFound indicates that the GitHub App is not installed on the specified repository.
+var ErrRepositoryInstallationNotFound = errors.New("github app installation not found for repository")
+
+func (tp *TokenProvider) findRepositoryInstallation(ctx context.Context, owner, repo string) (string, error) {
+	appToken, err := tp.GetAppToken()
+	if err != nil {
+		return "", fmt.Errorf("failed to get app jwt: %w", err)
+	}
+
+	appClient := github.NewClient(tp.httpClient).WithAuthToken(appToken)
+	if tp.baseURL != defaultGitHubAPIBaseURL && tp.baseURL != "" {
+		baseURLWithSlash := strings.TrimRight(tp.baseURL, "/") + "/"
+		customURL, parseErr := url.Parse(baseURLWithSlash)
+		if parseErr == nil {
+			appClient.BaseURL = customURL
+		}
+	}
+
+	inst, resp, err := appClient.Apps.FindRepositoryInstallation(ctx, owner, repo)
+	if err != nil {
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
+			return "", ErrRepositoryInstallationNotFound
+		}
+
+		return "", fmt.Errorf("failed to find repository installation: %w", err)
+	}
+	if inst == nil || inst.ID == nil {
+		return "", ErrRepositoryInstallationNotFound
+	}
+
+	return strconv.FormatInt(inst.GetID(), 10), nil
+}
+
+// GetInstallationTokenForRepo retrieves an installation access token for the given owner and repository.
+// It looks up the repository's installation ID via the GitHub App API and returns an installation token.
+func (tp *TokenProvider) GetInstallationTokenForRepo(ctx context.Context, owner, repo string) (string, error) {
+	if owner == "" || repo == "" {
+		return "", errors.New("owner and repo must not be empty")
+	}
+
+	cacheKey := "gh:repo_inst:" + owner + "/" + repo
+	if cachedBytes, err := tp.cacher.Get(ctx, cacheKey); err == nil && len(cachedBytes) > 0 {
+		return tp.GetInstallationToken(ctx, string(cachedBytes))
+	}
+
+	res, err, _ := tp.flight.Do("repo:"+owner+"/"+repo, func() (any, error) {
+		if cachedBytes, err := tp.cacher.Get(ctx, cacheKey); err == nil && len(cachedBytes) > 0 {
+			return string(cachedBytes), nil
+		}
+
+		instIDStr, err := tp.findRepositoryInstallation(ctx, owner, repo)
+		if err != nil {
+			return "", err
+		}
+
+		if cacheErr := tp.cacher.Cache(ctx, cacheKey, []byte(instIDStr)); cacheErr != nil {
+			slog.WarnContext(ctx, "failed to cache repository installation id",
+				"error", cacheErr, "owner", owner, "repo", repo)
+		}
+
+		return instIDStr, nil
+	})
+	if err != nil {
+		return "", err
+	}
+
+	instIDStr, ok := res.(string)
+	if !ok {
+		return "", errors.New("unexpected installation id type from singleflight")
+	}
+
+	return tp.GetInstallationToken(ctx, instIDStr)
 }

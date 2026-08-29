@@ -806,9 +806,9 @@ func (c mockBackendSpannerClient) ListCodeSubscriptionsByRepository(
 			c.t.Errorf("provider mismatch: got %s, want %s",
 				req.VCSProvider, c.mockListCodeSubscriptionsCfg.expectedRequest.VCSProvider)
 		}
-		if req.RepoID != c.mockListCodeSubscriptionsCfg.expectedRequest.RepoID {
-			c.t.Errorf("repoID mismatch: got %s, want %s",
-				req.RepoID, c.mockListCodeSubscriptionsCfg.expectedRequest.RepoID)
+		if req.RepositoryFullName != c.mockListCodeSubscriptionsCfg.expectedRequest.RepositoryFullName {
+			c.t.Errorf("repositoryFullName mismatch: got %s, want %s",
+				req.RepositoryFullName, c.mockListCodeSubscriptionsCfg.expectedRequest.RepositoryFullName)
 		}
 		if req.PageSize != c.mockListCodeSubscriptionsCfg.expectedRequest.PageSize {
 			c.t.Errorf("pageSize mismatch: got %d, want %d",
@@ -5435,10 +5435,10 @@ func TestBackend_ListCodeSubscriptions(t *testing.T) {
 		t: t,
 		mockListCodeSubscriptionsCfg: &mockListCodeSubscriptionsByRepositoryConfig{
 			expectedRequest: gcpspanner.ListCodeSubscriptionsRequest{
-				VCSProvider: gcpspanner.VCSProviderGitHub,
-				RepoID:      "repo-789",
-				PageSize:    10,
-				PageToken:   nil,
+				VCSProvider:        gcpspanner.VCSProviderGitHub,
+				RepositoryFullName: "repo-789",
+				PageSize:           10,
+				PageToken:          nil,
 			},
 			result:        mockSubs,
 			nextPageToken: nil,

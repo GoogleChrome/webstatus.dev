@@ -65,6 +65,13 @@ spec:
           value: pubsub:8060
         - name: INGESTION_TOPIC_ID
           value: 'ingestion-jobs-topic-id'
+        - name: GITHUB_APP_ID
+          value: '123456'
+        - name: GITHUB_APP_PRIVATE_KEY_PATH
+          value: '/etc/secrets/github-app/private-key.pem'
+      volumeMounts:
+        - name: github-app-secret-volume
+          mountPath: /etc/secrets/github-app
       resources:
         limits:
           cpu: 250m
@@ -72,3 +79,20 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+  initContainers:
+    - name: generate-dev-secrets
+      image: alpine/openssl:3.5.7
+      command:
+        - sh
+        - -c
+        - |
+          mkdir -p /etc/secrets/github-app
+          if [ ! -f /etc/secrets/github-app/private-key.pem ]; then
+            openssl genpkey -algorithm RSA -out /etc/secrets/github-app/private-key.pem -pkeyopt rsa_keygen_bits:2048
+          fi
+      volumeMounts:
+        - name: github-app-secret-volume
+          mountPath: /etc/secrets/github-app
+  volumes:
+    - name: github-app-secret-volume
+      emptyDir: {}

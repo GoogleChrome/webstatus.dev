@@ -65,10 +65,10 @@ func (m codeSubscriptionAllByRepoMapper) SelectAllByKeys(key codeSubscriptionAll
 
 // ListCodeSubscriptionsRequest is a request to list code subscriptions for a repository with pagination.
 type ListCodeSubscriptionsRequest struct {
-	VCSProvider VCSProvider
-	RepoID      string
-	PageSize    int
-	PageToken   *string
+	VCSProvider        VCSProvider
+	RepositoryFullName string
+	PageSize           int
+	PageToken          *string
 }
 
 func (r ListCodeSubscriptionsRequest) GetPageSize() int {
@@ -96,9 +96,9 @@ func (m listCodeSubscriptionsMapper) EncodePageToken(item spannerCodeSubscriptio
 func (m listCodeSubscriptionsMapper) SelectList(req ListCodeSubscriptionsRequest) spanner.Statement {
 	var pageFilter string
 	params := map[string]any{
-		"vcsProvider": string(req.VCSProvider),
-		"repoID":      req.RepoID,
-		"pageSize":    req.PageSize,
+		"vcsProvider":        string(req.VCSProvider),
+		"repositoryFullName": req.RepositoryFullName,
+		"pageSize":           req.PageSize,
 	}
 	if req.PageToken != nil {
 		cursor, err := decodeCursor[codeSubscriptionCursor](*req.PageToken)
@@ -112,7 +112,7 @@ func (m listCodeSubscriptionsMapper) SelectList(req ListCodeSubscriptionsRequest
 		ID, VCSProvider, VCSInstallationID, VCSRepositoryID, RepositoryFullName,
 		TargetQuery, Triggers, Status, Occurrences, CreatedAt, UpdatedAt
 	FROM CodeSubscriptions
-	WHERE VCSProvider = @vcsProvider AND VCSRepositoryID = @repoID AND Status = 'ACTIVE' %s
+	WHERE VCSProvider = @vcsProvider AND LOWER(RepositoryFullName) = LOWER(@repositoryFullName) AND Status = 'ACTIVE' %s
 	ORDER BY CreatedAt DESC, ID ASC
 	LIMIT @pageSize`, pageFilter)
 
@@ -577,8 +577,8 @@ func (c *Client) AcquireDeliveryLock(
 				return nil, ErrDeliveryAlreadyDelivered
 			}
 
-			if existing.LockExpiresAt.Valid && existing.LockExpiresAt.Time.After(now) {
-				// Lock still active by another worker
+			lockState := NewLeasedLockState(existing.WorkerLockID, existing.LockExpiresAt)
+			if err := lockState.CanAcquire(workerID, now); err != nil {
 				return nil, ErrDeliveryAlreadyLocked
 			}
 
@@ -620,14 +620,17 @@ func (c *Client) RecordDeliverySuccess(
 
 			now := c.timeNow()
 
-			// Lock fencing check: verify lock has not expired
-			if !existing.LockExpiresAt.Valid || !existing.LockExpiresAt.Time.After(now) {
-				return nil, ErrDeliveryLockExpired
-			}
+			// Lock fencing check: verify caller owns an active, unexpired lease
+			lockState := NewLeasedLockState(existing.WorkerLockID, existing.LockExpiresAt)
+			if err := lockState.ValidateOwnership(workerID, now); err != nil {
+				if errors.Is(err, ErrLockExpired) {
+					return nil, ErrDeliveryLockExpired
+				}
+				if errors.Is(err, ErrLockNotOwned) {
+					return nil, ErrDeliveryLockMismatch
+				}
 
-			// Lock fencing check: verify worker ownership
-			if existing.WorkerLockID.Valid && existing.WorkerLockID.StringVal != workerID {
-				return nil, ErrDeliveryLockMismatch
+				return nil, err
 			}
 
 			existing.DeliveryStatus = string(DeliveryStatusDelivered)
@@ -661,14 +664,17 @@ func (c *Client) ReleaseDeliveryLock(ctx context.Context, deliveryID, workerID s
 
 			now := c.timeNow()
 
-			// Lock fencing: verify lock has not expired
-			if !existing.LockExpiresAt.Valid || !existing.LockExpiresAt.Time.After(now) {
-				return nil, ErrDeliveryLockExpired
-			}
+			// Lock fencing check: verify caller owns an active, unexpired lease
+			lockState := NewLeasedLockState(existing.WorkerLockID, existing.LockExpiresAt)
+			if err := lockState.ValidateOwnership(workerID, now); err != nil {
+				if errors.Is(err, ErrLockExpired) {
+					return nil, ErrDeliveryLockExpired
+				}
+				if errors.Is(err, ErrLockNotOwned) {
+					return nil, ErrDeliveryLockMismatch
+				}
 
-			// Lock fencing: verify worker ownership
-			if !existing.WorkerLockID.Valid || existing.WorkerLockID.StringVal != workerID {
-				return nil, ErrDeliveryLockMismatch
+				return nil, err
 			}
 
 			existing.DeliveryStatus = string(DeliveryStatusPending)

@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"slices"
 	"time"
 
@@ -37,6 +38,7 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 	"github.com/GoogleChrome/webstatus.dev/lib/gh"
 	"github.com/GoogleChrome/webstatus.dev/lib/httpmiddlewares"
+	"github.com/GoogleChrome/webstatus.dev/lib/localcache"
 	"github.com/GoogleChrome/webstatus.dev/lib/opentelemetry"
 	"github.com/GoogleChrome/webstatus.dev/lib/valkeycache"
 	"github.com/go-chi/cors"
@@ -188,15 +190,16 @@ func main() {
 	}
 
 	var ghOptions []gh.ClientOption
+	var gitHubAPIBaseURL *url.URL
 	if gitHubAPIBaseRawURL := os.Getenv("GITHUB_API_BASE_URL"); gitHubAPIBaseRawURL != "" {
-		gitHubAPIBaseURL, err := url.Parse(gitHubAPIBaseRawURL)
+		var err error
+		gitHubAPIBaseURL, err = url.Parse(gitHubAPIBaseRawURL)
 		if err != nil {
 			slog.ErrorContext(ctx, "unable to parse GITHUB_API_BASE_URL", "error", err)
 			os.Exit(1)
 		}
 		slog.InfoContext(ctx, "using GITHUB_API_BASE_URL", "url", gitHubAPIBaseURL.String())
 		ghOptions = append(ghOptions, gh.WithBaseURL(gitHubAPIBaseURL))
-
 	}
 
 	pubsubProjectID := os.Getenv("PUBSUB_PROJECT_ID")
@@ -217,6 +220,9 @@ func main() {
 		os.Exit(1)
 	}
 
+	tokenProvider := initTokenProvider(ctx)
+	vcsPermissionChecker := gh.NewGitHubPermissionCheckerWithTokenProvider(tokenProvider, gitHubAPIBaseURL)
+
 	srv := httpserver.NewHTTPServer(
 		"8080",
 		baseURL,
@@ -230,6 +236,7 @@ func main() {
 				GitHubUserClient: gh.NewUserGitHubClient(token, ghOptions...),
 			}
 		},
+		vcsPermissionChecker,
 		preRequestMiddlewares,
 		authMiddleware,
 	)
@@ -239,4 +246,29 @@ func main() {
 		slog.ErrorContext(ctx, "unable to start server", "error", err.Error())
 		os.Exit(1)
 	}
+}
+
+func initTokenProvider(ctx context.Context) *gh.TokenProvider {
+	appID := os.Getenv("GITHUB_APP_ID")
+	pkPath := os.Getenv("GITHUB_APP_PRIVATE_KEY_PATH")
+	if appID == "" || pkPath == "" {
+		return nil
+	}
+
+	pkData, readErr := os.ReadFile(filepath.Clean(pkPath)) // #nosec G304 G703 -- Admin configured private key path
+	if readErr != nil {
+		slog.ErrorContext(ctx, "unable to read private key file", "path", pkPath, "error", readErr)
+		os.Exit(1)
+	}
+
+	// TODO: Migrate to valkeycache.ValkeyDataCache for cross-instance token caching
+	// once Valkey connectivity is configured.
+	cacher := localcache.NewLocalDataCache[string, []byte](nil)
+	tp, tpErr := gh.NewTokenProvider(appID, pkData, cacher)
+	if tpErr != nil {
+		slog.ErrorContext(ctx, "unable to create token provider", "error", tpErr)
+		os.Exit(1)
+	}
+
+	return tp
 }
