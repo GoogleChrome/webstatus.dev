@@ -22,6 +22,7 @@ import {fileURLToPath} from 'node:url';
 const DEFAULT_FAKE_NOW = 'Dec 1 2020 12:34:56';
 
 export const BASE_URL = 'http://localhost:5555';
+export const API_BASE_URL = 'http://localhost:8080';
 
 export async function forceTheme(page: Page, theme: 'light' | 'dark') {
   await page.addInitScript(theme => {

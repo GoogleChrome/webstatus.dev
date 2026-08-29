@@ -1,0 +1,33 @@
+{
+  "metadata": {
+    "notes": "Mocks GET /repos/{owner}/{repo}/git/trees/{commit_sha}?recursive=1",
+    "docsLink": "https://docs.github.com/en/rest/git/trees#get-a-tree"
+  },
+  "scenarioName": "code_subscriptions",
+  "requiredScenarioState": "Started",
+  "request": {
+    "method": "GET",
+    "urlPattern": "/repos/[^/]+/[^/]+/git/trees/[^?]+(\\?.*)?"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "sha": "abcdef1234567890abcdef1234567890abcdef12",
+      "url": "http://github-mock-internal:8080/repos/GoogleChrome/webstatus.dev/git/trees/abcdef1234567890abcdef1234567890abcdef12",
+      "tree": [
+        {
+          "path": "src/components/layout.css",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "1111222233334444555566667777888899990000",
+          "size": 1024,
+          "url": "http://github-mock-internal:8080/repos/GoogleChrome/webstatus.dev/git/blobs/1111222233334444555566667777888899990000"
+        }
+      ],
+      "truncated": false
+    }
+  }
+}

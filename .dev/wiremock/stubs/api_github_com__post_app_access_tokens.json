@@ -1,0 +1,27 @@
+{
+  "metadata": {
+    "notes": "Mocks POST /app/installations/{installation_id}/access_tokens",
+    "docsLink": "https://docs.github.com/en/rest/apps/apps#create-an-installation-access-token-for-an-app"
+  },
+  "scenarioName": "code_subscriptions",
+  "requiredScenarioState": "Started",
+  "request": {
+    "method": "POST",
+    "urlPattern": "/app/installations/[0-9]+/access_tokens"
+  },
+  "response": {
+    "status": 201,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "token": "ghs_mock_installation_token_1234567890",
+      "expires_at": "2030-01-01T00:00:00Z",
+      "permissions": {
+        "issues": "write",
+        "contents": "read"
+      },
+      "repository_selection": "all"
+    }
+  }
+}
