@@ -58,7 +58,8 @@ Developers use standard, intuitive `TODO` comments without custom DSL syntax:
    - Atomic 30-second lock leasing (`LockExpiresAt`) on `CodeSubscriptions`.
    - Polymorphic delivery tracking in `CodeSubscriptionDeliveries`.
 
-4. **Worker Daemons (`workers/vcs_scanner`, `workers/github_issue_delivery`)**:
+4. **Worker Daemons & Notification Pipeline (`workers/push_delivery`, `workers/vcs_scanner`, `workers/github_issue_delivery`)**:
+   - `push_delivery`: Consumes `FeatureDiffEvent` from `notification-events`, detects baseline status changes (`feature.baseline.promote_to_widely` and `feature.baseline.promote_to_newly`), queries Spanner for matching active code subscriptions (`id:<feature_id>`), and fans out `GitHubIssueDeliveryEvent` jobs to the `github-issue-delivery` topic.
    - `vcs_scanner`: Pulls git trees from GitHub API, extracts AST occurrences, and updates Spanner with monotonic timestamp fencing.
    - `github_issue_delivery`: Acquires delivery lock, renders issue markdown with commit SHA permalinks and Modern Web Guidance refactoring prompts, creates GitHub issue, and marks subscription `DELIVERED`.
 
