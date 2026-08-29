@@ -57,7 +57,8 @@ type PageablePath =
   | '/v1/users/me/subscriptions'
   | '/v1/stats/baseline_status/low_date_feature_counts'
   | '/v1/stats/features/browsers/{browser}/missing_one_implementation_counts'
-  | '/v1/stats/features/browsers/{browser}/missing_one_implementation_counts/{date}/features';
+  | '/v1/stats/features/browsers/{browser}/missing_one_implementation_counts/{date}/features'
+  | '/v1/vcs/{provider}/repositories/{repository_id}/code-subscriptions';
 
 /**
  * Utility to extract the item type from a paginated API response.
@@ -70,7 +71,7 @@ type PageItems<Path extends PageablePath> = paths[Path]['get'] extends {
     200: {
       content: {
         'application/json': {
-          data: (infer U)[];
+          data?: (infer U)[];
         };
       };
     };
@@ -1022,6 +1023,54 @@ export class APIClient {
       }),
       '/v1/users/me/subscriptions/{subscription_id}',
       'patch',
+    );
+  }
+
+  public listCodeSubscriptions(
+    provider: 'github',
+    repositoryId: string,
+    token: string,
+    pageSize?: number,
+    pageToken?: string,
+  ): Promise<
+    SuccessResponsePageableData<'/v1/vcs/{provider}/repositories/{repository_id}/code-subscriptions'>
+  > {
+    return this.getPageOfData(
+      '/v1/vcs/{provider}/repositories/{repository_id}/code-subscriptions',
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        params: {
+          path: {
+            provider,
+            repository_id: repositoryId,
+          },
+        },
+      },
+      pageToken,
+      pageSize,
+    );
+  }
+
+  public getAllCodeSubscriptions(
+    provider: 'github',
+    repositoryId: string,
+    token: string,
+  ): Promise<components['schemas']['CodeSubscriptionResponse'][]> {
+    return this.getAllPagesOfData(
+      '/v1/vcs/{provider}/repositories/{repository_id}/code-subscriptions',
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        params: {
+          path: {
+            provider,
+            repository_id: repositoryId,
+          },
+        },
+      },
     );
   }
 }
