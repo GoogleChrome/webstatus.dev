@@ -79,9 +79,10 @@ module "push_delivery" {
   spanner_instance_id = var.spanner_details.instance
   spanner_database_id = var.spanner_details.database
 
-  notification_subscription_id = var.pubsub_details.notification_subscription_id
-  email_topic_id               = var.pubsub_details.email_topic_id
-  webhook_topic_id             = var.pubsub_details.webhook_topic_id
+  notification_subscription_id   = var.pubsub_details.notification_subscription_id
+  email_topic_id                 = var.pubsub_details.email_topic_id
+  webhook_topic_id               = var.pubsub_details.webhook_topic_id
+  github_issue_delivery_topic_id = var.pubsub_details.github_issue_delivery_topic_id
 
   manual_instance_count = var.worker_instance_count.push_delivery_count
   regions               = var.regions

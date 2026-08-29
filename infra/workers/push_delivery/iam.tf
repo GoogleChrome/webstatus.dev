@@ -34,6 +34,20 @@ resource "google_pubsub_topic_iam_member" "pub" {
   provider = google.internal_project
 }
 
+resource "google_pubsub_topic_iam_member" "webhook_pub" {
+  topic    = var.webhook_topic_id
+  role     = "roles/pubsub.publisher"
+  member   = "serviceAccount:${google_service_account.worker_sa.email}"
+  provider = google.internal_project
+}
+
+resource "google_pubsub_topic_iam_member" "github_issue_delivery_pub" {
+  topic    = var.github_issue_delivery_topic_id
+  role     = "roles/pubsub.publisher"
+  member   = "serviceAccount:${google_service_account.worker_sa.email}"
+  provider = google.internal_project
+}
+
 resource "google_project_iam_member" "gcp_metric_permission" {
   role     = "roles/monitoring.metricWriter"
   provider = google.internal_project

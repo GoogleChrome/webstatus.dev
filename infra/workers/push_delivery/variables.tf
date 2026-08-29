@@ -20,6 +20,10 @@ variable "spanner_database_id" { type = string }
 variable "notification_subscription_id" { type = string }
 variable "email_topic_id" { type = string }
 variable "webhook_topic_id" { type = string }
+variable "github_issue_delivery_topic_id" {
+  type        = string
+  description = "Pub/Sub topic ID for GitHub issue delivery events"
+}
 variable "manual_instance_count" { type = number }
 variable "regions" { type = set(string) }
 variable "deletion_protection" { type = bool }
