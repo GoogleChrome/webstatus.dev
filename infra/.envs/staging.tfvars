@@ -103,8 +103,8 @@ wpt_region_schedules = {
 }
 
 vcs_sync_region_schedules = {
-  "us-central1"  = "0 5,11,17,23 * * *"
-  "europe-west1" = "30 5,11,17,23 * * *"
+  "us-central1"  = "0,10,20,30,40,50 * * * *"
+  "europe-west1" = "5,15,25,35,45,55 * * * *"
 }
 
 
