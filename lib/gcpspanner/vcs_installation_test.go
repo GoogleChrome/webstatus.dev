@@ -408,6 +408,89 @@ func testVCSInstallationUniqueIndex(ctx context.Context, t *testing.T) {
 	}
 }
 
+func testVCSInstallationList(ctx context.Context, t *testing.T) {
+	inst1 := VCSInstallation{
+		ID:                  uuid.NewString(),
+		VCSProvider:         VCSProviderGitHub,
+		VCSInstallationID:   "list-test-inst-1",
+		AccountLogin:        "ListAccountA",
+		AccountType:         "Organization",
+		RepositorySelection: "all",
+		Permissions:         VCSPermissions{GitHub: nil},
+		CreatedAt:           time.Time{},
+		UpdatedAt:           time.Time{},
+	}
+	inst2 := VCSInstallation{
+		ID:                  uuid.NewString(),
+		VCSProvider:         VCSProviderGitHub,
+		VCSInstallationID:   "list-test-inst-2",
+		AccountLogin:        "ListAccountB",
+		AccountType:         "User",
+		RepositorySelection: "selected",
+		Permissions:         VCSPermissions{GitHub: nil},
+		CreatedAt:           time.Time{},
+		UpdatedAt:           time.Time{},
+	}
+
+	if _, err := spannerClient.UpsertVCSInstallation(ctx, inst1); err != nil {
+		t.Fatalf("UpsertVCSInstallation inst1 failed: %v", err)
+	}
+	if _, err := spannerClient.UpsertVCSInstallation(ctx, inst2); err != nil {
+		t.Fatalf("UpsertVCSInstallation inst2 failed: %v", err)
+	}
+
+	all, err := spannerClient.ListVCSInstallations(ctx)
+	if err != nil {
+		t.Fatalf("ListVCSInstallations failed: %v", err)
+	}
+	if len(all) < 2 {
+		t.Fatalf("expected at least 2 installations from ListVCSInstallations, got %d", len(all))
+	}
+
+	byAccount, err := spannerClient.ListVCSInstallationsByAccount(ctx, VCSProviderGitHub, "ListAccountA")
+	if err != nil {
+		t.Fatalf("ListVCSInstallationsByAccount failed: %v", err)
+	}
+	if len(byAccount) != 1 {
+		t.Fatalf("expected exactly 1 installation for ListAccountA, got %d", len(byAccount))
+	}
+	if byAccount[0].AccountLogin != "ListAccountA" {
+		t.Errorf("unexpected account login: %s", byAccount[0].AccountLogin)
+	}
+}
+
+func TestVCSInstallationMappers(t *testing.T) {
+	t.Parallel()
+
+	t.Run("GetAllMapper produces expected SQL", func(t *testing.T) {
+		t.Parallel()
+		mapper := vcsInstallationGetAllMapper{}
+		stmt := mapper.SelectAll()
+		if stmt.SQL == "" {
+			t.Errorf("expected non-empty SQL statement")
+		}
+	})
+
+	t.Run("ByAccountMapper produces expected SQL and parameters", func(t *testing.T) {
+		t.Parallel()
+		mapper := vcsInstallationByAccountMapper{}
+		key := vcsInstallationByAccountKey{
+			Provider:     string(VCSProviderGitHub),
+			AccountLogin: "TestAccount",
+		}
+		stmt := mapper.SelectAllByKeys(key)
+		if stmt.SQL == "" {
+			t.Errorf("expected non-empty SQL statement")
+		}
+		if stmt.Params["vcsProvider"] != string(VCSProviderGitHub) {
+			t.Errorf("expected param vcsProvider = %s, got %v", VCSProviderGitHub, stmt.Params["vcsProvider"])
+		}
+		if stmt.Params["accountLogin"] != "TestAccount" {
+			t.Errorf("expected param accountLogin = TestAccount, got %v", stmt.Params["accountLogin"])
+		}
+	})
+}
+
 func TestClient_VCSInstallation(t *testing.T) {
 	ctx := context.Background()
 	restartDatabaseContainer(t)
@@ -429,5 +512,8 @@ func TestClient_VCSInstallation(t *testing.T) {
 	})
 	t.Run("Unique index allows distinct installations per provider", func(t *testing.T) {
 		testVCSInstallationUniqueIndex(ctx, t)
+	})
+	t.Run("List all and list by account", func(t *testing.T) {
+		testVCSInstallationList(ctx, t)
 	})
 }

@@ -105,6 +105,15 @@ func stripTarRootPrefix(path string) string {
 	return parts[1]
 }
 
+func mapVCSProvider(provider codescantaskv1.VCSProvider) (gcpspanner.VCSProvider, error) {
+	switch provider {
+	case codescantaskv1.VCSProviderGitHub:
+		return gcpspanner.VCSProviderGitHub, nil
+	default:
+		return "", fmt.Errorf("%w: unsupported vcs provider '%s'", gcpspanner.ErrUnknownVCSProvider, provider)
+	}
+}
+
 func (s *Scanner) recordFailedScanLog(
 	ctx context.Context,
 	task codescantaskv1.CodeScanTaskEvent,
@@ -112,7 +121,7 @@ func (s *Scanner) recordFailedScanLog(
 	errMsg string,
 ) {
 	errCopy := errMsg
-	vcsProvider, err := gcpspanner.ParseVCSProvider(task.VCSProvider)
+	vcsProvider, err := mapVCSProvider(task.VCSProvider)
 	if err != nil {
 		vcsProvider = gcpspanner.VCSProviderGitHub
 	}
@@ -289,7 +298,7 @@ func (s *Scanner) ProcessTask(ctx context.Context, task codescantaskv1.CodeScanT
 		return nil
 	}
 
-	vcsProvider, provErr := gcpspanner.ParseVCSProvider(task.VCSProvider)
+	vcsProvider, provErr := mapVCSProvider(task.VCSProvider)
 	if provErr != nil {
 		s.recordFailedScanLog(ctx, task, now, fmt.Sprintf("invalid vcs provider: %v", provErr))
 
@@ -317,7 +326,11 @@ func (s *Scanner) ProcessTask(ctx context.Context, task codescantaskv1.CodeScanT
 
 	owner, repo := splitOwnerRepo(task.RepositoryFullName)
 	fetcher := s.clientFactory(token)
-	archiveStream, err := fetcher.DownloadTarball(ctx, owner, repo, task.CommitSHA)
+	ref := task.CommitSHA
+	if ref == "" {
+		ref = task.Branch
+	}
+	archiveStream, err := fetcher.DownloadTarball(ctx, owner, repo, ref)
 	if err != nil {
 		s.recordFailedScanLog(ctx, task, now, fmt.Sprintf("failed to download tarball: %v", err))
 		if gh.IsPermanentClientError(err) {
