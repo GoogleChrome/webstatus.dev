@@ -105,8 +105,13 @@ func main() {
 		os.Exit(1)
 	}
 
+	frontendBaseURL := os.Getenv("FRONTEND_BASE_URL")
+	if frontendBaseURL == "" {
+		frontendBaseURL = "https://webstatus.dev"
+	}
+
 	workerID := uuid.NewString()
-	deliverer := delivery.NewDeliverer(tokenProvider, nil, spannerClient, workerID)
+	deliverer := delivery.NewDeliverer(tokenProvider, nil, spannerClient, workerID, frontendBaseURL)
 
 	listener := gcppubsubadapters.NewGitHubIssueDeliverySubscriberAdapter(deliverer, queueClient, subID)
 	if err := listener.Subscribe(ctx); err != nil {

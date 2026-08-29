@@ -75,3 +75,28 @@ func TestGitHubIssueDeliveryEvent_EventMetadataAndSerialization(t *testing.T) {
 		t.Errorf("parsed.DeliveryID = %s, want del-123", parsed.DeliveryID)
 	}
 }
+
+func TestDeriveDeliveryID_DeterminismAndUniqueness(t *testing.T) {
+	t.Parallel()
+
+	subID1 := "sub-123"
+	subID2 := "sub-456"
+	trigger1 := "feature_baseline_to_newly"
+	trigger2 := "feature_baseline_to_widely"
+
+	id1 := githubissuedeliveryv1.DeriveDeliveryID(subID1, trigger1)
+	id2 := githubissuedeliveryv1.DeriveDeliveryID(subID1, trigger1)
+	if id1 != id2 {
+		t.Errorf("expected deterministic IDs for identical inputs, got %s vs %s", id1, id2)
+	}
+
+	idDiffTrigger := githubissuedeliveryv1.DeriveDeliveryID(subID1, trigger2)
+	if id1 == idDiffTrigger {
+		t.Errorf("expected different IDs for different triggers, got same: %s", id1)
+	}
+
+	idDiffSub := githubissuedeliveryv1.DeriveDeliveryID(subID2, trigger1)
+	if id1 == idDiffSub {
+		t.Errorf("expected different IDs for different subscriptions, got same: %s", id1)
+	}
+}

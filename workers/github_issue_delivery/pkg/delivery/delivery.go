@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"log/slog"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/event"
@@ -73,10 +74,11 @@ type LockStorer interface {
 
 // Deliverer coordinates lock acquisition, issue rendering, and issue creation.
 type Deliverer struct {
-	tokenProvider TokenProvider
-	clientFactory ClientFactory
-	storer        LockStorer
-	workerLockID  string
+	tokenProvider   TokenProvider
+	clientFactory   ClientFactory
+	storer          LockStorer
+	workerLockID    string
+	frontendBaseURL string
 }
 
 // NewDeliverer creates a new Deliverer instance.
@@ -85,6 +87,7 @@ func NewDeliverer(
 	clientFactory ClientFactory,
 	storer LockStorer,
 	workerLockID string,
+	frontendBaseURL string,
 ) *Deliverer {
 	if clientFactory == nil {
 		clientFactory = func(token string) GitHubIssueCreator {
@@ -93,10 +96,11 @@ func NewDeliverer(
 	}
 
 	return &Deliverer{
-		tokenProvider: tokenProvider,
-		clientFactory: clientFactory,
-		storer:        storer,
-		workerLockID:  workerLockID,
+		tokenProvider:   tokenProvider,
+		clientFactory:   clientFactory,
+		storer:          storer,
+		workerLockID:    workerLockID,
+		frontendBaseURL: frontendBaseURL,
 	}
 }
 
@@ -127,6 +131,13 @@ func (d *Deliverer) ProcessJob(ctx context.Context, job githubissuedeliveryv1.Gi
 	// 2. Render issue title and markdown body
 	ghOccs := toGHOccurrences(job.Occurrences)
 
+	webStatusURL := job.WebStatusURL
+	if d.frontendBaseURL != "" {
+		webStatusURL = fmt.Sprintf("%s/features/%s", strings.TrimRight(d.frontendBaseURL, "/"), job.FeatureID)
+	} else if webStatusURL == "" {
+		webStatusURL = fmt.Sprintf("https://webstatus.dev/features/%s", job.FeatureID)
+	}
+
 	title := gh.RenderIssueTitle(job.FeatureName, job.Trigger)
 	body := gh.RenderIssueBody(gh.IssueRenderParams{
 		FeatureID:          job.FeatureID,
@@ -135,7 +146,7 @@ func (d *Deliverer) ProcessJob(ctx context.Context, job githubissuedeliveryv1.Gi
 		RepositoryFullName: job.RepositoryFullName,
 		CommitSHA:          job.CommitSHA,
 		Occurrences:        ghOccs,
-		WebStatusURL:       job.WebStatusURL,
+		WebStatusURL:       webStatusURL,
 	})
 
 	token, tokErr := d.resolveToken(ctx, job)

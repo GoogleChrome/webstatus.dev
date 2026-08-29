@@ -14,6 +14,14 @@
 
 package v1
 
+import "github.com/google/uuid"
+
+// DeriveDeliveryID computes a deterministic, collision-free delivery ID
+// based on the immutable subscription ID and trigger milestone coordinates.
+func DeriveDeliveryID(subscriptionID, trigger string) string {
+	return uuid.NewSHA1(uuid.NameSpaceURL, []byte(subscriptionID+":"+trigger)).String()
+}
+
 // IssueOccurrence represents a directive occurrence in code.
 type IssueOccurrence struct {
 	FilePath       string `json:"file_path"`

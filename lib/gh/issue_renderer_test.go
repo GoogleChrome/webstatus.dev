@@ -138,3 +138,75 @@ func TestRenderIssueBodySanitization(t *testing.T) {
 		t.Errorf("expected sanitized relative path, got: %s", body)
 	}
 }
+
+func TestRenderIssueBody_TruncationAndSnippetClamping(t *testing.T) {
+	t.Parallel()
+
+	// 30 occurrences: should truncate to 25 and show "... and 5 more occurrences"
+	occurrences := make([]IssueOccurrence, 0, 30)
+	for i := 1; i <= 30; i++ {
+		occurrences = append(occurrences, IssueOccurrence{
+			FilePath:       "src/file.ts",
+			LineNumber:     int64(i),
+			CommentSnippet: strings.Repeat("a", 250), // longer than 200 chars
+		})
+	}
+
+	params := IssueRenderParams{
+		FeatureID:          "popover",
+		FeatureName:        "Popover API",
+		Trigger:            "feature.baseline.promote_to_newly",
+		RepositoryFullName: "org/repo",
+		CommitSHA:          "sha",
+		Occurrences:        occurrences,
+		WebStatusURL:       "https://webstatus.dev/features/popover",
+	}
+
+	body := RenderIssueBody(params)
+
+	if !strings.Contains(body, "*... and 5 more occurrences in this repository.*") {
+		t.Errorf("expected overflow notice for 30 occurrences, got: %s", body)
+	}
+
+	// Ensure individual snippet is clamped to 200 chars + "..."
+	expectedSnippet := strings.Repeat("a", 200) + "..."
+	if !strings.Contains(body, expectedSnippet) {
+		t.Errorf("expected clamped snippet in body, got: %s", body)
+	}
+
+	// Test backtick sanitization
+	backtickParams := IssueRenderParams{
+		FeatureID:          "popover",
+		FeatureName:        "Popover API",
+		Trigger:            "feature.baseline.promote_to_newly",
+		RepositoryFullName: "org/repo",
+		CommitSHA:          "sha",
+		Occurrences: []IssueOccurrence{
+			{
+				FilePath:       "src/file.ts",
+				LineNumber:     1,
+				CommentSnippet: "/* TODO: `dialog` fallback */",
+			},
+		},
+		WebStatusURL: "",
+	}
+	backtickBody := RenderIssueBody(backtickParams)
+	if strings.Contains(backtickBody, "`dialog`") {
+		t.Errorf("unescaped backtick found inside code span: %s", backtickBody)
+	}
+	if !strings.Contains(backtickBody, "'dialog'") {
+		t.Errorf("expected backtick replaced with single quote: %s", backtickBody)
+	}
+}
+
+func TestRenderIssueTitle_SanitizeNewlines(t *testing.T) {
+	t.Parallel()
+
+	title := RenderIssueTitle("Feature\nWith\rNewlines", "feature.baseline.promote_to_widely")
+	if strings.Contains(title, "\n") || strings.Contains(title, "\r") {
+		t.Errorf("newlines were not sanitized in issue title: %q", title)
+	}
+	if !strings.Contains(title, "Feature With Newlines") {
+		t.Errorf("expected space-replaced feature name in title: %q", title)
+	}
+}

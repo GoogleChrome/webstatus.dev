@@ -18,6 +18,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -170,7 +171,9 @@ func TestDelivererSuccess(t *testing.T) {
 	}
 
 	tp := &mockTokenProvider{token: "test-token", err: nil}
-	deliverer := NewDeliverer(tp, func(_ string) GitHubIssueCreator { return creator }, storer, "worker-1")
+	deliverer := NewDeliverer(
+		tp, func(_ string) GitHubIssueCreator { return creator },
+		storer, "worker-1", "https://webstatus.dev")
 	err := deliverer.ProcessJob(context.Background(), sampleJob())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -208,7 +211,9 @@ func TestDelivererAlreadyDelivered(t *testing.T) {
 		releaseErr:      nil,
 	}
 
-	deliverer := NewDeliverer(nil, func(_ string) GitHubIssueCreator { return creator }, storer, "worker-1")
+	deliverer := NewDeliverer(
+		nil, func(_ string) GitHubIssueCreator { return creator },
+		storer, "worker-1", "https://webstatus.dev")
 	err := deliverer.ProcessJob(context.Background(), sampleJob())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -243,7 +248,9 @@ func TestDelivererSecondaryRateLimit(t *testing.T) {
 		releaseErr:      nil,
 	}
 
-	deliverer := NewDeliverer(nil, func(_ string) GitHubIssueCreator { return creator }, storer, "worker-1")
+	deliverer := NewDeliverer(
+		nil, func(_ string) GitHubIssueCreator { return creator },
+		storer, "worker-1", "https://webstatus.dev")
 	err := deliverer.ProcessJob(context.Background(), sampleJob())
 	if err == nil {
 		t.Fatalf("expected rate limit error, got nil")
@@ -281,7 +288,9 @@ func TestDelivererCreateIssueError(t *testing.T) {
 		releaseErr:      nil,
 	}
 
-	deliverer := NewDeliverer(nil, func(_ string) GitHubIssueCreator { return creator }, storer, "worker-1")
+	deliverer := NewDeliverer(
+		nil, func(_ string) GitHubIssueCreator { return creator },
+		storer, "worker-1", "https://webstatus.dev")
 	err := deliverer.ProcessJob(context.Background(), sampleJob())
 	if err == nil {
 		t.Fatalf("expected error from create issue, got nil")
@@ -315,7 +324,9 @@ func TestDelivererLockAlreadyHeld(t *testing.T) {
 		releaseErr:      nil,
 	}
 
-	deliverer := NewDeliverer(nil, func(_ string) GitHubIssueCreator { return creator }, storer, "worker-1")
+	deliverer := NewDeliverer(
+		nil, func(_ string) GitHubIssueCreator { return creator },
+		storer, "worker-1", "https://webstatus.dev")
 	err := deliverer.ProcessJob(context.Background(), sampleJob())
 	if err == nil {
 		t.Fatalf("expected error on lock collision, got nil")
@@ -350,7 +361,9 @@ func TestDelivererTokenProviderError(t *testing.T) {
 		releaseErr:      nil,
 	}
 
-	deliverer := NewDeliverer(tp, func(_ string) GitHubIssueCreator { return creator }, storer, "worker-1")
+	deliverer := NewDeliverer(
+		tp, func(_ string) GitHubIssueCreator { return creator },
+		storer, "worker-1", "https://webstatus.dev")
 	err := deliverer.ProcessJob(context.Background(), sampleJob())
 	if err == nil {
 		t.Fatalf("expected error on token failure, got nil")
@@ -387,7 +400,9 @@ func TestDelivererCreateIssueTimeoutEnforced(t *testing.T) {
 		releaseErr:      nil,
 	}
 
-	deliverer := NewDeliverer(nil, func(_ string) GitHubIssueCreator { return creator }, storer, "worker-1")
+	deliverer := NewDeliverer(
+		nil, func(_ string) GitHubIssueCreator { return creator },
+		storer, "worker-1", "https://webstatus.dev")
 	err := deliverer.ProcessJob(context.Background(), sampleJob())
 	if err != nil {
 		t.Fatalf("expected successful delivery, got error: %v", err)
@@ -427,7 +442,9 @@ func TestDelivererCreateIssueDeadlineExceeded(t *testing.T) {
 		releaseErr:      nil,
 	}
 
-	deliverer := NewDeliverer(nil, func(_ string) GitHubIssueCreator { return creator }, storer, "worker-1")
+	deliverer := NewDeliverer(
+		nil, func(_ string) GitHubIssueCreator { return creator },
+		storer, "worker-1", "https://webstatus.dev")
 	err := deliverer.ProcessJob(context.Background(), sampleJob())
 	if err == nil {
 		t.Fatalf("expected error on deadline exceeded, got nil")
@@ -472,7 +489,9 @@ func TestDelivererCreateIssueServerError(t *testing.T) {
 		releaseErr:      nil,
 	}
 
-	deliverer := NewDeliverer(nil, func(_ string) GitHubIssueCreator { return creator }, storer, "worker-1")
+	deliverer := NewDeliverer(
+		nil, func(_ string) GitHubIssueCreator { return creator },
+		storer, "worker-1", "https://webstatus.dev")
 	err := deliverer.ProcessJob(context.Background(), sampleJob())
 	if err == nil {
 		t.Fatalf("expected error on 500 server error, got nil")
@@ -517,7 +536,9 @@ func TestDelivererCreateIssueClientErrorNotRetried(t *testing.T) {
 		releaseErr:      nil,
 	}
 
-	deliverer := NewDeliverer(nil, func(_ string) GitHubIssueCreator { return creator }, storer, "worker-1")
+	deliverer := NewDeliverer(
+		nil, func(_ string) GitHubIssueCreator { return creator },
+		storer, "worker-1", "https://webstatus.dev")
 	err := deliverer.ProcessJob(context.Background(), sampleJob())
 	if err == nil {
 		t.Fatalf("expected error on 404 client error, got nil")
@@ -527,5 +548,46 @@ func TestDelivererCreateIssueClientErrorNotRetried(t *testing.T) {
 	}
 	if storer.lockReleased {
 		t.Errorf("lock should not be released on permanent client failure")
+	}
+}
+
+func TestDelivererCustomFrontendBaseURL(t *testing.T) {
+	t.Parallel()
+
+	creator := &mockIssueCreator{
+		hasDeadline:      false,
+		receivedDeadline: time.Time{},
+		createdTitle:     "",
+		createdBody:      "",
+		issueID:          102,
+		issueURL:         "https://github.com/GoogleChrome/webstatus.dev/issues/102",
+		createErr:        nil,
+	}
+
+	storer := &mockDeliveryStorer{
+		lockAcquired:    true,
+		acquireErr:      nil,
+		recordedSuccess: false,
+		recordedIssueID: "",
+		recordedURL:     "",
+		recordErr:       nil,
+		lockReleased:    false,
+		releaseErr:      nil,
+	}
+
+	customBaseURL := "https://staging.webstatus.dev/"
+	deliverer := NewDeliverer(nil, func(_ string) GitHubIssueCreator { return creator }, storer, "worker-1", customBaseURL)
+	job := sampleJob()
+	job.FeatureID = "popover"
+	job.WebStatusURL = "" // will be dynamically generated
+
+	err := deliverer.ProcessJob(context.Background(), job)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	expectedURL := "https://staging.webstatus.dev/features/popover"
+	if !strings.Contains(creator.createdBody, expectedURL) {
+		t.Errorf("expected body to contain custom base URL %s, got body: %s", expectedURL, creator.createdBody)
 	}
 }

@@ -39,6 +39,14 @@ type IssueRenderParams struct {
 	WebStatusURL       string
 }
 
+const (
+	// MaxRenderedOccurrences caps the number of occurrences displayed in the issue body
+	// to prevent exceeding GitHub's 65,536 character payload limit.
+	MaxRenderedOccurrences = 25
+	// MaxSnippetLength caps the length of individual comment snippets.
+	MaxSnippetLength = 200
+)
+
 func sanitizePath(p string) string {
 	cleaned := filepath.Clean(p)
 	cleaned = strings.TrimPrefix(cleaned, "/")
@@ -47,15 +55,24 @@ func sanitizePath(p string) string {
 	return cleaned
 }
 
+func sanitizeSnippet(s string) string {
+	if len(s) > MaxSnippetLength {
+		s = s[:MaxSnippetLength] + "..."
+	}
+
+	return strings.ReplaceAll(s, "`", "'")
+}
+
 // RenderIssueTitle generates a descriptive issue title based on feature and trigger.
 func RenderIssueTitle(featureName string, trigger string) string {
+	cleanName := strings.ReplaceAll(strings.ReplaceAll(featureName, "\r", " "), "\n", " ")
 	switch trigger {
 	case "feature.baseline.promote_to_widely":
-		return fmt.Sprintf("🚀 Baseline Update: %s is now Widely Available!", featureName)
+		return fmt.Sprintf("🚀 Baseline Update: %s is now Widely Available!", cleanName)
 	case "feature.baseline.promote_to_newly":
-		return fmt.Sprintf("✨ Baseline Update: %s is now Newly Available!", featureName)
+		return fmt.Sprintf("✨ Baseline Update: %s is now Newly Available!", cleanName)
 	default:
-		return fmt.Sprintf("🚀 Web Feature Ready: %s", featureName)
+		return fmt.Sprintf("🚀 Web Feature Ready: %s", cleanName)
 	}
 }
 
@@ -81,20 +98,30 @@ func RenderIssueBody(params IssueRenderParams) string {
 		fmt.Fprintf(&sb, "📊 [View Feature Status on webstatus.dev](%s)\n\n", params.WebStatusURL)
 	}
 
+	occurrences := params.Occurrences
+	truncated := 0
+	if len(occurrences) > MaxRenderedOccurrences {
+		truncated = len(occurrences) - MaxRenderedOccurrences
+		occurrences = occurrences[:MaxRenderedOccurrences]
+	}
+
 	sb.WriteString("### 📍 Affected File Locations:\n")
-	for _, occ := range params.Occurrences {
+	for _, occ := range occurrences {
 		safePath := sanitizePath(occ.FilePath)
 		permalink := fmt.Sprintf("https://github.com/%s/blob/%s/%s#L%d",
 			params.RepositoryFullName, params.CommitSHA, safePath, occ.LineNumber)
-		escapedSnippet := html.EscapeString(occ.CommentSnippet)
+		snippet := sanitizeSnippet(occ.CommentSnippet)
 		fmt.Fprintf(&sb, "- [`%s:L%d`](%s): `%s`\n",
-			safePath, occ.LineNumber, permalink, escapedSnippet)
+			safePath, occ.LineNumber, permalink, snippet)
+	}
+	if truncated > 0 {
+		fmt.Fprintf(&sb, "\n*... and %d more occurrences in this repository.*\n", truncated)
 	}
 
 	sb.WriteString("\n### 🤖 AI Refactoring Prompt\n```text\n")
 	fmt.Fprintf(&sb, "Refactor code to adopt native %s (%s).\n", escapedFeatureName, escapedFeatureID)
 	sb.WriteString("Review affected file locations, clean up legacy fallbacks/shims, " +
-		"and remove @webstatus TODO directives.\n")
+		"and remove TODO(baseline/...) directives.\n")
 	sb.WriteString("Follow Modern Web Guidance: https://github.com/GoogleChrome/modern-web-guidance\n")
 	sb.WriteString("```\n")
 
