@@ -113,6 +113,7 @@ func setupTestServer(t *testing.T, options ...TestServerOption) *Server {
 		userGitHubClientFactory: nil,
 		eventPublisher:          nil,
 		rssRenderer:             NewRSSRenderer(),
+		webhookVerifier:         nil,
 		vcsPermissionChecker:    nil,
 	}
 
@@ -122,6 +123,12 @@ func setupTestServer(t *testing.T, options ...TestServerOption) *Server {
 	}
 
 	return srv
+}
+
+func withWebhookVerifier(v WebhookVerifier) TestServerOption {
+	return func(srv *Server) {
+		srv.webhookVerifier = v
+	}
 }
 
 // Helper options to set specialized mocks if needed in tests

@@ -951,9 +951,6 @@ export interface components {
             metadata?: components["schemas"]["PageMetadata"];
             data?: components["schemas"]["CodeSubscriptionResponse"][];
         };
-        VCSWebhookPayload: {
-            [key: string]: unknown;
-        };
     };
     responses: never;
     parameters: {
@@ -3004,7 +3001,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["VCSWebhookPayload"];
+                "*/*": string;
             };
         };
         responses: {

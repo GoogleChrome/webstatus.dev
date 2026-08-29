@@ -26,12 +26,17 @@ import (
 )
 
 type BackendAdapter struct {
-	client  EventPublisher
-	topicID string
+	client              EventPublisher
+	searchConfigTopicID string
+	vcsScanTopicID      string
 }
 
-func NewBackendAdapter(client EventPublisher, topicID string) *BackendAdapter {
-	return &BackendAdapter{client: client, topicID: topicID}
+func NewBackendAdapter(client EventPublisher, searchConfigTopicID, vcsScanTopicID string) *BackendAdapter {
+	return &BackendAdapter{
+		client:              client,
+		searchConfigTopicID: searchConfigTopicID,
+		vcsScanTopicID:      vcsScanTopicID,
+	}
 }
 
 func (p *BackendAdapter) PublishSearchConfigurationChanged(
@@ -55,7 +60,7 @@ func (p *BackendAdapter) PublishSearchConfigurationChanged(
 		return fmt.Errorf("failed to create event: %w", err)
 	}
 
-	id, err := p.client.Publish(ctx, p.topicID, msg)
+	id, err := p.client.Publish(ctx, p.searchConfigTopicID, msg)
 	if err != nil {
 		return fmt.Errorf("failed to publish message: %w", err)
 	}
@@ -77,7 +82,7 @@ func (p *BackendAdapter) PublishCodeScanTask(
 		return fmt.Errorf("failed to create code scan task event: %w", err)
 	}
 
-	id, err := p.client.Publish(ctx, p.topicID, msg)
+	id, err := p.client.Publish(ctx, p.vcsScanTopicID, msg)
 	if err != nil {
 		return fmt.Errorf("failed to publish code scan task: %w", err)
 	}

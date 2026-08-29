@@ -43,7 +43,7 @@ func (s *Server) ListCodeSubscriptions(
 		return userCheck.Response, nil
 	}
 
-	if request.Provider != "github" {
+	if request.Provider != vcsProviderGitHub {
 		return backend.ListCodeSubscriptions400JSONResponse(
 			backend.BasicErrorModel{
 				Code:    http.StatusBadRequest,

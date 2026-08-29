@@ -104,7 +104,7 @@ func TestSearchConfigurationPublisherAdapter_Publish(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			publisher := new(mockPublisher)
 			publisher.err = tc.publishErr
-			adapter := NewBackendAdapter(publisher, "test-topic")
+			adapter := NewBackendAdapter(publisher, "test-topic", "code-scan-topic")
 
 			err := adapter.PublishSearchConfigurationChanged(context.Background(), tc.resp, tc.userID, tc.isCreation)
 
@@ -179,7 +179,7 @@ func TestBackendAdapter_PublishCodeScanTask(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			publisher := new(mockPublisher)
 			publisher.err = tc.publishErr
-			adapter := NewBackendAdapter(publisher, "code-scan-topic")
+			adapter := NewBackendAdapter(publisher, "test-topic", "code-scan-topic")
 
 			err := adapter.PublishCodeScanTask(context.Background(), task)
 			if (err != nil) != tc.wantErr {
