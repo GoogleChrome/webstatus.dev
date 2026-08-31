@@ -40,6 +40,8 @@ spec:
           value: 'chime-delivery-topic-id'
         - name: WEBHOOK_TOPIC_ID
           value: 'webhook-delivery-topic-id'
+        - name: GITHUB_ISSUE_DELIVERY_TOPIC_ID
+          value: 'github-issue-delivery-topic-id'
       resources:
         limits:
           cpu: 250m

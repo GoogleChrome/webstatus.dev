@@ -111,6 +111,9 @@ linters:
       - path: lib/gcpspanner/.*\.go
         linters:
           - goconst
+      - path: lib/gcppubsub/gcppubsubadapters/.*\.go
+        linters:
+          - dupl
 formatters:
   enable:
     - gofmt

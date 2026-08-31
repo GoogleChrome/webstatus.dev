@@ -865,3 +865,117 @@ func TestEventSummary_AcceptContract(t *testing.T) {
 		t.Errorf("summary.Accept did not dispatch to visitor, addedVisited = %d", mock.addedVisited)
 	}
 }
+
+func TestMatchesTrigger_BaselinePromotionsAndDemotions(t *testing.T) {
+	tests := []struct {
+		name      string
+		highlight SummaryHighlight
+		trigger   JobTrigger
+		want      bool
+	}{
+		{
+			name: "Promotion from Limited to Newly matches FeaturePromotedToNewly",
+			highlight: SummaryHighlight{
+				Type:        SummaryHighlightTypeChanged,
+				FeatureID:   "f1",
+				FeatureName: "F1",
+				BaselineChange: &Change[BaselineValue]{
+					From: BaselineValue{Status: BaselineStatusLimited, LowDate: nil, HighDate: nil},
+					To:   BaselineValue{Status: BaselineStatusNewly, LowDate: nil, HighDate: nil},
+				},
+				Docs:           nil,
+				NameChange:     nil,
+				BrowserChanges: nil,
+				Moved:          nil,
+				Split:          nil,
+			},
+			trigger: FeaturePromotedToNewly,
+			want:    true,
+		},
+		{
+			name: "Promotion from Unknown to Newly matches FeaturePromotedToNewly",
+			highlight: SummaryHighlight{
+				Type:        SummaryHighlightTypeChanged,
+				FeatureID:   "f1",
+				FeatureName: "F1",
+				BaselineChange: &Change[BaselineValue]{
+					From: BaselineValue{Status: BaselineStatusUnknown, LowDate: nil, HighDate: nil},
+					To:   BaselineValue{Status: BaselineStatusNewly, LowDate: nil, HighDate: nil},
+				},
+				Docs:           nil,
+				NameChange:     nil,
+				BrowserChanges: nil,
+				Moved:          nil,
+				Split:          nil,
+			},
+			trigger: FeaturePromotedToNewly,
+			want:    true,
+		},
+		{
+			name: "Demotion from Widely to Newly DOES NOT match FeaturePromotedToNewly",
+			highlight: SummaryHighlight{
+				Type:        SummaryHighlightTypeChanged,
+				FeatureID:   "f1",
+				FeatureName: "F1",
+				BaselineChange: &Change[BaselineValue]{
+					From: BaselineValue{Status: BaselineStatusWidely, LowDate: nil, HighDate: nil},
+					To:   BaselineValue{Status: BaselineStatusNewly, LowDate: nil, HighDate: nil},
+				},
+				Docs:           nil,
+				NameChange:     nil,
+				BrowserChanges: nil,
+				Moved:          nil,
+				Split:          nil,
+			},
+			trigger: FeaturePromotedToNewly,
+			want:    false,
+		},
+		{
+			name: "Promotion from Newly to Widely matches FeaturePromotedToWidely",
+			highlight: SummaryHighlight{
+				Type:        SummaryHighlightTypeChanged,
+				FeatureID:   "f1",
+				FeatureName: "F1",
+				BaselineChange: &Change[BaselineValue]{
+					From: BaselineValue{Status: BaselineStatusNewly, LowDate: nil, HighDate: nil},
+					To:   BaselineValue{Status: BaselineStatusWidely, LowDate: nil, HighDate: nil},
+				},
+				Docs:           nil,
+				NameChange:     nil,
+				BrowserChanges: nil,
+				Moved:          nil,
+				Split:          nil,
+			},
+			trigger: FeaturePromotedToWidely,
+			want:    true,
+		},
+		{
+			name: "Regression from Widely to Limited matches FeatureRegressedToLimited",
+			highlight: SummaryHighlight{
+				Type:        SummaryHighlightTypeChanged,
+				FeatureID:   "f1",
+				FeatureName: "F1",
+				BaselineChange: &Change[BaselineValue]{
+					From: BaselineValue{Status: BaselineStatusWidely, LowDate: nil, HighDate: nil},
+					To:   BaselineValue{Status: BaselineStatusLimited, LowDate: nil, HighDate: nil},
+				},
+				Docs:           nil,
+				NameChange:     nil,
+				BrowserChanges: nil,
+				Moved:          nil,
+				Split:          nil,
+			},
+			trigger: FeatureRegressedToLimited,
+			want:    true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := tc.highlight.MatchesTrigger(tc.trigger)
+			if got != tc.want {
+				t.Errorf("MatchesTrigger() = %v, want %v", got, tc.want)
+			}
+		})
+	}
+}

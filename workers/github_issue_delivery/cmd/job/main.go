@@ -1,4 +1,4 @@
-// Copyright 2025 Google LLC
+// Copyright 2026 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,13 +18,16 @@ import (
 	"context"
 	"log/slog"
 	"os"
+	"path/filepath"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcppubsub"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcppubsub/gcppubsubadapters"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
-	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters"
+	"github.com/GoogleChrome/webstatus.dev/lib/gh"
+	"github.com/GoogleChrome/webstatus.dev/lib/localcache"
 	"github.com/GoogleChrome/webstatus.dev/lib/opentelemetry"
-	"github.com/GoogleChrome/webstatus.dev/workers/push_delivery/pkg/dispatcher"
+	"github.com/GoogleChrome/webstatus.dev/workers/github_issue_delivery/pkg/delivery"
+	"github.com/google/uuid"
 )
 
 func main() {
@@ -41,11 +44,17 @@ func main() {
 		}
 	}()
 
-	slog.InfoContext(ctx, "starting push delivery worker")
+	slog.InfoContext(ctx, "starting GitHub issue delivery worker")
 
 	projectID := os.Getenv("PROJECT_ID")
 	if projectID == "" {
 		slog.ErrorContext(ctx, "PROJECT_ID is not set. exiting...")
+		os.Exit(1)
+	}
+
+	subID := os.Getenv("GITHUB_ISSUE_DELIVERY_SUBSCRIPTION_ID")
+	if subID == "" {
+		slog.ErrorContext(ctx, "GITHUB_ISSUE_DELIVERY_SUBSCRIPTION_ID is not set. exiting...")
 		os.Exit(1)
 	}
 
@@ -63,30 +72,30 @@ func main() {
 		spannerClient.SetMisingOneImplementationQuery(gcpspanner.LocalMissingOneImplementationQuery{})
 	}
 
-	// For subscribing to notification events
-	notificationSubID := os.Getenv("NOTIFICATION_SUBSCRIPTION_ID")
-	if notificationSubID == "" {
-		slog.ErrorContext(ctx, "NOTIFICATION_SUBSCRIPTION_ID is not set. exiting...")
+	appID := os.Getenv("GITHUB_APP_ID")
+	if appID == "" {
+		slog.ErrorContext(ctx, "GITHUB_APP_ID is not set. exiting...")
 		os.Exit(1)
 	}
 
-	// For publishing to push destinations
-	// Push destination 1: Email
-	emailTopicID := os.Getenv("EMAIL_TOPIC_ID")
-	if emailTopicID == "" {
-		slog.ErrorContext(ctx, "EMAIL_TOPIC_ID is not set. exiting...")
+	pkPath := os.Getenv("GITHUB_APP_PRIVATE_KEY_PATH")
+	if pkPath == "" {
+		slog.ErrorContext(ctx, "GITHUB_APP_PRIVATE_KEY_PATH is not set. exiting...")
 		os.Exit(1)
 	}
-	// Push destination 2: Webhook
-	webhookTopicID := os.Getenv("WEBHOOK_TOPIC_ID")
-	if webhookTopicID == "" {
-		slog.ErrorContext(ctx, "WEBHOOK_TOPIC_ID is not set. exiting...")
+
+	pkData, readErr := os.ReadFile(filepath.Clean(pkPath)) // #nosec G304 G703 -- Admin configured private key path
+	if readErr != nil {
+		slog.ErrorContext(ctx, "unable to read private key file", "path", pkPath, "error", readErr)
 		os.Exit(1)
 	}
-	// Push destination 3: GitHub Issue
-	githubIssueTopicID := os.Getenv("GITHUB_ISSUE_DELIVERY_TOPIC_ID")
-	if githubIssueTopicID == "" {
-		slog.ErrorContext(ctx, "GITHUB_ISSUE_DELIVERY_TOPIC_ID is not set. exiting...")
+
+	// TODO: Migrate to valkeycache.ValkeyDataCache for cross-instance token caching
+	// once Valkey connectivity is configured.
+	cacher := localcache.NewLocalDataCache[string, []byte](nil)
+	tokenProvider, tpErr := gh.NewTokenProvider(appID, pkData, cacher)
+	if tpErr != nil {
+		slog.ErrorContext(ctx, "unable to create token provider", "error", tpErr)
 		os.Exit(1)
 	}
 
@@ -96,16 +105,17 @@ func main() {
 		os.Exit(1)
 	}
 
-	listener := gcppubsubadapters.NewPushDeliverySubscriberAdapter(
-		dispatcher.NewDispatcher(
-			spanneradapters.NewPushDeliverySubscriberFinder(spannerClient),
-			gcppubsubadapters.NewPushDeliveryPublisher(queueClient, emailTopicID, webhookTopicID, githubIssueTopicID),
-		),
-		queueClient,
-		notificationSubID,
-	)
+	frontendBaseURL := os.Getenv("FRONTEND_BASE_URL")
+	if frontendBaseURL == "" {
+		frontendBaseURL = "https://webstatus.dev"
+	}
+
+	workerID := uuid.NewString()
+	deliverer := delivery.NewDeliverer(tokenProvider, nil, spannerClient, workerID, frontendBaseURL)
+
+	listener := gcppubsubadapters.NewGitHubIssueDeliverySubscriberAdapter(deliverer, queueClient, subID)
 	if err := listener.Subscribe(ctx); err != nil {
-		slog.ErrorContext(ctx, "Push delivery subscriber failed", "error", err)
+		slog.ErrorContext(ctx, "github issue delivery worker subscriber failed", "error", err)
 		os.Exit(1)
 	}
 }

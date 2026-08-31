@@ -255,7 +255,9 @@ func NewEmptyEventSummary() EventSummary {
 func (h SummaryHighlight) MatchesTrigger(t JobTrigger) bool {
 	switch t {
 	case FeaturePromotedToNewly:
-		return h.BaselineChange != nil && h.BaselineChange.To.Status == BaselineStatusNewly
+		return h.BaselineChange != nil &&
+			h.BaselineChange.To.Status == BaselineStatusNewly &&
+			h.BaselineChange.From.Status != BaselineStatusWidely
 	case FeaturePromotedToWidely:
 		return h.BaselineChange != nil && h.BaselineChange.To.Status == BaselineStatusWidely
 	case FeatureRegressedToLimited:
@@ -481,7 +483,9 @@ func checkBaseline(change *v1.Change[v1.BaselineState], newlyCount, widelyCount 
 	if change != nil && change.To.Status.IsSet {
 		switch change.To.Status.Value {
 		case v1.Newly:
-			*newlyCount++
+			if !change.From.Status.IsSet || change.From.Status.Value != v1.Widely {
+				*newlyCount++
+			}
 		case v1.Widely:
 			*widelyCount++
 		case v1.Limited:
