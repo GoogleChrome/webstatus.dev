@@ -102,12 +102,23 @@ wpt_region_schedules = {
   "europe-west1" = "30 4,10,16,22 * * *"
 }
 
+vcs_sync_region_schedules = {
+  "us-central1"  = "0,10,20,30,40,50 * * * *"
+  "europe-west1" = "5,15,25,35,45,55 * * * *"
+}
+
 
 firebase_api_key_location = "staging-firebase-app-api-key"
 
 auth_github_config_locations = {
   client_id     = "staging-github-client-id"
   client_secret = "staging-github-client-secret"
+}
+
+github_app_config_locations = {
+  app_id          = "staging-github-app-id"
+  private_key_pem = "staging-github-app-private-key-pem"
+  webhook_secret  = "staging-github-app-webhook-secret"
 }
 
 # TODO: Once staging is public, we should change the minimum instance count to
@@ -124,8 +135,10 @@ chime_details = {
 }
 
 worker_manual_instance_counts = {
-  event_producer = 2
-  push_delivery  = 1
-  email          = 1
-  webhook        = 1
+  event_producer        = 2
+  push_delivery         = 1
+  email                 = 1
+  webhook               = 1
+  vcs_scanner           = 1
+  github_issue_delivery = 1
 }

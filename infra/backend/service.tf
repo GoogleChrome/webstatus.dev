@@ -53,6 +53,22 @@ resource "google_secret_manager_secret_iam_member" "backend_otel_config_secret_a
   member    = "serviceAccount:${google_service_account.backend.email}"
 }
 
+resource "google_secret_manager_secret_iam_member" "backend_github_app_key_secret_access" {
+  count     = var.github_app_private_key_secret_id != "" ? 1 : 0
+  provider  = google.internal_project
+  secret_id = var.github_app_private_key_secret_id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.backend.email}"
+}
+
+resource "google_secret_manager_secret_iam_member" "backend_github_app_webhook_secret_access" {
+  count     = var.github_app_webhook_secret_id != "" ? 1 : 0
+  provider  = google.internal_project
+  secret_id = var.github_app_webhook_secret_id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.backend.email}"
+}
+
 resource "google_cloud_run_v2_service" "service" {
   for_each = var.region_to_subnet_info_map
   provider = google.public_project
@@ -142,8 +158,46 @@ resource "google_cloud_run_v2_service" "service" {
         value = var.ingestion_topic_id
       }
       env {
+        name  = "VCS_SCAN_TASKS_TOPIC_ID"
+        value = var.vcs_scan_tasks_topic_id
+      }
+      env {
         name  = "PUBSUB_PROJECT_ID"
         value = var.pubsub_project_id
+      }
+      env {
+        name  = "GITHUB_APP_ID"
+        value = var.github_app_id
+      }
+      env {
+        name  = "GITHUB_APP_PRIVATE_KEY_PATH"
+        value = var.github_app_private_key_secret_id != "" ? "/etc/secrets/github-app/private-key.pem" : ""
+      }
+      dynamic "env" {
+        for_each = var.github_app_webhook_secret_id != "" ? [1] : []
+        content {
+          name = "GITHUB_WEBHOOK_SECRET"
+          value_source {
+            secret_key_ref {
+              secret  = "projects/${var.projects.internal}/secrets/${var.github_app_webhook_secret_id}"
+              version = "latest"
+            }
+          }
+        }
+      }
+      dynamic "env" {
+        for_each = var.github_app_webhook_secret_id == "" ? [1] : []
+        content {
+          name  = "GITHUB_WEBHOOK_SECRET"
+          value = "dummy-webhook-secret"
+        }
+      }
+      dynamic "volume_mounts" {
+        for_each = var.github_app_private_key_secret_id != "" ? [1] : []
+        content {
+          name       = "github-app-key"
+          mount_path = "/etc/secrets/github-app"
+        }
       }
     }
     containers {
@@ -195,6 +249,19 @@ resource "google_cloud_run_v2_service" "service" {
         }
       }
     }
+    dynamic "volumes" {
+      for_each = var.github_app_private_key_secret_id != "" ? [1] : []
+      content {
+        name = "github-app-key"
+        secret {
+          secret = "projects/${var.projects.internal}/secrets/${var.github_app_private_key_secret_id}"
+          items {
+            version = "latest"
+            path    = "private-key.pem"
+          }
+        }
+      }
+    }
     service_account = google_service_account.backend.email
   }
 
@@ -206,6 +273,8 @@ resource "google_cloud_run_v2_service" "service" {
   depends_on = [
     google_project_iam_member.gcp_datastore_user,
     google_secret_manager_secret_iam_member.backend_otel_config_secret_access,
+    google_secret_manager_secret_iam_member.backend_github_app_key_secret_access,
+    google_secret_manager_secret_iam_member.backend_github_app_webhook_secret_access,
   ]
 
   deletion_protection = var.deletion_protection
@@ -242,6 +311,13 @@ resource "google_cloud_run_service_iam_member" "public" {
 
 resource "google_pubsub_topic_iam_member" "pub" {
   topic    = var.ingestion_topic_id
+  role     = "roles/pubsub.publisher"
+  member   = "serviceAccount:${google_service_account.backend.email}"
+  provider = google.internal_project
+}
+
+resource "google_pubsub_topic_iam_member" "vcs_scan_tasks_pub" {
+  topic    = var.vcs_scan_tasks_topic_id
   role     = "roles/pubsub.publisher"
   member   = "serviceAccount:${google_service_account.backend.email}"
   provider = google.internal_project

@@ -43,6 +43,7 @@ module "job" {
   otel_collector_image             = var.otel_collector_image
   otel_collector_config_mount_path = var.otel_collector_config_mount_path
   otel_collector_endpoint          = var.otel_collector_endpoint
+  github_app_private_key_secret_id = var.github_app_private_key_secret_id
 }
 
 resource "google_service_account" "service_account" {

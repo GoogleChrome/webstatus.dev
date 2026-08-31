@@ -17,12 +17,15 @@ variable "env_id" { type = string }
 variable "image_url" { type = string }
 variable "spanner_instance_id" { type = string }
 variable "spanner_database_id" { type = string }
-variable "notification_subscription_id" { type = string }
-variable "email_topic_id" { type = string }
-variable "webhook_topic_id" { type = string }
-variable "github_issue_delivery_topic_id" {
+variable "vcs_scan_tasks_subscription_id" { type = string }
+variable "github_app_id" {
+  type    = string
+  default = ""
+}
+variable "github_app_private_key_secret_id" {
   type        = string
-  description = "Pub/Sub topic ID for GitHub issue delivery events"
+  description = "The Secret Manager secret ID containing the GitHub App RSA private key"
+  default     = ""
 }
 variable "manual_instance_count" { type = number }
 variable "regions" { type = set(string) }

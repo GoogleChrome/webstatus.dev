@@ -79,9 +79,10 @@ module "push_delivery" {
   spanner_instance_id = var.spanner_details.instance
   spanner_database_id = var.spanner_details.database
 
-  notification_subscription_id = var.pubsub_details.notification_subscription_id
-  email_topic_id               = var.pubsub_details.email_topic_id
-  webhook_topic_id             = var.pubsub_details.webhook_topic_id
+  notification_subscription_id   = var.pubsub_details.notification_subscription_id
+  email_topic_id                 = var.pubsub_details.email_topic_id
+  webhook_topic_id               = var.pubsub_details.webhook_topic_id
+  github_issue_delivery_topic_id = var.pubsub_details.github_issue_delivery_topic_id
 
   manual_instance_count = var.worker_instance_count.push_delivery_count
   regions               = var.regions
@@ -172,6 +173,87 @@ module "webhook" {
   frontend_base_url = var.frontend_base_url
 
   deletion_protection              = var.deletion_protection
+  otel_config_secret_id            = var.otel_config_secret_id
+  otel_project_id                  = var.otel_project_id
+  otel_collector_image             = var.otel_collector_image
+  otel_collector_config_mount_path = var.otel_collector_config_mount_path
+  otel_collector_endpoint          = var.otel_collector_endpoint
+}
+
+# --- 5. VCS Scanner Worker ---
+
+# Build Image
+module "vcs_scanner_image" {
+  source                = "../modules/go_image"
+  image_name            = "vcs_scanner"
+  go_module_path        = "workers/vcs_scanner"
+  binary_type           = "job"
+  docker_repository_url = var.docker_repository_details.url
+}
+
+# Deploy Service (Multi-Region)
+module "vcs_scanner" {
+  source = "./vcs_scanner"
+  providers = {
+    google.internal_project = google.internal_project
+  }
+
+  project_id = var.internal_project_id
+  env_id     = var.env_id
+  image_url  = module.vcs_scanner_image.remote_image
+
+  spanner_instance_id = var.spanner_details.instance
+  spanner_database_id = var.spanner_details.database
+
+  vcs_scan_tasks_subscription_id   = var.pubsub_details.vcs_scan_tasks_subscription_id
+  github_app_id                    = var.github_app_id
+  github_app_private_key_secret_id = var.github_app_private_key_secret_id
+
+  manual_instance_count = var.worker_instance_count.vcs_scanner_count
+  regions               = var.regions
+
+  deletion_protection              = var.deletion_protection
+  otel_config_secret_id            = var.otel_config_secret_id
+  otel_project_id                  = var.otel_project_id
+  otel_collector_image             = var.otel_collector_image
+  otel_collector_config_mount_path = var.otel_collector_config_mount_path
+  otel_collector_endpoint          = var.otel_collector_endpoint
+}
+
+# --- 6. GitHub Issue Delivery Worker ---
+
+# Build Image
+module "github_issue_delivery_image" {
+  source                = "../modules/go_image"
+  image_name            = "github_issue_delivery"
+  go_module_path        = "workers/github_issue_delivery"
+  binary_type           = "job"
+  docker_repository_url = var.docker_repository_details.url
+}
+
+# Deploy Service (Multi-Region)
+module "github_issue_delivery" {
+  source = "./github_issue_delivery"
+  providers = {
+    google.internal_project = google.internal_project
+  }
+
+  project_id = var.internal_project_id
+  env_id     = var.env_id
+  image_url  = module.github_issue_delivery_image.remote_image
+
+  spanner_instance_id = var.spanner_details.instance
+  spanner_database_id = var.spanner_details.database
+
+  github_issue_delivery_subscription_id = var.pubsub_details.github_issue_delivery_subscription_id
+  github_app_id                         = var.github_app_id
+  github_app_private_key_secret_id      = var.github_app_private_key_secret_id
+
+  manual_instance_count = var.worker_instance_count.github_issue_delivery_count
+  regions               = var.regions
+
+  deletion_protection              = var.deletion_protection
+  frontend_base_url                = var.frontend_base_url
   otel_config_secret_id            = var.otel_config_secret_id
   otel_project_id                  = var.otel_project_id
   otel_collector_image             = var.otel_collector_image

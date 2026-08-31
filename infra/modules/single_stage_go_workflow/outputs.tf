@@ -1,4 +1,4 @@
-# Copyright 2024 Google LLC
+# Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,15 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-output "regional_job_map" {
-  value = tomap({
-    for j in google_cloud_run_v2_job.job : j.location => {
-      project_id = j.project
-      name       = j.name
-    }
-  })
-}
-
 output "job_service_account_email" {
-  value = google_service_account.job_service_account.email
+  value = module.job.job_service_account_email
 }

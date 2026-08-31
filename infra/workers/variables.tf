@@ -48,27 +48,38 @@ variable "state_bucket_name" {
 
 variable "pubsub_details" {
   type = object({
-    ingestion_subscription_id    = string
-    ingestion_topic_id           = string
-    batch_topic_id               = string
-    batch_subscription_id        = string
-    notification_topic_id        = string
-    notification_subscription_id = string
-    email_topic_id               = string
-    email_subscription_id        = string
-    webhook_topic_id             = string
-    webhook_subscription_id      = string
+    ingestion_subscription_id             = string
+    ingestion_topic_id                    = string
+    batch_topic_id                        = string
+    batch_subscription_id                 = string
+    notification_topic_id                 = string
+    notification_subscription_id          = string
+    email_topic_id                        = string
+    email_subscription_id                 = string
+    webhook_topic_id                      = string
+    webhook_subscription_id               = string
+    vcs_scan_tasks_topic_id               = string
+    vcs_scan_tasks_subscription_id        = string
+    github_issue_delivery_topic_id        = string
+    github_issue_delivery_subscription_id = string
   })
 }
 
 variable "worker_instance_count" {
   description = "Number of instances for manual scaling"
   type = object({
-    event_producer_count = number
-    push_delivery_count  = number
-    email_count          = number
-    webhook_count        = number
+    event_producer_count        = number
+    push_delivery_count         = number
+    email_count                 = number
+    webhook_count               = number
+    vcs_scanner_count           = number
+    github_issue_delivery_count = number
   })
+}
+
+variable "github_app_id" {
+  description = "GitHub App ID"
+  type        = string
 }
 
 variable "email_service_account_email" {
@@ -116,4 +127,10 @@ variable "otel_collector_config_mount_path" {
 variable "otel_collector_endpoint" {
   type        = string
   description = "The endpoint for the application to export OTLP metrics/traces to the local collector"
+}
+
+variable "github_app_private_key_secret_id" {
+  type        = string
+  description = "The Secret Manager secret ID containing the GitHub App RSA private key"
+  default     = ""
 }

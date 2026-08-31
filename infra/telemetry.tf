@@ -56,6 +56,8 @@ resource "google_secret_manager_secret_iam_member" "worker_otel_config_secret_ac
     "serviceAccount:event-producer-${var.env_id}@${var.projects.internal}.iam.gserviceaccount.com",
     "serviceAccount:push-delivery-${var.env_id}@${var.projects.internal}.iam.gserviceaccount.com",
     "serviceAccount:webhook-worker-${var.env_id}@${var.projects.internal}.iam.gserviceaccount.com",
+    "serviceAccount:vcs-scanner-${var.env_id}@${var.projects.internal}.iam.gserviceaccount.com",
+    "serviceAccount:gh-issue-deliv-${var.env_id}@${var.projects.internal}.iam.gserviceaccount.com",
     "serviceAccount:${var.email_service_account_email}", # Email worker uses pre-existing SA
   ])
   provider  = google.internal_project
@@ -74,6 +76,7 @@ resource "google_secret_manager_secret_iam_member" "job_otel_config_secret_acces
     "uma-consumer",
     "dev-signals",
     "feature-map",
+    "vcs-sync",
   ])
   provider  = google.internal_project
   secret_id = google_secret_manager_secret.otel_config.id
