@@ -41,6 +41,7 @@ The available skills are:
 - `webstatus-ingestion`: Scheduled data ingestion workflows.
 - `webstatus-workers`: Pub/Sub notification pipeline.
 - `webstatus-search-grammar`: ANTLR search query parsing.
+- `webstatus-code-subscriptions`: Repository code subscriptions, AST directive scanning, and automated GitHub issue delivery.
 - `webstatus-pr-creation`: Agent workflows for creating PRs and commits.
 
 ## 4. Updating the Knowledge Base

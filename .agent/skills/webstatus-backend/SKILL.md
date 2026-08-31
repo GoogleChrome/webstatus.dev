@@ -53,7 +53,8 @@ We use a Hexagonal-style **Adapter Pattern** to decouple application logic from 
 - **DO** use **Canonical Transport Types** from `lib/workertypes` for any data crossing service boundaries (e.g. results sent to Pub/Sub).
 - **DO** write integration tests using `testcontainers-go` for any changes to the `lib/gcpspanner` layer.
 - **DO** add response caching for new read-only endpoints in `backend/pkg/httpserver/cache.go`.
-- **DON'T** import `lib/backendtypes` into `lib/gcpspanner` (prevents circular dependencies).
+- **DON'T** import `lib/backendtypes` into `lib/gcpspanner` (prevents circular dependencies), and **DON'T** import `lib/gcpspanner` into `lib/backendtypes` (prevents architectural layer inversion).
+- **DO** place all Pub/Sub message payloads in dedicated versioned packages under `lib/event/<name>/<version>/types.go`, implement `event.Event` (`Kind()`, `APIVersion()`), and publish via `event.New(evt)`.
 - **DO** handle business key to internal ID translation inside the `gcpspanner` client.
 - **DO** ensure `Merge` functions in mappers copy ALL fields, including `UpdatedAt`.
 - **DO** use `...WithTransaction` variants of helpers when inside a `ReadWriteTransaction`.
