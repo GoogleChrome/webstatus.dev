@@ -340,8 +340,9 @@ resource "google_compute_region_network_endpoint_group" "neg" {
 }
 
 resource "google_compute_backend_service" "lb_backend" {
-  provider = google.public_project
-  name     = "${var.env_id}-backend-service"
+  provider              = google.public_project
+  name                  = "${var.env_id}-backend-service"
+  load_balancing_scheme = "EXTERNAL"
   dynamic "backend" {
     for_each = google_compute_region_network_endpoint_group.neg
     content {
@@ -375,12 +376,13 @@ resource "google_compute_url_map" "url_map" {
 }
 
 resource "google_compute_global_forwarding_rule" "https" {
-  provider    = google.public_project
-  name        = "${var.env_id}-backend-https-rule"
-  ip_protocol = "TCP"
-  port_range  = "443"
-  ip_address  = google_compute_global_address.ub_ip_address.id
-  target      = google_compute_target_https_proxy.lb_https_proxy.id
+  provider              = google.public_project
+  name                  = "${var.env_id}-backend-https-rule"
+  load_balancing_scheme = "EXTERNAL"
+  ip_protocol           = "TCP"
+  port_range            = "443"
+  ip_address            = google_compute_global_address.ub_ip_address.id
+  target                = google_compute_target_https_proxy.lb_https_proxy.id
 }
 
 resource "google_compute_global_address" "ub_ip_address" {
@@ -389,12 +391,13 @@ resource "google_compute_global_address" "ub_ip_address" {
 }
 
 resource "google_compute_global_forwarding_rule" "main" {
-  provider    = google.public_project
-  name        = "${var.env_id}-backend-main-https-rule"
-  ip_protocol = "TCP"
-  port_range  = "443"
-  ip_address  = google_compute_global_address.main_ip_address.id
-  target      = google_compute_target_https_proxy.lb_https_proxy.id
+  provider              = google.public_project
+  name                  = "${var.env_id}-backend-main-https-rule"
+  load_balancing_scheme = "EXTERNAL"
+  ip_protocol           = "TCP"
+  port_range            = "443"
+  ip_address            = google_compute_global_address.main_ip_address.id
+  target                = google_compute_target_https_proxy.lb_https_proxy.id
 }
 
 resource "google_compute_global_address" "main_ip_address" {
