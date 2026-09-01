@@ -16,9 +16,12 @@ terraform {
   required_version = ">= 1.14.6"
   backend "gcs" {}
   required_providers {
+    # Cap below Google provider v8: v8 changed the default load_balancing_scheme from
+    # EXTERNAL to EXTERNAL_MANAGED, which GCP rejects in-place on existing Classic ALBs.
+    # See #2808 for the roadmap to upgrade to v8 and migrate load balancers.
     google = {
       source  = "hashicorp/google"
-      version = ">= 5.4.0"
+      version = ">= 5.4.0, < 8.0.0"
     }
     docker = {
       source  = "kreuzwerker/docker"

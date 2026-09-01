@@ -428,6 +428,10 @@ updates:
       timezone: 'America/Los_Angeles'
     cooldown:
       default-days: 7
+    ignore:
+      - dependency-name: 'hashicorp/google'
+        update-types:
+          - 'version-update:semver-major'
 
   # DevContainer
   - package-ecosystem: 'devcontainers'
