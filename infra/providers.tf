@@ -16,9 +16,11 @@ terraform {
   required_version = ">= 1.14.6"
   backend "gcs" {}
   required_providers {
+    # Provider 8.0.0 defaults load_balancing_scheme to EXTERNAL_MANAGED.
+    # We explicitly declare EXTERNAL on Classic ALBs; see #2808 for migration to EXTERNAL_MANAGED.
     google = {
       source  = "hashicorp/google"
-      version = ">= 5.4.0"
+      version = ">= 8.0.0"
     }
     docker = {
       source  = "kreuzwerker/docker"
