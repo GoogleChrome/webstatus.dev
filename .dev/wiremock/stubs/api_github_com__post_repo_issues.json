@@ -1,0 +1,26 @@
+{
+  "metadata": {
+    "notes": "Mocks POST /repos/{owner}/{repo}/issues",
+    "docsLink": "https://docs.github.com/en/rest/issues/issues#create-an-issue"
+  },
+  "scenarioName": "code_subscriptions",
+  "requiredScenarioState": "Started",
+  "request": {
+    "method": "POST",
+    "urlPattern": "/repos/[^/]+/[^/]+/issues"
+  },
+  "response": {
+    "status": 201,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "id": 987654321,
+      "number": 42,
+      "title": "[webstatus] Baseline Widely Available: CSS Subgrid",
+      "html_url": "https://github.com/GoogleChrome/webstatus.dev/issues/42",
+      "state": "open",
+      "body": "Automated alert from webstatus.dev code subscription."
+    }
+  }
+}

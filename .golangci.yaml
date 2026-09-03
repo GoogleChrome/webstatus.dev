@@ -82,8 +82,66 @@ linters:
           files:
             - '**/lib/workertypes/**.go'
           deny:
+            - pkg: 'github.com/GoogleChrome/webstatus.dev/lib/gcpspanner'
+              desc: 'workertypes must not depend on database packages.'
             - pkg: 'github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters'
               desc: 'workertypes must not depend on database adapters.'
+            - pkg: 'github.com/GoogleChrome/webstatus.dev/lib/backendtypes'
+              desc: 'workertypes must not depend on backend types.'
+        backendtypes_restrictions:
+          files:
+            - '**/lib/backendtypes/**.go'
+          deny:
+            - pkg: 'github.com/GoogleChrome/webstatus.dev/lib/gcpspanner'
+              desc: 'backendtypes must not depend on database packages.'
+            - pkg: 'github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters'
+              desc: 'backendtypes must not depend on database adapters.'
+        codescan_restrictions:
+          files:
+            - '**/lib/codescan/**.go'
+          deny:
+            - pkg: 'github.com/GoogleChrome/webstatus.dev/lib/gcpspanner'
+              desc: 'codescan must not depend on database packages.'
+            - pkg: 'github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters'
+              desc: 'codescan must not depend on database adapters.'
+            - pkg: 'github.com/GoogleChrome/webstatus.dev/lib/backendtypes'
+              desc: 'codescan must not depend on backend types.'
+            - pkg: 'github.com/GoogleChrome/webstatus.dev/lib/gcppubsub'
+              desc: 'codescan must not depend on pubsub packages.'
+        netutil_restrictions:
+          files:
+            - '**/lib/netutil/**.go'
+          deny:
+            - pkg: 'github.com/GoogleChrome/webstatus.dev/lib/gcpspanner'
+              desc: 'netutil must not depend on database packages.'
+            - pkg: 'github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters'
+              desc: 'netutil must not depend on database adapters.'
+            - pkg: 'github.com/GoogleChrome/webstatus.dev/lib/backendtypes'
+              desc: 'netutil must not depend on backend types.'
+            - pkg: 'github.com/GoogleChrome/webstatus.dev/lib/gcppubsub'
+              desc: 'netutil must not depend on pubsub packages.'
+        gcppubsubadapters_restrictions:
+          files:
+            - '**/lib/gcppubsub/gcppubsubadapters/**.go'
+          deny:
+            - pkg: 'github.com/GoogleChrome/webstatus.dev/lib/gcpspanner'
+              desc: 'gcppubsubadapters must not depend on database packages.'
+            - pkg: 'github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters'
+              desc: 'gcppubsubadapters must not depend on database adapters.'
+            - pkg: 'github.com/GoogleChrome/webstatus.dev/lib/backendtypes'
+              desc: 'gcppubsubadapters must publish versioned events from lib/event instead of backendtypes.'
+        event_restrictions:
+          files:
+            - '**/lib/event/**.go'
+          deny:
+            - pkg: 'github.com/GoogleChrome/webstatus.dev/lib/gcpspanner'
+              desc: 'lib/event versioned payloads must be decoupled from database models.'
+            - pkg: 'github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters'
+              desc: 'lib/event versioned payloads must be decoupled from database adapters.'
+            - pkg: 'github.com/GoogleChrome/webstatus.dev/lib/backendtypes'
+              desc: 'lib/event versioned payloads must be decoupled from backend types.'
+            - pkg: 'github.com/GoogleChrome/webstatus.dev/lib/gcppubsub'
+              desc: 'lib/event must define schemas independently of the pubsub client.'
 
   exclusions:
     generated: lax
@@ -111,6 +169,9 @@ linters:
       - path: lib/gcpspanner/.*\.go
         linters:
           - goconst
+      - path: lib/gcppubsub/gcppubsubadapters/.*\.go
+        linters:
+          - dupl
 formatters:
   enable:
     - gofmt

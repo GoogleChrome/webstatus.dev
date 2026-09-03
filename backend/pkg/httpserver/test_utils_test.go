@@ -21,12 +21,10 @@ import (
 // TestServerOption defines a function type to override Server fields in tests.
 type TestServerOption func(*Server)
 
-// setupTestServer creates a Server instance initialized with safe defaults for testing.
-func setupTestServer(t *testing.T, options ...TestServerOption) *Server {
+func newDefaultMockWPTMetricsStorer(t *testing.T) *MockWPTMetricsStorer {
 	t.Helper()
 
-	// Default mock implementation
-	mockStorer := &MockWPTMetricsStorer{
+	return &MockWPTMetricsStorer{
 		t:                                                 t,
 		featureCfg:                                        nil,
 		aggregateCfg:                                      nil,
@@ -61,6 +59,8 @@ func setupTestServer(t *testing.T, options ...TestServerOption) *Server {
 		updateSavedSearchSubscriptionCfg:                  nil,
 		validateQueryReferencesCfg:                        nil,
 		listGlobalSavedSearchesCfg:                        nil,
+		listCodeSubscriptionsCfg:                          nil,
+		recordVCSWebhookDeliveryCfg:                       nil,
 		callCountListMetricsForFeatureIDBrowserAndChannel: 0,
 		callCountListMetricsOverTimeWithAggregatedTotals:  0,
 		callCountListChromeDailyUsageStats:                0,
@@ -94,7 +94,16 @@ func setupTestServer(t *testing.T, options ...TestServerOption) *Server {
 		callCountListGlobalSavedSearches:                  0,
 		callCountGetGlobalSavedSearch:                     0,
 		callCountGetSavedSearchSubscriptionPublic:         0,
+		callCountListCodeSubscriptions:                    0,
+		callCountRecordVCSWebhookDelivery:                 0,
 	}
+}
+
+// setupTestServer creates a Server instance initialized with safe defaults for testing.
+func setupTestServer(t *testing.T, options ...TestServerOption) *Server {
+	t.Helper()
+
+	mockStorer := newDefaultMockWPTMetricsStorer(t)
 
 	srv := &Server{
 		metadataStorer:          nil,
@@ -104,6 +113,8 @@ func setupTestServer(t *testing.T, options ...TestServerOption) *Server {
 		userGitHubClientFactory: nil,
 		eventPublisher:          nil,
 		rssRenderer:             NewRSSRenderer(),
+		webhookVerifier:         nil,
+		vcsPermissionChecker:    nil,
 	}
 
 	// Apply Functional Options to override defaults
@@ -114,7 +125,19 @@ func setupTestServer(t *testing.T, options ...TestServerOption) *Server {
 	return srv
 }
 
+func withWebhookVerifier(v WebhookVerifier) TestServerOption {
+	return func(srv *Server) {
+		srv.webhookVerifier = v
+	}
+}
+
 // Helper options to set specialized mocks if needed in tests
+
+func withCustomVCSPermissionChecker(c VCSPermissionChecker) TestServerOption {
+	return func(srv *Server) {
+		srv.vcsPermissionChecker = c
+	}
+}
 
 func withCustomStorer(s WPTMetricsStorer) TestServerOption {
 	return func(srv *Server) {

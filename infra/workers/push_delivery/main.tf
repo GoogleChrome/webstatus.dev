@@ -62,6 +62,10 @@ resource "google_cloud_run_v2_worker_pool" "worker" {
         value = var.webhook_topic_id
       }
       env {
+        name  = "GITHUB_ISSUE_DELIVERY_TOPIC_ID"
+        value = var.github_issue_delivery_topic_id
+      }
+      env {
         name  = "OTEL_SERVICE_NAME"
         value = "push-delivery"
       }

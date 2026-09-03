@@ -43,6 +43,7 @@ module "job" {
   otel_collector_image             = var.otel_collector_image
   otel_collector_config_mount_path = var.otel_collector_config_mount_path
   otel_collector_endpoint          = var.otel_collector_endpoint
+  github_app_private_key_secret_id = var.github_app_private_key_secret_id
 }
 
 resource "google_service_account" "service_account" {
@@ -110,48 +111,44 @@ resource "google_project_iam_member" "invoker" {
   member   = google_service_account.service_account.member
 }
 
-# This alert fires when a job has failed at least once in the last 23 hours,
-# and has not had any successful runs in that same period.
-# The alert will automatically resolve when the job succeeds on a subsequent run.
-# We use a 23-hour alignment period because of a GCP limitation where alignment
-# periods must be at least 5 minutes shorter than the 24-hour duration.
+# This alert fires when no successful job execution has completed across any region
+# in the last 23 hours.
+# It uses a single condition_absent combining all regional instances of this workflow,
+# ensuring exactly one notification is sent and preventing false alarms when one region fails
+# but another succeeds.
+# The alert will automatically resolve when any regional job succeeds on a subsequent run.
 resource "google_monitoring_alert_policy" "job_failed_alert" {
-  for_each = { for r in var.regions : r => r if length(var.notification_channel_ids) > 0 }
+  count = length(var.notification_channel_ids) > 0 ? 1 : 0
 
-  display_name          = "${var.full_name}/${each.key} - Job Not Succeeded in 23 Hours (Error)"
-  combiner              = "AND"
+  display_name          = "${var.full_name} - Ingestion Stalled (No Success in 23 Hours)"
+  combiner              = "OR"
   notification_channels = var.notification_channel_ids
   severity              = "ERROR"
 
   conditions {
-    display_name = "No successful job executions in 23 hours"
+    display_name = "No successful job executions in any region in 23 hours"
     condition_absent {
-      filter   = "metric.type=\"run.googleapis.com/job/completed_execution_count\" AND resource.type=\"cloud_run_job\" AND metric.labels.result=\"succeeded\" AND resource.labels.job_name=\"${module.job.regional_job_map[each.key].name}\""
+      filter = join(" AND ", [
+        "resource.type=\"cloud_run_job\"",
+        "metric.type=\"run.googleapis.com/job/completed_execution_count\"",
+        "metric.labels.result=\"succeeded\"",
+        "resource.labels.job_name = one_of(${join(", ", [for k, v in module.job.regional_job_map : "\"${v.name}\""])})"
+      ])
       duration = "120s"
       trigger {
         count = 1
       }
       aggregations {
-        alignment_period   = "82800s" # 23 hours
-        per_series_aligner = "ALIGN_SUM"
+        alignment_period     = "82800s" # 23 hours
+        per_series_aligner   = "ALIGN_SUM"
+        cross_series_reducer = "REDUCE_SUM"
+        group_by_fields      = []
       }
     }
   }
 
-  conditions {
-    display_name = "Job has failed at least once in the last 23 hours"
-    condition_threshold {
-      filter          = "metric.type=\"run.googleapis.com/job/completed_execution_count\" AND resource.type=\"cloud_run_job\" AND metric.labels.result=\"failed\" AND resource.labels.job_name=\"${module.job.regional_job_map[each.key].name}\""
-      duration        = "120s"
-      comparison      = "COMPARISON_GT"
-      threshold_value = 0
-      trigger {
-        count = 1
-      }
-      aggregations {
-        alignment_period   = "82800s" # 23 hours
-        per_series_aligner = "ALIGN_SUM"
-      }
-    }
+  documentation {
+    content   = "No successful ${var.full_name} execution has completed across any region in the last 23 hours (7-8 consecutive runs failed). Check Cloud Run job logs for errors or panics."
+    mime_type = "text/markdown"
   }
 }

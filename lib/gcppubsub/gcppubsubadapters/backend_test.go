@@ -21,6 +21,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/event"
+	codescantaskv1 "github.com/GoogleChrome/webstatus.dev/lib/event/codescantask/v1"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 	"github.com/google/go-cmp/cmp"
 )
@@ -102,7 +104,7 @@ func TestSearchConfigurationPublisherAdapter_Publish(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			publisher := new(mockPublisher)
 			publisher.err = tc.publishErr
-			adapter := NewBackendAdapter(publisher, "test-topic")
+			adapter := NewBackendAdapter(publisher, "test-topic", "code-scan-topic")
 
 			err := adapter.PublishSearchConfigurationChanged(context.Background(), tc.resp, tc.userID, tc.isCreation)
 
@@ -132,6 +134,78 @@ func TestSearchConfigurationPublisherAdapter_Publish(t *testing.T) {
 
 			if diff := cmp.Diff(expected, actual); diff != "" {
 				t.Errorf("Payload mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestBackendAdapter_PublishCodeScanTask(t *testing.T) {
+	t.Parallel()
+
+	task := codescantaskv1.CodeScanTaskEvent{
+		VCSProvider:        "github",
+		VCSInstallationID:  "inst-123",
+		VCSRepositoryID:    "repo-456",
+		RepositoryFullName: "GoogleChrome/webstatus.dev",
+		CommitSHA:          "abcdef123456",
+		Branch:             "main",
+		IsDefaultBranch:    true,
+		ModifiedFiles:      []string{"src/app.ts"},
+	}
+
+	expectedEnvelope, err := event.New(task)
+	if err != nil {
+		t.Fatalf("failed to create expected envelope: %v", err)
+	}
+
+	tests := []struct {
+		name       string
+		publishErr error
+		wantErr    bool
+	}{
+		{
+			name:       "success",
+			publishErr: nil,
+			wantErr:    false,
+		},
+		{
+			name:       "publisher error",
+			publishErr: errors.New("pubsub connection failure"),
+			wantErr:    true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			publisher := new(mockPublisher)
+			publisher.err = tc.publishErr
+			adapter := NewBackendAdapter(publisher, "test-topic", "code-scan-topic")
+
+			err := adapter.PublishCodeScanTask(context.Background(), task)
+			if (err != nil) != tc.wantErr {
+				t.Errorf("PublishCodeScanTask() error = %v, wantErr %v", err, tc.wantErr)
+			}
+
+			if tc.wantErr {
+				return
+			}
+
+			if publisher.publishedTopic != "code-scan-topic" {
+				t.Errorf("Topic mismatch: got %s, want code-scan-topic", publisher.publishedTopic)
+			}
+
+			var actual any
+			if err := json.Unmarshal(publisher.publishedData, &actual); err != nil {
+				t.Fatalf("failed to unmarshal published data: %v", err)
+			}
+
+			var expected any
+			if err := json.Unmarshal(expectedEnvelope, &expected); err != nil {
+				t.Fatalf("failed to unmarshal expected envelope: %v", err)
+			}
+
+			if diff := cmp.Diff(expected, actual); diff != "" {
+				t.Errorf("Envelope mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}

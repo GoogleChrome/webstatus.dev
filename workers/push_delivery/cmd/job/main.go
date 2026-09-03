@@ -83,6 +83,12 @@ func main() {
 		slog.ErrorContext(ctx, "WEBHOOK_TOPIC_ID is not set. exiting...")
 		os.Exit(1)
 	}
+	// Push destination 3: GitHub Issue
+	githubIssueTopicID := os.Getenv("GITHUB_ISSUE_DELIVERY_TOPIC_ID")
+	if githubIssueTopicID == "" {
+		slog.ErrorContext(ctx, "GITHUB_ISSUE_DELIVERY_TOPIC_ID is not set. exiting...")
+		os.Exit(1)
+	}
 
 	queueClient, err := gcppubsub.NewClient(ctx, projectID)
 	if err != nil {
@@ -93,7 +99,7 @@ func main() {
 	listener := gcppubsubadapters.NewPushDeliverySubscriberAdapter(
 		dispatcher.NewDispatcher(
 			spanneradapters.NewPushDeliverySubscriberFinder(spannerClient),
-			gcppubsubadapters.NewPushDeliveryPublisher(queueClient, emailTopicID, webhookTopicID),
+			gcppubsubadapters.NewPushDeliveryPublisher(queueClient, emailTopicID, webhookTopicID, githubIssueTopicID),
 		),
 		queueClient,
 		notificationSubID,

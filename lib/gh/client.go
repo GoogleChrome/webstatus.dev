@@ -16,6 +16,10 @@ package gh
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"io"
+	"net/http"
 	"net/url"
 
 	"github.com/google/go-github/v79/github"
@@ -32,6 +36,27 @@ func WithBaseURL(baseURL *url.URL) ClientOption {
 
 type RepoClient interface {
 	GetLatestRelease(ctx context.Context, owner, repo string) (*github.RepositoryRelease, *github.Response, error)
+	GetArchiveLink(
+		ctx context.Context,
+		owner, repo string,
+		archiveformat github.ArchiveFormat,
+		opts *github.RepositoryContentGetOptions,
+		maxRedirects int,
+	) (*url.URL, *github.Response, error)
+}
+
+type GitClient interface {
+	GetTree(ctx context.Context, owner, repo, sha string, recursive bool) (*github.Tree, *github.Response, error)
+	GetBlobRaw(ctx context.Context, owner, repo, sha string) ([]byte, *github.Response, error)
+}
+
+type IssuesClient interface {
+	Create(ctx context.Context, owner, repo string, issue *github.IssueRequest) (*github.Issue, *github.Response, error)
+}
+
+type AppsClient interface {
+	ListRepos(ctx context.Context, opts *github.ListOptions) (*github.ListRepositories, *github.Response, error)
+	ListInstallations(ctx context.Context, opts *github.ListOptions) ([]*github.Installation, *github.Response, error)
 }
 
 type UsersClient interface {
@@ -40,24 +65,123 @@ type UsersClient interface {
 }
 
 type Client struct {
-	repoClient RepoClient
+	repoClient   RepoClient
+	gitClient    GitClient
+	issuesClient IssuesClient
+	appsClient   AppsClient
+	httpClient   *http.Client
 }
 
 // NewClient creates a new Github Client. If the token is not empty, it will
 // use it as the auth token to make calls.
 func NewClient(token string, opts ...ClientOption) *Client {
-	ghClient := github.NewClient(nil)
+	return NewClientWithHTTPClient(nil, token, opts...)
+}
+
+// NewClientWithHTTPClient creates a new Github Client with a custom HTTP client.
+func NewClientWithHTTPClient(httpClient *http.Client, token string, opts ...ClientOption) *Client {
+	ghClient := github.NewClient(httpClient)
 	if token != "" {
 		ghClient = ghClient.WithAuthToken(token)
 	}
 	for _, opt := range opts {
 		opt(ghClient)
 	}
-	c := &Client{
-		repoClient: ghClient.Repositories,
+
+	return &Client{
+		repoClient:   ghClient.Repositories,
+		gitClient:    ghClient.Git,
+		issuesClient: ghClient.Issues,
+		appsClient:   ghClient.Apps,
+		httpClient:   httpClient,
+	}
+}
+
+// ListAppInstallations returns all installations of the authenticated GitHub App.
+func (c *Client) ListAppInstallations(
+	ctx context.Context,
+	opts *github.ListOptions,
+) ([]*github.Installation, error) {
+	if c.appsClient == nil {
+		return nil, errors.New("apps client not initialized")
+	}
+	result, _, err := c.appsClient.ListInstallations(ctx, opts)
+	if err != nil {
+		return nil, err
 	}
 
-	return c
+	return result, nil
+}
+
+// ListInstallationRepositories returns all repositories accessible to the installation.
+func (c *Client) ListInstallationRepositories(
+	ctx context.Context,
+	opts *github.ListOptions,
+) ([]*github.Repository, error) {
+	if c.appsClient == nil {
+		return nil, errors.New("apps client not initialized")
+	}
+	result, _, err := c.appsClient.ListRepos(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+	if result == nil {
+		return nil, nil
+	}
+
+	return result.Repositories, nil
+}
+
+// DownloadTarball downloads a tarball archive stream (.tar.gz) for a repository at a given git ref.
+// The caller is responsible for closing the returned ReadCloser.
+func (c *Client) DownloadTarball(
+	ctx context.Context,
+	owner, repo, ref string,
+) (io.ReadCloser, error) {
+	if c.repoClient == nil {
+		return nil, errors.New("repo client not initialized")
+	}
+
+	opts := &github.RepositoryContentGetOptions{Ref: ref}
+	archiveURL, resp, err := c.repoClient.GetArchiveLink(ctx, owner, repo, github.Tarball, opts, 0)
+	if err != nil {
+		if resp != nil && resp.Response != nil && resp.Body != nil && resp.StatusCode == http.StatusOK {
+			return resp.Body, nil
+		}
+
+		return nil, fmt.Errorf("failed to get tarball archive link for %s/%s@%s: %w", owner, repo, ref, err)
+	}
+
+	if archiveURL == nil {
+		return nil, fmt.Errorf("received nil archive URL for %s/%s@%s", owner, repo, ref)
+	}
+
+	httpClient := c.httpClient
+	if httpClient == nil {
+		httpClient = http.DefaultClient
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, archiveURL.String(), nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create tarball request: %w", err)
+	}
+
+	httpResp, err := httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to download tarball stream: %w", err)
+	}
+
+	if httpResp.StatusCode != http.StatusOK {
+		_ = httpResp.Body.Close()
+
+		//nolint:exhaustruct // Only StatusCode and Message required for error classification
+		return nil, fmt.Errorf("failed to download tarball: %w", &github.ErrorResponse{
+			Response: httpResp,
+			Message:  fmt.Sprintf("unexpected HTTP status %d", httpResp.StatusCode),
+		})
+	}
+
+	return httpResp.Body, nil
 }
 
 // UserGitHubClient is a client that receives a token from a user that has installed our GitHub App.

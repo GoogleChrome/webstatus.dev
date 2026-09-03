@@ -26,10 +26,14 @@ import (
 
 	"github.com/GoogleChrome/webstatus.dev/lib/backendtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/cachetypes"
+	codescantaskv1 "github.com/GoogleChrome/webstatus.dev/lib/event/codescantask/v1"
+	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/searchtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 	"github.com/GoogleChrome/webstatus.dev/lib/gh"
 )
+
+const vcsProviderGitHub = "github"
 
 type WebFeatureMetadataStorer interface {
 	GetFeatureMetadata(
@@ -192,6 +196,22 @@ type WPTMetricsStorer interface {
 		userID, subscriptionID string,
 		req backend.UpdateSubscriptionRequest,
 	) (*backend.SubscriptionResponse, error)
+	ListCodeSubscriptions(
+		ctx context.Context,
+		vcsProvider, repoFullName string,
+		pageSize int,
+		pageToken *string,
+	) (*backend.CodeSubscriptionPage, error)
+	RecordVCSWebhookDelivery(
+		ctx context.Context,
+		delivery gcpspanner.VCSWebhookDelivery,
+	) (bool, error)
+}
+
+// VCSPermissionChecker verifies whether an authenticated user has administrative
+// permissions on a given VCS repository.
+type VCSPermissionChecker interface {
+	HasRepositoryAdminAccess(ctx context.Context, owner, repo, githubUserID string) (bool, error)
 }
 
 type Server struct {
@@ -202,6 +222,8 @@ type Server struct {
 	userGitHubClientFactory UserGitHubClientFactory
 	eventPublisher          EventPublisher
 	rssRenderer             *RSSRenderer
+	webhookVerifier         WebhookVerifier
+	vcsPermissionChecker    VCSPermissionChecker
 }
 
 type GitHubUserClient interface {
@@ -256,6 +278,11 @@ type RouteCacheOptions struct {
 type EventPublisher interface {
 	PublishSearchConfigurationChanged(ctx context.Context, resp *backend.SavedSearchResponse,
 		userID string, isCreation bool) error
+	PublishCodeScanTask(ctx context.Context, task codescantaskv1.CodeScanTaskEvent) error
+}
+
+type WebhookVerifier interface {
+	VerifySignature(payload []byte, signature string) error
 }
 
 func NewHTTPServer(
@@ -267,6 +294,8 @@ func NewHTTPServer(
 	rawBytesDataCacher RawBytesDataCacher,
 	routeCacheOptions RouteCacheOptions,
 	userGitHubClientFactory UserGitHubClientFactory,
+	webhookVerifier WebhookVerifier,
+	vcsPermissionChecker VCSPermissionChecker,
 	preRequestValidationMiddlewares []func(http.Handler) http.Handler,
 	authMiddleware func(http.Handler) http.Handler) *http.Server {
 	// Create an instance of our handler which satisfies the generated interface
@@ -278,6 +307,8 @@ func NewHTTPServer(
 		baseURL:                 baseURL,
 		userGitHubClientFactory: userGitHubClientFactory,
 		rssRenderer:             NewRSSRenderer(),
+		webhookVerifier:         webhookVerifier,
+		vcsPermissionChecker:    vcsPermissionChecker,
 	}
 
 	return createOpenAPIServerServer(port, srv, preRequestValidationMiddlewares, authMiddleware)

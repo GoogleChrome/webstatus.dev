@@ -18,6 +18,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/workertypes"
@@ -25,8 +26,10 @@ import (
 )
 
 type mockPushDeliverySpannerClient struct {
-	findAllCalledWith *findAllCalledWith
-	findAllReturns    findAllReturns
+	findAllCalledWith      *findAllCalledWith
+	findAllReturns         findAllReturns
+	listCodeSubsCalledWith *listCodeSubsCalledWith
+	listCodeSubsReturns    listCodeSubsReturns
 }
 
 type findAllCalledWith struct {
@@ -37,6 +40,16 @@ type findAllCalledWith struct {
 type findAllReturns struct {
 	dests []gcpspanner.SubscriberDestination
 	err   error
+}
+
+type listCodeSubsCalledWith struct {
+	TargetQuery string
+	Trigger     gcpspanner.SubscriptionTrigger
+}
+
+type listCodeSubsReturns struct {
+	subs []gcpspanner.CodeSubscription
+	err  error
 }
 
 func (m *mockPushDeliverySpannerClient) FindAllActivePushSubscriptions(
@@ -50,6 +63,19 @@ func (m *mockPushDeliverySpannerClient) FindAllActivePushSubscriptions(
 	}
 
 	return m.findAllReturns.dests, m.findAllReturns.err
+}
+
+func (m *mockPushDeliverySpannerClient) ListCodeSubscriptionsByTargetQuery(
+	_ context.Context,
+	targetQuery string,
+	trigger gcpspanner.SubscriptionTrigger,
+) ([]gcpspanner.CodeSubscription, error) {
+	m.listCodeSubsCalledWith = &listCodeSubsCalledWith{
+		TargetQuery: targetQuery,
+		Trigger:     trigger,
+	}
+
+	return m.listCodeSubsReturns.subs, m.listCodeSubsReturns.err
 }
 
 func TestFindSubscribers(t *testing.T) {
@@ -248,6 +274,82 @@ func TestFindSubscribers(t *testing.T) {
 
 			if diff := cmp.Diff(tc.expectedCall, mock.findAllCalledWith); diff != "" {
 				t.Errorf("findAllCalledWith mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestFindCodeSubscriptions(t *testing.T) {
+	errTest := errors.New("spanner failure")
+	expectedSubs := []gcpspanner.CodeSubscription{
+		{
+			ID:                 "sub-1",
+			VCSProvider:        "github",
+			VCSInstallationID:  "inst-1",
+			VCSRepositoryID:    "repo-1",
+			RepositoryFullName: "owner/repo",
+			TargetQuery:        "id:popover",
+			Triggers: []gcpspanner.SubscriptionTrigger{
+				gcpspanner.SubscriptionTriggerFeatureBaselinePromoteToWidely,
+			},
+			Status:      gcpspanner.SubscriptionActive,
+			Occurrences: nil,
+			CreatedAt:   time.Time{},
+			UpdatedAt:   time.Time{},
+		},
+	}
+
+	tests := []struct {
+		name         string
+		subs         []gcpspanner.CodeSubscription
+		clientErr    error
+		targetQuery  string
+		trigger      gcpspanner.SubscriptionTrigger
+		expectedSubs []gcpspanner.CodeSubscription
+		expectedErr  error
+	}{
+		{
+			name:         "success",
+			subs:         expectedSubs,
+			clientErr:    nil,
+			targetQuery:  "id:popover",
+			trigger:      gcpspanner.SubscriptionTriggerFeatureBaselinePromoteToWidely,
+			expectedSubs: expectedSubs,
+			expectedErr:  nil,
+		},
+		{
+			name:         "error propagation",
+			subs:         nil,
+			clientErr:    errTest,
+			targetQuery:  "id:popover",
+			trigger:      gcpspanner.SubscriptionTriggerFeatureBaselinePromoteToWidely,
+			expectedSubs: nil,
+			expectedErr:  errTest,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			mock := new(mockPushDeliverySpannerClient)
+			mock.listCodeSubsReturns.subs = tc.subs
+			mock.listCodeSubsReturns.err = tc.clientErr
+
+			finder := NewPushDeliverySubscriberFinder(mock)
+			subs, err := finder.FindCodeSubscriptions(context.Background(), tc.targetQuery, tc.trigger)
+
+			if !errors.Is(err, tc.expectedErr) {
+				t.Fatalf("FindCodeSubscriptions error = %v, wantErr %v", err, tc.expectedErr)
+			}
+
+			if diff := cmp.Diff(tc.expectedSubs, subs); diff != "" {
+				t.Errorf("subs mismatch (-want +got):\n%s", diff)
+			}
+
+			if mock.listCodeSubsCalledWith.TargetQuery != tc.targetQuery {
+				t.Errorf("TargetQuery = %v, want %v", mock.listCodeSubsCalledWith.TargetQuery, tc.targetQuery)
+			}
+			if mock.listCodeSubsCalledWith.Trigger != tc.trigger {
+				t.Errorf("Trigger = %v, want %v", mock.listCodeSubsCalledWith.Trigger, tc.trigger)
 			}
 		})
 	}

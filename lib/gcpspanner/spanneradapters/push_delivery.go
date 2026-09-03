@@ -28,6 +28,11 @@ type PushDeliverySpannerClient interface {
 		savedSearchID string,
 		frequency gcpspanner.SavedSearchSnapshotType,
 	) ([]gcpspanner.SubscriberDestination, error)
+	ListCodeSubscriptionsByTargetQuery(
+		ctx context.Context,
+		targetQuery string,
+		trigger gcpspanner.SubscriptionTrigger,
+	) ([]gcpspanner.CodeSubscription, error)
 }
 
 type PushDeliverySubscriberFinder struct {
@@ -36,6 +41,14 @@ type PushDeliverySubscriberFinder struct {
 
 func NewPushDeliverySubscriberFinder(client PushDeliverySpannerClient) *PushDeliverySubscriberFinder {
 	return &PushDeliverySubscriberFinder{client: client}
+}
+
+func (f *PushDeliverySubscriberFinder) FindCodeSubscriptions(
+	ctx context.Context,
+	targetQuery string,
+	trigger gcpspanner.SubscriptionTrigger,
+) ([]gcpspanner.CodeSubscription, error) {
+	return f.client.ListCodeSubscriptionsByTargetQuery(ctx, targetQuery, trigger)
 }
 
 func (f *PushDeliverySubscriberFinder) FindSubscribers(ctx context.Context, searchID string,

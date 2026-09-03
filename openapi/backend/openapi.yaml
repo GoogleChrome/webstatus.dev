@@ -24,6 +24,20 @@ servers:
   - url: https://api.webstatus.dev
     description: Production
 paths:
+  /v1/healthchecks/liveness:
+    get:
+      summary: Service liveness health check
+      description: Returns a 200 OK status to indicate that the service process is alive and responsive.
+      operationId: getHealthcheckLiveness
+      tags:
+        - Healthchecks
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthcheckResponse'
   /v1/features:
     get:
       summary: List features
@@ -1440,6 +1454,113 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BasicErrorModel'
+  /v1/vcs/{provider}/repositories/{repository_id}/code-subscriptions:
+    parameters:
+      - name: provider
+        in: path
+        required: true
+        schema:
+          type: string
+          enum: [github]
+      - name: repository_id
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      summary: List active code subscriptions for a repository
+      operationId: listCodeSubscriptions
+      parameters:
+        - $ref: '#/components/parameters/paginationTokenParam'
+        - $ref: '#/components/parameters/paginationSizeParam'
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CodeSubscriptionPage'
+        '400':
+          description: Bad Input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '500':
+          description: Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+  /v1/webhooks/{provider}:
+    parameters:
+      - name: provider
+        in: path
+        required: true
+        schema:
+          type: string
+          enum: [github]
+    post:
+      summary: VCS Webhook Ingress
+      operationId: handleVCSWebhook
+      parameters:
+        - name: X-Hub-Signature-256
+          in: header
+          required: false
+          schema:
+            type: string
+        - name: X-GitHub-Delivery
+          in: header
+          required: false
+          schema:
+            type: string
+        - name: X-GitHub-Event
+          in: header
+          required: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          '*/*':
+            schema:
+              type: string
+              format: binary
+      responses:
+        '202':
+          description: Accepted
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '500':
+          description: Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
 components:
   parameters:
     browserPathParam:
@@ -1512,6 +1633,15 @@ components:
         for desktop browsers with a corresponding mobile browser.
       required: false
   schemas:
+    HealthcheckResponse:
+      type: object
+      description: Response indicating the health status of the service
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          example: 'healthy'
     SupportedBrowsers:
       type: string
       description: List of supported browsers that webstatus.dev currently ingests
@@ -1832,7 +1962,7 @@ components:
         query:
           type: string
           minLength: 1
-          maxLength: 256
+          maxLength: 2048
       required:
         - name
         - query
@@ -1847,13 +1977,16 @@ components:
         name:
           type: string
           minLength: 1
+          maxLength: 32
         description:
           type: string
           nullable: true
           minLength: 1
+          maxLength: 1024
         query:
           type: string
           minLength: 1
+          maxLength: 2048
         update_mask:
           type: array
           description: >
@@ -2409,6 +2542,87 @@ components:
             $ref: '#/components/schemas/MissingOneImplFeature'
       required:
         - data
+    SubscriptionOccurrence:
+      type: object
+      required:
+        - file_path
+        - line_number
+        - comment_snippet
+      properties:
+        file_path:
+          type: string
+        line_number:
+          type: integer
+          format: int64
+        comment_snippet:
+          type: string
+    CodeSubscriptionResponse:
+      type: object
+      required:
+        - id
+        - vcs_provider
+        - vcs_repository_id
+        - repository_owner
+        - repository_name
+        - repository_full_name
+        - target_query
+        - triggers
+        - status
+        - occurrences
+        - occurrence_count
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+        vcs_provider:
+          type: string
+        vcs_installation_id:
+          type: string
+        vcs_repository_id:
+          type: string
+        repository_owner:
+          type: string
+        repository_name:
+          type: string
+        repository_full_name:
+          type: string
+        feature_id:
+          type: string
+        target_query:
+          type: string
+        triggers:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubscriptionTriggerWritable'
+        raw_directive:
+          type: string
+        occurrences:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubscriptionOccurrence'
+        occurrence_count:
+          type: integer
+          format: int64
+        status:
+          type: string
+          enum:
+            [ACTIVE, TRIGGERED, DELIVERED, RESOLVED, OBSOLETE, DELETED, ERROR]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    CodeSubscriptionPage:
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/PageMetadata'
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/CodeSubscriptionResponse'
   securitySchemes:
     bearerAuth:
       type: http

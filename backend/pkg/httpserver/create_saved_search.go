@@ -32,8 +32,11 @@ const (
 	savedSearchNameMinLength            = 1
 	savedSearchNameDescriptionMaxLength = 1024
 	savedSearchNameDescriptionMinLength = 1
-	savedSearchQueryMaxLength           = 256
-	savedSearchQueryMinLength           = 1
+	// savedSearchQueryMaxLength allows bookmarking long lists of feature IDs (issue #2604).
+	savedSearchQueryMaxLength = 2048
+	savedSearchQueryMinLength = 1
+	// maxASTNodes caps query structural complexity after deduplication to protect Cloud Spanner parameter limits.
+	maxASTNodes = backendtypes.MaxASTNodes
 )
 
 var (
@@ -69,17 +72,26 @@ func validateSavedSearchQuery(query *string, fieldErrors *fieldValidationErrors)
 		return
 	}
 
+	// 1. Length validation check
 	if len(*query) < savedSearchQueryMinLength || len(*query) > savedSearchQueryMaxLength {
 		fieldErrors.addFieldError("query", errSavedSearchInvalidQueryLength)
 
 		return
 	}
 
-	// Only parse if length is okay
+	// 2. Upstream ANTLR grammar parse check
 	parser := searchtypes.FeaturesSearchQueryParser{}
-	_, err := parser.Parse(*query)
+	node, err := parser.Parse(*query)
 	if err != nil {
 		fieldErrors.addFieldError("query", errQueryDoesNotMatchGrammar)
+
+		return
+	}
+
+	// 3. Upstream AST deduplication and structural complexity validation
+	dedupNode := searchtypes.Deduplicate(node)
+	if searchtypes.CountNodes(dedupNode) > maxASTNodes {
+		fieldErrors.addFieldError("query", backendtypes.ErrQueryComplexityExceeded)
 	}
 
 }
@@ -134,6 +146,8 @@ func sanitizeValidationError(err error) error {
 		return backendtypes.ErrSavedSearchMaxDepthExceeded
 	case errors.Is(err, backendtypes.ErrQueryConsistsEntirelyOfSavedSearch):
 		return backendtypes.ErrQueryConsistsEntirelyOfSavedSearch
+	case errors.Is(err, backendtypes.ErrQueryComplexityExceeded):
+		return backendtypes.ErrQueryComplexityExceeded
 	case errors.Is(err, errQueryDoesNotMatchGrammar):
 		return errQueryDoesNotMatchGrammar
 	default:

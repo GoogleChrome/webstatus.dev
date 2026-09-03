@@ -20,17 +20,23 @@ import (
 	"log/slog"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/event"
+	codescantaskv1 "github.com/GoogleChrome/webstatus.dev/lib/event/codescantask/v1"
 	searchconfigv1 "github.com/GoogleChrome/webstatus.dev/lib/event/searchconfigurationchanged/v1"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 )
 
 type BackendAdapter struct {
-	client  EventPublisher
-	topicID string
+	client              EventPublisher
+	searchConfigTopicID string
+	vcsScanTopicID      string
 }
 
-func NewBackendAdapter(client EventPublisher, topicID string) *BackendAdapter {
-	return &BackendAdapter{client: client, topicID: topicID}
+func NewBackendAdapter(client EventPublisher, searchConfigTopicID, vcsScanTopicID string) *BackendAdapter {
+	return &BackendAdapter{
+		client:              client,
+		searchConfigTopicID: searchConfigTopicID,
+		vcsScanTopicID:      vcsScanTopicID,
+	}
 }
 
 func (p *BackendAdapter) PublishSearchConfigurationChanged(
@@ -54,7 +60,7 @@ func (p *BackendAdapter) PublishSearchConfigurationChanged(
 		return fmt.Errorf("failed to create event: %w", err)
 	}
 
-	id, err := p.client.Publish(ctx, p.topicID, msg)
+	id, err := p.client.Publish(ctx, p.searchConfigTopicID, msg)
 	if err != nil {
 		return fmt.Errorf("failed to publish message: %w", err)
 	}
@@ -63,6 +69,28 @@ func (p *BackendAdapter) PublishSearchConfigurationChanged(
 		"msgID", id,
 		"searchID", evt.SearchID,
 		"isCreation", evt.IsCreation)
+
+	return nil
+}
+
+func (p *BackendAdapter) PublishCodeScanTask(
+	ctx context.Context,
+	task codescantaskv1.CodeScanTaskEvent,
+) error {
+	msg, err := event.New(task)
+	if err != nil {
+		return fmt.Errorf("failed to create code scan task event: %w", err)
+	}
+
+	id, err := p.client.Publish(ctx, p.vcsScanTopicID, msg)
+	if err != nil {
+		return fmt.Errorf("failed to publish code scan task: %w", err)
+	}
+
+	slog.InfoContext(ctx, "published code scan task",
+		"msgID", id,
+		"repo", task.RepositoryFullName,
+		"commit", task.CommitSHA)
 
 	return nil
 }

@@ -1,0 +1,16 @@
+/* Application layout styles */
+
+/*
+ * Layout enhancements:
+ * TODO(baseline/subgrid): upgrade nested grid layout to subgrid
+ * TODO(baseline/anchor-positioning): anchor tooltip to button
+ */
+.grid-container {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.tooltip-box {
+  position: absolute;
+}
+

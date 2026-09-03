@@ -692,6 +692,28 @@ func TestListMetricsForFeatureIDBrowserAndChannel(t *testing.T) {
 	if !reflect.DeepEqual(expectedMetricsPageThree, metrics) {
 		t.Errorf("unequal metrics. expected (%+v) received (%+v) ", expectedMetricsPageThree, metrics)
 	}
+
+	// Test 4. Non-existent feature returns empty slice without error.
+	metrics, token, err = spannerClient.ListMetricsForFeatureIDBrowserAndChannel(
+		ctx,
+		"featureDoesNotExist",
+		"fooBrowser",
+		shared.StableLabel,
+		WPTTestView,
+		time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+		time.Date(2000, time.January, 3, 0, 0, 0, 0, time.UTC),
+		10,
+		nil,
+	)
+	if !errors.Is(err, nil) {
+		t.Errorf("expected no error for non-existent feature. received %s", err.Error())
+	}
+	if token != nil {
+		t.Error("expected no token for non-existent feature")
+	}
+	if len(metrics) != 0 {
+		t.Errorf("expected 0 metrics for non-existent feature, received %d", len(metrics))
+	}
 }
 
 func testGetAllAggregatedMetrics(ctx context.Context, client *Client, t *testing.T) {

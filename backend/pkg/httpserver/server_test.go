@@ -30,6 +30,8 @@ import (
 
 	"github.com/GoogleChrome/webstatus.dev/lib/auth"
 	"github.com/GoogleChrome/webstatus.dev/lib/backendtypes"
+	codescantaskv1 "github.com/GoogleChrome/webstatus.dev/lib/event/codescantask/v1"
+	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/searchtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 	"github.com/GoogleChrome/webstatus.dev/lib/gh"
@@ -370,6 +372,8 @@ type MockWPTMetricsStorer struct {
 	updateSavedSearchSubscriptionCfg                  *MockUpdateSavedSearchSubscriptionConfig
 	validateQueryReferencesCfg                        *MockValidateQueryReferencesConfig
 	listGlobalSavedSearchesCfg                        *MockListGlobalSavedSearchesConfig
+	listCodeSubscriptionsCfg                          *MockListCodeSubscriptionsConfig
+	recordVCSWebhookDeliveryCfg                       *MockRecordVCSWebhookDeliveryConfig
 	t                                                 *testing.T
 	callCountListMissingOneImplCounts                 int
 	callCountListMissingOneImplFeatures               int
@@ -404,6 +408,8 @@ type MockWPTMetricsStorer struct {
 	callCountValidateQueryReferences                  int
 	callCountListGlobalSavedSearches                  int
 	callCountGetGlobalSavedSearch                     int
+	callCountListCodeSubscriptions                    int
+	callCountRecordVCSWebhookDelivery                 int
 }
 
 func (m *MockWPTMetricsStorer) GetIDFromFeatureKey(
@@ -1111,6 +1117,63 @@ func (m *MockWPTMetricsStorer) GetGlobalSavedSearch(
 	return nil, errors.New("basic mock") // basic mock
 }
 
+type MockListCodeSubscriptionsConfig struct {
+	expectedProvider     string
+	expectedRepositoryID string
+	expectedPageSize     int
+	expectedPageToken    *string
+	output               *backend.CodeSubscriptionPage
+	err                  error
+}
+
+func (m *MockWPTMetricsStorer) ListCodeSubscriptions(
+	_ context.Context,
+	provider string,
+	repoID string,
+	pageSize int,
+	pageToken *string,
+) (*backend.CodeSubscriptionPage, error) {
+	m.callCountListCodeSubscriptions++
+	if provider != m.listCodeSubscriptionsCfg.expectedProvider {
+		m.t.Errorf("unexpected provider %s", provider)
+	}
+	if repoID != m.listCodeSubscriptionsCfg.expectedRepositoryID {
+		m.t.Errorf("unexpected repo id %s", repoID)
+	}
+	if pageSize != m.listCodeSubscriptionsCfg.expectedPageSize {
+		m.t.Errorf("unexpected page size %d", pageSize)
+	}
+	if !reflect.DeepEqual(pageToken, m.listCodeSubscriptionsCfg.expectedPageToken) {
+		m.t.Errorf("unexpected page token %+v", pageToken)
+	}
+
+	return m.listCodeSubscriptionsCfg.output, m.listCodeSubscriptionsCfg.err
+}
+
+type MockRecordVCSWebhookDeliveryConfig struct {
+	expectedDelivery gcpspanner.VCSWebhookDelivery
+	output           bool
+	err              error
+}
+
+func (m *MockWPTMetricsStorer) RecordVCSWebhookDelivery(
+	_ context.Context,
+	delivery gcpspanner.VCSWebhookDelivery,
+) (bool, error) {
+	m.callCountRecordVCSWebhookDelivery++
+
+	if m.recordVCSWebhookDeliveryCfg != nil {
+		if delivery != m.recordVCSWebhookDeliveryCfg.expectedDelivery {
+			m.t.Errorf("Incorrect arguments. Expected: %+v, Got: %+v",
+				m.recordVCSWebhookDeliveryCfg.expectedDelivery, delivery)
+		}
+
+		return m.recordVCSWebhookDeliveryCfg.output, m.recordVCSWebhookDeliveryCfg.err
+	}
+
+	return true, nil
+}
+
 type MockPublishSearchConfigurationChangedConfig struct {
 	expectedResp       *backend.SavedSearchResponse
 	expectedUserID     string
@@ -1141,6 +1204,13 @@ func (m *MockEventPublisher) PublishSearchConfigurationChanged(
 	}
 
 	return m.publishSearchConfigurationChangedCfg.err
+}
+
+func (m *MockEventPublisher) PublishCodeScanTask(
+	_ context.Context,
+	_ codescantaskv1.CodeScanTaskEvent,
+) error {
+	return nil
 }
 
 func TestGetPageSizeOrDefault(t *testing.T) {
@@ -1671,6 +1741,37 @@ func (m *mockServerInterface) GetSubscriptionRSS(ctx context.Context, _ backend.
 func (m *mockServerInterface) DeleteSubscription(ctx context.Context,
 	_ backend.DeleteSubscriptionRequestObject) (
 	backend.DeleteSubscriptionResponseObject, error) {
+	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
+	m.callCount++
+	panic("unimplemented")
+}
+
+// GetHealthcheckLiveness implements backend.StrictServerInterface.
+// nolint: ireturn // WONTFIX - generated method signature
+func (m *mockServerInterface) GetHealthcheckLiveness(ctx context.Context,
+	_ backend.GetHealthcheckLivenessRequestObject) (
+	backend.GetHealthcheckLivenessResponseObject, error) {
+	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
+	m.callCount++
+	panic("unimplemented")
+}
+
+// HandleVCSWebhook implements backend.StrictServerInterface.
+//
+//nolint:ireturn // WONTFIX - generated method signature
+func (m *mockServerInterface) HandleVCSWebhook(_ context.Context,
+	_ backend.HandleVCSWebhookRequestObject) (
+	backend.HandleVCSWebhookResponseObject, error) {
+	m.callCount++
+	panic("unimplemented")
+}
+
+// ListCodeSubscriptions implements backend.StrictServerInterface.
+//
+//nolint:ireturn // WONTFIX - generated method signature
+func (m *mockServerInterface) ListCodeSubscriptions(ctx context.Context,
+	_ backend.ListCodeSubscriptionsRequestObject) (
+	backend.ListCodeSubscriptionsResponseObject, error) {
 	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
 	m.callCount++
 	panic("unimplemented")

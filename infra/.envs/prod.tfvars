@@ -95,10 +95,15 @@ uma_region_schedules = {
   "europe-west1" = "30 3,9,15,21 * * *"
 }
 
-# 5. WPT - Takes a while. It runs once daily.
+# 5. WPT - Runs every 6 hours
 wpt_region_schedules = {
-  "us-central1"  = "0 21 * * *" # Daily at 9:00 PM
-  "europe-west1" = "0 9 * * *"  # Daily at 9:00 AM
+  "us-central1"  = "0 4,10,16,22 * * *"
+  "europe-west1" = "30 4,10,16,22 * * *"
+}
+
+vcs_sync_region_schedules = {
+  "us-central1"  = "0,10,20,30,40,50 * * * *"
+  "europe-west1" = "5,15,25,35,45,55 * * * *"
 }
 
 firebase_api_key_location = "prod-firebase-app-api-key"
@@ -106,6 +111,12 @@ firebase_api_key_location = "prod-firebase-app-api-key"
 auth_github_config_locations = {
   client_id     = "prod-github-client-id"
   client_secret = "prod-github-client-secret"
+}
+
+github_app_config_locations = {
+  app_id          = "prod-github-app-id"
+  private_key_pem = "prod-github-app-private-key-pem"
+  webhook_secret  = "prod-github-app-webhook-secret"
 }
 
 backend_min_instance_count  = 1
@@ -120,8 +131,10 @@ chime_details = {
 }
 
 worker_manual_instance_counts = {
-  event_producer = 4
-  push_delivery  = 2
-  email          = 2
-  webhook        = 2
+  event_producer        = 4
+  push_delivery         = 2
+  email                 = 2
+  webhook               = 2
+  vcs_scanner           = 2
+  github_issue_delivery = 2
 }

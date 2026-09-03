@@ -13,15 +13,15 @@
     "lib/gen/openapi/ts-webstatus.dev-backend-types"
   ],
   "devDependencies": {
-    "@playwright/test": "^1.62.0",
+    "@playwright/test": "^1.62.1",
     "@types/node": "^22.9.0",
-    "concurrently": "^10.0.4",
-    "eslint-plugin-n": "^18.2.1",
+    "concurrently": "^10.0.5",
+    "eslint-plugin-n": "^18.3.0",
     "gts": "^7.0.0",
     "openapi-typescript": "7.13.0",
     "prettier": "3.9.6",
     "quicktype": "26.0.0",
-    "stylelint": "^17.14.0",
+    "stylelint": "^17.14.1",
     "stylelint-config-standard": "^40.0.0"
   },
   "overrides": {

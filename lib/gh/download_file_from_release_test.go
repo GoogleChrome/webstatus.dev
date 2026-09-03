@@ -19,6 +19,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"net/url"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -92,6 +93,16 @@ func (c mockRepoClient) GetLatestRelease(
 	}
 
 	return c.mockGetLatestReleaseCfg.release, nil, c.mockGetLatestReleaseCfg.err
+}
+
+func (c mockRepoClient) GetArchiveLink(
+	_ context.Context,
+	_, _ string,
+	_ github.ArchiveFormat,
+	_ *github.RepositoryContentGetOptions,
+	_ int,
+) (*url.URL, *github.Response, error) {
+	return nil, nil, nil
 }
 
 type mockRoundTripperConfig struct {
@@ -287,6 +298,10 @@ func TestMockDownloadFileFromRelease(t *testing.T) {
 					t:                       t,
 					mockGetLatestReleaseCfg: tc.cfg,
 				},
+				gitClient:    nil,
+				issuesClient: nil,
+				appsClient:   nil,
+				httpClient:   nil,
 			}
 			rt := mockRoundTripper{
 				t:   t,

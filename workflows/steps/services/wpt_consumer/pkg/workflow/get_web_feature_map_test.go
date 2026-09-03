@@ -18,9 +18,12 @@ import (
 	"context"
 	"errors"
 	"reflect"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/cachetypes"
+	"github.com/GoogleChrome/webstatus.dev/lib/localcache"
 	"github.com/web-platform-tests/wpt.fyi/shared"
 )
 
@@ -47,6 +50,7 @@ type mockCacheCacheConfig struct {
 type MockDataCacher struct {
 	mockCacheGetConfig   *mockCacheGetConfig
 	mockCacheCacheConfig *mockCacheCacheConfig
+	cachedData           shared.WebFeaturesData
 	t                    *testing.T
 }
 
@@ -55,11 +59,15 @@ func (m *MockDataCacher) Cache(_ context.Context, key string, value shared.WebFe
 		!reflect.DeepEqual(value, m.mockCacheCacheConfig.expectedData) {
 		m.t.Error("unexpected input to Cache")
 	}
+	m.cachedData = value
 
 	return m.mockCacheCacheConfig.err
 }
 
 func (m *MockDataCacher) Get(_ context.Context, key string) (shared.WebFeaturesData, error) {
+	if m.cachedData != nil {
+		return m.cachedData, nil
+	}
 	if key != m.mockCacheGetConfig.expectedKey {
 		m.t.Error("unexpected input to Get")
 	}
@@ -129,6 +137,7 @@ func TestGetWebFeaturesData(t *testing.T) {
 				t:                    t,
 				mockCacheGetConfig:   tt.mockCacheGetConfig,
 				mockCacheCacheConfig: tt.mockCacheCacheConfig,
+				cachedData:           nil,
 			}
 			getter := NewCacheableWebFeaturesDataGetter(
 				tt.mockWebFeatureDataGetter,
@@ -144,5 +153,59 @@ func TestGetWebFeaturesData(t *testing.T) {
 				t.Error("unexpected data")
 			}
 		})
+	}
+}
+
+type countingGetter struct {
+	mu    sync.Mutex
+	calls int
+	data  shared.WebFeaturesData
+}
+
+func (g *countingGetter) Get(_ context.Context) (shared.WebFeaturesData, error) {
+	time.Sleep(10 * time.Millisecond)
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.calls++
+
+	return g.data, nil
+}
+
+func TestGetWebFeaturesData_Concurrent(t *testing.T) {
+	cache := localcache.NewLocalDataCache[string, shared.WebFeaturesData](
+		localcache.NestedMapCopier[shared.WebFeaturesData](),
+	)
+	getterImpl := &countingGetter{
+		mu:    sync.Mutex{},
+		calls: 0,
+		data: shared.WebFeaturesData{
+			"test1.html": {"feature1": nil},
+			"test2.html": {"feature2": nil},
+		},
+	}
+
+	getter := NewCacheableWebFeaturesDataGetter(getterImpl, cache)
+
+	numGoroutines := 30
+	var wg sync.WaitGroup
+
+	for range numGoroutines {
+		wg.Go(func() {
+			data, err := getter.GetWebFeaturesData(context.Background(), "test-rev")
+			if err != nil {
+				t.Error(err)
+			}
+			// Simulate mutation/read by worker
+			if len(data) == 0 {
+				t.Error("expected non-empty data")
+			}
+			data["mutated_test.html"] = map[string]any{"mutated": nil}
+		})
+	}
+
+	wg.Wait()
+
+	if getterImpl.calls != 1 {
+		t.Errorf("expected exactly 1 call to client.Get, got %d", getterImpl.calls)
 	}
 }

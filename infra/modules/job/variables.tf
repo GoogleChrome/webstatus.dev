@@ -97,3 +97,9 @@ variable "otel_collector_endpoint" {
   type        = string
   description = "The endpoint for the application to export OTLP metrics/traces to the local collector"
 }
+
+variable "github_app_private_key_secret_id" {
+  type        = string
+  description = "The Secret Manager secret ID containing the GitHub App RSA private key"
+  default     = ""
+}

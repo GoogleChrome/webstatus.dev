@@ -110,6 +110,7 @@ variable "backend_api_url" {
 
 variable "pubsub_project_id" { type = string }
 variable "ingestion_topic_id" { type = string }
+variable "vcs_scan_tasks_topic_id" { type = string }
 
 variable "otel_config_secret_id" {
   type        = string
@@ -129,4 +130,22 @@ variable "otel_collector_config_mount_path" {
 variable "otel_collector_endpoint" {
   type        = string
   description = "The endpoint for the application to export OTLP metrics/traces to the local collector"
+}
+
+variable "github_app_id" {
+  type        = string
+  description = "The GitHub App ID for authentication"
+  default     = ""
+}
+
+variable "github_app_private_key_secret_id" {
+  type        = string
+  description = "The Secret Manager secret ID containing the GitHub App RSA private key"
+  default     = ""
+}
+
+variable "github_app_webhook_secret_id" {
+  type        = string
+  description = "The Secret Manager secret ID containing the GitHub App webhook secret"
+  default     = ""
 }

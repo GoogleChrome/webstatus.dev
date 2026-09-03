@@ -4,8 +4,8 @@ go 1.25.0
 
 require (
 	github.com/antlr4-go/antlr/v4 v4.13.1
-	github.com/getkin/kin-openapi v0.145.0
-	github.com/oapi-codegen/runtime v1.6.0
+	github.com/getkin/kin-openapi v0.147.0
+	github.com/oapi-codegen/runtime v1.7.0
 )
 
 require (

@@ -48,6 +48,20 @@ resource "google_cloud_run_v2_job" "job" {
           name  = "OTEL_EXPORTER_OTLP_ENDPOINT"
           value = var.otel_collector_endpoint
         }
+        dynamic "env" {
+          for_each = var.github_app_private_key_secret_id != "" ? [1] : []
+          content {
+            name  = "GITHUB_APP_PRIVATE_KEY_PATH"
+            value = "/etc/secrets/github-app/private-key.pem"
+          }
+        }
+        dynamic "volume_mounts" {
+          for_each = var.github_app_private_key_secret_id != "" ? [1] : []
+          content {
+            name       = "github-app-key"
+            mount_path = "/etc/secrets/github-app"
+          }
+        }
       }
       containers {
         name  = "otel"
@@ -73,11 +87,28 @@ resource "google_cloud_run_v2_job" "job" {
           }
         }
       }
+      dynamic "volumes" {
+        for_each = var.github_app_private_key_secret_id != "" ? [1] : []
+        content {
+          name = "github-app-key"
+          secret {
+            secret = var.github_app_private_key_secret_id
+            items {
+              version = "latest"
+              path    = "private-key.pem"
+            }
+          }
+        }
+      }
       service_account = google_service_account.job_service_account.email
     }
   }
 
   deletion_protection = var.deletion_protection
+
+  depends_on = [
+    google_secret_manager_secret_iam_member.job_github_app_key_secret_access,
+  ]
 }
 
 
@@ -85,6 +116,14 @@ resource "google_service_account" "job_service_account" {
   provider     = google.internal_project
   account_id   = "${var.short_name}-job-${var.env_id}"
   display_name = "${var.full_name} Job service account for ${var.env_id}"
+}
+
+resource "google_secret_manager_secret_iam_member" "job_github_app_key_secret_access" {
+  count     = var.github_app_private_key_secret_id != "" ? 1 : 0
+  provider  = google.internal_project
+  secret_id = var.github_app_private_key_secret_id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.job_service_account.email}"
 }
 
 resource "google_project_iam_member" "spanner_user" {

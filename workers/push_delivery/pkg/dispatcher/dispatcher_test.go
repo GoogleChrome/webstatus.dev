@@ -20,6 +20,8 @@ import (
 	"testing"
 	"time"
 
+	githubissuedeliveryv1 "github.com/GoogleChrome/webstatus.dev/lib/event/githubissuedelivery/v1"
+	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/workertypes"
 	"github.com/google/go-cmp/cmp"
 )
@@ -31,10 +33,18 @@ type findSubscribersReq struct {
 	Frequency string
 }
 
+type findCodeSubsReq struct {
+	TargetQuery string
+	Trigger     gcpspanner.SubscriptionTrigger
+}
+
 type mockSubscriptionFinder struct {
-	findCalledWith *findSubscribersReq
-	findReturnSet  *workertypes.SubscriberSet
-	findReturnErr  error
+	findCalledWith     *findSubscribersReq
+	findReturnSet      *workertypes.SubscriberSet
+	findReturnErr      error
+	findCodeSubsCalls  []findCodeSubsReq
+	findCodeSubsReturn []gcpspanner.CodeSubscription
+	findCodeSubsErr    error
 }
 
 func (m *mockSubscriptionFinder) FindSubscribers(_ context.Context, searchID string,
@@ -47,11 +57,23 @@ func (m *mockSubscriptionFinder) FindSubscribers(_ context.Context, searchID str
 	return m.findReturnSet, m.findReturnErr
 }
 
+func (m *mockSubscriptionFinder) FindCodeSubscriptions(_ context.Context, targetQuery string,
+	trigger gcpspanner.SubscriptionTrigger) ([]gcpspanner.CodeSubscription, error) {
+	m.findCodeSubsCalls = append(m.findCodeSubsCalls, findCodeSubsReq{
+		TargetQuery: targetQuery,
+		Trigger:     trigger,
+	})
+
+	return m.findCodeSubsReturn, m.findCodeSubsErr
+}
+
 type mockDeliveryPublisher struct {
-	emailJobs     []workertypes.EmailDeliveryJob
-	emailJobErr   func(job workertypes.EmailDeliveryJob) error
-	webhookJobs   []workertypes.WebhookDeliveryJob
-	webhookJobErr func(job workertypes.WebhookDeliveryJob) error
+	emailJobs         []workertypes.EmailDeliveryJob
+	emailJobErr       func(job workertypes.EmailDeliveryJob) error
+	webhookJobs       []workertypes.WebhookDeliveryJob
+	webhookJobErr     func(job workertypes.WebhookDeliveryJob) error
+	githubIssueJobs   []githubissuedeliveryv1.GitHubIssueDeliveryEvent
+	githubIssueJobErr func(job githubissuedeliveryv1.GitHubIssueDeliveryEvent) error
 }
 
 func (m *mockDeliveryPublisher) PublishEmailJob(_ context.Context, job workertypes.EmailDeliveryJob) error {
@@ -72,6 +94,20 @@ func (m *mockDeliveryPublisher) PublishWebhookJob(_ context.Context, job workert
 		}
 	}
 	m.webhookJobs = append(m.webhookJobs, job)
+
+	return nil
+}
+
+func (m *mockDeliveryPublisher) PublishGitHubIssueJob(
+	_ context.Context,
+	job githubissuedeliveryv1.GitHubIssueDeliveryEvent,
+) error {
+	if m.githubIssueJobErr != nil {
+		if err := m.githubIssueJobErr(job); err != nil {
+			return err
+		}
+	}
+	m.githubIssueJobs = append(m.githubIssueJobs, job)
 
 	return nil
 }
@@ -174,9 +210,12 @@ func TestProcessEvent_Success(t *testing.T) {
 	}
 
 	finder := &mockSubscriptionFinder{
-		findReturnSet:  subSet,
-		findReturnErr:  nil,
-		findCalledWith: nil,
+		findReturnSet:      subSet,
+		findReturnErr:      nil,
+		findCalledWith:     nil,
+		findCodeSubsCalls:  nil,
+		findCodeSubsReturn: nil,
+		findCodeSubsErr:    nil,
 	}
 	publisher := new(mockDeliveryPublisher)
 
@@ -282,9 +321,12 @@ func TestProcessEvent_Webhook_Success(t *testing.T) {
 	}
 
 	finder := &mockSubscriptionFinder{
-		findReturnSet:  subSet,
-		findReturnErr:  nil,
-		findCalledWith: nil,
+		findReturnSet:      subSet,
+		findReturnErr:      nil,
+		findCalledWith:     nil,
+		findCodeSubsCalls:  nil,
+		findCodeSubsReturn: nil,
+		findCodeSubsErr:    nil,
 	}
 	publisher := new(mockDeliveryPublisher)
 
@@ -381,9 +423,12 @@ func TestProcessEvent_NoChanges_FiltersAll(t *testing.T) {
 	}
 
 	finder := &mockSubscriptionFinder{
-		findReturnSet:  subSet,
-		findReturnErr:  nil,
-		findCalledWith: nil,
+		findReturnSet:      subSet,
+		findReturnErr:      nil,
+		findCalledWith:     nil,
+		findCodeSubsCalls:  nil,
+		findCodeSubsReturn: nil,
+		findCodeSubsErr:    nil,
 	}
 	publisher := new(mockDeliveryPublisher)
 
@@ -425,9 +470,12 @@ func TestProcessEvent_ParserError(t *testing.T) {
 
 func TestProcessEvent_FinderError(t *testing.T) {
 	finder := &mockSubscriptionFinder{
-		findReturnSet:  nil,
-		findReturnErr:  errors.New("db error"),
-		findCalledWith: nil,
+		findReturnSet:      nil,
+		findReturnErr:      errors.New("db error"),
+		findCalledWith:     nil,
+		findCodeSubsCalls:  nil,
+		findCodeSubsReturn: nil,
+		findCodeSubsErr:    nil,
 	}
 
 	d := NewDispatcher(finder, nil)
@@ -465,15 +513,20 @@ func TestProcessEvent_PublisherPartialFailure(t *testing.T) {
 	}
 
 	finder := &mockSubscriptionFinder{
-		findReturnSet:  subSet,
-		findReturnErr:  nil,
-		findCalledWith: nil,
+		findReturnSet:      subSet,
+		findReturnErr:      nil,
+		findCalledWith:     nil,
+		findCodeSubsCalls:  nil,
+		findCodeSubsReturn: nil,
+		findCodeSubsErr:    nil,
 	}
 
 	// Publisher returns error for first job, success for second
 	publisher := &mockDeliveryPublisher{
-		emailJobs:   nil,
-		webhookJobs: nil,
+		emailJobs:         nil,
+		webhookJobs:       nil,
+		githubIssueJobs:   nil,
+		githubIssueJobErr: nil,
 		emailJobErr: func(job workertypes.EmailDeliveryJob) error {
 			if job.SubscriptionID == "sub-1" {
 				return errors.New("queue full")
@@ -525,9 +578,12 @@ func TestProcessEvent_JobCount(t *testing.T) {
 		Webhooks: []workertypes.WebhookSubscriber{},
 	}
 	finder := &mockSubscriptionFinder{
-		findReturnSet:  subSet,
-		findReturnErr:  nil,
-		findCalledWith: nil,
+		findReturnSet:      subSet,
+		findReturnErr:      nil,
+		findCalledWith:     nil,
+		findCodeSubsCalls:  nil,
+		findCodeSubsReturn: nil,
+		findCodeSubsErr:    nil,
 	}
 	publisher := new(mockDeliveryPublisher)
 	d := NewDispatcher(finder, publisher)
@@ -864,5 +920,317 @@ func TestShouldNotifyV1_NilSummary(t *testing.T) {
 	}
 	if got {
 		t.Errorf("shouldNotifyV1(triggers, nil) = %v, want false", got)
+	}
+}
+
+func TestProcessEvent_BaselinePromoteToWidely_DispatchesGitHubIssueJob(t *testing.T) {
+	finder := new(mockSubscriptionFinder)
+	finder.findCodeSubsReturn = []gcpspanner.CodeSubscription{
+		{
+			ID:                 "sub-popover",
+			VCSProvider:        "github",
+			VCSInstallationID:  "inst-123",
+			VCSRepositoryID:    "repo-456",
+			RepositoryFullName: "test-owner/test-repo",
+			TargetQuery:        "id:popover",
+			Triggers: []gcpspanner.SubscriptionTrigger{
+				gcpspanner.SubscriptionTriggerFeatureBaselinePromoteToWidely,
+			},
+			Status: gcpspanner.SubscriptionActive,
+			Occurrences: []gcpspanner.SubscriptionOccurrence{
+				{
+					FilePath:       "src/app.ts",
+					LineNumber:     10,
+					CommentSnippet: "// TODO(baseline/popover)",
+				},
+			},
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		},
+	}
+
+	publisher := new(mockDeliveryPublisher)
+	d := NewDispatcher(finder, publisher)
+
+	summary := workertypes.NewEmptyEventSummary()
+	summary.Highlights = []workertypes.SummaryHighlight{
+		{
+			Type:        workertypes.SummaryHighlightTypeChanged,
+			FeatureID:   "popover",
+			FeatureName: "Popover API",
+			BaselineChange: &workertypes.Change[workertypes.BaselineValue]{
+				From: workertypes.BaselineValue{Status: workertypes.BaselineStatusNewly, LowDate: nil, HighDate: nil},
+				To:   workertypes.BaselineValue{Status: workertypes.BaselineStatusWidely, LowDate: nil, HighDate: nil},
+			},
+			Docs:           nil,
+			NameChange:     nil,
+			BrowserChanges: nil,
+			Moved:          nil,
+			Split:          nil,
+		},
+	}
+	d.parser = mockParserFactory(summary, nil)
+
+	metadata := workertypes.DispatchEventMetadata{
+		EventID:     "event-1",
+		SearchID:    "search-1",
+		SearchName:  "Test",
+		Query:       "id:popover",
+		Frequency:   workertypes.FrequencyImmediate,
+		GeneratedAt: time.Now(),
+	}
+
+	if err := d.ProcessEvent(context.Background(), metadata, []byte(`{}`)); err != nil {
+		t.Fatalf("ProcessEvent unexpected error: %v", err)
+	}
+
+	if len(publisher.githubIssueJobs) != 1 {
+		t.Fatalf("expected 1 github issue job, got %d", len(publisher.githubIssueJobs))
+	}
+
+	job := publisher.githubIssueJobs[0]
+	if job.SubscriptionID != "sub-popover" {
+		t.Errorf("SubscriptionID = %v, want sub-popover", job.SubscriptionID)
+	}
+	if job.FeatureID != "popover" {
+		t.Errorf("FeatureID = %v, want popover", job.FeatureID)
+	}
+	if job.FeatureName != "Popover API" {
+		t.Errorf("FeatureName = %v, want Popover API", job.FeatureName)
+	}
+	if job.Trigger != string(gcpspanner.SubscriptionTriggerFeatureBaselinePromoteToWidely) {
+		t.Errorf("Trigger = %v, want %v", job.Trigger, gcpspanner.SubscriptionTriggerFeatureBaselinePromoteToWidely)
+	}
+	if job.RepositoryOwner != "test-owner" || job.RepositoryName != "test-repo" {
+		t.Errorf("Owner/Repo = %v/%v, want test-owner/test-repo", job.RepositoryOwner, job.RepositoryName)
+	}
+	if len(job.Occurrences) != 1 || job.Occurrences[0].LineNumber != 10 {
+		t.Errorf("Occurrences = %v, want 1 occurrence at line 10", job.Occurrences)
+	}
+}
+
+func TestProcessEvent_BaselinePromoteToNewly_DispatchesGitHubIssueJob(t *testing.T) {
+	finder := new(mockSubscriptionFinder)
+	finder.findCodeSubsReturn = []gcpspanner.CodeSubscription{
+		{
+			ID:                 "sub-dialog",
+			VCSProvider:        "github",
+			VCSInstallationID:  "inst-123",
+			VCSRepositoryID:    "repo-456",
+			RepositoryFullName: "test-owner/test-repo",
+			TargetQuery:        "id:dialog",
+			Triggers: []gcpspanner.SubscriptionTrigger{
+				gcpspanner.SubscriptionTriggerFeatureBaselinePromoteToNewly,
+			},
+			Status: gcpspanner.SubscriptionActive,
+			Occurrences: []gcpspanner.SubscriptionOccurrence{
+				{
+					FilePath:       "src/dialog.ts",
+					LineNumber:     5,
+					CommentSnippet: "// TODO(baseline/dialog)",
+				},
+			},
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		},
+	}
+
+	publisher := new(mockDeliveryPublisher)
+	d := NewDispatcher(finder, publisher)
+
+	summary := workertypes.NewEmptyEventSummary()
+	summary.Highlights = []workertypes.SummaryHighlight{
+		{
+			Type:        workertypes.SummaryHighlightTypeChanged,
+			FeatureID:   "dialog",
+			FeatureName: "Dialog element",
+			BaselineChange: &workertypes.Change[workertypes.BaselineValue]{
+				From: workertypes.BaselineValue{Status: workertypes.BaselineStatusLimited, LowDate: nil, HighDate: nil},
+				To:   workertypes.BaselineValue{Status: workertypes.BaselineStatusNewly, LowDate: nil, HighDate: nil},
+			},
+			Docs:           nil,
+			NameChange:     nil,
+			BrowserChanges: nil,
+			Moved:          nil,
+			Split:          nil,
+		},
+	}
+	d.parser = mockParserFactory(summary, nil)
+
+	metadata := workertypes.DispatchEventMetadata{
+		EventID:     "event-2",
+		SearchID:    "search-2",
+		SearchName:  "Test",
+		Query:       "id:dialog",
+		Frequency:   workertypes.FrequencyImmediate,
+		GeneratedAt: time.Now(),
+	}
+
+	if err := d.ProcessEvent(context.Background(), metadata, []byte(`{}`)); err != nil {
+		t.Fatalf("ProcessEvent unexpected error: %v", err)
+	}
+
+	if len(publisher.githubIssueJobs) != 1 {
+		t.Fatalf("expected 1 github issue job, got %d", len(publisher.githubIssueJobs))
+	}
+
+	job := publisher.githubIssueJobs[0]
+	if job.SubscriptionID != "sub-dialog" {
+		t.Errorf("SubscriptionID = %v, want sub-dialog", job.SubscriptionID)
+	}
+	if job.Trigger != string(gcpspanner.SubscriptionTriggerFeatureBaselinePromoteToNewly) {
+		t.Errorf("Trigger = %v, want %v", job.Trigger, gcpspanner.SubscriptionTriggerFeatureBaselinePromoteToNewly)
+	}
+	wantDeliveryID := githubissuedeliveryv1.DeriveDeliveryID(job.SubscriptionID, job.Trigger)
+	if job.DeliveryID != wantDeliveryID {
+		t.Errorf("DeliveryID = %v, want %v", job.DeliveryID, wantDeliveryID)
+	}
+}
+
+func TestProcessEvent_NonBaselineChange_NoGitHubIssueJobs(t *testing.T) {
+	finder := new(mockSubscriptionFinder)
+	publisher := new(mockDeliveryPublisher)
+	d := NewDispatcher(finder, publisher)
+
+	summary := workertypes.NewEmptyEventSummary()
+	summary.Highlights = []workertypes.SummaryHighlight{
+		{
+			Type:           workertypes.SummaryHighlightTypeChanged,
+			FeatureID:      "css-grid",
+			FeatureName:    "CSS Grid",
+			BaselineChange: nil,
+			Docs:           nil,
+			NameChange:     &workertypes.Change[string]{From: "Old Name", To: "CSS Grid"},
+			BrowserChanges: nil,
+			Moved:          nil,
+			Split:          nil,
+		},
+	}
+	d.parser = mockParserFactory(summary, nil)
+
+	metadata := workertypes.DispatchEventMetadata{
+		EventID:     "event-3",
+		SearchID:    "search-3",
+		SearchName:  "Test",
+		Query:       "id:css-grid",
+		Frequency:   workertypes.FrequencyImmediate,
+		GeneratedAt: time.Now(),
+	}
+
+	if err := d.ProcessEvent(context.Background(), metadata, []byte(`{}`)); err != nil {
+		t.Fatalf("ProcessEvent unexpected error: %v", err)
+	}
+
+	if len(publisher.githubIssueJobs) != 0 {
+		t.Fatalf("expected 0 github issue jobs for non-baseline change, got %d", len(publisher.githubIssueJobs))
+	}
+	if len(finder.findCodeSubsCalls) != 0 {
+		t.Fatalf("expected 0 calls to FindCodeSubscriptions, got %d", len(finder.findCodeSubsCalls))
+	}
+}
+
+func TestProcessEvent_PublisherGitHubIssueError(t *testing.T) {
+	errPublish := errors.New("pubsub publish error")
+	finder := new(mockSubscriptionFinder)
+	finder.findCodeSubsReturn = []gcpspanner.CodeSubscription{
+		{
+			ID:                 "sub-popover",
+			VCSProvider:        "github",
+			VCSInstallationID:  "inst-123",
+			VCSRepositoryID:    "repo-456",
+			RepositoryFullName: "test-owner/test-repo",
+			TargetQuery:        "id:popover",
+			Triggers: []gcpspanner.SubscriptionTrigger{
+				gcpspanner.SubscriptionTriggerFeatureBaselinePromoteToWidely,
+			},
+			Status:      gcpspanner.SubscriptionActive,
+			Occurrences: nil,
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+		},
+	}
+
+	publisher := new(mockDeliveryPublisher)
+	publisher.githubIssueJobErr = func(_ githubissuedeliveryv1.GitHubIssueDeliveryEvent) error {
+		return errPublish
+	}
+	d := NewDispatcher(finder, publisher)
+
+	summary := workertypes.NewEmptyEventSummary()
+	summary.Highlights = []workertypes.SummaryHighlight{
+		{
+			Type:        workertypes.SummaryHighlightTypeChanged,
+			FeatureID:   "popover",
+			FeatureName: "Popover API",
+			BaselineChange: &workertypes.Change[workertypes.BaselineValue]{
+				From: workertypes.BaselineValue{Status: workertypes.BaselineStatusNewly, LowDate: nil, HighDate: nil},
+				To:   workertypes.BaselineValue{Status: workertypes.BaselineStatusWidely, LowDate: nil, HighDate: nil},
+			},
+			Docs:           nil,
+			NameChange:     nil,
+			BrowserChanges: nil,
+			Moved:          nil,
+			Split:          nil,
+		},
+	}
+	d.parser = mockParserFactory(summary, nil)
+
+	metadata := workertypes.DispatchEventMetadata{
+		EventID:     "event-4",
+		SearchID:    "search-4",
+		SearchName:  "Test",
+		Query:       "id:popover",
+		Frequency:   workertypes.FrequencyImmediate,
+		GeneratedAt: time.Now(),
+	}
+
+	err := d.ProcessEvent(context.Background(), metadata, []byte(`{}`))
+	if err == nil {
+		t.Fatal("expected error from ProcessEvent, got nil")
+	}
+}
+
+func TestProcessEvent_BaselineDemoteToNewly_NoGitHubIssueJobs(t *testing.T) {
+	finder := new(mockSubscriptionFinder)
+	publisher := new(mockDeliveryPublisher)
+	d := NewDispatcher(finder, publisher)
+
+	summary := workertypes.NewEmptyEventSummary()
+	summary.Highlights = []workertypes.SummaryHighlight{
+		{
+			Type:        workertypes.SummaryHighlightTypeChanged,
+			FeatureID:   "dialog",
+			FeatureName: "Dialog element",
+			BaselineChange: &workertypes.Change[workertypes.BaselineValue]{
+				From: workertypes.BaselineValue{Status: workertypes.BaselineStatusWidely, LowDate: nil, HighDate: nil},
+				To:   workertypes.BaselineValue{Status: workertypes.BaselineStatusNewly, LowDate: nil, HighDate: nil},
+			},
+			Docs:           nil,
+			NameChange:     nil,
+			BrowserChanges: nil,
+			Moved:          nil,
+			Split:          nil,
+		},
+	}
+	d.parser = mockParserFactory(summary, nil)
+
+	metadata := workertypes.DispatchEventMetadata{
+		EventID:     "event-demote",
+		SearchID:    "search-demote",
+		SearchName:  "Test",
+		Query:       "id:dialog",
+		Frequency:   workertypes.FrequencyImmediate,
+		GeneratedAt: time.Now(),
+	}
+
+	if err := d.ProcessEvent(context.Background(), metadata, []byte(`{}`)); err != nil {
+		t.Fatalf("ProcessEvent unexpected error: %v", err)
+	}
+
+	if len(publisher.githubIssueJobs) != 0 {
+		t.Fatalf("expected 0 github issue jobs for baseline demotion, got %d", len(publisher.githubIssueJobs))
+	}
+	if len(finder.findCodeSubsCalls) != 0 {
+		t.Fatalf("expected 0 calls to FindCodeSubscriptions for demotion, got %d", len(finder.findCodeSubsCalls))
 	}
 }

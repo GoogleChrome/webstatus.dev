@@ -20,3 +20,7 @@ output "regional_job_map" {
     }
   })
 }
+
+output "job_service_account_email" {
+  value = google_service_account.job_service_account.email
+}

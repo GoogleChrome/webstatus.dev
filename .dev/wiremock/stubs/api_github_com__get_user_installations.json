@@ -1,0 +1,42 @@
+{
+  "metadata": {
+    "notes": "Mocks GET /user/installations for the authenticated user",
+    "docsLink": "https://docs.github.com/en/rest/apps/installations#list-app-installations-accessible-to-the-user-access-token"
+  },
+  "scenarioName": "code_subscriptions",
+  "requiredScenarioState": "Started",
+  "request": {
+    "method": "GET",
+    "urlPath": "/user/installations"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "total_count": 1,
+      "installations": [
+        {
+          "id": 12345,
+          "account": {
+            "login": "GoogleChrome",
+            "id": 1793478,
+            "type": "Organization",
+            "avatar_url": "https://avatars.githubusercontent.com/u/1793478"
+          },
+          "app_id": 9999,
+          "target_id": 1793478,
+          "target_type": "Organization",
+          "permissions": {
+            "issues": "write",
+            "contents": "read"
+          },
+          "events": ["push"],
+          "created_at": "2026-01-01T00:00:00Z",
+          "updated_at": "2026-01-01T00:00:00Z"
+        }
+      ]
+    }
+  }
+}

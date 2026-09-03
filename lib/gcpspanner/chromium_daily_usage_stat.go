@@ -31,12 +31,10 @@ const (
 		dchm.Day as Date,
 		dchm.Rate as Usage
 	FROM DailyChromiumHistogramMetrics dchm
-	LEFT OUTER JOIN WebFeatureChromiumHistogramEnumValues wfchev
+	JOIN WebFeatureChromiumHistogramEnumValues wfchev
 	ON wfchev.ChromiumHistogramEnumValueID = dchm.ChromiumHistogramEnumValueID
-	JOIN WebFeatures wf
-	ON wfchev.WebFeatureID = wf.ID
-	WHERE wf.FeatureKey = @featureKey
-	AND TIMESTAMP(dchm.Day) >= @startAt AND TIMESTAMP(dchm.Day) < @endAt
+	WHERE wfchev.WebFeatureID = @webFeatureID
+	AND dchm.Day >= @startDate AND dchm.Day < @endDate
 {{ if .PageFilter }}
  	{{ .PageFilter }}
 {{ end }}
@@ -76,12 +74,23 @@ func (c *Client) ListChromeDailyUsageStatsForFeatureID(
 	pageSize int,
 	pageToken *string,
 ) ([]ChromeDailyUsageStatWithDate, *string, error) {
+	featureID, err := c.GetIDFromFeatureKey(ctx, NewFeatureKeyFilter(featureKey))
+	if err != nil {
+		if errors.Is(err, ErrQueryReturnedNoResults) {
+			return nil, nil, nil
+		}
+
+		return nil, nil, errors.Join(ErrInternalQueryFailure, err)
+	}
+
+	startDate := civil.DateOf(startAt)
+	endDate := civil.DateOf(endAt)
 
 	params := map[string]any{
-		"featureKey": featureKey,
-		"startAt":    startAt,
-		"endAt":      endAt,
-		"pageSize":   pageSize,
+		"webFeatureID": *featureID,
+		"startDate":    startDate,
+		"endDate":      endDate,
+		"pageSize":     pageSize,
 	}
 
 	tmplData := ChromeDailyUsageTemplateData{

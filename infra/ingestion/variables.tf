@@ -86,6 +86,10 @@ variable "web_features_mapping_region_schedules" {
   type = map(string)
 }
 
+variable "vcs_sync_region_schedules" {
+  type = map(string)
+}
+
 variable "deletion_protection" {
   type = bool
 }
@@ -118,4 +122,28 @@ variable "otel_collector_config_mount_path" {
 variable "otel_collector_endpoint" {
   type        = string
   description = "The endpoint for the application to export OTLP metrics/traces to the local collector"
+}
+
+variable "vcs_scan_tasks_topic_id" {
+  type        = string
+  description = "Topic ID for VCS scan tasks"
+  default     = ""
+}
+
+variable "vcs_scan_tasks_topic_name" {
+  type        = string
+  description = "Topic name for VCS scan tasks"
+  default     = ""
+}
+
+variable "github_app_id" {
+  type        = string
+  description = "The GitHub App ID"
+  default     = ""
+}
+
+variable "github_app_private_key_secret_id" {
+  type        = string
+  description = "The Secret Manager secret ID containing the GitHub App RSA private key"
+  default     = ""
 }

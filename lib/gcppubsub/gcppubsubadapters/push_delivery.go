@@ -22,22 +22,48 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/event"
 	emailjobv1 "github.com/GoogleChrome/webstatus.dev/lib/event/emailjob/v1"
 	featurediffv1 "github.com/GoogleChrome/webstatus.dev/lib/event/featurediff/v1"
+	githubissuedeliveryv1 "github.com/GoogleChrome/webstatus.dev/lib/event/githubissuedelivery/v1"
 	webhookjobv1 "github.com/GoogleChrome/webstatus.dev/lib/event/webhookjob/v1"
 	"github.com/GoogleChrome/webstatus.dev/lib/workertypes"
 )
 
 type PushDeliveryPublisher struct {
-	client       EventPublisher
-	emailTopic   string
-	webhookTopic string
+	client           EventPublisher
+	emailTopic       string
+	webhookTopic     string
+	githubIssueTopic string
 }
 
-func NewPushDeliveryPublisher(client EventPublisher, emailTopic, webhookTopic string) *PushDeliveryPublisher {
+func NewPushDeliveryPublisher(
+	client EventPublisher,
+	emailTopic,
+	webhookTopic,
+	githubIssueTopic string,
+) *PushDeliveryPublisher {
 	return &PushDeliveryPublisher{
-		client:       client,
-		emailTopic:   emailTopic,
-		webhookTopic: webhookTopic,
+		client:           client,
+		emailTopic:       emailTopic,
+		webhookTopic:     webhookTopic,
+		githubIssueTopic: githubIssueTopic,
 	}
+}
+
+func (p *PushDeliveryPublisher) PublishGitHubIssueJob(
+	ctx context.Context,
+	job githubissuedeliveryv1.GitHubIssueDeliveryEvent,
+) error {
+	b, err := event.New(job)
+	if err != nil {
+		return err
+	}
+
+	id, err := p.client.Publish(ctx, p.githubIssueTopic, b)
+	if err != nil {
+		return fmt.Errorf("failed to publish github issue job: %w", err)
+	}
+	slog.InfoContext(ctx, "published github issue job", "id", id, "delivery_id", job.DeliveryID)
+
+	return nil
 }
 
 func (p *PushDeliveryPublisher) PublishEmailJob(ctx context.Context, job workertypes.EmailDeliveryJob) error {

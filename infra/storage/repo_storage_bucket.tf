@@ -21,7 +21,7 @@ resource "google_storage_bucket" "repo_storage_bucket" {
   public_access_prevention    = "enforced"
   uniform_bucket_level_access = true
   retention_policy {
-    retention_period = 2630000 # 1 month
+    retention_period = "2630000" # 1 month
   }
 }
 

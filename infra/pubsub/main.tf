@@ -144,3 +144,53 @@ resource "google_pubsub_subscription" "webhook_delivery_sub" {
     max_delivery_attempts = 5
   }
 }
+
+# ==========================================
+# 4. Code Subscriptions Pipeline
+# ==========================================
+
+# DLQ for Code Scanning & Issue Delivery
+resource "google_pubsub_topic" "code_subscriptions_dlq" {
+  name    = "code-subscriptions-dead-letter-${var.env_id}"
+  project = var.project_id
+}
+
+resource "google_pubsub_subscription" "code_subscriptions_dlq_sub" {
+  name    = "code-subscriptions-dead-letter-sub-${var.env_id}"
+  topic   = google_pubsub_topic.code_subscriptions_dlq.name
+  project = var.project_id
+}
+
+# Main Topic: VCS Scan Tasks (consumed by vcs_scanner worker)
+resource "google_pubsub_topic" "vcs_scan_tasks" {
+  name    = "vcs-scan-tasks-${var.env_id}"
+  project = var.project_id
+}
+
+resource "google_pubsub_subscription" "vcs_scan_tasks_sub" {
+  name    = "vcs-scan-tasks-sub-${var.env_id}"
+  topic   = google_pubsub_topic.vcs_scan_tasks.name
+  project = var.project_id
+
+  dead_letter_policy {
+    dead_letter_topic     = google_pubsub_topic.code_subscriptions_dlq.id
+    max_delivery_attempts = 5
+  }
+}
+
+# Main Topic: GitHub Issue Delivery (consumed by github_issue_delivery worker)
+resource "google_pubsub_topic" "github_issue_delivery" {
+  name    = "github-issue-delivery-${var.env_id}"
+  project = var.project_id
+}
+
+resource "google_pubsub_subscription" "github_issue_delivery_sub" {
+  name    = "github-issue-delivery-sub-${var.env_id}"
+  topic   = google_pubsub_topic.github_issue_delivery.name
+  project = var.project_id
+
+  dead_letter_policy {
+    dead_letter_topic     = google_pubsub_topic.code_subscriptions_dlq.id
+    max_delivery_attempts = 5
+  }
+}

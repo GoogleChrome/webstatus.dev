@@ -23,6 +23,7 @@ import (
 	"time"
 
 	featurediffv1 "github.com/GoogleChrome/webstatus.dev/lib/event/featurediff/v1"
+	githubissuedeliveryv1 "github.com/GoogleChrome/webstatus.dev/lib/event/githubissuedelivery/v1"
 	"github.com/GoogleChrome/webstatus.dev/lib/workertypes"
 	"github.com/google/go-cmp/cmp"
 )
@@ -183,6 +184,57 @@ func TestPushDeliveryPublisher_PublishJobs(t *testing.T) {
 				"channel_id": "chan-1",
 			},
 		},
+		{
+			name: "GitHub Issue Job",
+			publishFunc: func(p *PushDeliveryPublisher) error {
+				return p.PublishGitHubIssueJob(context.Background(), githubissuedeliveryv1.GitHubIssueDeliveryEvent{
+					DeliveryID:         "delivery-1",
+					SubscriptionID:     "sub-1",
+					VCSProvider:        "github",
+					VCSInstallationID:  "inst-1",
+					VCSRepositoryID:    "repo-1",
+					RepositoryOwner:    "owner",
+					RepositoryName:     "repo",
+					RepositoryFullName: "owner/repo",
+					FeatureID:          "popover",
+					FeatureName:        "Popover API",
+					Trigger:            "feature.baseline.promote_to_widely",
+					CommitSHA:          "main",
+					Occurrences: []githubissuedeliveryv1.IssueOccurrence{
+						{
+							FilePath:       "src/app.ts",
+							LineNumber:     4,
+							CommentSnippet: "// TODO",
+						},
+					},
+					WebStatusURL: "https://webstatus.dev/features/popover",
+				})
+			},
+			expectedTopic: "github-issue-topic",
+			expectedKind:  "GitHubIssueDeliveryEvent",
+			expectedData: map[string]any{
+				"delivery_id":          "delivery-1",
+				"subscription_id":      "sub-1",
+				"vcs_provider":         "github",
+				"vcs_installation_id":  "inst-1",
+				"vcs_repository_id":    "repo-1",
+				"repository_owner":     "owner",
+				"repository_name":      "repo",
+				"repository_full_name": "owner/repo",
+				"feature_id":           "popover",
+				"feature_name":         "Popover API",
+				"trigger":              "feature.baseline.promote_to_widely",
+				"commit_sha":           "main",
+				"occurrences": []any{
+					map[string]any{
+						"file_path":       "src/app.ts",
+						"line_number":     float64(4),
+						"comment_snippet": "// TODO",
+					},
+				},
+				"webstatus_url": "https://webstatus.dev/features/popover",
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -193,7 +245,7 @@ func TestPushDeliveryPublisher_PublishJobs(t *testing.T) {
 				err:            nil,
 				mu:             sync.Mutex{},
 			}
-			publisher := NewPushDeliveryPublisher(mockPub, "email-topic", "webhook-topic")
+			publisher := NewPushDeliveryPublisher(mockPub, "email-topic", "webhook-topic", "github-issue-topic")
 
 			if err := tc.publishFunc(publisher); err != nil {
 				t.Fatalf("Publish function failed: %v", err)

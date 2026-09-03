@@ -18,7 +18,10 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strings"
 
+	githubissuedeliveryv1 "github.com/GoogleChrome/webstatus.dev/lib/event/githubissuedelivery/v1"
+	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/workertypes"
 )
 
@@ -27,11 +30,14 @@ type SubscriptionFinder interface {
 	// The adapter is responsible for unmarshalling channel configs and sorting them into the set.
 	FindSubscribers(ctx context.Context, searchID string,
 		frequency workertypes.JobFrequency) (*workertypes.SubscriberSet, error)
+	FindCodeSubscriptions(ctx context.Context, targetQuery string,
+		trigger gcpspanner.SubscriptionTrigger) ([]gcpspanner.CodeSubscription, error)
 }
 
 type DeliveryPublisher interface {
 	PublishEmailJob(ctx context.Context, job workertypes.EmailDeliveryJob) error
 	PublishWebhookJob(ctx context.Context, job workertypes.WebhookDeliveryJob) error
+	PublishGitHubIssueJob(ctx context.Context, job githubissuedeliveryv1.GitHubIssueDeliveryEvent) error
 }
 
 // SummaryParser abstracts the logic for parsing the event summary blob.
@@ -59,13 +65,12 @@ func (d *Dispatcher) ProcessEvent(ctx context.Context,
 
 	// 1. Generate Delivery Jobs from Event Summary.
 	gen := &deliveryJobGenerator{
-		finder:   d.finder,
-		metadata: metadata,
-		// We pass the raw summary bytes down so it can be attached to the jobs
-		// without needing to re-marshal the struct.
-		rawSummary:  summary,
-		emailJobs:   nil,
-		webhookJobs: nil,
+		finder:          d.finder,
+		metadata:        metadata,
+		rawSummary:      summary,
+		emailJobs:       nil,
+		webhookJobs:     nil,
+		githubIssueJobs: nil,
 	}
 
 	if err := d.parser(gen.rawSummary, gen); err != nil {
@@ -108,6 +113,17 @@ func (d *Dispatcher) ProcessEvent(ctx context.Context,
 		}
 	}
 
+	// Publish GitHub Issue Jobs.
+	for _, job := range gen.githubIssueJobs {
+		if err := d.publisher.PublishGitHubIssueJob(ctx, job); err != nil {
+			slog.ErrorContext(ctx, "failed to publish github issue job",
+				"subscription_id", job.SubscriptionID, "error", err)
+			failCount++
+		} else {
+			successCount++
+		}
+	}
+
 	slog.InfoContext(ctx, "dispatch complete",
 		"event_id", metadata.EventID,
 		"sent", successCount,
@@ -123,11 +139,12 @@ func (d *Dispatcher) ProcessEvent(ctx context.Context,
 
 // deliveryJobGenerator implements workertypes.SummaryVisitor to generate jobs from V1 summaries.
 type deliveryJobGenerator struct {
-	finder      SubscriptionFinder
-	metadata    workertypes.DispatchEventMetadata
-	rawSummary  []byte
-	emailJobs   []workertypes.EmailDeliveryJob
-	webhookJobs []workertypes.WebhookDeliveryJob
+	finder          SubscriptionFinder
+	metadata        workertypes.DispatchEventMetadata
+	rawSummary      []byte
+	emailJobs       []workertypes.EmailDeliveryJob
+	webhookJobs     []workertypes.WebhookDeliveryJob
+	githubIssueJobs []githubissuedeliveryv1.GitHubIssueDeliveryEvent
 }
 
 func (g *deliveryJobGenerator) VisitV1(s workertypes.EventSummary) error {
@@ -143,10 +160,19 @@ func (g *deliveryJobGenerator) VisitV1(s workertypes.EventSummary) error {
 		return fmt.Errorf("failed to find subscribers: %w", err)
 	}
 
-	if subscribers == nil {
-		return nil
+	if subscribers != nil {
+		if err := g.generateEmailAndWebhookJobs(subscribers, &s); err != nil {
+			return err
+		}
 	}
 
+	return g.generateCodeSubscriptionJobs(&s)
+}
+
+func (g *deliveryJobGenerator) generateEmailAndWebhookJobs(
+	subscribers *workertypes.SubscriberSet,
+	s *workertypes.EventSummary,
+) error {
 	deliveryMetadata := workertypes.DeliveryMetadata{
 		EventID:     g.metadata.EventID,
 		SearchID:    g.metadata.SearchID,
@@ -156,10 +182,9 @@ func (g *deliveryJobGenerator) VisitV1(s workertypes.EventSummary) error {
 		GeneratedAt: g.metadata.GeneratedAt,
 	}
 
-	// 2. Filter & Create Jobs
 	// Iterate Emails.
 	for _, sub := range subscribers.Emails {
-		notify, err := shouldNotifyV1(sub.Triggers, &s)
+		notify, err := shouldNotifyV1(sub.Triggers, s)
 		if err != nil {
 			return fmt.Errorf("error checking notification triggers for email subscription %s: %w", sub.SubscriptionID, err)
 		}
@@ -178,7 +203,7 @@ func (g *deliveryJobGenerator) VisitV1(s workertypes.EventSummary) error {
 
 	// Iterate Webhooks.
 	for _, sub := range subscribers.Webhooks {
-		notify, err := shouldNotifyV1(sub.Triggers, &s)
+		notify, err := shouldNotifyV1(sub.Triggers, s)
 		if err != nil {
 			return fmt.Errorf("error checking notification triggers for webhook subscription %s: %w", sub.SubscriptionID, err)
 		}
@@ -199,9 +224,91 @@ func (g *deliveryJobGenerator) VisitV1(s workertypes.EventSummary) error {
 	return nil
 }
 
+func (g *deliveryJobGenerator) generateCodeSubscriptionJobs(s *workertypes.EventSummary) error {
+	for _, highlight := range s.Highlights {
+		if highlight.BaselineChange == nil {
+			continue
+		}
+
+		var trigger gcpspanner.SubscriptionTrigger
+		switch highlight.BaselineChange.To.Status {
+		case workertypes.BaselineStatusWidely:
+			trigger = gcpspanner.SubscriptionTriggerFeatureBaselinePromoteToWidely
+		case workertypes.BaselineStatusNewly:
+			if highlight.BaselineChange.From.Status == workertypes.BaselineStatusWidely {
+				continue
+			}
+			trigger = gcpspanner.SubscriptionTriggerFeatureBaselinePromoteToNewly
+		case workertypes.BaselineStatusLimited, workertypes.BaselineStatusUnknown:
+			continue
+		}
+
+		codeSubs, err := g.finder.FindCodeSubscriptions(
+			context.TODO(),
+			fmt.Sprintf("id:%s", highlight.FeatureID),
+			trigger,
+		)
+		if err != nil {
+			return fmt.Errorf("failed to find code subscriptions for feature %s: %w", highlight.FeatureID, err)
+		}
+
+		for _, sub := range codeSubs {
+			occurrences := make([]githubissuedeliveryv1.IssueOccurrence, 0, len(sub.Occurrences))
+			for _, occ := range sub.Occurrences {
+				occurrences = append(occurrences, githubissuedeliveryv1.IssueOccurrence{
+					FilePath:       occ.FilePath,
+					LineNumber:     int64(occ.LineNumber),
+					CommentSnippet: occ.CommentSnippet,
+				})
+			}
+
+			repoOwner, repoName, err := parseRepositoryFullName(sub.RepositoryFullName)
+			if err != nil {
+				slog.WarnContext(context.TODO(), "invalid repository full name in code subscription",
+					"repo", sub.RepositoryFullName, "error", err)
+
+				continue
+			}
+
+			featureName := highlight.FeatureName
+			if featureName == "" {
+				featureName = highlight.FeatureID
+			}
+
+			g.githubIssueJobs = append(g.githubIssueJobs, githubissuedeliveryv1.GitHubIssueDeliveryEvent{
+				DeliveryID:         githubissuedeliveryv1.DeriveDeliveryID(sub.ID, string(trigger)),
+				SubscriptionID:     sub.ID,
+				VCSProvider:        string(sub.VCSProvider),
+				VCSInstallationID:  sub.VCSInstallationID,
+				VCSRepositoryID:    sub.VCSRepositoryID,
+				RepositoryOwner:    repoOwner,
+				RepositoryName:     repoName,
+				RepositoryFullName: sub.RepositoryFullName,
+				FeatureID:          highlight.FeatureID,
+				FeatureName:        featureName,
+				Trigger:            string(trigger),
+				CommitSHA:          "main",
+				Occurrences:        occurrences,
+				WebStatusURL:       fmt.Sprintf("https://webstatus.dev/features/%s", highlight.FeatureID),
+			})
+		}
+	}
+
+	return nil
+}
+
 // JobCount returns the total number of delivery jobs generated.
 func (g *deliveryJobGenerator) JobCount() int {
-	return len(g.emailJobs) + len(g.webhookJobs)
+	return len(g.emailJobs) + len(g.webhookJobs) + len(g.githubIssueJobs)
+}
+
+func parseRepositoryFullName(fullName string) (string, string, error) {
+	parts := strings.Split(fullName, "/")
+	if len(parts) == 2 && parts[0] != "" && parts[1] != "" {
+		return parts[0], parts[1], nil
+	}
+
+	return "", "", fmt.Errorf("invalid repository full name: %q (expected owner/repo)", fullName)
 }
 
 // shouldNotifyV1 determines if the V1 event summary matches any of the subscriber's triggers.
