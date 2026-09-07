@@ -4,7 +4,7 @@ go 1.26.4
 
 require (
 	cloud.google.com/go v0.123.0
-	cloud.google.com/go/spanner v1.94.0
+	cloud.google.com/go/spanner v1.95.0
 	github.com/GoogleChrome/webstatus.dev/lib v0.0.0-20260715085327-f8709240bafb
 	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-20260715085327-f8709240bafb
 	github.com/brianvoe/gofakeit/v7 v7.16.0
