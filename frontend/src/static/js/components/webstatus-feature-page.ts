@@ -227,6 +227,27 @@ export class FeaturePage extends BaseChartsPage {
           font-size: 150%;
           white-space: nowrap;
         }
+        .wptScore .availability {
+          display: flex;
+          align-items: center;
+          gap: var(--content-padding-quarter);
+          font-weight: 600;
+        }
+        .wptScore .availability.available {
+          color: var(--color-green-fg);
+        }
+        .wptScore .availability.unavailable {
+          color: var(--color-red-fg);
+        }
+        .wptScore .availability img {
+          width: 20px;
+          height: 20px;
+          flex-shrink: 0;
+        }
+        .wptScore .score-label {
+          color: var(--unimportant-text-color);
+          font-size: 85%;
+        }
         .wptScore.baseline .score {
           font-size: 150%;
           white-space: wrap;
@@ -713,23 +734,45 @@ export class FeaturePage extends BaseChartsPage {
     `;
   }
 
+  renderBrowserAvailability(
+    browserImpl?: components['schemas']['BrowserImplementation'],
+  ): TemplateResult {
+    const available = browserImpl?.status === 'available';
+    const status = available ? 'available' : 'unavailable';
+    const label = available ? 'Available' : 'Not available';
+    const icon = available ? 'check.svg' : 'cross.svg';
+
+    return html`
+      <div class="availability ${status}">
+        <img src="/public/img/${icon}" alt="" aria-hidden="true" />
+        <span>${label}</span>
+      </div>
+    `;
+  }
+
   renderOneWPTCard(
     browser: components['parameters']['browserPathParam'],
     icon: string,
   ): TemplateResult {
+    const browserImpl = this.feature?.browser_implementations?.[browser];
     const scorePart = this.feature
       ? renderBrowserQuality(
           this.feature,
           {search: ''},
-          {browser: browser, fallbackText: 'N/A'},
+          {
+            browser: browser,
+            fallbackText:
+              browserImpl?.status === 'available' ? 'No score' : 'N/A',
+          },
         )
       : html`<sl-skeleton effect="sheen"></sl-skeleton>`;
-    const browserImpl = this.feature?.browser_implementations?.[browser];
 
     return html`
       <sl-card class="halign-stretch wptScore">
         <img height="32" src="/public/img/${icon}" class="icon" />
         <div>${BROWSER_ID_TO_LABEL[browser]}</div>
+        ${this.renderBrowserAvailability(browserImpl)}
+        <div class="score-label">WPT score</div>
         <div class="score">${scorePart}</div>
         ${this.renderBrowserImpl(browserImpl)}
       </sl-card>
