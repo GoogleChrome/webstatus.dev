@@ -63,7 +63,7 @@ func TestCreateIssue(t *testing.T) {
 		Locked:            nil,
 		Title:             nil,
 		Body:              nil,
-		AuthorAssociation: nil,
+		AuthorAssociation: nil, //nolint:staticcheck // SA1019: Deprecated in go-github v79, required by exhaustruct
 		User:              nil,
 		Labels:            nil,
 		Assignee:          nil,
