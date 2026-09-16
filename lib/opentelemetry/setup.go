@@ -21,7 +21,6 @@ import (
 	"os"
 	"time"
 
-	cloudtrace "github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace"
 	"go.opentelemetry.io/contrib/detectors/gcp"
 	"go.opentelemetry.io/contrib/exporters/autoexport"
 	"go.opentelemetry.io/contrib/propagators/autoprop"
@@ -42,8 +41,20 @@ func SetupOpenTelemetry(ctx context.Context, projectID string) (shutdown func(co
 
 	var shutdownFuncs []func(context.Context) error
 
-	// Set up the Cloud Trace exporter.
-	exporter, err := cloudtrace.New()
+	// shutdown combines shutdown functions from multiple OpenTelemetry
+	// components into a single function.
+	shutdown = func(ctx context.Context) error {
+		var err error
+		for _, fn := range shutdownFuncs {
+			err = errors.Join(err, fn(ctx))
+		}
+		shutdownFuncs = nil
+
+		return err
+	}
+
+	// Set up the OTLP trace exporter.
+	texporter, err := autoexport.NewSpanExporter(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -62,36 +73,16 @@ func SetupOpenTelemetry(ctx context.Context, projectID string) (shutdown func(co
 		log.Fatalf("resource.New: %v", err)
 	}
 	tp := trace.NewTracerProvider(
-		trace.WithBatcher(exporter),
+		trace.WithBatcher(texporter),
 		trace.WithResource(res),
 	)
-	// shutdown combines shutdown functions from multiple OpenTelemetry
-	// components into a single function.
-	shutdown = func(ctx context.Context) error {
-		var err error
-		for _, fn := range shutdownFuncs {
-			err = errors.Join(err, fn(ctx))
-		}
-		shutdownFuncs = nil
-
-		return err
-	}
+	shutdownFuncs = append(shutdownFuncs, tp.Shutdown)
+	otel.SetTracerProvider(tp)
 
 	// Configure Context Propagation to use the default W3C traceparent format
 	// Set the global Propagators which is used by otelhttp to propagate
 	// context using the w3c traceparent and baggage formats.
 	otel.SetTextMapPropagator(autoprop.NewTextMapPropagator())
-
-	// Configure Trace Export to send spans as OTLP
-	// texporter, err := autoexport.NewSpanExporter(ctx)
-	// if err != nil {
-	// 	err = errors.Join(err, shutdown(ctx))
-
-	// 	return nil, err
-	// }
-	// tp := trace.NewTracerProvider(trace.WithBatcher(texporter))
-	shutdownFuncs = append(shutdownFuncs, tp.Shutdown)
-	otel.SetTracerProvider(tp)
 
 	// Configure Metric Export to send metrics as OTLP
 	mreader, err := autoexport.NewMetricReader(ctx)
