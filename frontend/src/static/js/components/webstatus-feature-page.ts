@@ -646,7 +646,7 @@ export class FeaturePage extends BaseChartsPage {
     if (status === undefined) return html``;
 
     const chipConfig = getBaselineChipConfig(status, this.feature.discouraged);
-    const sinceDate = this.feature?.baseline?.low_date;
+    const sinceDate = this.feature?.baseline?.high_date;
 
     let badgeClass = 'limited';
     let iconSvg = this._renderCrossIcon();
