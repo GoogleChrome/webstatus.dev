@@ -7,12 +7,12 @@ require (
 	cloud.google.com/go/spanner v1.95.0
 	github.com/GoogleChrome/webstatus.dev/lib v0.0.0-20260715085327-f8709240bafb
 	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-20260715085327-f8709240bafb
-	github.com/brianvoe/gofakeit/v7 v7.16.0
+	github.com/brianvoe/gofakeit/v7 v7.17.0
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/hashicorp/hcl/v2 v2.24.0
 	github.com/web-platform-tests/wpt.fyi v0.0.0-20260714195540-37f3c47bb00b
 	github.com/zclconf/go-cty v1.19.0
-	golang.org/x/text v0.41.0
+	golang.org/x/text v0.42.0
 )
 
 require (
@@ -38,7 +38,7 @@ require (
 	github.com/oasdiff/yaml3 v0.0.14 // indirect
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3 // indirect
 	github.com/spiffe/go-spiffe/v2 v2.8.1 // indirect
-	golang.org/x/mod v0.40.0 // indirect
+	golang.org/x/mod v0.41.0 // indirect
 	golang.org/x/tools v0.49.0 // indirect
 	google.golang.org/appengine/v2 v2.0.6 // indirect
 )
@@ -92,7 +92,7 @@ require (
 	golang.org/x/exp v0.0.0-20260709172345-9ea1abe57597 // indirect
 	golang.org/x/net v0.58.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
-	golang.org/x/sync v0.22.0 // indirect
+	golang.org/x/sync v0.23.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect
 	golang.org/x/time v0.15.0 // indirect
 	google.golang.org/api v0.295.0 // indirect
