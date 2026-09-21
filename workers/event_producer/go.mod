@@ -27,7 +27,7 @@ require (
 	cloud.google.com/go/monitoring v1.30.0 // indirect
 	cloud.google.com/go/pubsub/v2 v2.7.0 // indirect
 	cloud.google.com/go/secretmanager v1.20.0 // indirect
-	cloud.google.com/go/spanner v1.95.0 // indirect
+	cloud.google.com/go/spanner v1.95.1 // indirect
 	cloud.google.com/go/storage v1.67.1 // indirect
 	github.com/GoogleCloudPlatform/grpc-gcp-go/grpcgcp v1.6.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.36.0 // indirect
