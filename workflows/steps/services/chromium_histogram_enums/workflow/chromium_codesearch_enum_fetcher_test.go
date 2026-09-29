@@ -18,13 +18,21 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"errors"
 	"io"
 	"net/http"
 	"strings"
 	"testing"
+
+	"github.com/GoogleChrome/webstatus.dev/lib/fetchtypes"
 )
 
 // This is more of an integration test to ensure the data is actually base64 encoded.
+//
+// It makes a live network call to chromium.googlesource.com. Upstream outages
+// (e.g. 403s in #2396, 503s in September 2026) are outside our control, so the
+// test is skipped rather than failed when the fetch itself does not succeed.
+// Once a response is received, the content assertions below are still enforced.
 func TestChromiumCodesearchEnumFetcher_Fetch_Base64Encoded(t *testing.T) {
 	ctx := context.Background()
 	httpClient := http.DefaultClient
@@ -34,6 +42,9 @@ func TestChromiumCodesearchEnumFetcher_Fetch_Base64Encoded(t *testing.T) {
 	}
 
 	reader, err := fetcher.Fetch(ctx)
+	if errors.Is(err, fetchtypes.ErrFailedToFetch) || errors.Is(err, fetchtypes.ErrUnexpectedResult) {
+		t.Skipf("Skipping: upstream %s is unavailable: %v", EnumURL, err)
+	}
 	if err != nil {
 		t.Fatalf("Fetch failed: %v", err)
 	}
