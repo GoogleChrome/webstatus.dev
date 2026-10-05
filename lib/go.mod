@@ -3,11 +3,11 @@ module github.com/GoogleChrome/webstatus.dev/lib
 go 1.26.4
 
 require (
-	cloud.google.com/go/datastore v1.26.0
+	cloud.google.com/go/datastore v1.27.0
 	cloud.google.com/go/pubsub/v2 v2.7.0
 	cloud.google.com/go/spanner v1.95.1
 	cloud.google.com/go/storage v1.68.0
-	firebase.google.com/go/v4 v4.21.0
+	firebase.google.com/go/v4 v4.22.0
 	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-20260715085327-f8709240bafb
 	github.com/GoogleChrome/webstatus.dev/workflows/steps/services/chromium_histogram_enums v0.0.0-20260715085327-f8709240bafb
 	github.com/GoogleChrome/webstatus.dev/workflows/steps/services/web_feature_consumer v0.0.0-20260715085327-f8709240bafb
