@@ -3,7 +3,7 @@ module github.com/GoogleChrome/webstatus.dev/backend
 go 1.26.4
 
 require (
-	firebase.google.com/go/v4 v4.21.0
+	firebase.google.com/go/v4 v4.22.0
 	github.com/GoogleChrome/webstatus.dev/lib v0.0.0-20260715085327-f8709240bafb
 	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-20260715085327-f8709240bafb
 	github.com/go-chi/cors v1.2.2
