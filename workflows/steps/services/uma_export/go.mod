@@ -17,14 +17,14 @@ require (
 	cloud.google.com/go/auth/oauth2adapt v0.2.8 // indirect
 	cloud.google.com/go/cloudtasks v1.18.0 // indirect
 	cloud.google.com/go/compute/metadata v0.9.1 // indirect
-	cloud.google.com/go/datastore v1.26.0 // indirect
+	cloud.google.com/go/datastore v1.27.0 // indirect
 	cloud.google.com/go/iam v1.12.0 // indirect
 	cloud.google.com/go/logging v1.19.0 // indirect
 	cloud.google.com/go/longrunning v1.2.0 // indirect
 	cloud.google.com/go/monitoring v1.30.0 // indirect
 	cloud.google.com/go/secretmanager v1.20.0 // indirect
 	cloud.google.com/go/spanner v1.95.1 // indirect
-	firebase.google.com/go/v4 v4.21.0 // indirect
+	firebase.google.com/go/v4 v4.22.0 // indirect
 	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-20260715085327-f8709240bafb // indirect
 	github.com/GoogleCloudPlatform/grpc-gcp-go/grpcgcp v1.6.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.36.0 // indirect

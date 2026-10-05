@@ -3,7 +3,7 @@ module github.com/GoogleChrome/webstatus.dev/backend
 go 1.26.4
 
 require (
-	firebase.google.com/go/v4 v4.21.0
+	firebase.google.com/go/v4 v4.22.0
 	github.com/GoogleChrome/webstatus.dev/lib v0.0.0-20260715085327-f8709240bafb
 	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-20260715085327-f8709240bafb
 	github.com/go-chi/cors v1.2.2
@@ -18,7 +18,7 @@ require (
 	cloud.google.com/go/auth/oauth2adapt v0.2.8 // indirect
 	cloud.google.com/go/cloudtasks v1.18.0 // indirect
 	cloud.google.com/go/compute/metadata v0.9.1 // indirect
-	cloud.google.com/go/datastore v1.26.0 // indirect
+	cloud.google.com/go/datastore v1.27.0 // indirect
 	cloud.google.com/go/firestore v1.24.0 // indirect
 	cloud.google.com/go/iam v1.12.0 // indirect
 	cloud.google.com/go/logging v1.19.0 // indirect

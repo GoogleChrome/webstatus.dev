@@ -19,7 +19,7 @@ require (
 	cloud.google.com/go/auth/oauth2adapt v0.2.8 // indirect
 	cloud.google.com/go/cloudtasks v1.18.0 // indirect
 	cloud.google.com/go/compute/metadata v0.9.1 // indirect
-	cloud.google.com/go/datastore v1.26.0 // indirect
+	cloud.google.com/go/datastore v1.27.0 // indirect
 	cloud.google.com/go/iam v1.12.0 // indirect
 	cloud.google.com/go/logging v1.19.0 // indirect
 	cloud.google.com/go/longrunning v1.2.0 // indirect
