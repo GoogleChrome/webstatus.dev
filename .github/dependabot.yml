@@ -27,7 +27,7 @@ updates:
       time: '02:00'
       timezone: 'America/Los_Angeles'
     cooldown:
-      default-days: 7
+      default-days: 21
     open-pull-requests-limit: 2
     ignore:
       - dependency-name: 'github.com/GoogleChrome/webstatus.dev/*'
@@ -44,7 +44,7 @@ updates:
       time: '02:00'
       timezone: 'America/Los_Angeles'
     cooldown:
-      default-days: 7
+      default-days: 21
     open-pull-requests-limit: 2
     ignore:
       - dependency-name: 'github.com/GoogleChrome/webstatus.dev/*'
@@ -61,7 +61,7 @@ updates:
       time: '02:00'
       timezone: 'America/Los_Angeles'
     cooldown:
-      default-days: 7
+      default-days: 21
     open-pull-requests-limit: 2
     ignore:
       - dependency-name: 'github.com/GoogleChrome/webstatus.dev/*'
@@ -78,7 +78,7 @@ updates:
       time: '02:00'
       timezone: 'America/Los_Angeles'
     cooldown:
-      default-days: 7
+      default-days: 21
     open-pull-requests-limit: 2
     ignore:
       - dependency-name: 'github.com/GoogleChrome/webstatus.dev/*'
@@ -96,7 +96,7 @@ updates:
       time: '03:00'
       timezone: 'America/Los_Angeles'
     cooldown:
-      default-days: 7
+      default-days: 21
     open-pull-requests-limit: 2
     ignore:
       - dependency-name: 'github.com/GoogleChrome/webstatus.dev/*'
@@ -114,7 +114,7 @@ updates:
       time: '04:00'
       timezone: 'America/Los_Angeles'
     cooldown:
-      default-days: 7
+      default-days: 21
     open-pull-requests-limit: 2
     ignore:
       - dependency-name: 'github.com/GoogleChrome/webstatus.dev/*'
@@ -131,7 +131,7 @@ updates:
       time: '04:00'
       timezone: 'America/Los_Angeles'
     cooldown:
-      default-days: 7
+      default-days: 21
     open-pull-requests-limit: 2
     ignore:
       - dependency-name: 'github.com/GoogleChrome/webstatus.dev/*'
@@ -148,7 +148,7 @@ updates:
       time: '04:00'
       timezone: 'America/Los_Angeles'
     cooldown:
-      default-days: 7
+      default-days: 21
     open-pull-requests-limit: 2
     ignore:
       - dependency-name: 'github.com/GoogleChrome/webstatus.dev/*'
@@ -165,7 +165,7 @@ updates:
       time: '04:00'
       timezone: 'America/Los_Angeles'
     cooldown:
-      default-days: 7
+      default-days: 21
     open-pull-requests-limit: 2
     ignore:
       - dependency-name: 'github.com/GoogleChrome/webstatus.dev/*'
@@ -183,7 +183,7 @@ updates:
       time: '05:00'
       timezone: 'America/Los_Angeles'
     cooldown:
-      default-days: 7
+      default-days: 21
     open-pull-requests-limit: 2
     ignore:
       - dependency-name: 'github.com/GoogleChrome/webstatus.dev/*'
@@ -200,7 +200,7 @@ updates:
       time: '05:00'
       timezone: 'America/Los_Angeles'
     cooldown:
-      default-days: 7
+      default-days: 21
     open-pull-requests-limit: 2
     ignore:
       - dependency-name: 'github.com/GoogleChrome/webstatus.dev/*'
@@ -217,7 +217,7 @@ updates:
       time: '05:00'
       timezone: 'America/Los_Angeles'
     cooldown:
-      default-days: 7
+      default-days: 21
     open-pull-requests-limit: 2
     ignore:
       - dependency-name: 'github.com/GoogleChrome/webstatus.dev/*'
@@ -234,7 +234,7 @@ updates:
       time: '05:00'
       timezone: 'America/Los_Angeles'
     cooldown:
-      default-days: 7
+      default-days: 21
     open-pull-requests-limit: 2
     ignore:
       - dependency-name: 'github.com/GoogleChrome/webstatus.dev/*'
@@ -251,7 +251,7 @@ updates:
       time: '05:00'
       timezone: 'America/Los_Angeles'
     cooldown:
-      default-days: 7
+      default-days: 21
     open-pull-requests-limit: 2
     ignore:
       - dependency-name: 'github.com/GoogleChrome/webstatus.dev/*'
@@ -268,7 +268,7 @@ updates:
       time: '05:00'
       timezone: 'America/Los_Angeles'
     cooldown:
-      default-days: 7
+      default-days: 21
     open-pull-requests-limit: 2
     ignore:
       - dependency-name: 'github.com/GoogleChrome/webstatus.dev/*'
@@ -285,7 +285,7 @@ updates:
       time: '05:00'
       timezone: 'America/Los_Angeles'
     cooldown:
-      default-days: 7
+      default-days: 21
     open-pull-requests-limit: 2
     ignore:
       - dependency-name: 'github.com/GoogleChrome/webstatus.dev/*'
@@ -307,7 +307,7 @@ updates:
       time: '06:00'
       timezone: 'America/Los_Angeles'
     cooldown:
-      default-days: 7
+      default-days: 21
     versioning-strategy: 'increase'
     ignore:
       - dependency-name: '@types/node'
@@ -326,7 +326,7 @@ updates:
       time: '06:00'
       timezone: 'America/Los_Angeles'
     cooldown:
-      default-days: 7
+      default-days: 21
 
   - package-ecosystem: 'docker'
     directory: '/.dev/gcs'
@@ -336,7 +336,7 @@ updates:
       time: '06:00'
       timezone: 'America/Los_Angeles'
     cooldown:
-      default-days: 7
+      default-days: 21
 
   - package-ecosystem: 'docker'
     directory: '/.dev/valkey'
@@ -346,7 +346,7 @@ updates:
       time: '06:00'
       timezone: 'America/Los_Angeles'
     cooldown:
-      default-days: 7
+      default-days: 21
 
   - package-ecosystem: 'docker'
     directory: '/.dev/spanner'
@@ -356,7 +356,7 @@ updates:
       time: '06:00'
       timezone: 'America/Los_Angeles'
     cooldown:
-      default-days: 7
+      default-days: 21
 
   - package-ecosystem: 'docker'
     directory: '/.dev/wiremock'
@@ -366,7 +366,7 @@ updates:
       time: '06:00'
       timezone: 'America/Los_Angeles'
     cooldown:
-      default-days: 7
+      default-days: 21
 
   - package-ecosystem: 'docker'
     directory: '/.dev/pubsub'
@@ -376,7 +376,7 @@ updates:
       time: '06:00'
       timezone: 'America/Los_Angeles'
     cooldown:
-      default-days: 7
+      default-days: 21
 
   - package-ecosystem: 'docker'
     directory: '/.devcontainer'
@@ -386,7 +386,7 @@ updates:
       time: '06:00'
       timezone: 'America/Los_Angeles'
     cooldown:
-      default-days: 7
+      default-days: 21
 
   - package-ecosystem: 'docker'
     directory: '/images'
@@ -396,7 +396,7 @@ updates:
       time: '06:00'
       timezone: 'America/Los_Angeles'
     cooldown:
-      default-days: 7
+      default-days: 21
     ignore:
       - dependency-name: 'node'
         versions:
@@ -411,7 +411,7 @@ updates:
       time: '06:00'
       timezone: 'America/Los_Angeles'
     cooldown:
-      default-days: 7
+      default-days: 21
     ignore:
       - dependency-name: 'node'
         versions:
@@ -427,7 +427,7 @@ updates:
       time: '06:00'
       timezone: 'America/Los_Angeles'
     cooldown:
-      default-days: 7
+      default-days: 21
 
   # DevContainer
   - package-ecosystem: 'devcontainers'
@@ -438,7 +438,7 @@ updates:
       time: '06:00'
       timezone: 'America/Los_Angeles'
     cooldown:
-      default-days: 7
+      default-days: 21
 
   # GitHub Actions
   - package-ecosystem: 'github-actions'
@@ -449,4 +449,4 @@ updates:
       time: '06:00'
       timezone: 'America/Los_Angeles'
     cooldown:
-      default-days: 7
+      default-days: 21
