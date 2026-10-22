@@ -22,6 +22,11 @@ import (
 	"github.com/google/go-github/v79/github"
 )
 
+const (
+	headerRateLimitRemaining = "X-RateLimit-Remaining"
+	headerRetryAfter         = "Retry-After"
+)
+
 // IsRateLimitError reports whether err represents a GitHub rate limit error,
 // including primary rate limits (429), secondary/abuse rate limits (403),
 // and ErrSecondaryRateLimit.
@@ -52,6 +57,14 @@ func IsRateLimitError(err error) bool {
 
 		if ghErr.Response.StatusCode == http.StatusForbidden &&
 			strings.Contains(strings.ToLower(ghErr.Message), "rate limit") {
+			return true
+		}
+
+		// Some endpoints (e.g. archive links) do not expose the response body, so fall back to
+		// the rate limit headers GitHub sets on primary and secondary rate limit responses.
+		if ghErr.Response.StatusCode == http.StatusForbidden &&
+			(ghErr.Response.Header.Get(headerRateLimitRemaining) == "0" ||
+				ghErr.Response.Header.Get(headerRetryAfter) != "") {
 			return true
 		}
 	}

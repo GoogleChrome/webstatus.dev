@@ -351,3 +351,134 @@ func TestClient_DownloadTarball(t *testing.T) {
 		}
 	})
 }
+
+// TestClient_DownloadTarball_ArchiveLinkErrorClassification exercises DownloadTarball against a real
+// go-github client so that the error shape returned by GetArchiveLink for unexpected HTTP statuses
+// (a plain error rather than a *github.ErrorResponse) is covered end-to-end.
+func TestClient_DownloadTarball_ArchiveLinkErrorClassification(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name          string
+		statusCode    int
+		headers       map[string]string
+		body          string
+		wantPermanent bool
+		wantRateLimit bool
+		wantServer    bool
+	}{
+		{
+			name:       "403 repository access blocked is permanent",
+			statusCode: http.StatusForbidden,
+			headers:    map[string]string{"X-RateLimit-Remaining": "4999"},
+			body: `{"message":"Repository access blocked",` +
+				`"block":{"reason":"tos","created_at":"2022-08-12T17:28:06Z"}}`,
+			wantPermanent: true,
+			wantRateLimit: false,
+			wantServer:    false,
+		},
+		{
+			name:          "404 not found is permanent",
+			statusCode:    http.StatusNotFound,
+			headers:       nil,
+			body:          `{"message":"Not Found"}`,
+			wantPermanent: true,
+			wantRateLimit: false,
+			wantServer:    false,
+		},
+		{
+			name:          "451 unavailable for legal reasons is permanent",
+			statusCode:    http.StatusUnavailableForLegalReasons,
+			headers:       nil,
+			body:          `{"message":"Repository access blocked"}`,
+			wantPermanent: true,
+			wantRateLimit: false,
+			wantServer:    false,
+		},
+		{
+			name:          "403 primary rate limit is retryable",
+			statusCode:    http.StatusForbidden,
+			headers:       map[string]string{"X-RateLimit-Remaining": "0"},
+			body:          `{"message":"API rate limit exceeded"}`,
+			wantPermanent: false,
+			wantRateLimit: true,
+			wantServer:    false,
+		},
+		{
+			name:          "403 secondary rate limit is retryable",
+			statusCode:    http.StatusForbidden,
+			headers:       map[string]string{"Retry-After": "60"},
+			body:          `{"message":"You have exceeded a secondary rate limit"}`,
+			wantPermanent: false,
+			wantRateLimit: true,
+			wantServer:    false,
+		},
+		{
+			name:          "429 too many requests is retryable",
+			statusCode:    http.StatusTooManyRequests,
+			headers:       nil,
+			body:          `{"message":"Too Many Requests"}`,
+			wantPermanent: false,
+			wantRateLimit: true,
+			wantServer:    false,
+		},
+		{
+			name:          "500 internal server error is retryable",
+			statusCode:    http.StatusInternalServerError,
+			headers:       nil,
+			body:          `{"message":"Server Error"}`,
+			wantPermanent: false,
+			wantRateLimit: false,
+			wantServer:    true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path != "/repos/owner/repo/tarball/main" {
+					t.Errorf("unexpected request path: %s", r.URL.Path)
+				}
+				for k, v := range tc.headers {
+					w.Header().Set(k, v)
+				}
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(tc.statusCode)
+				_, _ = w.Write([]byte(tc.body))
+			}))
+			defer srv.Close()
+
+			baseURL, err := url.Parse(srv.URL + "/")
+			if err != nil {
+				t.Fatalf("failed to parse test server url: %v", err)
+			}
+
+			c := NewClientWithHTTPClient(srv.Client(), "test-token", WithBaseURL(baseURL))
+
+			stream, err := c.DownloadTarball(context.Background(), "owner", "repo", "main")
+			if err == nil {
+				_ = stream.Close()
+				t.Fatal("expected error, got nil")
+			}
+
+			var ghErr *github.ErrorResponse
+			if !errors.As(err, &ghErr) {
+				t.Fatalf("expected error to wrap *github.ErrorResponse, got %T: %v", err, err)
+			}
+			if ghErr.Response.StatusCode != tc.statusCode {
+				t.Errorf("ErrorResponse status = %d, want %d", ghErr.Response.StatusCode, tc.statusCode)
+			}
+			if got := IsPermanentClientError(err); got != tc.wantPermanent {
+				t.Errorf("IsPermanentClientError() = %v, want %v (err: %v)", got, tc.wantPermanent, err)
+			}
+			if got := IsRateLimitError(err); got != tc.wantRateLimit {
+				t.Errorf("IsRateLimitError() = %v, want %v (err: %v)", got, tc.wantRateLimit, err)
+			}
+			if got := IsServerError(err); got != tc.wantServer {
+				t.Errorf("IsServerError() = %v, want %v (err: %v)", got, tc.wantServer, err)
+			}
+		})
+	}
+}

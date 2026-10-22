@@ -149,6 +149,19 @@ func (c *Client) DownloadTarball(
 			return resp.Body, nil
 		}
 
+		if resp != nil && resp.Response != nil {
+			// go-github's GetArchiveLink reports unexpected HTTP statuses as a plain
+			// fmt.Errorf("unexpected status code: ...") instead of a *github.ErrorResponse.
+			// Without the HTTP response attached, IsClientError / IsPermanentClientError /
+			// IsRateLimitError cannot classify the failure, so permanent errors (e.g. a
+			// 403 "Repository access blocked" or a 404) would be retried forever.
+			//nolint:exhaustruct // Only Response and Message required for error classification
+			err = &github.ErrorResponse{
+				Response: resp.Response,
+				Message:  err.Error(),
+			}
+		}
+
 		return nil, fmt.Errorf("failed to get tarball archive link for %s/%s@%s: %w", owner, repo, ref, err)
 	}
 
