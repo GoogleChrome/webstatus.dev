@@ -17,7 +17,9 @@ package gcpspanner
 import (
 	"errors"
 	"reflect"
+	"regexp"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -653,6 +655,86 @@ func TestBuild_Error(t *testing.T) {
 			_, err := b.Build(tc.tree)
 			if !errors.Is(err, tc.expectedErr) {
 				t.Errorf("expected error %v, got %v", tc.expectedErr, err)
+			}
+		})
+	}
+}
+
+// spannerMaxJoins is the maximum number of JOINs Cloud Spanner allows in a single query.
+// Queries above it fail with "Number of joins exceeds the maximum allowed limit of 20".
+// The Spanner emulator does not enforce this limit, so integration tests cannot catch it.
+const spannerMaxJoins = 20
+
+// TestFeatureSearchQueryJoinBudget guards against search queries exceeding Spanner's JOIN limit.
+// In 2026-10, `available_date` searches across 3 browsers combined with a stable / experimental /
+// availability sort generated 21 JOINs and returned HTTP 500.
+func TestFeatureSearchQueryJoinBudget(t *testing.T) {
+	t.Parallel()
+
+	// Every browser accepted by the available_date term in the search grammar.
+	dateBrowsers := []string{"chrome", "chrome_android", "edge", "firefox", "firefox_android", "safari", "safari_ios"}
+	dateRanges := make([]string, 0, len(dateBrowsers))
+	for _, browser := range dateBrowsers {
+		dateRanges = append(dateRanges, "available_date:"+browser+":2016-01-01..2024-06-01")
+	}
+
+	queries := map[string]string{
+		"three browser date ranges": strings.Join(dateRanges[:3], " AND "),
+		"all browser date ranges":   strings.Join(dateRanges, " AND "),
+		"all browser date ranges with other filters": strings.Join(dateRanges, " AND ") +
+			" AND available_on:chrome AND baseline_status:widely AND name:grid",
+	}
+
+	sortBrowsers := []string{"chrome", "chrome_android", "edge", "firefox", "firefox_android", "safari", "safari_ios"}
+	sorts := make([]Sortable, 0, (5+3*len(sortBrowsers))*2)
+	for _, isAscending := range []bool{true, false} {
+		sorts = append(sorts,
+			NewFeatureNameSort(isAscending),
+			NewBaselineStatusSort(isAscending),
+			NewChromiumUsageSort(isAscending),
+			NewDeveloperSignalUpvotesSort(isAscending),
+			NewSearchIDOrderSort(isAscending, "search-id"),
+		)
+		for _, browser := range sortBrowsers {
+			sorts = append(sorts,
+				NewBrowserImplSort(isAscending, browser, true),
+				NewBrowserImplSort(isAscending, browser, false),
+				NewBrowserFeatureSupportSort(isAscending, browser),
+			)
+		}
+	}
+
+	joinRegex := regexp.MustCompile(`(?i)\bJOIN\b`)
+	queryBuilder := FeatureSearchQueryBuilder{
+		baseQuery:     GCPFeatureSearchBaseQuery{},
+		offsetCursor:  nil,
+		wptMetricView: WPTSubtestView,
+		browsers:      []string{"chrome", "edge", "firefox", "safari"},
+	}
+
+	for name, query := range queries {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			node, err := searchtypes.FeaturesSearchQueryParser{}.Parse(query)
+			if err != nil {
+				t.Fatalf("failed to parse query %q: %v", query, err)
+			}
+			filter, err := NewFeatureSearchFilterBuilder().Build(node)
+			if err != nil {
+				t.Fatalf("failed to build filter for query %q: %v", query, err)
+			}
+
+			countStmt := queryBuilder.CountQueryBuild(filter)
+			if joins := len(joinRegex.FindAllString(countStmt.SQL, -1)); joins > spannerMaxJoins {
+				t.Errorf("count query has %d JOINs, want <= %d", joins, spannerMaxJoins)
+			}
+
+			for _, sort := range sorts {
+				stmt := queryBuilder.Build(filter, sort, 25)
+				if joins := len(joinRegex.FindAllString(stmt.SQL, -1)); joins > spannerMaxJoins {
+					t.Errorf("query with sort %q has %d JOINs, want <= %d", sort.Clause(), joins, spannerMaxJoins)
+				}
 			}
 		})
 	}
