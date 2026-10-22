@@ -485,92 +485,142 @@ func TestClient_DownloadTarball_ArchiveLinkErrorClassification(t *testing.T) {
 	}
 }
 
-// TestClient_DownloadTarball_ArchiveLinkRedirects verifies that DownloadTarball follows the 301
-// GitHub returns for a renamed / transferred repository, and that a redirect chain longer than
-// maxArchiveLinkRedirects is classified as permanent instead of being retried forever.
-func TestClient_DownloadTarball_ArchiveLinkRedirects(t *testing.T) {
+// newTestGitHubClient returns a Client whose GitHub API base URL points at srv.
+func newTestGitHubClient(t *testing.T, srv *httptest.Server) *Client {
+	t.Helper()
+
+	baseURL, err := url.Parse(srv.URL + "/")
+	if err != nil {
+		t.Fatalf("failed to parse test server url: %v", err)
+	}
+
+	return NewClientWithHTTPClient(srv.Client(), "test-token", WithBaseURL(baseURL))
+}
+
+// TestClient_DownloadTarball_FollowsRenamedRepositoryRedirect verifies that DownloadTarball
+// follows the 301 GitHub returns for the old name of a renamed / transferred repository.
+func TestClient_DownloadTarball_FollowsRenamedRepositoryRedirect(t *testing.T) {
 	t.Parallel()
 
-	t.Run("renamed repository 301 is followed", func(t *testing.T) {
-		t.Parallel()
+	tarData := []byte("renamed-repo-tarball")
+	mux := http.NewServeMux()
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
 
-		tarData := []byte("renamed-repo-tarball")
-		mux := http.NewServeMux()
-		srv := httptest.NewServer(mux)
-		defer srv.Close()
-
-		// Old name -> canonical repository ID URL (what GitHub returns for a renamed repo).
-		mux.HandleFunc("/repos/owner/old-name/tarball/main", func(w http.ResponseWriter, r *http.Request) {
-			http.Redirect(w, r, srv.URL+"/repositories/42/tarball/main", http.StatusMovedPermanently)
-		})
-		// Canonical URL -> archive download location.
-		mux.HandleFunc("/repositories/42/tarball/main", func(w http.ResponseWriter, r *http.Request) {
-			http.Redirect(w, r, srv.URL+"/download/archive.tar.gz", http.StatusFound)
-		})
-		mux.HandleFunc("/download/archive.tar.gz", func(w http.ResponseWriter, _ *http.Request) {
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write(tarData)
-		})
-
-		baseURL, err := url.Parse(srv.URL + "/")
-		if err != nil {
-			t.Fatalf("failed to parse test server url: %v", err)
+	// Old name -> canonical repository ID URL (what GitHub returns for a renamed repo).
+	mux.HandleFunc("/repos/owner/old-name/tarball/main", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, srv.URL+"/repositories/42/tarball/main", http.StatusMovedPermanently)
+	})
+	// Canonical URL -> archive download location.
+	mux.HandleFunc("/repositories/42/tarball/main", func(w http.ResponseWriter, r *http.Request) {
+		// The followed request must still be authenticated, otherwise private renamed
+		// repositories would 404 and be dropped as permanent failures.
+		if got := r.Header.Get("Authorization"); got != "Bearer test-token" {
+			t.Errorf("followed redirect Authorization = %q, want %q", got, "Bearer test-token")
 		}
-		c := NewClientWithHTTPClient(srv.Client(), "test-token", WithBaseURL(baseURL))
-
-		stream, err := c.DownloadTarball(context.Background(), "owner", "old-name", "main")
-		if err != nil {
-			t.Fatalf("DownloadTarball failed: %v", err)
-		}
-		defer func() {
-			_ = stream.Close()
-		}()
-
-		readBytes, err := io.ReadAll(stream)
-		if err != nil {
-			t.Fatalf("failed to read from stream: %v", err)
-		}
-		if !bytes.Equal(readBytes, tarData) {
-			t.Fatalf("expected %q, got %q", tarData, readBytes)
-		}
+		http.Redirect(w, r, srv.URL+"/download/archive.tar.gz", http.StatusFound)
+	})
+	mux.HandleFunc("/download/archive.tar.gz", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(tarData)
 	})
 
-	t.Run("redirect chain longer than the limit is permanent", func(t *testing.T) {
-		t.Parallel()
+	stream, err := newTestGitHubClient(t, srv).DownloadTarball(context.Background(), "owner", "old-name", "main")
+	if err != nil {
+		t.Fatalf("DownloadTarball failed: %v", err)
+	}
+	defer func() {
+		_ = stream.Close()
+	}()
 
-		mux := http.NewServeMux()
-		srv := httptest.NewServer(mux)
-		defer srv.Close()
+	readBytes, err := io.ReadAll(stream)
+	if err != nil {
+		t.Fatalf("failed to read from stream: %v", err)
+	}
+	if !bytes.Equal(readBytes, tarData) {
+		t.Fatalf("expected %q, got %q", tarData, readBytes)
+	}
+}
 
-		var hops atomic.Int32
-		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			n := hops.Add(1)
-			http.Redirect(w, r, fmt.Sprintf("%s/hop/%d", srv.URL, n), http.StatusMovedPermanently)
+// TestClient_DownloadTarball_UnfollowedRedirectsArePermanent verifies that redirects DownloadTarball
+// cannot follow are classified as permanent (ErrRedirectNotFollowed) instead of being retried forever.
+func TestClient_DownloadTarball_UnfollowedRedirectsArePermanent(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name string
+		// newHandler builds the GitHub API handler. hops counts requests received.
+		newHandler func(hops *atomic.Int32) http.Handler
+		// wantHops is the expected number of requests, or 0 to skip the check.
+		wantHops int32
+	}{
+		{
+			name: "redirect chain longer than the limit",
+			newHandler: func(hops *atomic.Int32) http.Handler {
+				return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					n := hops.Add(1)
+					http.Redirect(w, r, fmt.Sprintf("/hop/%d", n), http.StatusMovedPermanently)
+				})
+			},
+			// The initial request plus maxArchiveLinkRedirects followed redirects.
+			wantHops: maxArchiveLinkRedirects + 1,
+		},
+		{
+			name: "307 temporary redirect (not followed by go-github)",
+			newHandler: func(hops *atomic.Int32) http.Handler {
+				return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					hops.Add(1)
+					http.Redirect(w, r, "/elsewhere", http.StatusTemporaryRedirect)
+				})
+			},
+			wantHops: 1,
+		},
+		{
+			name: "301 without a Location header",
+			newHandler: func(hops *atomic.Int32) http.Handler {
+				mux := http.NewServeMux()
+				mux.HandleFunc("/repos/owner/repo/tarball/main", func(w http.ResponseWriter, _ *http.Request) {
+					hops.Add(1)
+					w.WriteHeader(http.StatusMovedPermanently)
+				})
+				// go-github follows an empty Location to the base URL, like the GitHub API root.
+				mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
+					hops.Add(1)
+					w.WriteHeader(http.StatusOK)
+					_, _ = w.Write([]byte(`{}`))
+				})
+
+				return mux
+			},
+			wantHops: 0,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			var hops atomic.Int32
+			srv := httptest.NewServer(tc.newHandler(&hops))
+			defer srv.Close()
+
+			stream, err := newTestGitHubClient(t, srv).DownloadTarball(context.Background(), "owner", "repo", "main")
+			if err == nil {
+				_ = stream.Close()
+				t.Fatal("expected error, got nil")
+			}
+			if !errors.Is(err, ErrRedirectNotFollowed) {
+				t.Errorf("expected ErrRedirectNotFollowed, got %v", err)
+			}
+			if !IsPermanentClientError(err) {
+				t.Errorf("IsPermanentClientError() = false, want true (err: %v)", err)
+			}
+			if IsRateLimitError(err) {
+				t.Errorf("IsRateLimitError() = true, want false (err: %v)", err)
+			}
+			if got := hops.Load(); tc.wantHops != 0 && got != tc.wantHops {
+				t.Errorf("server saw %d requests, want %d", got, tc.wantHops)
+			}
 		})
-
-		baseURL, err := url.Parse(srv.URL + "/")
-		if err != nil {
-			t.Fatalf("failed to parse test server url: %v", err)
-		}
-		c := NewClientWithHTTPClient(srv.Client(), "test-token", WithBaseURL(baseURL))
-
-		stream, err := c.DownloadTarball(context.Background(), "owner", "repo", "main")
-		if err == nil {
-			_ = stream.Close()
-			t.Fatal("expected error, got nil")
-		}
-		if !errors.Is(err, ErrRedirectNotFollowed) {
-			t.Errorf("expected ErrRedirectNotFollowed, got %v", err)
-		}
-		if !IsPermanentClientError(err) {
-			t.Errorf("IsPermanentClientError() = false, want true (err: %v)", err)
-		}
-		if IsRateLimitError(err) {
-			t.Errorf("IsRateLimitError() = true, want false (err: %v)", err)
-		}
-		if got := hops.Load(); got != maxArchiveLinkRedirects+1 {
-			t.Errorf("server saw %d requests, want %d (initial request + %d redirects)",
-				got, maxArchiveLinkRedirects+1, maxArchiveLinkRedirects)
-		}
-	})
+	}
 }

@@ -32,9 +32,11 @@ type ClientOption func(*github.Client)
 // or transferred repository, which can happen for scan tasks queued before the rename.
 const maxArchiveLinkRedirects = 3
 
-// ErrRedirectNotFollowed is returned when GitHub responds with a redirect that was not followed
-// (for example, the redirect limit was exhausted). Retrying will not succeed, so callers should
-// treat it as permanent (see IsPermanentClientError).
+// ErrRedirectNotFollowed is returned when GitHub responds with a redirect that was not followed:
+// the 301 limit (maxArchiveLinkRedirects) was exhausted, a redirect status other than 301 was
+// returned (go-github only follows 301; e.g. 307/308), or the redirect had no usable Location.
+// Callers should treat it as permanent (see IsPermanentClientError) rather than retrying the same
+// message immediately; the repository is scanned again the next time vcs-sync publishes it.
 var ErrRedirectNotFollowed = errors.New("github redirect not followed")
 
 func WithBaseURL(baseURL *url.URL) ClientOption {
@@ -186,6 +188,14 @@ func (c *Client) DownloadTarball(
 
 	if archiveURL == nil {
 		return nil, fmt.Errorf("received nil archive URL for %s/%s@%s", owner, repo, ref)
+	}
+
+	// go-github parses the Location header with url.Parse, so a redirect without a Location
+	// yields an empty, non-nil URL. Treat it as a redirect we cannot follow instead of a
+	// transient download failure that would be retried.
+	if archiveURL.Host == "" {
+		return nil, fmt.Errorf("received archive URL without a host for %s/%s@%s: %w",
+			owner, repo, ref, ErrRedirectNotFollowed)
 	}
 
 	httpClient := c.httpClient
