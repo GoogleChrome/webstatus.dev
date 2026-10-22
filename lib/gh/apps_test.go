@@ -18,10 +18,12 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"sync/atomic"
 	"testing"
 
 	"github.com/google/go-github/v79/github"
@@ -481,4 +483,94 @@ func TestClient_DownloadTarball_ArchiveLinkErrorClassification(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestClient_DownloadTarball_ArchiveLinkRedirects verifies that DownloadTarball follows the 301
+// GitHub returns for a renamed / transferred repository, and that a redirect chain longer than
+// maxArchiveLinkRedirects is classified as permanent instead of being retried forever.
+func TestClient_DownloadTarball_ArchiveLinkRedirects(t *testing.T) {
+	t.Parallel()
+
+	t.Run("renamed repository 301 is followed", func(t *testing.T) {
+		t.Parallel()
+
+		tarData := []byte("renamed-repo-tarball")
+		mux := http.NewServeMux()
+		srv := httptest.NewServer(mux)
+		defer srv.Close()
+
+		// Old name -> canonical repository ID URL (what GitHub returns for a renamed repo).
+		mux.HandleFunc("/repos/owner/old-name/tarball/main", func(w http.ResponseWriter, r *http.Request) {
+			http.Redirect(w, r, srv.URL+"/repositories/42/tarball/main", http.StatusMovedPermanently)
+		})
+		// Canonical URL -> archive download location.
+		mux.HandleFunc("/repositories/42/tarball/main", func(w http.ResponseWriter, r *http.Request) {
+			http.Redirect(w, r, srv.URL+"/download/archive.tar.gz", http.StatusFound)
+		})
+		mux.HandleFunc("/download/archive.tar.gz", func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write(tarData)
+		})
+
+		baseURL, err := url.Parse(srv.URL + "/")
+		if err != nil {
+			t.Fatalf("failed to parse test server url: %v", err)
+		}
+		c := NewClientWithHTTPClient(srv.Client(), "test-token", WithBaseURL(baseURL))
+
+		stream, err := c.DownloadTarball(context.Background(), "owner", "old-name", "main")
+		if err != nil {
+			t.Fatalf("DownloadTarball failed: %v", err)
+		}
+		defer func() {
+			_ = stream.Close()
+		}()
+
+		readBytes, err := io.ReadAll(stream)
+		if err != nil {
+			t.Fatalf("failed to read from stream: %v", err)
+		}
+		if !bytes.Equal(readBytes, tarData) {
+			t.Fatalf("expected %q, got %q", tarData, readBytes)
+		}
+	})
+
+	t.Run("redirect chain longer than the limit is permanent", func(t *testing.T) {
+		t.Parallel()
+
+		mux := http.NewServeMux()
+		srv := httptest.NewServer(mux)
+		defer srv.Close()
+
+		var hops atomic.Int32
+		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			n := hops.Add(1)
+			http.Redirect(w, r, fmt.Sprintf("%s/hop/%d", srv.URL, n), http.StatusMovedPermanently)
+		})
+
+		baseURL, err := url.Parse(srv.URL + "/")
+		if err != nil {
+			t.Fatalf("failed to parse test server url: %v", err)
+		}
+		c := NewClientWithHTTPClient(srv.Client(), "test-token", WithBaseURL(baseURL))
+
+		stream, err := c.DownloadTarball(context.Background(), "owner", "repo", "main")
+		if err == nil {
+			_ = stream.Close()
+			t.Fatal("expected error, got nil")
+		}
+		if !errors.Is(err, ErrRedirectNotFollowed) {
+			t.Errorf("expected ErrRedirectNotFollowed, got %v", err)
+		}
+		if !IsPermanentClientError(err) {
+			t.Errorf("IsPermanentClientError() = false, want true (err: %v)", err)
+		}
+		if IsRateLimitError(err) {
+			t.Errorf("IsRateLimitError() = true, want false (err: %v)", err)
+		}
+		if got := hops.Load(); got != maxArchiveLinkRedirects+1 {
+			t.Errorf("server saw %d requests, want %d (initial request + %d redirects)",
+				got, maxArchiveLinkRedirects+1, maxArchiveLinkRedirects)
+		}
+	})
 }

@@ -75,9 +75,14 @@ func IsRateLimitError(err error) bool {
 // IsPermanentClientError reports whether err represents an unretryable 4XX client error
 // (e.g. 400 Bad Request, 401 Unauthorized, 404 Not Found, 422 Unprocessable Entity),
 // explicitly excluding transient rate-limiting errors (429 / secondary rate limits).
+// A redirect that could not be followed (ErrRedirectNotFollowed) is also permanent.
 func IsPermanentClientError(err error) bool {
 	if IsRateLimitError(err) {
 		return false
+	}
+
+	if errors.Is(err, ErrRedirectNotFollowed) {
+		return true
 	}
 
 	return IsClientError(err)

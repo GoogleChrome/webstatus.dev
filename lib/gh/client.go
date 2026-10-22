@@ -27,6 +27,16 @@ import (
 
 type ClientOption func(*github.Client)
 
+// maxArchiveLinkRedirects is the number of 301 Moved Permanently responses followed when
+// requesting a repository archive link. GitHub returns a 301 for the old name of a renamed
+// or transferred repository, which can happen for scan tasks queued before the rename.
+const maxArchiveLinkRedirects = 3
+
+// ErrRedirectNotFollowed is returned when GitHub responds with a redirect that was not followed
+// (for example, the redirect limit was exhausted). Retrying will not succeed, so callers should
+// treat it as permanent (see IsPermanentClientError).
+var ErrRedirectNotFollowed = errors.New("github redirect not followed")
+
 func WithBaseURL(baseURL *url.URL) ClientOption {
 	return func(c *github.Client) {
 		c.BaseURL = baseURL
@@ -143,7 +153,7 @@ func (c *Client) DownloadTarball(
 	}
 
 	opts := &github.RepositoryContentGetOptions{Ref: ref}
-	archiveURL, resp, err := c.repoClient.GetArchiveLink(ctx, owner, repo, github.Tarball, opts, 0)
+	archiveURL, resp, err := c.repoClient.GetArchiveLink(ctx, owner, repo, github.Tarball, opts, maxArchiveLinkRedirects)
 	if err != nil {
 		if resp != nil && resp.Response != nil && resp.Body != nil && resp.StatusCode == http.StatusOK {
 			return resp.Body, nil
@@ -156,10 +166,19 @@ func (c *Client) DownloadTarball(
 			// IsRateLimitError cannot classify the failure, so permanent errors (e.g. a
 			// 403 "Repository access blocked" or a 404) would be retried forever.
 			//nolint:exhaustruct // Only Response and Message required for error classification
-			err = &github.ErrorResponse{
+			ghErr := &github.ErrorResponse{
 				Response: resp.Response,
 				Message:  err.Error(),
 			}
+
+			// A redirect that is still returned after following up to maxArchiveLinkRedirects
+			// 301s (or a redirect status go-github does not follow) will not resolve on retry.
+			if resp.StatusCode >= http.StatusMultipleChoices && resp.StatusCode < http.StatusBadRequest {
+				return nil, fmt.Errorf("failed to get tarball archive link for %s/%s@%s: %w: %w",
+					owner, repo, ref, ErrRedirectNotFollowed, ghErr)
+			}
+
+			err = ghErr
 		}
 
 		return nil, fmt.Errorf("failed to get tarball archive link for %s/%s@%s: %w", owner, repo, ref, err)

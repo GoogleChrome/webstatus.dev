@@ -220,6 +220,12 @@ func TestRateLimitAndPermanentClientErrors(t *testing.T) {
 			wantPermanent: false,
 		},
 		{
+			name:          "wrapped ErrRedirectNotFollowed",
+			err:           fmt.Errorf("archive link failed: %w", ErrRedirectNotFollowed),
+			wantRateLimit: false,
+			wantPermanent: true,
+		},
+		{
 			name: "HTTP 429 Too Many Requests ErrorResponse",
 			err: &github.ErrorResponse{
 				Response: &http.Response{
