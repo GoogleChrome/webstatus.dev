@@ -208,6 +208,12 @@ resource "google_pubsub_subscription" "vcs_scan_tasks_sub" {
   topic   = google_pubsub_topic.vcs_scan_tasks.name
   project = var.project_id
 
+  # Scan tasks are idempotent "rescan this repository" triggers, and vcs-sync re-publishes
+  # every repository on each run (vcs_sync_region_schedules), so older copies are redundant.
+  # Keep retention short so a task that can never succeed cannot pile up thousands of copies
+  # (the default is 7 days). Keep this longer than the vcs-sync interval.
+  message_retention_duration = "3600s"
+
   dead_letter_policy {
     dead_letter_topic     = google_pubsub_topic.code_subscriptions_dlq.id
     max_delivery_attempts = 5
