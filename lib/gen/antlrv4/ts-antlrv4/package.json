@@ -1,0 +1,12 @@
+{
+  "name": "@webstatus.dev/feature-search-antlr",
+  "version": "1.0.0",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "antlr4": "4.13.2"
+  },
+  "scripts": {
+    "clean": "find . -mindepth 1 ! -name package.json -exec rm -rf {} +",
+    "test": "test -f FeatureSearchLexer.ts && test -f FeatureSearchParser.ts && test -f FeatureSearchVisitor.ts"
+  }
+}
