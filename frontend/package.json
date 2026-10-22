@@ -50,7 +50,7 @@
     "lit-analyzer": "^2.0.2",
     "openapi-typescript-helpers": "^0.1.0",
     "playwright": "^1.63.0",
-    "prettier": "3.9.9",
+    "prettier": "3.9.10",
     "rollup": "^4.64.0",
     "rollup-plugin-copy": "^3.5.0",
     "rollup-plugin-css-only": "^4.5.5",
