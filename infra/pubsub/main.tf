@@ -16,8 +16,11 @@
 # Without a retry policy Pub/Sub redelivers immediately, so a message that keeps
 # failing (e.g. a permanent error misclassified as transient) is retried in a hot
 # loop. With exponential backoff a failing message is retried at most roughly every
-# 10 minutes, but it still stays unacknowledged, so the "Pub/Sub High Latency"
+# 10 minutes, but it still stays unacknowledged. For the subscriptions listed in the
+# "Pub/Sub High Latency" alert (queue_latency in alerts.tf: ingestion-jobs,
+# notification-events, chime-delivery, vcs-scan-tasks, github-issue-delivery), that
 # alert (oldest_unacked_message_age > 600s) still fires for messages that never succeed.
+# batch-updates and webhook-delivery are not covered by that alert.
 locals {
   subscription_retry_minimum_backoff = "10s"
   subscription_retry_maximum_backoff = "600s"
