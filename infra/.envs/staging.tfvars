@@ -102,6 +102,11 @@ wpt_region_schedules = {
   "europe-west1" = "30 4,10,16,22 * * *"
 }
 
+# Staging runs WPT ingestion from europe-west1 only. The us-central1 trigger was
+# paused outside of Terraform until the google provider 8.4.0 upgrade resumed it on
+# 2026-10-05; keep it paused here so the state is managed in code.
+wpt_paused_regions = ["us-central1"]
+
 vcs_sync_region_schedules = {
   "us-central1"  = "0,10,20,30,40,50 * * * *"
   "europe-west1" = "5,15,25,35,45,55 * * * *"

@@ -78,8 +78,18 @@ variable "wpt_region_schedules" {
   type = map(string)
 }
 
+variable "wpt_paused_regions" {
+  type    = set(string)
+  default = []
+}
+
 variable "web_features_region_schedules" {
   type = map(string)
+}
+
+variable "web_features_paused_regions" {
+  type    = set(string)
+  default = []
 }
 
 variable "web_features_mapping_region_schedules" {

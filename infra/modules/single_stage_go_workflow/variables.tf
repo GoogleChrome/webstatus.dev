@@ -28,6 +28,12 @@ variable "region_schedules" {
   type = map(string)
 }
 
+variable "paused_regions" {
+  type        = set(string)
+  default     = []
+  description = "Regions whose Cloud Scheduler trigger is deployed but paused (e.g. a standby region that can be resumed if the primary region is unavailable)."
+}
+
 variable "deletion_protection" {
   type = bool
 }
