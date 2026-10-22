@@ -12,6 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Redelivery backoff for NACKed (or expired) messages on every consumer subscription.
+# Without a retry policy Pub/Sub redelivers immediately, so a message that keeps
+# failing (e.g. a permanent error misclassified as transient) is retried in a hot
+# loop. With exponential backoff a failing message is retried at most roughly every
+# 5 minutes, but it still stays unacknowledged. For the subscriptions listed in the
+# "Pub/Sub High Latency" alert (queue_latency in alerts.tf: ingestion-jobs,
+# notification-events, chime-delivery, vcs-scan-tasks, github-issue-delivery), that
+# alert (oldest_unacked_message_age > 600s) still fires for messages that never succeed.
+# batch-updates and webhook-delivery are not covered by that alert.
+#
+# The maximum backoff is kept well below the alert's 600s threshold so that, once a
+# dependency recovers, waiting messages are retried within 5 minutes and a short outage
+# that has already ended does not keep oldest_unacked_message_age above the threshold.
+locals {
+  subscription_retry_minimum_backoff = "10s"
+  subscription_retry_maximum_backoff = "300s"
+}
+
 # ==========================================
 # 1. Ingestion Pipeline (Search Refresh)
 # ==========================================
@@ -43,6 +61,11 @@ resource "google_pubsub_subscription" "batch_updates_sub" {
     dead_letter_topic     = google_pubsub_topic.ingestion_dlq.id
     max_delivery_attempts = 5
   }
+
+  retry_policy {
+    minimum_backoff = local.subscription_retry_minimum_backoff
+    maximum_backoff = local.subscription_retry_maximum_backoff
+  }
 }
 
 # Main Topic: Ingestion Jobs (Single Search Refresh)
@@ -59,6 +82,11 @@ resource "google_pubsub_subscription" "ingestion_jobs_sub" {
   dead_letter_policy {
     dead_letter_topic     = google_pubsub_topic.ingestion_dlq.id
     max_delivery_attempts = 5
+  }
+
+  retry_policy {
+    minimum_backoff = local.subscription_retry_minimum_backoff
+    maximum_backoff = local.subscription_retry_maximum_backoff
   }
 }
 
@@ -93,6 +121,11 @@ resource "google_pubsub_subscription" "notification_events_sub" {
     dead_letter_topic     = google_pubsub_topic.notification_dlq.id
     max_delivery_attempts = 5
   }
+
+  retry_policy {
+    minimum_backoff = local.subscription_retry_minimum_backoff
+    maximum_backoff = local.subscription_retry_maximum_backoff
+  }
 }
 
 # ==========================================
@@ -126,6 +159,11 @@ resource "google_pubsub_subscription" "chime_delivery_sub" {
     dead_letter_topic     = google_pubsub_topic.delivery_dlq.id
     max_delivery_attempts = 5
   }
+
+  retry_policy {
+    minimum_backoff = local.subscription_retry_minimum_backoff
+    maximum_backoff = local.subscription_retry_maximum_backoff
+  }
 }
 
 # Main Topic: Webhook Delivery
@@ -142,6 +180,11 @@ resource "google_pubsub_subscription" "webhook_delivery_sub" {
   dead_letter_policy {
     dead_letter_topic     = google_pubsub_topic.delivery_dlq.id
     max_delivery_attempts = 5
+  }
+
+  retry_policy {
+    minimum_backoff = local.subscription_retry_minimum_backoff
+    maximum_backoff = local.subscription_retry_maximum_backoff
   }
 }
 
@@ -172,9 +215,20 @@ resource "google_pubsub_subscription" "vcs_scan_tasks_sub" {
   topic   = google_pubsub_topic.vcs_scan_tasks.name
   project = var.project_id
 
+  # Scan tasks are idempotent "rescan this repository" triggers, and vcs-sync re-publishes
+  # every repository on each run (vcs_sync_region_schedules), so older copies are redundant.
+  # Keep retention short so a task that can never succeed cannot pile up thousands of copies
+  # (the default is 7 days). Keep this longer than the vcs-sync interval.
+  message_retention_duration = "3600s"
+
   dead_letter_policy {
     dead_letter_topic     = google_pubsub_topic.code_subscriptions_dlq.id
     max_delivery_attempts = 5
+  }
+
+  retry_policy {
+    minimum_backoff = local.subscription_retry_minimum_backoff
+    maximum_backoff = local.subscription_retry_maximum_backoff
   }
 }
 
@@ -192,5 +246,10 @@ resource "google_pubsub_subscription" "github_issue_delivery_sub" {
   dead_letter_policy {
     dead_letter_topic     = google_pubsub_topic.code_subscriptions_dlq.id
     max_delivery_attempts = 5
+  }
+
+  retry_policy {
+    minimum_backoff = local.subscription_retry_minimum_backoff
+    maximum_backoff = local.subscription_retry_maximum_backoff
   }
 }
