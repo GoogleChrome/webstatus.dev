@@ -12,6 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Redelivery backoff for NACKed (or expired) messages on every consumer subscription.
+# Without a retry policy Pub/Sub redelivers immediately, so a message that keeps
+# failing (e.g. a permanent error misclassified as transient) is retried in a hot
+# loop. With exponential backoff a failing message is retried at most roughly every
+# 10 minutes, but it still stays unacknowledged, so the "Pub/Sub High Latency"
+# alert (oldest_unacked_message_age > 600s) still fires for messages that never succeed.
+locals {
+  subscription_retry_minimum_backoff = "10s"
+  subscription_retry_maximum_backoff = "600s"
+}
+
 # ==========================================
 # 1. Ingestion Pipeline (Search Refresh)
 # ==========================================
@@ -43,6 +54,11 @@ resource "google_pubsub_subscription" "batch_updates_sub" {
     dead_letter_topic     = google_pubsub_topic.ingestion_dlq.id
     max_delivery_attempts = 5
   }
+
+  retry_policy {
+    minimum_backoff = local.subscription_retry_minimum_backoff
+    maximum_backoff = local.subscription_retry_maximum_backoff
+  }
 }
 
 # Main Topic: Ingestion Jobs (Single Search Refresh)
@@ -59,6 +75,11 @@ resource "google_pubsub_subscription" "ingestion_jobs_sub" {
   dead_letter_policy {
     dead_letter_topic     = google_pubsub_topic.ingestion_dlq.id
     max_delivery_attempts = 5
+  }
+
+  retry_policy {
+    minimum_backoff = local.subscription_retry_minimum_backoff
+    maximum_backoff = local.subscription_retry_maximum_backoff
   }
 }
 
@@ -93,6 +114,11 @@ resource "google_pubsub_subscription" "notification_events_sub" {
     dead_letter_topic     = google_pubsub_topic.notification_dlq.id
     max_delivery_attempts = 5
   }
+
+  retry_policy {
+    minimum_backoff = local.subscription_retry_minimum_backoff
+    maximum_backoff = local.subscription_retry_maximum_backoff
+  }
 }
 
 # ==========================================
@@ -126,6 +152,11 @@ resource "google_pubsub_subscription" "chime_delivery_sub" {
     dead_letter_topic     = google_pubsub_topic.delivery_dlq.id
     max_delivery_attempts = 5
   }
+
+  retry_policy {
+    minimum_backoff = local.subscription_retry_minimum_backoff
+    maximum_backoff = local.subscription_retry_maximum_backoff
+  }
 }
 
 # Main Topic: Webhook Delivery
@@ -142,6 +173,11 @@ resource "google_pubsub_subscription" "webhook_delivery_sub" {
   dead_letter_policy {
     dead_letter_topic     = google_pubsub_topic.delivery_dlq.id
     max_delivery_attempts = 5
+  }
+
+  retry_policy {
+    minimum_backoff = local.subscription_retry_minimum_backoff
+    maximum_backoff = local.subscription_retry_maximum_backoff
   }
 }
 
@@ -176,6 +212,11 @@ resource "google_pubsub_subscription" "vcs_scan_tasks_sub" {
     dead_letter_topic     = google_pubsub_topic.code_subscriptions_dlq.id
     max_delivery_attempts = 5
   }
+
+  retry_policy {
+    minimum_backoff = local.subscription_retry_minimum_backoff
+    maximum_backoff = local.subscription_retry_maximum_backoff
+  }
 }
 
 # Main Topic: GitHub Issue Delivery (consumed by github_issue_delivery worker)
@@ -192,5 +233,10 @@ resource "google_pubsub_subscription" "github_issue_delivery_sub" {
   dead_letter_policy {
     dead_letter_topic     = google_pubsub_topic.code_subscriptions_dlq.id
     max_delivery_attempts = 5
+  }
+
+  retry_policy {
+    minimum_backoff = local.subscription_retry_minimum_backoff
+    maximum_backoff = local.subscription_retry_maximum_backoff
   }
 }
