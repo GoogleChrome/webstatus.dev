@@ -29,6 +29,7 @@ module "web_features_workflow" {
   notification_channel_ids        = var.notification_channel_ids
   env_id                          = var.env_id
   region_schedules                = var.web_features_region_schedules
+  paused_regions                  = var.web_features_paused_regions
   docker_repository_url           = var.docker_repository_details.url
   go_module_path                  = "workflows/steps/services/web_feature_consumer"
   does_process_write_to_spanner   = true
@@ -83,6 +84,7 @@ module "wpt_workflow" {
   notification_channel_ids        = var.notification_channel_ids
   env_id                          = var.env_id
   region_schedules                = var.wpt_region_schedules
+  paused_regions                  = var.wpt_paused_regions
   docker_repository_url           = var.docker_repository_details.url
   go_module_path                  = "workflows/steps/services/wpt_consumer"
   does_process_write_to_spanner   = true

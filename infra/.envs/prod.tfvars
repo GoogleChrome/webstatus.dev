@@ -69,6 +69,10 @@ web_features_region_schedules = {
   "europe-west1" = "30 1,7,13,19 * * *"
 }
 
+# europe-west1 is a standby region for Web Features ingestion. The scheduler is
+# deployed but paused, and can be resumed if us-central1 is unavailable.
+web_features_paused_regions = ["europe-west1"]
+
 # 3. Signals / Chromium  / Web Features Mapping - 2 Hours Later
 # These need the Web Features data first
 # (Hours shifted to 2, 8, 14, 20)
@@ -100,6 +104,10 @@ wpt_region_schedules = {
   "us-central1"  = "0 4,10,16,22 * * *"
   "europe-west1" = "30 4,10,16,22 * * *"
 }
+
+# europe-west1 is a standby region for WPT ingestion. The scheduler is deployed
+# but paused, and can be resumed if us-central1 is unavailable.
+wpt_paused_regions = ["europe-west1"]
 
 vcs_sync_region_schedules = {
   "us-central1"  = "0,10,20,30,40,50 * * * *"

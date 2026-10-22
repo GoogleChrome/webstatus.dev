@@ -111,10 +111,12 @@ module "ingestion" {
   projects                              = var.projects
   depends_on                            = [module.services]
   wpt_region_schedules                  = var.wpt_region_schedules
+  wpt_paused_regions                    = var.wpt_paused_regions
   bcd_region_schedules                  = var.bcd_region_schedules
   uma_region_schedules                  = var.uma_region_schedules
   chromium_region_schedules             = var.chromium_region_schedules
   web_features_region_schedules         = var.web_features_region_schedules
+  web_features_paused_regions           = var.web_features_paused_regions
   developer_signals_region_schedules    = var.developer_signals_region_schedules
   web_features_mapping_region_schedules = var.web_features_mapping_region_schedules
   vcs_sync_region_schedules             = var.vcs_sync_region_schedules
