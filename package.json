@@ -30,7 +30,7 @@
     "rimraf": "^6.0.0",
     "glob": "^11.0.0",
     "esbuild": "0.28.1",
-    "eslint": "^9.17.0",
+    "eslint": "^10.12.0",
     "whatwg-url": "^14.1.0",
     "uri-js": "npm:uri-js-replace",
     "tmp": "0.2.7"
