@@ -22,6 +22,11 @@ import (
 	"github.com/google/go-github/v79/github"
 )
 
+const (
+	headerRateLimitRemaining = "X-RateLimit-Remaining"
+	headerRetryAfter         = "Retry-After"
+)
+
 // IsRateLimitError reports whether err represents a GitHub rate limit error,
 // including primary rate limits (429), secondary/abuse rate limits (403),
 // and ErrSecondaryRateLimit.
@@ -54,6 +59,14 @@ func IsRateLimitError(err error) bool {
 			strings.Contains(strings.ToLower(ghErr.Message), "rate limit") {
 			return true
 		}
+
+		// Some endpoints (e.g. archive links) do not expose the response body, so fall back to
+		// the rate limit headers GitHub sets on primary and secondary rate limit responses.
+		if ghErr.Response.StatusCode == http.StatusForbidden &&
+			(ghErr.Response.Header.Get(headerRateLimitRemaining) == "0" ||
+				ghErr.Response.Header.Get(headerRetryAfter) != "") {
+			return true
+		}
 	}
 
 	return false
@@ -62,9 +75,14 @@ func IsRateLimitError(err error) bool {
 // IsPermanentClientError reports whether err represents an unretryable 4XX client error
 // (e.g. 400 Bad Request, 401 Unauthorized, 404 Not Found, 422 Unprocessable Entity),
 // explicitly excluding transient rate-limiting errors (429 / secondary rate limits).
+// A redirect that could not be followed (ErrRedirectNotFollowed) is also permanent.
 func IsPermanentClientError(err error) bool {
 	if IsRateLimitError(err) {
 		return false
+	}
+
+	if errors.Is(err, ErrRedirectNotFollowed) {
+		return true
 	}
 
 	return IsClientError(err)

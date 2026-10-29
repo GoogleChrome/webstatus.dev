@@ -162,6 +162,12 @@ variable "wpt_region_schedules" {
   description = "Cloud Scheduler cron schedules for WPT ingestion, keyed by region"
 }
 
+variable "wpt_paused_regions" {
+  type        = set(string)
+  default     = []
+  description = "Regions where the WPT ingestion scheduler is deployed but paused (standby)"
+}
+
 variable "uma_region_schedules" {
   type        = map(string)
   description = "Cloud Scheduler cron schedules for UMA ingestion, keyed by region"
@@ -175,6 +181,12 @@ variable "chromium_region_schedules" {
 variable "web_features_region_schedules" {
   type        = map(string)
   description = "Cloud Scheduler cron schedules for Web Features ingestion, keyed by region"
+}
+
+variable "web_features_paused_regions" {
+  type        = set(string)
+  default     = []
+  description = "Regions where the Web Features ingestion scheduler is deployed but paused (standby)"
 }
 
 variable "web_features_mapping_region_schedules" {

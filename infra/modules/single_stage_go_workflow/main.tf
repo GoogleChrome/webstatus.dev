@@ -95,6 +95,9 @@ resource "google_cloud_scheduler_job" "workflow_trigger_job" {
   name     = "${var.env_id}-${var.short_name}-trigger-job-${each.value.region}"
   region   = each.value.region
   schedule = var.region_schedules[each.value.region]
+  # Keep the paused state in Terraform. Pausing a scheduler outside of Terraform is
+  # reverted on the next apply (google provider >= 8.4.0 resumes jobs without `paused`).
+  paused = contains(var.paused_regions, each.value.region)
   http_target {
     uri         = "https://workflowexecutions.googleapis.com/v1/${each.value.id}/executions"
     http_method = "POST"

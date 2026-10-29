@@ -34,6 +34,10 @@ import (
 //  2. Quiet Rollouts (Browsers): A specific exception exists for BrowserImplementations.
 //     If a browser moves from "Unset" to "Set(Unavailable)" with no extra details, we IGNORE it.
 //     This prevents spamming users when we add a new browser column to the DB that is mostly empty.
+//  3. Release Date Corrections (Browsers): If a browser reports the same version in both snapshots
+//     and only its date differs, we IGNORE it. The date is the release date of that version, so a
+//     new date means the release date was corrected upstream (e.g. by BCD), not that support
+//     changed. See compareBrowserState.
 //
 // Guide for Adding New Fields:
 // When adding a new field to comparables.Feature:
@@ -465,7 +469,10 @@ func compareBrowserState(
 		isChanged = true
 	}
 	// Check Date
-	if !isChanged && oldB.Value.Date.IsSet &&
+	// The date is the reported version's release date. If the version is unchanged, a
+	// different date is an upstream release-date correction, not a support change.
+	// See: https://github.com/GoogleChrome/webstatus.dev/issues/2852
+	if !isChanged && oldB.Value.Date.IsSet && !sameVersion(oldB.Value, newB.Value) &&
 		!pointersEqualFn(oldB.Value.Date.Value, newB.Value.Date.Value, timeEqual) {
 		isChanged = true
 	}
@@ -478,6 +485,15 @@ func compareBrowserState(
 	}
 
 	return nil, false
+}
+
+// sameVersion reports whether both browser states report the same, non-nil version.
+func sameVersion(a, b comparables.BrowserState) bool {
+	if !a.Version.IsSet || !b.Version.IsSet || a.Version.Value == nil || b.Version.Value == nil {
+		return false
+	}
+
+	return *a.Version.Value == *b.Version.Value
 }
 
 func pointersEqual[T comparable](a, b *T) bool {

@@ -29,6 +29,7 @@ module "web_features_workflow" {
   notification_channel_ids        = var.notification_channel_ids
   env_id                          = var.env_id
   region_schedules                = var.web_features_region_schedules
+  paused_regions                  = var.web_features_paused_regions
   docker_repository_url           = var.docker_repository_details.url
   go_module_path                  = "workflows/steps/services/web_feature_consumer"
   does_process_write_to_spanner   = true
@@ -83,6 +84,7 @@ module "wpt_workflow" {
   notification_channel_ids        = var.notification_channel_ids
   env_id                          = var.env_id
   region_schedules                = var.wpt_region_schedules
+  paused_regions                  = var.wpt_paused_regions
   docker_repository_url           = var.docker_repository_details.url
   go_module_path                  = "workflows/steps/services/wpt_consumer"
   does_process_write_to_spanner   = true
@@ -131,7 +133,7 @@ module "bcd_workflow" {
   full_name                     = "BCD Workflow"
   deletion_protection           = var.deletion_protection
   project_id                    = var.spanner_datails.project_id
-  timeout_seconds               = 60 * 5 # 5 minutes
+  timeout_seconds               = 60 * 10 # 10 minutes. Healthy europe-west1 runs use ~285s of a 300s limit (cross-region Spanner writes).
   image_name                    = "bcd_consumer_image"
   spanner_details               = var.spanner_datails
   notification_channel_ids      = var.notification_channel_ids

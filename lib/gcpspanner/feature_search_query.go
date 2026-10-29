@@ -365,15 +365,24 @@ func (b *FeatureSearchFilterBuilder) availableBrowserDateFilter(
 	// accessing fields of a struct array within a subquery when that same
 	// array is also in the main query's result set.
 	// Check this issue: https://github.com/GoogleChrome/webstatus.dev/issues/576
+	//
+	// Do not use a JOIN here. Cloud Spanner rejects queries with more than 20 JOINs
+	// ("Number of joins exceeds the maximum allowed limit of 20"), and each
+	// available_date range produces two of these filters. The base query and some
+	// sort orders already use most of that budget, so the release date check is
+	// expressed as a correlated IN subquery, which does not count against the limit.
 	return fmt.Sprintf(`
 	wf.ID IN (
 		SELECT bfa.WebFeatureID
 		FROM BrowserFeatureAvailabilities bfa
-		JOIN BrowserReleases br
-			ON bfa.BrowserName = br.BrowserName AND bfa.BrowserVersion = br.BrowserVersion
 		WHERE
-			br.BrowserName %s @%s
-			AND br.ReleaseDate %s @%s
+			bfa.BrowserName %s @%s
+			AND bfa.BrowserVersion IN (
+				SELECT br.BrowserVersion
+				FROM BrowserReleases br
+				WHERE br.BrowserName = bfa.BrowserName
+					AND br.ReleaseDate %s @%s
+			)
 	)
     `,
 		searchOperatorToSpannerBinaryOperator(browserOp), browserParamName,

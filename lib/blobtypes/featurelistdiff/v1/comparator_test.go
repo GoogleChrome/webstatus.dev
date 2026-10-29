@@ -65,6 +65,10 @@ func unsetBrowserState() generic.OptionallySet[comparables.BrowserState] {
 }
 
 func TestCalculateDiff(t *testing.T) {
+	// Edge 125's release date as BCD first published it, and after BCD corrected it.
+	edge125ReleaseDate := time.Date(2024, 5, 16, 0, 0, 0, 0, time.UTC)
+	edge125CorrectedReleaseDate := time.Date(2024, 5, 17, 0, 0, 0, 0, time.UTC)
+
 	tests := []struct {
 		name         string
 		oldMap       map[string]comparables.Feature
@@ -117,6 +121,24 @@ func TestCalculateDiff(t *testing.T) {
 			wantAdded:    0,
 			wantRemoved:  0,
 			wantModified: 1,
+			wantErrors:   nil,
+		},
+		{
+			// Only the release date of the version the feature already had changed, so there is
+			// nothing to notify about. See https://github.com/GoogleChrome/webstatus.dev/issues/2852.
+			name: "Browser Release Date Correction Only",
+			oldMap: map[string]comparables.Feature{
+				"1": withEdge(newBaseFeature("1", "A", "limited"),
+					newBrowserState(backend.Available, new("125"), &edge125ReleaseDate)),
+			},
+			newMap: map[string]comparables.Feature{
+				"1": withEdge(newBaseFeature("1", "A", "limited"),
+					newBrowserState(backend.Available, new("125"), &edge125CorrectedReleaseDate)),
+			},
+			errs:         nil,
+			wantAdded:    0,
+			wantRemoved:  0,
+			wantModified: 0,
 			wantErrors:   nil,
 		},
 		{
@@ -278,6 +300,8 @@ func TestCompareFeature_BrowserVersionChange(t *testing.T) {
 	}
 }
 
+// TestCompareFeature_BrowserDateChange covers states without a version. The date is then the only
+// signal we have, so a new date is still reported as a change.
 func TestCompareFeature_BrowserDateChange(t *testing.T) {
 	oldDate := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
 	newDate := time.Date(2025, 2, 1, 0, 0, 0, 0, time.UTC)
@@ -296,6 +320,73 @@ func TestCompareFeature_BrowserDateChange(t *testing.T) {
 	chg := mod.BrowserChanges[Chrome]
 	if chg.To.Date.Value == nil || !chg.To.Date.Value.Equal(newDate) {
 		t.Errorf("Chrome date change mismatch: got %v", chg.To.Date.Value)
+	}
+}
+
+// TestCompareFeature_BrowserReleaseDateCorrection covers states that report a version. There, the
+// date is that version's release date, so only a status or version change is reported. The first
+// two cases are real BCD corrections that were wrongly reported as changes before
+// https://github.com/GoogleChrome/webstatus.dev/issues/2852 was fixed.
+func TestCompareFeature_BrowserReleaseDateCorrection(t *testing.T) {
+	edge125Date := time.Date(2024, 5, 16, 0, 0, 0, 0, time.UTC)
+	edge125CorrectedDate := time.Date(2024, 5, 17, 0, 0, 0, 0, time.UTC)
+	edge132Date := time.Date(2025, 1, 9, 0, 0, 0, 0, time.UTC)
+	edge132CorrectedDate := time.Date(2025, 1, 17, 0, 0, 0, 0, time.UTC)
+	edge126Date := time.Date(2024, 6, 13, 0, 0, 0, 0, time.UTC)
+	edge153Date := time.Date(2026, 9, 11, 0, 0, 0, 0, time.UTC)
+
+	tests := []struct {
+		name        string
+		oldState    generic.OptionallySet[comparables.BrowserState]
+		newState    generic.OptionallySet[comparables.BrowserState]
+		wantChanged bool
+	}{
+		{
+			name:        "corrected release date for the same version is not a change",
+			oldState:    newBrowserState(backend.Available, new("125"), &edge125Date),
+			newState:    newBrowserState(backend.Available, new("125"), &edge125CorrectedDate),
+			wantChanged: false,
+		},
+		{
+			name:        "release date moved by more than a week for the same version is not a change",
+			oldState:    newBrowserState(backend.Available, new("132"), &edge132Date),
+			newState:    newBrowserState(backend.Available, new("132"), &edge132CorrectedDate),
+			wantChanged: false,
+		},
+		{
+			name:        "same version and same release date is not a change",
+			oldState:    newBrowserState(backend.Available, new("125"), &edge125CorrectedDate),
+			newState:    newBrowserState(backend.Available, new("125"), &edge125CorrectedDate),
+			wantChanged: false,
+		},
+		{
+			name:        "new version with its own release date is a change",
+			oldState:    newBrowserState(backend.Available, new("125"), &edge125CorrectedDate),
+			newState:    newBrowserState(backend.Available, new("126"), &edge126Date),
+			wantChanged: true,
+		},
+		{
+			name:        "same version becoming available once its release is known is a change",
+			oldState:    newBrowserState(backend.Unavailable, new("153"), nil),
+			newState:    newBrowserState(backend.Available, new("153"), &edge153Date),
+			wantChanged: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			oldF := withEdge(newBaseFeature("1", "A", "limited"), tc.oldState)
+			newF := withEdge(newBaseFeature("1", "A", "limited"), tc.newState)
+
+			mod, changed := compareFeature(oldF, newF)
+
+			if changed != tc.wantChanged {
+				t.Errorf("compareFeature() changed = %t, want %t", changed, tc.wantChanged)
+			}
+			if _, gotEdgeChange := mod.BrowserChanges[Edge]; gotEdgeChange != tc.wantChanged {
+				t.Errorf("Edge change reported = %t, want %t", gotEdgeChange, tc.wantChanged)
+			}
+		})
 	}
 }
 
@@ -418,6 +509,13 @@ func TestCompareFeature_BaselineStatus_Added(t *testing.T) {
 }
 
 // --- Test Helpers ---
+
+// withEdge returns a copy of f with its Edge state replaced by state.
+func withEdge(f comparables.Feature, state generic.OptionallySet[comparables.BrowserState]) comparables.Feature {
+	f.BrowserImpls.Value.Edge = state
+
+	return f
+}
 
 func newBrowserState(
 	status backend.BrowserImplementationStatus,

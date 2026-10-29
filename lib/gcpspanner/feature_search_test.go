@@ -1900,18 +1900,41 @@ func testGroupFilters(ctx context.Context, t *testing.T, client *Client) {
 	)
 }
 
-func testFeatureAvailableBrowserDateFilters(ctx context.Context, t *testing.T, client *Client) {
-	// available_date:barBrowser:2000-01-01..2000-02-02
-	// Only Feature 1 is available on barBrowser during that same time window.
-	expectedResults := []FeatureResult{
-		getFeatureSearchTestFeature(FeatureSearchTestFId1),
+// availableBrowserDateRangeNode builds the search tree produced by the parser for
+// `available_date:<browser>:<start>..<end>` (see VisitAvailableBrowserDateTerm).
+func availableBrowserDateRangeNode(browser, startDate, endDate string) *searchtypes.SearchNode {
+	dateBoundNode := func(date string, op searchtypes.SearchOperator) *searchtypes.SearchNode {
+		return &searchtypes.SearchNode{
+			Keyword: searchtypes.KeywordNone,
+			Term: &searchtypes.SearchTerm{
+				Identifier: searchtypes.IdentifierAvailableBrowserDate,
+				Operator:   searchtypes.OperatorNone,
+				Value:      "",
+			},
+			Children: []*searchtypes.SearchNode{
+				{
+					Keyword: searchtypes.KeywordNone,
+					Term: &searchtypes.SearchTerm{
+						Identifier: searchtypes.IdentifierAvailableOn,
+						Value:      browser,
+						Operator:   searchtypes.OperatorEq,
+					},
+					Children: nil,
+				},
+				{
+					Keyword: searchtypes.KeywordNone,
+					Term: &searchtypes.SearchTerm{
+						Identifier: searchtypes.IdentifierAvailableDate,
+						Value:      date,
+						Operator:   op,
+					},
+					Children: nil,
+				},
+			},
+		}
 	}
-	expectedPage := FeatureResultPage{
-		Total:         1,
-		NextPageToken: nil,
-		Features:      expectedResults,
-	}
-	node := &searchtypes.SearchNode{
+
+	return &searchtypes.SearchNode{
 		Keyword: searchtypes.KeywordRoot,
 		Term:    nil,
 		Children: []*searchtypes.SearchNode{
@@ -1919,74 +1942,52 @@ func testFeatureAvailableBrowserDateFilters(ctx context.Context, t *testing.T, c
 				Keyword: searchtypes.KeywordAND,
 				Term:    nil,
 				Children: []*searchtypes.SearchNode{
-					{
-						Keyword: searchtypes.KeywordNone,
-						Term: &searchtypes.SearchTerm{
-							Identifier: searchtypes.IdentifierAvailableBrowserDate,
-							Operator:   searchtypes.OperatorNone,
-							Value:      "",
-						},
-						Children: []*searchtypes.SearchNode{
-							{
-								Keyword: searchtypes.KeywordNone,
-								Term: &searchtypes.SearchTerm{
-									Identifier: searchtypes.IdentifierAvailableOn,
-									Value:      "barBrowser",
-									Operator:   searchtypes.OperatorEq,
-								},
-								Children: nil,
-							},
-							{
-								Keyword: searchtypes.KeywordNone,
-								Term: &searchtypes.SearchTerm{
-									Identifier: searchtypes.IdentifierAvailableDate,
-									Value:      "2000-01-01",
-									Operator:   searchtypes.OperatorGtEq,
-								},
-								Children: nil,
-							},
-						},
-					},
-					{
-						Keyword: searchtypes.KeywordNone,
-						Term: &searchtypes.SearchTerm{
-							Identifier: searchtypes.IdentifierAvailableBrowserDate,
-							Operator:   searchtypes.OperatorNone,
-							Value:      "",
-						},
-						Children: []*searchtypes.SearchNode{
-							{
-								Keyword: searchtypes.KeywordNone,
-								Term: &searchtypes.SearchTerm{
-									Identifier: searchtypes.IdentifierAvailableOn,
-									Value:      "barBrowser",
-									Operator:   searchtypes.OperatorEq,
-								},
-								Children: nil,
-							},
-							{
-								Keyword: searchtypes.KeywordNone,
-								Term: &searchtypes.SearchTerm{
-									Identifier: searchtypes.IdentifierAvailableDate,
-									Value:      "2000-02-02",
-									Operator:   searchtypes.OperatorLtEq,
-								},
-								Children: nil,
-							},
-						},
-					},
+					dateBoundNode(startDate, searchtypes.OperatorGtEq),
+					dateBoundNode(endDate, searchtypes.OperatorLtEq),
 				},
 			},
 		},
 	}
+}
+
+func testFeatureAvailableBrowserDateFilters(ctx context.Context, t *testing.T, client *Client) {
+	// available_date:barBrowser:2000-01-01..2000-02-02
+	// Only Feature 1 is available on barBrowser during that same time window.
 	assertFeatureSearch(ctx, t, client,
 		featureSearchArgs{
 			pageToken: nil,
 			pageSize:  100,
-			node:      node,
+			node:      availableBrowserDateRangeNode("barBrowser", "2000-01-01", "2000-02-02"),
 			sort:      defaultSorting(),
 		},
-		&expectedPage,
+		&FeatureResultPage{
+			Total:         1,
+			NextPageToken: nil,
+			Features: []FeatureResult{
+				getFeatureSearchTestFeature(FeatureSearchTestFId1),
+			},
+		},
+	)
+
+	// available_date:barBrowser:2000-01-01..2000-03-01
+	// Version strings repeat across browsers: barBrowser 2.0.0 was released on 2000-03-02
+	// (outside the range) while fooBrowser 2.0.0 was released on 2000-03-01 (inside it).
+	// Feature 2 is available on barBrowser from 2.0.0, so it must NOT match. This guards
+	// the release date lookup being correlated to the same browser as the availability.
+	assertFeatureSearch(ctx, t, client,
+		featureSearchArgs{
+			pageToken: nil,
+			pageSize:  100,
+			node:      availableBrowserDateRangeNode("barBrowser", "2000-01-01", "2000-03-01"),
+			sort:      defaultSorting(),
+		},
+		&FeatureResultPage{
+			Total:         1,
+			NextPageToken: nil,
+			Features: []FeatureResult{
+				getFeatureSearchTestFeature(FeatureSearchTestFId1),
+			},
+		},
 	)
 }
 

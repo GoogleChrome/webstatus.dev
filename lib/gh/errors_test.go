@@ -220,6 +220,12 @@ func TestRateLimitAndPermanentClientErrors(t *testing.T) {
 			wantPermanent: false,
 		},
 		{
+			name:          "wrapped ErrRedirectNotFollowed",
+			err:           fmt.Errorf("archive link failed: %w", ErrRedirectNotFollowed),
+			wantRateLimit: false,
+			wantPermanent: true,
+		},
+		{
 			name: "HTTP 429 Too Many Requests ErrorResponse",
 			err: &github.ErrorResponse{
 				Response: &http.Response{
@@ -270,6 +276,42 @@ func TestRateLimitAndPermanentClientErrors(t *testing.T) {
 					StatusCode: http.StatusForbidden,
 				},
 				Message: "Resource not accessible by integration",
+			},
+			wantRateLimit: false,
+			wantPermanent: true,
+		},
+		{
+			name: "HTTP 403 Forbidden with exhausted primary rate limit header",
+			err: &github.ErrorResponse{
+				Response: &http.Response{
+					StatusCode: http.StatusForbidden,
+					Header:     http.Header{"X-Ratelimit-Remaining": []string{"0"}},
+				},
+				Message: "unexpected status code: 403 Forbidden",
+			},
+			wantRateLimit: true,
+			wantPermanent: false,
+		},
+		{
+			name: "HTTP 403 Forbidden with secondary rate limit Retry-After header",
+			err: &github.ErrorResponse{
+				Response: &http.Response{
+					StatusCode: http.StatusForbidden,
+					Header:     http.Header{"Retry-After": []string{"60"}},
+				},
+				Message: "unexpected status code: 403 Forbidden",
+			},
+			wantRateLimit: true,
+			wantPermanent: false,
+		},
+		{
+			name: "HTTP 403 Forbidden with remaining rate limit quota",
+			err: &github.ErrorResponse{
+				Response: &http.Response{
+					StatusCode: http.StatusForbidden,
+					Header:     http.Header{"X-Ratelimit-Remaining": []string{"4999"}},
+				},
+				Message: "unexpected status code: 403 Forbidden",
 			},
 			wantRateLimit: false,
 			wantPermanent: true,
