@@ -56,8 +56,10 @@ COPY --from=builder /work/${service_dir}/scripts/setup_server.sh /docker-entrypo
 
 FROM nginx:1.31.6-alpine-slim AS static
 
-# Install coreutils to install basenc
-RUN apk add coreutils
+# Upgrade base OS packages to apply security patches (remediates CVE-2026-85091 in zlib)
+RUN apk update && \
+    apk upgrade --no-cache && \
+    apk add --no-cache coreutils
 
 ARG service_dir
 COPY --from=builder /work/${service_dir}/nginx.conf /etc/nginx/nginx.conf
