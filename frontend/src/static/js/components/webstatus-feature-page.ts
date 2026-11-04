@@ -223,6 +223,10 @@ export class FeaturePage extends BaseChartsPage {
         .wptScore .icon {
           float: right;
         }
+        .wptScore.browser-impl-unavailable .icon {
+          filter: grayscale(1);
+          opacity: 50%;
+        }
         .wptScore .score {
           font-size: 150%;
           white-space: nowrap;
@@ -717,6 +721,8 @@ export class FeaturePage extends BaseChartsPage {
     browser: components['parameters']['browserPathParam'],
     icon: string,
   ): TemplateResult {
+    const browserImpl = this.feature?.browser_implementations?.[browser];
+    const browserImplStatus = browserImpl?.status || 'unavailable';
     const scorePart = this.feature
       ? renderBrowserQuality(
           this.feature,
@@ -724,10 +730,11 @@ export class FeaturePage extends BaseChartsPage {
           {browser: browser, fallbackText: 'N/A'},
         )
       : html`<sl-skeleton effect="sheen"></sl-skeleton>`;
-    const browserImpl = this.feature?.browser_implementations?.[browser];
 
     return html`
-      <sl-card class="halign-stretch wptScore">
+      <sl-card
+        class="halign-stretch wptScore browser-impl-${browserImplStatus}"
+      >
         <img height="32" src="/public/img/${icon}" class="icon" />
         <div>${BROWSER_ID_TO_LABEL[browser]}</div>
         <div class="score">${scorePart}</div>
