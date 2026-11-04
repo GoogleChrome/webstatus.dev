@@ -43,7 +43,7 @@ require (
 	github.com/ebitengine/purego v0.10.1 // indirect
 	github.com/envoyproxy/go-control-plane/envoy v1.37.0 // indirect
 	github.com/getkin/kin-openapi v0.149.0 // indirect
-	github.com/go-jose/go-jose/v4 v4.1.6 // indirect
+	github.com/go-jose/go-jose/v4 v4.1.8 // indirect
 	github.com/go-openapi/jsonpointer v1.0.1 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/go-github/v89 v89.0.0 // indirect
