@@ -18,6 +18,10 @@ on: # trigger builds for 1) PRs, 2) merges into main from merge_queue, and 3) ma
   merge_group:
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 permissions:
   contents: read
   packages: read
