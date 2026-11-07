@@ -311,11 +311,16 @@ node-test: playwright-install
 ################################
 # ANTLR
 ################################
+ANTLR4_VERSION ?= 4.13.2
+ANTLR_JAR ?= /usr/local/lib/antlr-$(ANTLR4_VERSION)-complete.jar
+
 antlr-gen: clean-antlr
-	java -jar /usr/local/lib/antlr-$${ANTLR4_VERSION}-complete.jar -Dlanguage=Go -o lib/gen/featuresearch/parser -visitor -no-listener antlr/FeatureSearch.g4
+	java -jar $(ANTLR_JAR) -Dlanguage=Go -o lib/gen/featuresearch/parser -visitor -no-listener antlr/FeatureSearch.g4
+	java -jar $(ANTLR_JAR) -Dlanguage=TypeScript -Xexact-output-dir -o lib/gen/antlrv4/ts-antlrv4 -visitor -no-listener antlr/FeatureSearch.g4
 
 clean-antlr:
 	rm -rf lib/gen/featuresearch/parser
+	find lib/gen/antlrv4/ts-antlrv4 -mindepth 1 -maxdepth 1 ! -name package.json -exec rm -rf {} +
 
 ################################
 # License
