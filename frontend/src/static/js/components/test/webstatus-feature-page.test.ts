@@ -216,6 +216,82 @@ describe('webstatus-feature-page', () => {
     });
   });
 
+  describe('renderBrowserAvailability', () => {
+    let element: FeaturePage;
+    let hostElement: HTMLDivElement;
+
+    beforeEach(async () => {
+      element = await fixture(
+        html`<webstatus-feature-page
+          .location=${location}
+        ></webstatus-feature-page>`,
+      );
+      hostElement = document.createElement('div');
+    });
+
+    it('renders an explicit available status', async () => {
+      const actual = element.renderBrowserAvailability({status: 'available'});
+      render(actual, hostElement);
+      const host = await fixture(hostElement);
+
+      expect(host.textContent?.trim()).to.equal('Available');
+      expect(host.querySelector('.availability')).to.have.class('available');
+      expect(host.querySelector('img')?.getAttribute('src')).to.equal(
+        '/public/img/check.svg',
+      );
+    });
+
+    it('renders an explicit unavailable status when no implementation exists', async () => {
+      const actual = element.renderBrowserAvailability();
+      render(actual, hostElement);
+      const host = await fixture(hostElement);
+
+      expect(host.textContent?.trim()).to.equal('Not available');
+      expect(host.querySelector('.availability')).to.have.class('unavailable');
+      expect(host.querySelector('img')?.getAttribute('src')).to.equal(
+        '/public/img/cross.svg',
+      );
+    });
+  });
+
+  describe('renderOneWPTCard', () => {
+    let element: FeaturePage;
+    let hostElement: HTMLDivElement;
+
+    beforeEach(async () => {
+      element = await fixture(
+        html`<webstatus-feature-page
+          .location=${location}
+        ></webstatus-feature-page>`,
+      );
+      element.endDate = new Date('2025-01-01');
+      hostElement = document.createElement('div');
+    });
+
+    it('does not confuse available features without WPT scores with unavailable features', async () => {
+      element.feature = {
+        feature_id: 'id',
+        name: 'name',
+        browser_implementations: {
+          safari_ios: {status: 'available', date: '2024-01-01'},
+        },
+      };
+
+      const actual = element.renderOneWPTCard('safari_ios', 'safari_32x32.png');
+      render(actual, hostElement);
+      const host = await fixture(hostElement);
+
+      expect(host.querySelector('.availability')?.textContent?.trim()).to.equal(
+        'Available',
+      );
+      expect(host.querySelector('.score')?.textContent?.trim()).to.equal(
+        'No score',
+      );
+      expect(host.textContent).to.contain('Available since 2024-01-01');
+      expect(host.textContent).to.contain('WPT score');
+    });
+  });
+
   describe('renderDeveloperSignal', () => {
     let element: FeaturePage;
     let hostElement: HTMLDivElement;
