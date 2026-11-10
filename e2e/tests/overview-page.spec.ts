@@ -77,7 +77,7 @@ test('shows an error that their query is invalid', async ({page}) => {
 
   const message = page.locator('.message');
   await message.waitFor({state: 'visible'});
-  expect(message).toContainText('Invalid query...');
+  await expect(message).toContainText('Invalid query...');
 
   const pageContainer = page.locator('.page-container');
   await expectDualThemeScreenshot(page, pageContainer, 'invalid-query');
@@ -101,7 +101,7 @@ test('shows an unknown error when there is an internal error', async ({
 
   const message = page.locator('.message');
   await message.waitFor({state: 'visible'});
-  expect(message).toContainText('Something went wrong...');
+  await expect(message).toContainText('Something went wrong...');
 
   const pageContainer = page.locator('.page-container');
   await expectDualThemeScreenshot(page, pageContainer, 'internal-error');
