@@ -19,11 +19,11 @@ require (
 	github.com/oapi-codegen/runtime v1.7.0
 	github.com/stretchr/testify v1.12.1
 	github.com/testcontainers/testcontainers-go v0.44.0
-	github.com/valkey-io/valkey-go v1.0.78
+	github.com/valkey-io/valkey-go v1.0.79
 	github.com/web-platform-tests/wpt.fyi v0.0.0-20260714195540-37f3c47bb00b
 	go.opentelemetry.io/contrib/detectors/gcp v1.47.0
 	golang.org/x/mod v0.42.0
-	google.golang.org/api v0.302.0
+	google.golang.org/api v0.304.0
 	google.golang.org/grpc v1.84.0
 )
 
