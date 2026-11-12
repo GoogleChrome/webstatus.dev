@@ -253,16 +253,14 @@ test('Export to CSV button fails to request all features and shows toast', async
   page,
 }) => {
   // Mock the API to return an error when requesting all features.
-  page.on('request', async request => {
-    await page.route('**/features*', async route => {
-      if (route.request().url().includes('page_size=100')) {
-        // allFeaturesFetcher gets features 100 at a time.
-        return route.abort();
-      } else {
-        // Continue with the original request
-        route.continue();
-      }
-    });
+  await page.route('**/features*', async route => {
+    if (route.request().url().includes('page_size=100')) {
+      // allFeaturesFetcher gets features 100 at a time.
+      return route.abort();
+    } else {
+      // Continue with the original request
+      return route.continue();
+    }
   });
   await gotoOverviewPageUrl(page, 'http://localhost:5555/');
   const exportButton = page.getByRole('button', {
