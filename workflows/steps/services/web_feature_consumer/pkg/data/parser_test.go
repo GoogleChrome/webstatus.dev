@@ -46,7 +46,7 @@ func TestParseV3(t *testing.T) {
 			}
 			result, err := V3Parser{}.Parse(file)
 			if err != nil {
-				t.Errorf("unable to parse file err %s", err.Error())
+				t.Fatalf("unable to parse file err %s", err.Error())
 			}
 			if len(result.Features.Data) == 0 {
 				t.Error("unexpected empty map for features")
@@ -85,6 +85,30 @@ func TestParseError(t *testing.T) {
 			expectedError: ErrUnexpectedFormat,
 			testParser:    V3Parser{},
 		},
+		{
+			name:          "empty feature name",
+			input:         io.NopCloser(strings.NewReader(dataJSONV3(emptyFeatureNameMapV3()))),
+			expectedError: ErrUnexpectedFormat,
+			testParser:    V3Parser{},
+		},
+		{
+			name:          "unexpected feature-like data",
+			input:         io.NopCloser(strings.NewReader(dataJSONV3(unexpectedFeatureLikeMapV3()))),
+			expectedError: ErrUnexpectedFormat,
+			testParser:    V3Parser{},
+		},
+		{
+			name:          "empty feature ID",
+			input:         io.NopCloser(strings.NewReader(dataJSONV3(emptyFeatureIDMapV3()))),
+			expectedError: ErrUnexpectedFormat,
+			testParser:    V3Parser{},
+		},
+		{
+			name:          "malformed feature JSON",
+			input:         io.NopCloser(strings.NewReader(dataJSONV3(malformedFeatureMapV3()))),
+			expectedError: ErrUnexpectedFormat,
+			testParser:    V3Parser{},
+		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -97,6 +121,41 @@ func TestParseError(t *testing.T) {
 			}
 		})
 	}
+}
+
+func dataJSONV3(features string) string {
+	return `{"browsers":{
+	"chrome":{"name":"Chrome","releases":[]},
+	"chrome_android":{"name":"Chrome Android","releases":[]},
+	"edge":{"name":"Edge","releases":[]},
+	"firefox":{"name":"Firefox","releases":[]},
+	"firefox_android":{"name":"Firefox Android","releases":[]},
+	"safari":{"name":"Safari","releases":[]},
+	"safari_ios":{"name":"Safari on iOS","releases":[]}
+},"features":` + features + `,"groups":{},"snapshots":{}}`
+}
+
+func emptyFeatureNameMapV3() string {
+	return `{"feature1":{
+	"kind":"feature",
+	"name":"",
+	"description":"Description",
+	"description_html":"Description",
+	"spec":["https://example.com"],
+	"status":{"baseline":false,"support":{}}
+}}`
+}
+
+func unexpectedFeatureLikeMapV3() string {
+	return `{"feature1":{"feature_id":"features","name":""}}`
+}
+
+func emptyFeatureIDMapV3() string {
+	return `{"":{"kind":"feature","name":"Feature 1"}}`
+}
+
+func malformedFeatureMapV3() string {
+	return `{"feature1":false}`
 }
 
 func testBrowsersV3() web_platform_dx__web_features_v3.Browsers {

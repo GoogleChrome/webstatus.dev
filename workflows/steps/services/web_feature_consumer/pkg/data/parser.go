@@ -59,12 +59,72 @@ func (p V3Parser) Parse(in io.ReadCloser) (*webdxfeaturetypes.ProcessedWebFeatur
 		return nil, errors.Join(ErrUnexpectedFormat, err)
 	}
 
+	err = validateRawWebFeaturesJSONDataV3(&source)
+	if err != nil {
+		return nil, errors.Join(ErrUnexpectedFormat, err)
+	}
+
 	processedData, err := postProcessV3(&source)
 	if err != nil {
 		return nil, errors.Join(ErrUnableToProcess, err)
 	}
 
 	return processedData, nil
+}
+
+func validateRawWebFeaturesJSONDataV3(data *rawWebFeaturesJSONDataV3) error {
+	return validateFeaturesV3(data.Features)
+}
+
+func validateFeaturesV3(data json.RawMessage) error {
+	if len(data) == 0 {
+		return errors.New("missing web features")
+	}
+
+	featureRawMessageMap := make(map[string]json.RawMessage)
+	if err := json.Unmarshal(data, &featureRawMessageMap); err != nil {
+		return err
+	}
+	if len(featureRawMessageMap) == 0 {
+		return errors.New("missing web features")
+	}
+
+	for id, rawFeature := range featureRawMessageMap {
+		if strings.TrimSpace(id) == "" {
+			return errors.New("empty web feature ID")
+		}
+
+		var peek featureKindPeek
+		if err := json.Unmarshal(rawFeature, &peek); err != nil {
+			return err
+		}
+
+		switch peek.Kind {
+		case string(web_platform_dx__web_features_v3.Feature):
+			if err := validateFeatureNameV3(rawFeature); err != nil {
+				return err
+			}
+		case string(web_platform_dx__web_features_v3.Moved), string(web_platform_dx__web_features_v3.Split):
+		default:
+			return errors.New("unknown web feature kind")
+		}
+	}
+
+	return nil
+}
+
+func validateFeatureNameV3(rawFeature json.RawMessage) error {
+	var value struct {
+		Name *string `json:"name"`
+	}
+	if err := json.Unmarshal(rawFeature, &value); err != nil {
+		return err
+	}
+	if value.Name == nil || strings.TrimSpace(*value.Name) == "" {
+		return errors.New("empty web feature name")
+	}
+
+	return nil
 }
 
 func postProcessV3(data *rawWebFeaturesJSONDataV3) (*webdxfeaturetypes.ProcessedWebFeaturesData, error) {
@@ -158,8 +218,7 @@ func postProcessFeatureValueV3(data json.RawMessage) (*webdxfeaturetypes.Feature
 		// Peek inside the raw JSON to find the "kind"
 		var peek featureKindPeek
 		if err := json.Unmarshal(rawFeature, &peek); err != nil {
-			// Skip or log features that don't have a 'kind' field
-			continue
+			return nil, err
 		}
 
 		// Switch on the explicit "kind" to unmarshal into the correct type
@@ -193,6 +252,8 @@ func postProcessFeatureValueV3(data json.RawMessage) (*webdxfeaturetypes.Feature
 				return nil, err
 			}
 			featureKinds.Split[id] = *split
+		default:
+			return nil, ErrUnexpectedFormat
 		}
 	}
 
@@ -207,6 +268,9 @@ func processFeatureKind(rawFeature json.RawMessage) (*webdxfeaturetypes.FeatureV
 	}
 	// Return an error because these values should be present. Quicktype just messes it up.
 	if value.Description == nil || value.DescriptionHTML == nil || value.Name == nil || value.Status == nil {
+		return nil, ErrUnexpectedFormat
+	}
+	if strings.TrimSpace(*value.Name) == "" {
 		return nil, ErrUnexpectedFormat
 	}
 	feature := &webdxfeaturetypes.FeatureValue{
