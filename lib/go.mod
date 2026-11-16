@@ -3,10 +3,10 @@ module github.com/GoogleChrome/webstatus.dev/lib
 go 1.26.4
 
 require (
-	cloud.google.com/go/datastore v1.27.0
-	cloud.google.com/go/pubsub/v2 v2.7.0
+	cloud.google.com/go/datastore v1.28.0
+	cloud.google.com/go/pubsub/v2 v2.8.0
 	cloud.google.com/go/spanner v1.96.1
-	cloud.google.com/go/storage v1.69.0
+	cloud.google.com/go/storage v1.70.0
 	firebase.google.com/go/v4 v4.22.0
 	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-20260715085327-f8709240bafb
 	github.com/GoogleChrome/webstatus.dev/workflows/steps/services/chromium_histogram_enums v0.0.0-20260715085327-f8709240bafb
@@ -16,20 +16,20 @@ require (
 	github.com/deckarep/golang-set v1.8.0
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/go-github/v79 v79.0.0
-	github.com/oapi-codegen/runtime v1.7.0
+	github.com/oapi-codegen/runtime v1.8.0
 	github.com/stretchr/testify v1.12.1
 	github.com/testcontainers/testcontainers-go v0.44.0
 	github.com/valkey-io/valkey-go v1.0.79
 	github.com/web-platform-tests/wpt.fyi v0.0.0-20260714195540-37f3c47bb00b
 	go.opentelemetry.io/contrib/detectors/gcp v1.47.0
 	golang.org/x/mod v0.42.0
-	google.golang.org/api v0.304.0
+	google.golang.org/api v0.307.0
 	google.golang.org/grpc v1.84.0
 )
 
 require (
 	cel.dev/expr v0.25.2 // indirect
-	cloud.google.com/go/auth v0.24.1-0.20261001053825-dbc26066f70a // indirect
+	cloud.google.com/go/auth v0.24.1 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.3.0 // indirect
 	cloud.google.com/go/monitoring v1.30.0 // indirect
 	github.com/GoogleCloudPlatform/grpc-gcp-go/grpcgcp v1.6.0 // indirect
@@ -153,13 +153,13 @@ require (
 	golang.org/x/exp v0.0.0-20260908205506-85c1c2202aba // indirect
 	golang.org/x/net v0.61.0 // indirect
 	golang.org/x/oauth2 v0.37.0
-	golang.org/x/sync v0.24.0
+	golang.org/x/sync v0.25.0
 	golang.org/x/sys v0.49.0 // indirect
 	golang.org/x/text v0.43.0 // indirect
 	golang.org/x/time v0.16.0 // indirect
 	google.golang.org/genproto v0.0.0-20260715232425-e75dac1f907d // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260928230214-8a89bd6388cc // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20261005182115-fad411399dd8 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20261019180522-ce908d29299b // indirect
 	google.golang.org/protobuf v1.36.12 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
