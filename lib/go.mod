@@ -16,7 +16,7 @@ require (
 	github.com/deckarep/golang-set v1.8.0
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/go-github/v79 v79.0.0
-	github.com/oapi-codegen/runtime v1.7.0
+	github.com/oapi-codegen/runtime v1.8.0
 	github.com/stretchr/testify v1.12.1
 	github.com/testcontainers/testcontainers-go v0.44.0
 	github.com/valkey-io/valkey-go v1.0.79
@@ -42,7 +42,7 @@ require (
 	github.com/containerd/platforms v0.2.1 // indirect
 	github.com/ebitengine/purego v0.10.1 // indirect
 	github.com/envoyproxy/go-control-plane/envoy v1.37.0 // indirect
-	github.com/getkin/kin-openapi v0.151.0 // indirect
+	github.com/getkin/kin-openapi v0.152.0 // indirect
 	github.com/go-jose/go-jose/v4 v4.1.8 // indirect
 	github.com/go-openapi/jsonpointer v1.0.1 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
