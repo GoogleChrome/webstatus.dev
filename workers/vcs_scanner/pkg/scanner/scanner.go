@@ -43,6 +43,11 @@ const (
 	DeletedBranchSHA              = "0000000000000000000000000000000000000000"
 )
 
+// defaultScanTimeout bounds fetching the installation token, downloading the archive, and parsing
+// it, so a stuck download can't hold its Pub/Sub message for up to an hour. Scans normally take
+// about a second; the slowest seen take under 20 seconds.
+const defaultScanTimeout = 3 * time.Minute
+
 type TarballFetcher interface {
 	DownloadTarball(ctx context.Context, owner, repo, ref string) (io.ReadCloser, error)
 }
@@ -67,6 +72,7 @@ type Scanner struct {
 	tokenProvider TokenProvider
 	clientFactory ClientFactory
 	spannerSyncer SpannerSyncer
+	scanTimeout   time.Duration
 }
 
 func NewScanner(
@@ -75,8 +81,11 @@ func NewScanner(
 	spannerSyncer SpannerSyncer,
 ) *Scanner {
 	if clientFactory == nil {
+		// Each archive download gets its own short-lived connection instead of sharing one
+		// HTTP/2 connection, so one slow connection can't slow down every scan.
+		archiveHTTPClient := gh.NewArchiveDownloadHTTPClient()
 		clientFactory = func(token string) TarballFetcher {
-			return gh.NewClient(token)
+			return gh.NewClient(token).WithArchiveHTTPClient(archiveHTTPClient)
 		}
 	}
 
@@ -84,6 +93,7 @@ func NewScanner(
 		tokenProvider: tokenProvider,
 		clientFactory: clientFactory,
 		spannerSyncer: spannerSyncer,
+		scanTimeout:   defaultScanTimeout,
 	}
 }
 
@@ -305,9 +315,13 @@ func (s *Scanner) ProcessTask(ctx context.Context, task codescantaskv1.CodeScanT
 		return fmt.Errorf("invalid vcs provider: %w", provErr)
 	}
 
+	// Spanner writes below keep using ctx, so a scan that times out still records its failure.
+	scanCtx, cancelScan := context.WithTimeout(ctx, s.scanTimeout)
+	defer cancelScan()
+
 	var token string
 	if s.tokenProvider != nil && task.VCSInstallationID != "" {
-		t, err := s.tokenProvider.GetInstallationToken(ctx, task.VCSInstallationID)
+		t, err := s.tokenProvider.GetInstallationToken(scanCtx, task.VCSInstallationID)
 		if err != nil {
 			s.recordFailedScanLog(ctx, task, now, fmt.Sprintf("failed to get installation token: %v", err))
 			if gh.IsPermanentClientError(err) {
@@ -330,7 +344,7 @@ func (s *Scanner) ProcessTask(ctx context.Context, task codescantaskv1.CodeScanT
 	if ref == "" {
 		ref = task.Branch
 	}
-	archiveStream, err := fetcher.DownloadTarball(ctx, owner, repo, ref)
+	archiveStream, err := fetcher.DownloadTarball(scanCtx, owner, repo, ref)
 	if err != nil {
 		s.recordFailedScanLog(ctx, task, now, fmt.Sprintf("failed to download tarball: %v", err))
 		if gh.IsPermanentClientError(err) {
@@ -348,7 +362,7 @@ func (s *Scanner) ProcessTask(ctx context.Context, task codescantaskv1.CodeScanT
 		_ = archiveStream.Close()
 	}()
 
-	occurrencesByQuery, triggersByQuery, filesScanned, scanErr := s.scanTarballStream(ctx, archiveStream)
+	occurrencesByQuery, triggersByQuery, filesScanned, scanErr := s.scanTarballStream(scanCtx, archiveStream)
 	if scanErr != nil {
 		slog.ErrorContext(ctx, "failed to scan repository tarball", "error", scanErr, "repo", task.RepositoryFullName)
 		s.recordFailedScanLog(ctx, task, now, fmt.Sprintf("failed to scan tarball: %v", scanErr))
