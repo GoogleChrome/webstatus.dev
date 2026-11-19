@@ -359,6 +359,10 @@ type newestAppliedBranchScan struct {
 // readNewestAppliedBranchScan returns the newest SUCCESS/TRUNCATED scan of the repository's branch
 // head (empty CommitSHA), and whether one exists. Commit-pinned (webhook) scans are ignored because
 // their start time says nothing about how fresh their content is.
+//
+// The query orders by ScannedAt only, which matches the index, so Spanner can stop at the first
+// matching row instead of sorting every log row of the repository. Two scans starting in the same
+// microsecond are not ordered by ID here; that tie is practically impossible.
 func readNewestAppliedBranchScan(
 	ctx context.Context,
 	tx *spanner.ReadWriteTransaction,
@@ -373,7 +377,7 @@ func readNewestAppliedBranchScan(
 			AND VCSRepositoryID = @repoID
 			AND CommitSHA = ''
 			AND ScanStatus IN UNNEST(@appliedStatuses)
-		ORDER BY ScannedAt DESC, ID DESC
+		ORDER BY ScannedAt DESC
 		LIMIT 1`,
 		Params: map[string]any{
 			"vcsProvider":     string(vcsProvider),

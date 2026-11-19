@@ -147,7 +147,7 @@ resource "google_monitoring_alert_policy" "vcs_scan_failures" {
   notification_channels = var.notification_channel_ids
 
   documentation {
-    content   = "Three or more repositories have been failing to scan for a non-permanent reason (see the error_class label: TIMEOUT, STALL, STREAM, TRANSIENT_SERVER, RATE_LIMITED, SPANNER, PANIC, UNKNOWN). Check the vcs-scanner logs for \"repository scan failed\" entries. Failed repositories are retried automatically by vcs-sync with backoff."
+    content   = "Three or more repositories have been failing to scan for a non-permanent reason (see the error_class label: TIMEOUT, STALL, STREAM, TRANSIENT_SERVER, RATE_LIMITED, SPANNER, PANIC, UNKNOWN). Check the vcs-scanner logs for \"repository scan failed\" entries. Failed repositories are retried automatically on the next vcs-sync run."
     mime_type = "text/markdown"
   }
 }
