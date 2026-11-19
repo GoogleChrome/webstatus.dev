@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"strconv"
 	"strings"
 
@@ -30,6 +31,9 @@ import (
 
 // JobArguments represents CLI / Job runtime configuration.
 type JobArguments struct{}
+
+// ErrScanTaskPublishFailed indicates that one or more scan tasks could not be published.
+var ErrScanTaskPublishFailed = errors.New("failed to publish scan tasks")
 
 // NewJobArguments creates empty job arguments for scheduled execution.
 func NewJobArguments() JobArguments {
@@ -102,6 +106,11 @@ func NewVCSSyncProcessor(
 }
 
 // Process runs the scheduled reconciliation job across all active installations.
+//
+// The run fails if any scan task can't be published or any installation can't be synced, except
+// installations that were suspended or uninstalled. A failure doesn't stop the remaining
+// repositories from being published. The job runs every 5 minutes without retries, so the next
+// run retries a one-off failure, and the job's alert only fires when no run succeeds for a while.
 func (p *VCSSyncProcessor) Process(ctx context.Context, _ JobArguments) error {
 	slog.InfoContext(ctx, "starting scheduled VCS repository sync")
 
@@ -119,39 +128,47 @@ func (p *VCSSyncProcessor) Process(ctx context.Context, _ JobArguments) error {
 
 	slog.InfoContext(ctx, "discovered active VCS installations", "count", len(installations))
 
+	var counts publishCounts
 	var errs []error
 	for _, inst := range installations {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
 
-		if err := p.syncInstallation(ctx, inst); err != nil {
-			if gh.IsClientError(err) {
-				slog.WarnContext(ctx, "client error syncing installation, skipping",
-					"provider", inst.VCSProvider,
-					"installation_id", inst.VCSInstallationID,
-					"account", inst.AccountLogin,
-					"error", err,
-				)
-
-				continue
-			}
-
-			slog.ErrorContext(ctx, "failed to sync installation",
-				"provider", inst.VCSProvider,
-				"installation_id", inst.VCSInstallationID,
-				"account", inst.AccountLogin,
-				"error", err,
-			)
-			errs = append(errs, err)
+		// Publishes are counted even if the installation fails partway, e.g. while listing a later page.
+		err := p.syncInstallation(ctx, inst, &counts)
+		if err == nil {
+			continue
 		}
+
+		attrs := []any{
+			"provider", inst.VCSProvider,
+			"installation_id", inst.VCSInstallationID,
+			"account", inst.AccountLogin,
+			"error", err,
+		}
+		// Skip installations that can't be synced, e.g. because they were suspended or uninstalled.
+		// Rate limits and 401s still fail the run. A 401 means GitHub rejected the app's credentials,
+		// so every installation fails the same way.
+		if gh.IsPermanentClientError(err) && !isUnauthorized(err) {
+			slog.WarnContext(ctx, "client error syncing installation, skipping", attrs...)
+
+			continue
+		}
+
+		slog.ErrorContext(ctx, "failed to sync installation", attrs...)
+		errs = append(errs, err)
+	}
+
+	if err := counts.err(); err != nil {
+		errs = append(errs, err)
 	}
 
 	if len(errs) > 0 {
 		return errors.Join(errs...)
 	}
 
-	slog.InfoContext(ctx, "completed scheduled VCS repository sync successfully")
+	slog.InfoContext(ctx, "completed scheduled VCS repository sync successfully", "published", counts.published)
 
 	return nil
 }
@@ -257,10 +274,14 @@ func (p *VCSSyncProcessor) reconcileGitHubAppInstallations(ctx context.Context) 
 	return nil
 }
 
-func (p *VCSSyncProcessor) syncInstallation(ctx context.Context, inst gcpspanner.VCSInstallation) error {
+func (p *VCSSyncProcessor) syncInstallation(
+	ctx context.Context,
+	inst gcpspanner.VCSInstallation,
+	counts *publishCounts,
+) error {
 	switch inst.VCSProvider {
 	case gcpspanner.VCSProviderGitHub:
-		return p.syncGitHubInstallation(ctx, inst)
+		return p.syncGitHubInstallation(ctx, inst, counts)
 	default:
 		slog.WarnContext(ctx, "unsupported VCS provider for sync", "provider", inst.VCSProvider)
 
@@ -268,7 +289,11 @@ func (p *VCSSyncProcessor) syncInstallation(ctx context.Context, inst gcpspanner
 	}
 }
 
-func (p *VCSSyncProcessor) syncGitHubInstallation(ctx context.Context, inst gcpspanner.VCSInstallation) error {
+func (p *VCSSyncProcessor) syncGitHubInstallation(
+	ctx context.Context,
+	inst gcpspanner.VCSInstallation,
+	counts *publishCounts,
+) error {
 	token, err := p.tokenProvider.GetInstallationToken(ctx, inst.VCSInstallationID)
 	if err != nil {
 		return fmt.Errorf("failed to obtain installation token for %s: %w", inst.VCSInstallationID, err)
@@ -316,7 +341,9 @@ func (p *VCSSyncProcessor) syncGitHubInstallation(ctx context.Context, inst gcps
 				ModifiedFiles:      nil,
 			}
 
-			if err := p.taskPublisher.PublishCodeScanTask(ctx, task); err != nil {
+			err := p.taskPublisher.PublishCodeScanTask(ctx, task)
+			counts.record(err)
+			if err != nil {
 				slog.ErrorContext(ctx, "failed to publish scan task for repository",
 					"repo", repo.GetFullName(),
 					"error", err,
@@ -331,4 +358,44 @@ func (p *VCSSyncProcessor) syncGitHubInstallation(ctx context.Context, inst gcps
 	}
 
 	return nil
+}
+
+// publishCounts tallies the scan tasks a run tried to publish.
+type publishCounts struct {
+	published int
+	failed    int
+	// firstErr is the first publish error, reported in the run's error.
+	firstErr error
+}
+
+// record counts the outcome of publishing one scan task.
+func (c *publishCounts) record(err error) {
+	if err == nil {
+		c.published++
+
+		return
+	}
+
+	c.failed++
+	if c.firstErr == nil {
+		c.firstErr = err
+	}
+}
+
+// err returns an error wrapping ErrScanTaskPublishFailed if any scan task failed to publish.
+func (c *publishCounts) err() error {
+	if c.failed == 0 {
+		return nil
+	}
+
+	return fmt.Errorf("%w: %d of %d, first error: %w",
+		ErrScanTaskPublishFailed, c.failed, c.failed+c.published, c.firstErr)
+}
+
+// isUnauthorized reports whether GitHub rejected the app's credentials (HTTP 401), e.g. because the
+// app's private key was revoked. Unlike other client errors, it isn't specific to one installation.
+func isUnauthorized(err error) bool {
+	var ghErr *github.ErrorResponse
+
+	return errors.As(err, &ghErr) && ghErr.Response != nil && ghErr.Response.StatusCode == http.StatusUnauthorized
 }

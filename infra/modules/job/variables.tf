@@ -28,6 +28,12 @@ variable "timeout_seconds" {
   type = number
 }
 
+variable "max_retries" {
+  type        = number
+  description = "How many times Cloud Run retries a failed task. Cloud Run's default is 3."
+  default     = 3
+}
+
 variable "short_name" {
   type = string
 }

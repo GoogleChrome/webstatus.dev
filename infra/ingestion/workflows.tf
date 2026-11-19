@@ -344,6 +344,7 @@ module "vcs_sync_workflow" {
   notification_channel_ids         = var.notification_channel_ids
   env_id                           = var.env_id
   region_schedules                 = var.vcs_sync_region_schedules
+  max_retries                      = 0 # Runs every 5 minutes, so the next run is the retry.
   docker_repository_url            = var.docker_repository_details.url
   go_module_path                   = "workflows/steps/services/vcs_sync"
   does_process_write_to_spanner    = true

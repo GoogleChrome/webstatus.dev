@@ -17,13 +17,17 @@ package workflow
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
+	"slices"
+	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	codescantaskv1 "github.com/GoogleChrome/webstatus.dev/lib/event/codescantask/v1"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
+	"github.com/GoogleChrome/webstatus.dev/lib/gh"
 	"github.com/google/go-github/v79/github"
 )
 
@@ -458,5 +462,189 @@ func TestToGitHubPermissions(t *testing.T) {
 	}
 	if result.Actions != nil {
 		t.Errorf("expected actions to be nil for unknown permission level, got %v", result.Actions)
+	}
+}
+
+// failingPublisher fails to publish the scan tasks of the repositories in failRepos, or of every
+// repository if failAll is set, and records the repositories whose scan tasks it published.
+type failingPublisher struct {
+	mu        sync.Mutex
+	failAll   bool
+	failRepos map[string]bool
+	published []string
+}
+
+func (m *failingPublisher) PublishCodeScanTask(_ context.Context, task codescantaskv1.CodeScanTaskEvent) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.failAll || m.failRepos[task.RepositoryFullName] {
+		return errors.New("pubsub: topic not found")
+	}
+	m.published = append(m.published, task.RepositoryFullName)
+
+	return nil
+}
+
+// testRepos returns n repositories named <prefix>-<i>, with IDs starting at firstID.
+//
+//nolint:exhaustruct // Only the fields the syncer reads.
+func testRepos(prefix string, firstID int64, n int) []*github.Repository {
+	repos := make([]*github.Repository, 0, n)
+	for i := range n {
+		repos = append(repos, &github.Repository{
+			ID:            new(firstID + int64(i)),
+			FullName:      new(fmt.Sprintf("%s-%d", prefix, i)),
+			DefaultBranch: new("main"),
+		})
+	}
+
+	return repos
+}
+
+//nolint:exhaustruct
+func TestVCSSyncProcessor_FailureHandling(t *testing.T) {
+	t.Parallel()
+
+	inst1 := gcpspanner.VCSInstallation{VCSProvider: gcpspanner.VCSProviderGitHub, VCSInstallationID: "inst-1"}
+	inst2 := gcpspanner.VCSInstallation{VCSProvider: gcpspanner.VCSProviderGitHub, VCSInstallationID: "inst-2"}
+	both := []gcpspanner.VCSInstallation{inst1, inst2}
+
+	twoRepos := testRepos("org/repo", 101, 2)
+	otherRepo := testRepos("other/repo", 201, 1)
+	fullPage := testRepos("org/big", 1000, 100) // A full page, so the syncer lists page 2.
+
+	// go-github returns a *RateLimitError for a 403 rate limit, but a plain *ErrorResponse for a 429.
+	rateLimited403 := &github.RateLimitError{
+		Rate:     github.Rate{Reset: github.Timestamp{Time: time.Now().Add(time.Hour)}},
+		Response: &http.Response{StatusCode: http.StatusForbidden, Request: &http.Request{Method: http.MethodGet}},
+		Message:  "API rate limit exceeded",
+	}
+	rateLimited429 := gh.NewHTTPErrorResponseForTest(
+		http.StatusTooManyRequests, "You have exceeded a secondary rate limit")
+	notFound := gh.NewHTTPErrorResponseForTest(http.StatusNotFound, "Not Found")
+	unauthorized := gh.NewHTTPErrorResponseForTest(http.StatusUnauthorized, "A JSON web token could not be decoded")
+
+	// onePage lists repos on page 1 and nothing after it.
+	onePage := func(repos []*github.Repository) func(string, int) ([]*github.Repository, error) {
+		return func(_ string, page int) ([]*github.Repository, error) {
+			if page > 1 {
+				return nil, nil
+			}
+
+			return repos, nil
+		}
+	}
+	// fullPageThen lists a full page of repos, then fails to list page 2 with err.
+	fullPageThen := func(err error) func(string, int) ([]*github.Repository, error) {
+		return func(_ string, page int) ([]*github.Repository, error) {
+			if page > 1 {
+				return nil, err
+			}
+
+			return fullPage, nil
+		}
+	}
+
+	testCases := []struct {
+		name          string
+		installations []gcpspanner.VCSInstallation
+		tokenErr      error
+		// listRepos returns the repositories on a page, starting at 1, of an installation.
+		listRepos     func(installationID string, page int) ([]*github.Repository, error)
+		failAll       bool
+		failRepos     map[string]bool
+		wantPublished []string
+		// wantErr is nil if the run should succeed. Otherwise, the run's error must match it.
+		wantErr error
+	}{
+		{
+			name:          "every publish fails",
+			installations: []gcpspanner.VCSInstallation{inst1},
+			listRepos:     onePage(twoRepos),
+			failAll:       true,
+			wantErr:       ErrScanTaskPublishFailed,
+		},
+		{
+			// A failed publish fails the run but doesn't stop the other repos from being published.
+			name:          "some publishes fail",
+			installations: []gcpspanner.VCSInstallation{inst1},
+			listRepos:     onePage(twoRepos),
+			failRepos:     map[string]bool{"org/repo-0": true},
+			wantPublished: []string{"org/repo-1"},
+			wantErr:       ErrScanTaskPublishFailed,
+		},
+		{
+			// The 404 on page 2 skips the installation, but the failed publishes on page 1 still count.
+			name:          "failed publishes count even if a later page is not found",
+			installations: []gcpspanner.VCSInstallation{inst1},
+			listRepos:     fullPageThen(notFound),
+			failAll:       true,
+			wantErr:       ErrScanTaskPublishFailed,
+		},
+		{
+			name:          "rejected app credentials fail the run",
+			installations: both,
+			tokenErr:      unauthorized,
+			wantErr:       unauthorized,
+		},
+		{
+			name:          "a 403 rate limit fails the run",
+			installations: both,
+			listRepos: func(installationID string, page int) ([]*github.Repository, error) {
+				if installationID == inst1.VCSInstallationID {
+					return nil, rateLimited403
+				}
+
+				return onePage(otherRepo)(installationID, page)
+			},
+			wantPublished: []string{"other/repo-0"},
+			wantErr:       rateLimited403,
+		},
+		{
+			name:          "a 429 rate limit fails the run",
+			installations: []gcpspanner.VCSInstallation{inst1},
+			listRepos: func(_ string, _ int) ([]*github.Repository, error) {
+				return nil, rateLimited429
+			},
+			wantErr: rateLimited429,
+		},
+		{
+			// There is nothing to publish, so the run must not fail.
+			name:          "uninstalled installations are skipped",
+			installations: both,
+			tokenErr:      notFound,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			storer := &mockInstallationStorer{mu: sync.Mutex{}, installations: tc.installations}
+			tokenProvider := &mockTokenProvider{tokenMap: nil, err: tc.tokenErr}
+			repoLister := &mockGitHubRepoLister{
+				listReposFunc: func(_ context.Context, token string, opts *github.ListOptions) ([]*github.Repository, error) {
+					if tc.listRepos == nil {
+						return nil, nil
+					}
+
+					// mockTokenProvider returns "mock-token-<installation ID>".
+					return tc.listRepos(strings.TrimPrefix(token, "mock-token-"), opts.Page)
+				},
+			}
+			publisher := &failingPublisher{mu: sync.Mutex{}, failAll: tc.failAll, failRepos: tc.failRepos}
+
+			proc := NewVCSSyncProcessor(storer, tokenProvider, repoLister, publisher)
+			err := proc.Process(context.Background(), NewJobArguments())
+			if tc.wantErr == nil && err != nil {
+				t.Errorf("Process() error = %v, want nil", err)
+			}
+			if tc.wantErr != nil && !errors.Is(err, tc.wantErr) {
+				t.Errorf("Process() error = %v, want %v", err, tc.wantErr)
+			}
+			if !slices.Equal(publisher.published, tc.wantPublished) {
+				t.Errorf("published = %v, want %v", publisher.published, tc.wantPublished)
+			}
+		})
 	}
 }
