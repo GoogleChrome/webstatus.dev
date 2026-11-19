@@ -57,8 +57,7 @@ COPY --from=builder /work/${service_dir}/scripts/setup_server.sh /docker-entrypo
 FROM nginx:1.31.7-alpine-slim AS static
 
 # Upgrade base OS packages to apply security patches (remediates CVE-2026-85091 in zlib)
-RUN apk update && \
-    apk upgrade --no-cache && \
+RUN apk upgrade --no-cache && \
     apk add --no-cache coreutils
 
 ARG service_dir

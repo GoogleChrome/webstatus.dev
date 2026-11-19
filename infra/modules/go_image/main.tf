@@ -35,6 +35,8 @@ resource "docker_image" "local_image" {
       # Rebuild the go image if anything changes in the lib directory.
       [for f in fileset(path.cwd, "/../lib/**") : filesha1(f)]
     ))
+    # Rebuild the image if the Dockerfile changes (e.g. base image bumps or OS package upgrades).
+    dockerfile_sha1 = filesha1("${path.cwd}/../images/go_service.Dockerfile")
   }
 }
 
@@ -48,5 +50,7 @@ resource "docker_registry_image" "remote_image" {
       # Rebuild the go image if anything changes in the lib directory.
       [for f in fileset(path.cwd, "/../lib/**") : filesha1(f)]
     ))
+    # Rebuild the image if the Dockerfile changes (e.g. base image bumps or OS package upgrades).
+    dockerfile_sha1 = filesha1("${path.cwd}/../images/go_service.Dockerfile")
   }
 }

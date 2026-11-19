@@ -48,6 +48,10 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
 
 FROM alpine:3.24
 
+# Upgrade base OS packages to apply security patches published after the
+# alpine:3.24 point release (remediates CVE-2026-4738 in zlib).
+RUN apk upgrade --no-cache
+
 # Copy only the binary from the previous image
 COPY --from=builder /work/program .
 
