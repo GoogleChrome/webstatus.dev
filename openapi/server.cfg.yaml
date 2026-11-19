@@ -14,5 +14,6 @@
 
 generate:
   std-http-server: true
-  embedded-spec: true
+  # Unused, and the embedded blob's bytes vary with kin-openapi and Go versions.
+  embedded-spec: false
   strict-server: true
