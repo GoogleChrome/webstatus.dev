@@ -36,6 +36,8 @@ resource "docker_image" "frontend" {
     dir_sha1 = sha1(join("", [for f in fileset(path.cwd, "/../${local.service_dir}/**") : filesha1(f)], [for f in fileset(path.cwd, "/../lib/**") : filesha1(f)]))
     # Rebuild the image if the Dockerfile changes (e.g. base image bumps or OS package upgrades).
     dockerfile_sha1 = filesha1("${path.cwd}/../images/nodejs_service.Dockerfile")
+    # Rebuild the image if the root npm manifests change; the build copies them in.
+    root_npm_sha1 = sha1(join("", [filesha1("${path.cwd}/../package.json"), filesha1("${path.cwd}/../package-lock.json")]))
   }
 }
 
@@ -46,6 +48,8 @@ resource "docker_registry_image" "frontend_remote_image" {
     dir_sha1 = sha1(join("", [for f in fileset(path.cwd, "/../${local.service_dir}/**") : filesha1(f)], [for f in fileset(path.cwd, "/../lib/**") : filesha1(f)]))
     # Rebuild the image if the Dockerfile changes (e.g. base image bumps or OS package upgrades).
     dockerfile_sha1 = filesha1("${path.cwd}/../images/nodejs_service.Dockerfile")
+    # Rebuild the image if the root npm manifests change; the build copies them in.
+    root_npm_sha1 = sha1(join("", [filesha1("${path.cwd}/../package.json"), filesha1("${path.cwd}/../package-lock.json")]))
   }
 }
 
