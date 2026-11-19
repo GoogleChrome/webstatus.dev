@@ -344,6 +344,43 @@ func TestVCSSyncProcessor_Process(t *testing.T) {
 }
 
 //nolint:exhaustruct
+func TestVCSSyncProcessor_PublishFailuresFailTheRun(t *testing.T) {
+	t.Parallel()
+
+	repoID := int64(101)
+	fullName := "GoogleChrome/webstatus.dev"
+	branch := "main"
+	storer := &mockInstallationStorer{
+		mu: sync.Mutex{},
+		installations: []gcpspanner.VCSInstallation{{
+			VCSProvider:       gcpspanner.VCSProviderGitHub,
+			VCSInstallationID: "inst-1",
+			AccountLogin:      "GoogleChrome",
+		}},
+		listErr:   nil,
+		upserted:  nil,
+		upsertErr: nil,
+	}
+	repoLister := &mockGitHubRepoLister{
+		listReposFunc: func(_ context.Context, _ string, opts *github.ListOptions) ([]*github.Repository, error) {
+			if opts.Page > 1 {
+				return []*github.Repository{}, nil
+			}
+
+			return []*github.Repository{{ID: &repoID, FullName: &fullName, DefaultBranch: &branch}}, nil
+		},
+		listInstFunc: nil,
+	}
+	publisher := &mockTaskPublisher{mu: sync.Mutex{}, published: nil, err: errors.New("pubsub unavailable")}
+
+	proc := NewVCSSyncProcessor(storer, &mockTokenProvider{tokenMap: nil, err: nil}, repoLister, publisher)
+	err := proc.Process(context.Background(), NewJobArguments())
+	if !errors.Is(err, ErrScanTaskPublishFailed) {
+		t.Fatalf("Process() error = %v, want ErrScanTaskPublishFailed so the execution is marked failed", err)
+	}
+}
+
+//nolint:exhaustruct
 func TestVCSSyncProcessor_ReconcileAppInstallations(t *testing.T) {
 	t.Parallel()
 

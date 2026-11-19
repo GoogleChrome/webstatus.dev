@@ -31,6 +31,9 @@ import (
 // JobArguments represents CLI / Job runtime configuration.
 type JobArguments struct{}
 
+// ErrScanTaskPublishFailed indicates that one or more scan tasks could not be published.
+var ErrScanTaskPublishFailed = errors.New("failed to publish scan tasks")
+
 // NewJobArguments creates empty job arguments for scheduled execution.
 func NewJobArguments() JobArguments {
 	return JobArguments{}
@@ -275,6 +278,8 @@ func (p *VCSSyncProcessor) syncGitHubInstallation(ctx context.Context, inst gcps
 	}
 
 	page := 1
+	var publishErrs []error
+	publishAttempts := 0
 
 	for {
 		if err := ctx.Err(); err != nil {
@@ -316,11 +321,13 @@ func (p *VCSSyncProcessor) syncGitHubInstallation(ctx context.Context, inst gcps
 				ModifiedFiles:      nil,
 			}
 
+			publishAttempts++
 			if err := p.taskPublisher.PublishCodeScanTask(ctx, task); err != nil {
 				slog.ErrorContext(ctx, "failed to publish scan task for repository",
 					"repo", repo.GetFullName(),
 					"error", err,
 				)
+				publishErrs = append(publishErrs, err)
 			}
 		}
 
@@ -328,6 +335,14 @@ func (p *VCSSyncProcessor) syncGitHubInstallation(ctx context.Context, inst gcps
 			break
 		}
 		page++
+	}
+
+	// Scan failures are no longer retried through Pub/Sub, so vcs-sync is the only retry path.
+	// A run that could not publish must fail, so the "no successful vcs-sync" alert can fire,
+	// instead of silently reporting success while nothing gets scanned.
+	if len(publishErrs) > 0 {
+		return fmt.Errorf("%w: %d/%d scan-task publishes failed: %w",
+			ErrScanTaskPublishFailed, len(publishErrs), publishAttempts, errors.Join(publishErrs...))
 	}
 
 	return nil

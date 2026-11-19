@@ -113,6 +113,18 @@ variable "notification_channel_ids" {
   type        = list(string)
 }
 
+variable "success_alert_window_seconds" {
+  description = "Alert when no execution of this workflow succeeds, in any region, within this many seconds."
+  type        = number
+  default     = 82800 # 23 hours
+}
+
+variable "success_alert_window_label" {
+  description = "Human-readable form of success_alert_window_seconds, used in the alert name and documentation."
+  type        = string
+  default     = "23 Hours"
+}
+
 variable "otel_config_secret_id" {
   type        = string
   description = "The Secret Manager secret ID containing the OTel collector configuration"

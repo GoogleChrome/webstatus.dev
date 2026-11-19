@@ -171,6 +171,7 @@ func computeSyncMutations(
 	incoming []CodeSubscriptionInput,
 	existingMap map[string]CodeSubscription,
 	now time.Time,
+	scope ObsolescenceScope,
 ) ([]*spanner.Mutation, error) {
 	// Validate uniqueness of TargetQuery across incoming subscriptions.
 	seenTargets := make(map[string]struct{}, len(incoming))
@@ -229,8 +230,9 @@ func computeSyncMutations(
 	}
 
 	for targetQuery, existing := range existingMap {
-		// If an active subscription is missing from the incoming code scan, transition to OBSOLETE.
-		if !incomingMatched[targetQuery] && existing.Status == SubscriptionActive {
+		// An active subscription missing from the incoming scan transitions to OBSOLETE, but only
+		// when the scan actually covered every file it was found in (see ObsolescenceScope).
+		if !incomingMatched[targetQuery] && existing.Status == SubscriptionActive && scope.shouldObsolete(existing) {
 			existing.Status = SubscriptionObsolete
 			existing.UpdatedAt = now
 			scs := fromCodeSubscription(&existing)
@@ -262,7 +264,12 @@ func (c *Client) SynchronizeRepositoryCodeSubscriptions(
 			return err
 		}
 
-		mutations, err := computeSyncMutations(incoming, existingMap, now)
+		mutations, err := computeSyncMutations(incoming, existingMap, now, ObsolescenceScope{
+			Truncated:      false,
+			FoundTargets:   nil,
+			ParsedPaths:    nil,
+			UnscannedPaths: nil,
+		})
 		if err != nil {
 			return err
 		}
@@ -277,6 +284,192 @@ func (c *Client) SynchronizeRepositoryCodeSubscriptions(
 	})
 
 	return err
+}
+
+// ErrInvalidScanLog indicates a scan log is missing the ID or start time needed for fencing.
+var ErrInvalidScanLog = errors.New("scan log requires an ID and a ScannedAt start time")
+
+// ObsolescenceScope describes which existing ACTIVE subscriptions a scan may mark OBSOLETE when
+// their directive was not found. A directive can only be declared gone if the scan actually read
+// every file it was previously found in.
+type ObsolescenceScope struct {
+	// Truncated is true when the scan stopped early because of a deterministic limit
+	// (file count, byte budget, or archive size).
+	Truncated bool
+	// FoundTargets holds every directive key found by the scan, including keys that were not
+	// persisted because of the per-repository subscription cap. Nil means "the incoming targets".
+	FoundTargets map[string]struct{}
+	// ParsedPaths holds the files that were fully read and parsed. Only used when Truncated.
+	ParsedPaths map[string]struct{}
+	// UnscannedPaths holds web files that were skipped for size or failed to parse.
+	// Only used when the scan is complete.
+	UnscannedPaths map[string]struct{}
+}
+
+// shouldObsolete reports whether an existing subscription whose directive was not found may be
+// marked OBSOLETE.
+//   - Complete scan: yes, unless one of its files was skipped or failed to parse.
+//   - Truncated scan: only if it has occurrences and every one of its files was fully parsed.
+//     Directives in files after the cutoff (or in deleted files) are left untouched.
+func (s ObsolescenceScope) shouldObsolete(existing CodeSubscription) bool {
+	if s.FoundTargets != nil {
+		if _, found := s.FoundTargets[existing.TargetQuery]; found {
+			return false
+		}
+	}
+
+	if s.Truncated {
+		if len(existing.Occurrences) == 0 {
+			return false
+		}
+		for _, occ := range existing.Occurrences {
+			if _, parsed := s.ParsedPaths[occ.FilePath]; !parsed {
+				return false
+			}
+		}
+
+		return true
+	}
+
+	for _, occ := range existing.Occurrences {
+		if _, unscanned := s.UnscannedPaths[occ.FilePath]; unscanned {
+			return false
+		}
+	}
+
+	return true
+}
+
+// RepositoryScanSync is the result of one repository scan, applied atomically with its scan log row.
+type RepositoryScanSync struct {
+	VCSProvider     VCSProvider
+	VCSRepositoryID string
+	Subscriptions   []CodeSubscriptionInput
+	Obsolescence    ObsolescenceScope
+	// ScanLog is written in the same transaction. ID and ScannedAt must be set by the caller;
+	// ScannedAt is the time the scan started.
+	ScanLog CodeSubscriptionScanLog
+}
+
+type newestAppliedBranchScan struct {
+	ID        string    `spanner:"ID"`
+	ScannedAt time.Time `spanner:"ScannedAt"`
+}
+
+// readNewestAppliedBranchScan returns the newest SUCCESS/TRUNCATED scan of the repository's branch
+// head (empty CommitSHA), and whether one exists. Commit-pinned (webhook) scans are ignored because
+// their start time says nothing about how fresh their content is.
+func readNewestAppliedBranchScan(
+	ctx context.Context,
+	tx *spanner.ReadWriteTransaction,
+	vcsProvider VCSProvider,
+	repoID string,
+) (newestAppliedBranchScan, bool, error) {
+	var newest newestAppliedBranchScan
+	stmt := spanner.Statement{
+		SQL: `SELECT ID, ScannedAt
+		FROM CodeSubscriptionScanLogs@{FORCE_INDEX=IDX_CodeSubscriptionScanLogs_Repo_ScannedAt}
+		WHERE VCSProvider = @vcsProvider
+			AND VCSRepositoryID = @repoID
+			AND CommitSHA = ''
+			AND ScanStatus IN UNNEST(@appliedStatuses)
+		ORDER BY ScannedAt DESC, ID DESC
+		LIMIT 1`,
+		Params: map[string]any{
+			"vcsProvider":     string(vcsProvider),
+			"repoID":          repoID,
+			"appliedStatuses": []string{string(ScanStatusSuccess), string(ScanStatusTruncated)},
+		},
+	}
+
+	iter := tx.Query(ctx, stmt)
+	defer iter.Stop()
+
+	row, err := iter.Next()
+	if errors.Is(err, iterator.Done) {
+		return newest, false, nil
+	}
+	if err != nil {
+		return newest, false, fmt.Errorf("failed to read newest applied branch scan: %w", err)
+	}
+
+	if err := row.ToStruct(&newest); err != nil {
+		return newest, false, fmt.Errorf("failed to parse newest applied branch scan: %w", err)
+	}
+
+	return newest, true, nil
+}
+
+// scanStartedAfter reports whether scan a started strictly after scan b, using the scan ID as a
+// deterministic tiebreak for identical start times.
+func scanStartedAfter(aStart time.Time, aID string, bStart time.Time, bID string) bool {
+	if aStart.Equal(bStart) {
+		return aID > bID
+	}
+
+	return aStart.After(bStart)
+}
+
+// SyncRepositoryScan applies a scan's subscriptions and inserts its scan log row in a single
+// transaction, unless a branch-head scan that started later has already been applied.
+//
+// This fence guarantees that the newest applied branch-head scan row always reflects the stored
+// subscriptions: an older scan that finishes late (for example a slow webhook scan pinned to an
+// older commit) cannot overwrite newer results. It returns applied=false, with no writes, when the
+// scan was superseded.
+func (c *Client) SyncRepositoryScan(ctx context.Context, in RepositoryScanSync) (bool, error) {
+	if in.ScanLog.ID == "" || in.ScanLog.ScannedAt.IsZero() {
+		return false, ErrInvalidScanLog
+	}
+
+	scanLog := in.ScanLog
+	scanLog.VCSProvider = in.VCSProvider
+	scanLog.VCSRepositoryID = in.VCSRepositoryID
+	// Spanner stores microseconds; truncate so the fence compares exactly what is stored.
+	scanLog.ScannedAt = scanLog.ScannedAt.UTC().Truncate(time.Microsecond)
+
+	logMutation, err := spanner.InsertStruct(codeSubscriptionScanLogTable, fromCodeSubscriptionScanLog(&scanLog))
+	if err != nil {
+		return false, fmt.Errorf("failed to create scan log mutation: %w", err)
+	}
+
+	now := c.timeNow()
+	var applied bool
+	_, err = c.ReadWriteTransaction(ctx, func(ctx context.Context, tx *spanner.ReadWriteTransaction) error {
+		// Reset on every attempt; the transaction function may be retried.
+		applied = false
+
+		newest, found, err := readNewestAppliedBranchScan(ctx, tx, in.VCSProvider, in.VCSRepositoryID)
+		if err != nil {
+			return err
+		}
+		if found && !scanStartedAfter(scanLog.ScannedAt, scanLog.ID, newest.ScannedAt, newest.ID) {
+			return nil
+		}
+
+		existingMap, err := readExistingRepositorySubscriptions(ctx, tx, in.VCSProvider, in.VCSRepositoryID)
+		if err != nil {
+			return err
+		}
+
+		mutations, err := computeSyncMutations(in.Subscriptions, existingMap, now, in.Obsolescence)
+		if err != nil {
+			return err
+		}
+		mutations = append(mutations, logMutation)
+
+		if err := tx.BufferWrite(mutations); err != nil {
+			return fmt.Errorf("failed to buffer scan sync mutations: %w", err)
+		}
+		applied = true
+
+		return nil
+	})
+	if err != nil {
+		return false, err
+	}
+
+	return applied, nil
 }
 
 // VCSRepository represents a distinct version-controlled repository configured in webstatus.dev.

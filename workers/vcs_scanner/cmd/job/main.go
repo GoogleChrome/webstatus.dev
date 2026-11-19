@@ -19,6 +19,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcppubsub"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcppubsub/gcppubsubadapters"
@@ -27,6 +28,11 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/localcache"
 	"github.com/GoogleChrome/webstatus.dev/lib/opentelemetry"
 	"github.com/GoogleChrome/webstatus.dev/workers/vcs_scanner/pkg/scanner"
+)
+
+const (
+	vcsScannerMaxConcurrentScans = 20
+	vcsScannerMaxLeaseExtension  = 10 * time.Minute
 )
 
 func main() {
@@ -98,7 +104,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	queueClient, err := gcppubsub.NewClient(ctx, projectID)
+	// At most 20 scans run concurrently per instance. Leases are extended for up to 10 minutes,
+	// well above the scanner's worst-case handling time (~4 minutes), so a live scan is never
+	// redelivered. The library defaults are 1000 messages and 60 minutes.
+	queueClient, err := gcppubsub.NewClient(ctx, projectID,
+		gcppubsub.WithMaxOutstandingMessages(vcsScannerMaxConcurrentScans),
+		gcppubsub.WithMaxExtension(vcsScannerMaxLeaseExtension),
+	)
 	if err != nil {
 		slog.ErrorContext(ctx, "unable to create pub sub client", "error", err)
 		os.Exit(1)

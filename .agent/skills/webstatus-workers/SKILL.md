@@ -54,6 +54,7 @@ All workers must be decoupled from GCP-specific SDKs.
 - **DO** use the `generic.OptionallySet[T]` pattern when defining blob structures or canonical in-memory state to handle forward/backward compatibility gracefully (quiet rollouts).
 - **DON'T** modify generated code.
 - **DO** ensure the worker uses `slog` for logging and bubbles up transient errors using `errors.Join(event.ErrTransientFailure, err)` to NACK the message for retry.
+  - **Exception (reconciler-backed workers)**: `vcs_scanner` never NACKs. Its tasks are idempotent "rescan this repository" triggers and vcs-sync republishes repositories whose latest scan failed, so it acknowledges every failure and records it (with a `ScanErrorClass`) instead. Only use this pattern when an external reconciler re-creates the work.
 
 ## Testing & Linting
 

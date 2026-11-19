@@ -47,6 +47,7 @@ func TestCodeSubscriptionScanLogConversion(t *testing.T) {
 				FilesScanned:    42,
 				DirectivesFound: 3,
 				ErrorMessage:    &errMsg,
+				ErrorClass:      nil,
 				ScannedAt:       now,
 			},
 		},
@@ -62,6 +63,7 @@ func TestCodeSubscriptionScanLogConversion(t *testing.T) {
 				FilesScanned:    100,
 				DirectivesFound: 5,
 				ErrorMessage:    nil,
+				ErrorClass:      nil,
 				ScannedAt:       now,
 			},
 		},
@@ -96,6 +98,7 @@ func TestCodeSubscriptionScanLog_InvalidEnums(t *testing.T) {
 		FilesScanned:    10,
 		DirectivesFound: 1,
 		ErrorMessage:    spanner.NullString{StringVal: "", Valid: false},
+		ErrorClass:      spanner.NullString{StringVal: "", Valid: false},
 		ScannedAt:       time.Now(),
 	}
 	_, err := invalidProvider.toCodeSubscriptionScanLog()
@@ -116,6 +119,7 @@ func TestCodeSubscriptionScanLog_InvalidEnums(t *testing.T) {
 		FilesScanned:    10,
 		DirectivesFound: 1,
 		ErrorMessage:    spanner.NullString{StringVal: "", Valid: false},
+		ErrorClass:      spanner.NullString{StringVal: "", Valid: false},
 		ScannedAt:       time.Now(),
 	}
 	_, err = invalidStatus.toCodeSubscriptionScanLog()
@@ -154,6 +158,7 @@ func testScanLogInsertAndGet(ctx context.Context, t *testing.T) {
 		FilesScanned:    15,
 		DirectivesFound: 2,
 		ErrorMessage:    &errMsg,
+		ErrorClass:      nil,
 		ScannedAt:       now,
 	}
 

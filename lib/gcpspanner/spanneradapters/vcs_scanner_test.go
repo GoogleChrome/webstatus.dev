@@ -69,6 +69,7 @@ func TestVCSScannerAdapter_SynchronizeScanResult(t *testing.T) {
 			FilesScanned:    0,
 			DirectivesFound: 0,
 			ErrorMessage:    nil,
+			ErrorClass:      nil,
 			ScannedAt:       time.Time{},
 		},
 	}
@@ -147,6 +148,7 @@ func TestVCSScannerAdapter_RecordScanLog(t *testing.T) {
 			FilesScanned:    0,
 			DirectivesFound: 0,
 			ErrorMessage:    nil,
+			ErrorClass:      nil,
 			ScannedAt:       time.Time{},
 		},
 	}
@@ -162,6 +164,7 @@ func TestVCSScannerAdapter_RecordScanLog(t *testing.T) {
 		FilesScanned:    5,
 		DirectivesFound: 2,
 		ErrorMessage:    nil,
+		ErrorClass:      nil,
 		ScannedAt:       now,
 	}
 

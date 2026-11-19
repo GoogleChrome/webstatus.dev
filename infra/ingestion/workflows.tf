@@ -379,6 +379,11 @@ module "vcs_sync_workflow" {
   otel_collector_image             = var.otel_collector_image
   otel_collector_config_mount_path = var.otel_collector_config_mount_path
   otel_collector_endpoint          = var.otel_collector_endpoint
+
+  # vcs-sync runs every 5 minutes (alternating regions) and is the only retry path for failed
+  # code scans, so alert after 30 minutes without a successful run instead of 23 hours.
+  success_alert_window_seconds = 1800
+  success_alert_window_label   = "30 Minutes"
 }
 
 resource "google_pubsub_topic_iam_member" "vcs_sync_scan_tasks_publisher" {

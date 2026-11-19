@@ -407,6 +407,7 @@ func testWebhookDeduplicationAndScanLog(
 		FilesScanned:    12,
 		DirectivesFound: 2,
 		ErrorMessage:    nil,
+		ErrorClass:      nil,
 		ScannedAt:       now,
 	}
 	if err := spannerClient.InsertCodeSubscriptionScanLog(ctx, scanLog); err != nil {

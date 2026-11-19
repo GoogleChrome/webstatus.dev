@@ -16,11 +16,14 @@ package gh
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/google/go-github/v79/github"
 )
@@ -31,6 +34,18 @@ type ClientOption func(*github.Client)
 // requesting a repository archive link. GitHub returns a 301 for the old name of a renamed
 // or transferred repository, which can happen for scan tasks queued before the rename.
 const maxArchiveLinkRedirects = 3
+
+const (
+	// archiveLinkTimeout bounds the api.github.com request that resolves the archive download URL.
+	archiveLinkTimeout = 30 * time.Second
+	// archiveDialTimeout and archiveTLSHandshakeTimeout bound connection setup for archive downloads.
+	archiveDialTimeout         = 5 * time.Second
+	archiveTLSHandshakeTimeout = 5 * time.Second
+	// archiveResponseHeaderTimeout bounds the wait for codeload's response headers. It does not
+	// limit how long the archive body takes to stream.
+	archiveResponseHeaderTimeout = 15 * time.Second
+	archiveTCPKeepAlive          = 30 * time.Second
+)
 
 // ErrRedirectNotFollowed is returned when GitHub responds with a redirect that was not followed:
 // the 301 limit (maxArchiveLinkRedirects) was exhausted, a redirect status other than 301 was
@@ -109,6 +124,94 @@ func NewClientWithHTTPClient(httpClient *http.Client, token string, opts ...Clie
 	}
 }
 
+// WithArchiveHTTPClient returns a copy of c that downloads repository archives (the codeload
+// request in DownloadTarball) with hc. GitHub API calls keep using their existing client.
+func (c *Client) WithArchiveHTTPClient(hc *http.Client) *Client {
+	clone := *c
+	clone.httpClient = hc
+
+	return &clone
+}
+
+// NewArchiveDownloadHTTPClient returns an HTTP client for repository archive downloads.
+//
+// Every download gets its own HTTP/1.1 connection, which is closed when the download ends.
+// Archive downloads are few, large, and independent, so connection reuse saves little, while a
+// shared connection lets one slow connection hold up every download that uses it. HTTP/2
+// multiplexes all concurrent downloads onto one connection, and Go cannot evict a connection that
+// is alive but slow, so a degraded connection would otherwise be reused for hours. With one
+// connection per download, a slow connection affects only that download.
+//
+// The client has no overall timeout; callers bound each download with a context deadline.
+func NewArchiveDownloadHTTPClient() *http.Client {
+	return &http.Client{
+		Transport:     newArchiveDownloadTransport(nil),
+		CheckRedirect: nil,
+		Jar:           nil,
+		Timeout:       0,
+	}
+}
+
+func newArchiveDownloadTransport(tlsConfig *tls.Config) *http.Transport {
+	var protocols http.Protocols
+	protocols.SetHTTP1(true)
+
+	//nolint:exhaustruct // WONTFIX: external struct; unset fields use their defaults.
+	return &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		//nolint:exhaustruct // WONTFIX: external struct.
+		DialContext: (&net.Dialer{
+			Timeout:   archiveDialTimeout,
+			KeepAlive: archiveTCPKeepAlive,
+		}).DialContext,
+		TLSClientConfig:       tlsConfig,
+		TLSHandshakeTimeout:   archiveTLSHandshakeTimeout,
+		ResponseHeaderTimeout: archiveResponseHeaderTimeout,
+		// One request per connection: a finished (possibly slow) connection is closed, never reused.
+		DisableKeepAlives: true,
+		// HTTP/1.1 only, so concurrent downloads never share a connection.
+		Protocols: &protocols,
+	}
+}
+
+// redactURL returns u without userinfo, query string, or fragment. Archive download URLs for
+// private repositories carry a short-lived token in the query string, which must not end up in
+// logs or in persisted error messages.
+func redactURL(u *url.URL) string {
+	if u == nil {
+		return ""
+	}
+
+	//nolint:exhaustruct // Only scheme, host, and path are kept on purpose.
+	redacted := url.URL{
+		Scheme: u.Scheme,
+		Host:   u.Host,
+		Path:   u.Path,
+	}
+
+	return redacted.String()
+}
+
+// withRedactedRequestURL returns a shallow copy of resp whose request URL is redacted, so that
+// github.ErrorResponse.Error() (which prints the request URL) does not leak the archive token.
+func withRedactedRequestURL(resp *http.Response) *http.Response {
+	if resp == nil || resp.Request == nil || resp.Request.URL == nil {
+		return resp
+	}
+
+	redactedResp := *resp
+	redactedReq := resp.Request.Clone(resp.Request.Context())
+	redactedURL, err := url.Parse(redactURL(resp.Request.URL))
+	if err != nil {
+		//nolint:exhaustruct // Fall back to an empty URL rather than leaking the original.
+		redactedURL = &url.URL{}
+	}
+	redactedReq.URL = redactedURL
+	redactedResp.Request = redactedReq
+
+	return &redactedResp
+}
+
 // ListAppInstallations returns all installations of the authenticated GitHub App.
 func (c *Client) ListAppInstallations(
 	ctx context.Context,
@@ -155,7 +258,10 @@ func (c *Client) DownloadTarball(
 	}
 
 	opts := &github.RepositoryContentGetOptions{Ref: ref}
-	archiveURL, resp, err := c.repoClient.GetArchiveLink(ctx, owner, repo, github.Tarball, opts, maxArchiveLinkRedirects)
+	linkCtx, cancelLink := context.WithTimeout(ctx, archiveLinkTimeout)
+	defer cancelLink()
+	archiveURL, resp, err := c.repoClient.GetArchiveLink(
+		linkCtx, owner, repo, github.Tarball, opts, maxArchiveLinkRedirects)
 	if err != nil {
 		if resp != nil && resp.Response != nil && resp.Body != nil && resp.StatusCode == http.StatusOK {
 			return resp.Body, nil
@@ -210,6 +316,12 @@ func (c *Client) DownloadTarball(
 
 	httpResp, err := httpClient.Do(req)
 	if err != nil {
+		// *url.Error embeds the full request URL, including the archive token. Redact it.
+		var urlErr *url.Error
+		if errors.As(err, &urlErr) {
+			urlErr.URL = redactURL(archiveURL)
+		}
+
 		return nil, fmt.Errorf("failed to download tarball stream: %w", err)
 	}
 
@@ -218,7 +330,7 @@ func (c *Client) DownloadTarball(
 
 		//nolint:exhaustruct // Only StatusCode and Message required for error classification
 		return nil, fmt.Errorf("failed to download tarball: %w", &github.ErrorResponse{
-			Response: httpResp,
+			Response: withRedactedRequestURL(httpResp),
 			Message:  fmt.Sprintf("unexpected HTTP status %d", httpResp.StatusCode),
 		})
 	}

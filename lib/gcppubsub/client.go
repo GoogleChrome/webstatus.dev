@@ -18,24 +18,73 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"time"
 
 	"cloud.google.com/go/pubsub/v2"
 	"github.com/GoogleChrome/webstatus.dev/lib/event"
 )
 
 type Client struct {
-	client *pubsub.Client
+	client          *pubsub.Client
+	receiveSettings receiveSettingsOverrides
+}
+
+// receiveSettingsOverrides holds optional subscriber settings. Zero values keep the
+// pubsub library defaults.
+type receiveSettingsOverrides struct {
+	maxExtension           time.Duration
+	maxOutstandingMessages int
+}
+
+// ClientOption configures optional Client behavior.
+type ClientOption func(*Client)
+
+// WithMaxExtension caps how long the subscriber keeps extending a message's lease while its
+// handler runs (library default: 60 minutes). The clock starts when the message is received.
+// When it expires the handler is not canceled, but Pub/Sub may redeliver the message.
+func WithMaxExtension(d time.Duration) ClientOption {
+	return func(c *Client) {
+		c.receiveSettings.maxExtension = d
+	}
+}
+
+// WithMaxOutstandingMessages caps how many messages are processed concurrently
+// (library default: 1000).
+func WithMaxOutstandingMessages(n int) ClientOption {
+	return func(c *Client) {
+		c.receiveSettings.maxOutstandingMessages = n
+	}
 }
 
 // NewClient creates a new Pub/Sub client.
 // It automatically respects PUBSUB_EMULATOR_HOST env var.
-func NewClient(ctx context.Context, projectID string) (*Client, error) {
+func NewClient(ctx context.Context, projectID string, opts ...ClientOption) (*Client, error) {
 	c, err := pubsub.NewClient(ctx, projectID)
 	if err != nil {
 		return nil, errors.Join(ErrFailedToEstablishClient, err)
 	}
 
-	return &Client{client: c}, nil
+	client := &Client{
+		client: c,
+		receiveSettings: receiveSettingsOverrides{
+			maxExtension:           0,
+			maxOutstandingMessages: 0,
+		},
+	}
+	for _, opt := range opts {
+		opt(client)
+	}
+
+	return client, nil
+}
+
+func (c *Client) applyReceiveSettings(settings *pubsub.ReceiveSettings) {
+	if c.receiveSettings.maxExtension > 0 {
+		settings.MaxExtension = c.receiveSettings.maxExtension
+	}
+	if c.receiveSettings.maxOutstandingMessages > 0 {
+		settings.MaxOutstandingMessages = c.receiveSettings.maxOutstandingMessages
+	}
 }
 
 func (c *Client) Close() error {
@@ -63,6 +112,7 @@ func (c *Client) Publish(ctx context.Context, topicID string, data []byte) (stri
 func (c *Client) Subscribe(ctx context.Context, subID string,
 	handler func(ctx context.Context, msgID string, data []byte) error) error {
 	sub := c.client.Subscriber(subID)
+	c.applyReceiveSettings(&sub.ReceiveSettings)
 
 	// Receive blocks until ctx is cancelled.
 	err := sub.Receive(ctx, func(ctx context.Context, msg *pubsub.Message) {

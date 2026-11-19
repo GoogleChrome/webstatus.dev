@@ -14,8 +14,9 @@ Code Subscriptions enable engineering teams to track Web Platform features direc
 ```mermaid
 flowchart LR
     GitHub["GitHub App Webhook (push)"] -->|HMAC SHA-256| Ingress["backend (Webhook Handler)"]
-    Ingress -->|Pub/Sub Ordering Key| Scanner["workers/vcs_scanner"]
-    Scanner -->|AST Walk & Scoped Sync| Spanner[("Cloud Spanner")]
+    Ingress -->|Pub/Sub code scan task| Scanner["workers/vcs_scanner"]
+    Sync["workflows vcs_sync (every 5m)"] -->|Pub/Sub code scan task| Scanner
+    Scanner -->|Fenced, scoped sync| Spanner[("Cloud Spanner")]
     Pipeline["workers/notification_pipeline"] -->|Feature Trigger Event| Deliverer["workers/github_issue_delivery"]
     Deliverer -->|30s Lock Lease + RS256 JWT| GitHubIssues["GitHub Issues API"]
 ```
@@ -60,7 +61,7 @@ Developers use standard, intuitive `TODO` comments without custom DSL syntax:
 
 4. **Worker Daemons & Notification Pipeline (`workers/push_delivery`, `workers/vcs_scanner`, `workers/github_issue_delivery`)**:
    - `push_delivery`: Consumes `FeatureDiffEvent` from `notification-events`, detects baseline status changes (`feature.baseline.promote_to_widely` and `feature.baseline.promote_to_newly`), queries Spanner for matching active code subscriptions (`id:<feature_id>`), and fans out `GitHubIssueDeliveryEvent` jobs to the `github-issue-delivery` topic.
-   - `vcs_scanner`: Pulls git trees from GitHub API, extracts AST occurrences, and updates Spanner with monotonic timestamp fencing.
+   - `vcs_scanner`: Downloads the repository archive, extracts directive occurrences, and applies them to Spanner in one transaction together with its scan log row. See section 7 for the fence, scoped obsolescence, and failure handling.
    - `github_issue_delivery`: Acquires delivery lock, renders issue markdown with commit SHA permalinks and Modern Web Guidance refactoring prompts, creates GitHub issue, and marks subscription `DELIVERED`.
 
 5. **Frontend UI (`frontend/src/static/js/components`)**:
@@ -71,7 +72,7 @@ Developers use standard, intuitive `TODO` comments without custom DSL syntax:
 
 - **Multi-VCS Readiness**: Always use `(vcs_provider, repository_id)` as composite keys in database and API operations.
 - **Worker Lock Leases**: If an external API call fails with transient rate limits (403/429), reset `LockExpiresAt = NULL` before returning NACK to avoid deadlock.
-- **Pub/Sub Partitioning**: Always format Pub/Sub `OrderingKey` as `vcs:<provider>:repo:<repo_id>` for strict FIFO sequencing.
+- **No Pub/Sub ordering**: Code scan tasks are published without ordering keys, and scans of the same repository can run concurrently or out of order. Correctness comes from the scan log fence in `SyncRepositoryScan` (section 7), not from delivery order.
 - **BOLA / IDOR Defense**: Always return standard `404 Not Found` for unauthorized private repository queries.
 - **Lean Telemetry**: All metrics and lifecycle tracking are handled directly via **Cloud Spanner** and **Google Cloud Monitoring** (no BigQuery required).
 
@@ -138,3 +139,13 @@ All background messages and Pub/Sub task payloads must strictly use the versione
 
 - **Layer Isolation**: `lib/backendtypes` is an abstract interface package and must **NEVER** import `lib/gcpspanner`. Database-to-OpenAPI DTO translations belong exclusively in `lib/gcpspanner/spanneradapters/`.
 - **Exhaustive Enum Switches**: Direct type-casting across boundaries (e.g. `gcpspanner.VCSProvider(str)` or `backend.CodeSubscriptionResponseStatus(status)`) is strictly forbidden. Always use exhaustive `switch` functions (`toSpanner*`, `toBackend*`) that validate known enum constants and return sentinel errors (`ErrUnsupportedVCSProvider`, `ErrUnknownSubscriptionStatus`, `ErrUnknownSubscriptionTrigger`) on unrecognized values.
+
+### 7. vcs_scanner Reliability Rules (Issue #2995)
+
+- **Archive downloads use their own connection**: `gh.NewArchiveDownloadHTTPClient` forces HTTP/1.1 with keep-alives disabled, so every download gets a fresh connection that is closed afterwards. A shared HTTP/2 connection let one degraded connection slow every scan on a worker for hours (Go cannot evict a connection that is alive but slow). GitHub API calls keep using the default transport.
+- **Time budgets**: the scan phase (token, archive link, download, parse) is bounded at 3m30s, the archive link lookup at 30s, and a throughput watchdog aborts downloads that receive less than 64 KiB per 30s of network wait (`errStall`). The Spanner sync gets a fresh, detached 30s budget so a scan finishing near its limit can still commit.
+- **Never NACK**: every scan failure is acknowledged and recorded as a FAILED scan log row with a `ScanErrorClass`. vcs-sync is the retry path. This is an intentional exception to the workers rule of NACKing transient errors: code scan tasks are idempotent reconciliation triggers, so Pub/Sub redelivery only adds DLQ noise and can replay stale commits.
+- **Fence**: `SyncRepositoryScan` writes the scan log row in the same transaction as the subscription changes and skips the write (returns `applied=false`) if a branch-head scan (`CommitSHA = ''`) that started later has already been applied. A slow scan pinned to an older commit can therefore never overwrite newer results.
+- **Scoped obsolescence**: a subscription becomes OBSOLETE only if the scan read every file it was found in. Complete scans keep subscriptions whose files were skipped for size or failed to parse; truncated scans only obsolete subscriptions whose files were all fully parsed.
+- **Truncation is deterministic**: file-count, byte-budget, archive-size (500 MB decompressed), and subscription-cap limits produce TRUNCATED (with the reason in `ErrorMessage`); watchdog and deadline aborts produce FAILED. Directive keys are sorted before the 500-subscription cap so the same subset is kept on every scan.
+- **Never log archive URLs**: private repository archive URLs carry a short-lived token in the query string. `DownloadTarball` redacts query strings from returned errors.

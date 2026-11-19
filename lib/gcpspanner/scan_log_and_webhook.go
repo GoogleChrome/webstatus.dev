@@ -35,6 +35,8 @@ var (
 	ErrVCSWebhookDeliveryNotFound = errors.New("vcs webhook delivery not found")
 	// ErrUnknownScanStatus indicates an unrecognized scan status.
 	ErrUnknownScanStatus = errors.New("unknown scan status")
+	// ErrUnknownScanErrorClass indicates an unrecognized scan error class.
+	ErrUnknownScanErrorClass = errors.New("unknown scan error class")
 )
 
 // ScanStatus represents the completion status of an AST repository scan.
@@ -45,6 +47,87 @@ const (
 	ScanStatusTruncated ScanStatus = "TRUNCATED"
 	ScanStatusFailed    ScanStatus = "FAILED"
 )
+
+// ScanErrorClass is a machine-readable category for a failed scan. It is used to decide
+// whether a failure should page (see the vcs-scanner alerts) and to back off on repositories
+// that keep failing.
+type ScanErrorClass string
+
+const (
+	// ScanErrorClassPermanentClient is an unretryable 4XX response from GitHub (e.g. 403 blocked repo, 404).
+	ScanErrorClassPermanentClient ScanErrorClass = "PERMANENT_CLIENT"
+	// ScanErrorClassRedirectNotFollowed is a GitHub redirect that could not be followed.
+	ScanErrorClassRedirectNotFollowed ScanErrorClass = "REDIRECT_NOT_FOLLOWED"
+	// ScanErrorClassInvalidProvider is a task with an unsupported VCS provider.
+	ScanErrorClassInvalidProvider ScanErrorClass = "INVALID_PROVIDER"
+	// ScanErrorClassRateLimited is a GitHub primary or secondary rate limit response.
+	ScanErrorClassRateLimited ScanErrorClass = "RATE_LIMITED"
+	// ScanErrorClassTransientServer is a 5XX response from GitHub.
+	ScanErrorClassTransientServer ScanErrorClass = "TRANSIENT_SERVER"
+	// ScanErrorClassTimeout is a deadline or network timeout.
+	ScanErrorClassTimeout ScanErrorClass = "TIMEOUT"
+	// ScanErrorClassStall is an archive download aborted by the throughput watchdog.
+	ScanErrorClassStall ScanErrorClass = "STALL"
+	// ScanErrorClassStream is a broken connection or stream (reset, unexpected EOF, peer cancel).
+	ScanErrorClassStream ScanErrorClass = "STREAM"
+	// ScanErrorClassArchiveCorrupt is an archive that is not valid gzip/tar.
+	ScanErrorClassArchiveCorrupt ScanErrorClass = "ARCHIVE_CORRUPT"
+	// ScanErrorClassSpanner is a failure while writing scan results to Spanner.
+	ScanErrorClassSpanner ScanErrorClass = "SPANNER"
+	// ScanErrorClassPanic is a recovered panic while processing the scan.
+	ScanErrorClassPanic ScanErrorClass = "PANIC"
+	// ScanErrorClassCanceled is a scan canceled because the worker is shutting down.
+	ScanErrorClassCanceled ScanErrorClass = "CANCELED"
+	// ScanErrorClassUnknown is any failure that does not match a known category.
+	ScanErrorClassUnknown ScanErrorClass = "UNKNOWN"
+)
+
+// ParseScanErrorClass parses and validates a raw scan error class string.
+func ParseScanErrorClass(val string) (ScanErrorClass, error) {
+	class := ScanErrorClass(val)
+	switch class {
+	case ScanErrorClassPermanentClient,
+		ScanErrorClassRedirectNotFollowed,
+		ScanErrorClassInvalidProvider,
+		ScanErrorClassRateLimited,
+		ScanErrorClassTransientServer,
+		ScanErrorClassTimeout,
+		ScanErrorClassStall,
+		ScanErrorClassStream,
+		ScanErrorClassArchiveCorrupt,
+		ScanErrorClassSpanner,
+		ScanErrorClassPanic,
+		ScanErrorClassCanceled,
+		ScanErrorClassUnknown:
+		return class, nil
+	}
+
+	return "", fmt.Errorf("%w: %q", ErrUnknownScanErrorClass, val)
+}
+
+// IsPermanent reports whether retrying the scan without a new push is not expected to help.
+// Permanent classes are excluded from scan-failure alerts.
+func (c ScanErrorClass) IsPermanent() bool {
+	switch c {
+	case ScanErrorClassPermanentClient,
+		ScanErrorClassRedirectNotFollowed,
+		ScanErrorClassInvalidProvider:
+		return true
+	case ScanErrorClassRateLimited,
+		ScanErrorClassTransientServer,
+		ScanErrorClassTimeout,
+		ScanErrorClassStall,
+		ScanErrorClassStream,
+		ScanErrorClassArchiveCorrupt,
+		ScanErrorClassSpanner,
+		ScanErrorClassPanic,
+		ScanErrorClassCanceled,
+		ScanErrorClassUnknown:
+		return false
+	}
+
+	return false
+}
 
 // CodeSubscriptionScanLog stores the audit log of an AST repository scan for a commit.
 type CodeSubscriptionScanLog struct {
@@ -57,7 +140,9 @@ type CodeSubscriptionScanLog struct {
 	FilesScanned    int64
 	DirectivesFound int64
 	ErrorMessage    *string
-	ScannedAt       time.Time
+	// ErrorClass is only set for FAILED scans.
+	ErrorClass *ScanErrorClass
+	ScannedAt  time.Time
 }
 
 // spannerCodeSubscriptionScanLog is the internal struct for Spanner column mapping.
@@ -71,6 +156,7 @@ type spannerCodeSubscriptionScanLog struct {
 	FilesScanned    int64              `spanner:"FilesScanned"`
 	DirectivesFound int64              `spanner:"DirectivesFound"`
 	ErrorMessage    spanner.NullString `spanner:"ErrorMessage"`
+	ErrorClass      spanner.NullString `spanner:"ErrorClass"`
 	ScannedAt       time.Time          `spanner:"ScannedAt"`
 }
 
@@ -81,7 +167,7 @@ func (m codeSubscriptionScanLogMapper) Table() string { return codeSubscriptionS
 func (m codeSubscriptionScanLogMapper) SelectOne(id string) spanner.Statement {
 	return spanner.Statement{
 		SQL: `SELECT ID, VCSProvider, VCSRepositoryID, CommitSHA, Branch, ScanStatus,
-			FilesScanned, DirectivesFound, ErrorMessage, ScannedAt
+			FilesScanned, DirectivesFound, ErrorMessage, ErrorClass, ScannedAt
 		FROM CodeSubscriptionScanLogs
 		WHERE ID = @id`,
 		Params: map[string]any{"id": id},
@@ -96,51 +182,25 @@ func (m codeSubscriptionScanLogMapper) NewEntity(
 	id string,
 	in CodeSubscriptionScanLog,
 ) (spannerCodeSubscriptionScanLog, error) {
-	var errMsg spanner.NullString
-	if in.ErrorMessage != nil {
-		errMsg = spanner.NullString{StringVal: *in.ErrorMessage, Valid: true}
-	}
-
 	entityID := id
 	if in.ID != "" {
 		entityID = in.ID
 	}
 
-	return spannerCodeSubscriptionScanLog{
-		ID:              entityID,
-		VCSProvider:     string(in.VCSProvider),
-		VCSRepositoryID: in.VCSRepositoryID,
-		CommitSHA:       in.CommitSHA,
-		Branch:          in.Branch,
-		ScanStatus:      string(in.ScanStatus),
-		FilesScanned:    in.FilesScanned,
-		DirectivesFound: in.DirectivesFound,
-		ErrorMessage:    errMsg,
-		ScannedAt:       in.ScannedAt,
-	}, nil
+	entity := *fromCodeSubscriptionScanLog(&in)
+	entity.ID = entityID
+
+	return entity, nil
 }
 
 func (m codeSubscriptionScanLogMapper) Merge(
 	in CodeSubscriptionScanLog,
 	existing spannerCodeSubscriptionScanLog,
 ) spannerCodeSubscriptionScanLog {
-	var errMsg spanner.NullString
-	if in.ErrorMessage != nil {
-		errMsg = spanner.NullString{StringVal: *in.ErrorMessage, Valid: true}
-	}
+	merged := *fromCodeSubscriptionScanLog(&in)
+	merged.ID = existing.ID
 
-	return spannerCodeSubscriptionScanLog{
-		ID:              existing.ID,
-		VCSProvider:     string(in.VCSProvider),
-		VCSRepositoryID: in.VCSRepositoryID,
-		CommitSHA:       in.CommitSHA,
-		Branch:          in.Branch,
-		ScanStatus:      string(in.ScanStatus),
-		FilesScanned:    in.FilesScanned,
-		DirectivesFound: in.DirectivesFound,
-		ErrorMessage:    errMsg,
-		ScannedAt:       in.ScannedAt,
-	}
+	return merged
 }
 
 // ParseScanStatus parses and validates a raw scan status string into a typed ScanStatus.
@@ -171,6 +231,15 @@ func (s *spannerCodeSubscriptionScanLog) toCodeSubscriptionScanLog() (*CodeSubsc
 		errMsg = &s.ErrorMessage.StringVal
 	}
 
+	var errClass *ScanErrorClass
+	if s.ErrorClass.Valid {
+		parsed, err := ParseScanErrorClass(s.ErrorClass.StringVal)
+		if err != nil {
+			return nil, err
+		}
+		errClass = &parsed
+	}
+
 	return &CodeSubscriptionScanLog{
 		ID:              s.ID,
 		VCSProvider:     provider,
@@ -181,6 +250,7 @@ func (s *spannerCodeSubscriptionScanLog) toCodeSubscriptionScanLog() (*CodeSubsc
 		FilesScanned:    s.FilesScanned,
 		DirectivesFound: s.DirectivesFound,
 		ErrorMessage:    errMsg,
+		ErrorClass:      errClass,
 		ScannedAt:       s.ScannedAt,
 	}, nil
 }
@@ -189,6 +259,11 @@ func fromCodeSubscriptionScanLog(log *CodeSubscriptionScanLog) *spannerCodeSubsc
 	var errMsg spanner.NullString
 	if log.ErrorMessage != nil {
 		errMsg = spanner.NullString{StringVal: *log.ErrorMessage, Valid: true}
+	}
+
+	var errClass spanner.NullString
+	if log.ErrorClass != nil {
+		errClass = spanner.NullString{StringVal: string(*log.ErrorClass), Valid: true}
 	}
 
 	return &spannerCodeSubscriptionScanLog{
@@ -201,6 +276,7 @@ func fromCodeSubscriptionScanLog(log *CodeSubscriptionScanLog) *spannerCodeSubsc
 		FilesScanned:    log.FilesScanned,
 		DirectivesFound: log.DirectivesFound,
 		ErrorMessage:    errMsg,
+		ErrorClass:      errClass,
 		ScannedAt:       log.ScannedAt,
 	}
 }
