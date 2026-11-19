@@ -16,11 +16,14 @@ package gh
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/google/go-github/v79/github"
 )
@@ -31,6 +34,15 @@ type ClientOption func(*github.Client)
 // requesting a repository archive link. GitHub returns a 301 for the old name of a renamed
 // or transferred repository, which can happen for scan tasks queued before the rename.
 const maxArchiveLinkRedirects = 3
+
+// Connection setup limits for archive downloads. They do not limit how long the archive body
+// takes to stream.
+const (
+	archiveDialTimeout           = 5 * time.Second
+	archiveTLSHandshakeTimeout   = 5 * time.Second
+	archiveResponseHeaderTimeout = 15 * time.Second
+	archiveTCPKeepAlive          = 30 * time.Second
+)
 
 // ErrRedirectNotFollowed is returned when GitHub responds with a redirect that was not followed:
 // the 301 limit (maxArchiveLinkRedirects) was exhausted, a redirect status other than 301 was
@@ -106,6 +118,51 @@ func NewClientWithHTTPClient(httpClient *http.Client, token string, opts ...Clie
 		issuesClient: ghClient.Issues,
 		appsClient:   ghClient.Apps,
 		httpClient:   httpClient,
+	}
+}
+
+// WithArchiveHTTPClient returns a copy of c that downloads repository archives (the codeload
+// request in DownloadTarball) with hc. GitHub API calls keep using their existing client.
+func (c *Client) WithArchiveHTTPClient(hc *http.Client) *Client {
+	clone := *c
+	clone.httpClient = hc
+
+	return &clone
+}
+
+// NewArchiveDownloadHTTPClient returns an HTTP client for repository archive downloads.
+//
+// Every download gets its own HTTP/1.1 connection, which is closed when the download ends. With
+// the default client, HTTP/2 multiplexes all concurrent downloads onto one shared connection, and
+// Go never replaces a connection that stays busy, so one slow connection can slow every download
+// for hours. With one connection per download, a slow connection affects only that download.
+//
+// The client has no overall timeout; callers bound each download with a context deadline.
+func NewArchiveDownloadHTTPClient() *http.Client {
+	//nolint:exhaustruct // WONTFIX: external struct; unset fields use their defaults.
+	return &http.Client{Transport: newArchiveDownloadTransport(nil)}
+}
+
+func newArchiveDownloadTransport(tlsConfig *tls.Config) *http.Transport {
+	var protocols http.Protocols
+	protocols.SetHTTP1(true)
+
+	//nolint:exhaustruct // WONTFIX: external struct; unset fields use their defaults.
+	return &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		//nolint:exhaustruct // WONTFIX: external struct.
+		DialContext: (&net.Dialer{
+			Timeout:   archiveDialTimeout,
+			KeepAlive: archiveTCPKeepAlive,
+		}).DialContext,
+		TLSClientConfig:     tlsConfig,
+		TLSHandshakeTimeout: archiveTLSHandshakeTimeout,
+		// Bounds the wait for response headers; it does not limit how long the body takes to stream.
+		ResponseHeaderTimeout: archiveResponseHeaderTimeout,
+		// One request per connection: a finished connection is closed, never reused.
+		DisableKeepAlives: true,
+		// HTTP/1.1 only, so concurrent downloads never share a connection.
+		Protocols: &protocols,
 	}
 }
 

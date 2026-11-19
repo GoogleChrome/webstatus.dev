@@ -23,6 +23,7 @@ import (
 	"io"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/event"
 	codescantaskv1 "github.com/GoogleChrome/webstatus.dev/lib/event/codescantask/v1"
@@ -364,5 +365,54 @@ func TestProcessTaskTokenProviderClientErrorNotRetried(t *testing.T) {
 	}
 	if syncer.scanLogs[0].ScanStatus != gcpspanner.ScanStatusFailed {
 		t.Errorf("scan log status = %v, want FAILED", syncer.scanLogs[0].ScanStatus)
+	}
+}
+
+// stalledArchive is an archive download that never sends data until its request is canceled.
+type stalledArchive struct {
+	done <-chan struct{}
+}
+
+func (a stalledArchive) Read(_ []byte) (int, error) {
+	<-a.done
+
+	return 0, context.DeadlineExceeded
+}
+
+func (a stalledArchive) Close() error { return nil }
+
+type stalledTarballFetcher struct{}
+
+func (f stalledTarballFetcher) DownloadTarball(ctx context.Context, _, _, _ string) (io.ReadCloser, error) {
+	return stalledArchive{done: ctx.Done()}, nil
+}
+
+func TestProcessTaskStalledDownloadTimesOut(t *testing.T) {
+	t.Parallel()
+
+	syncer := &mockSpannerSyncer{
+		syncedSubs: nil,
+		syncErr:    nil,
+		scanLogs:   nil,
+		logErr:     nil,
+	}
+	s := NewScanner(nil, func(_ string) TarballFetcher { return stalledTarballFetcher{} }, syncer)
+	s.scanTimeout = 50 * time.Millisecond
+
+	start := time.Now()
+	err := s.ProcessTask(context.Background(), sampleTask())
+	if err == nil {
+		t.Fatal("expected an error for a stalled download, got nil")
+	}
+	if elapsed := time.Since(start); elapsed > 5*time.Second {
+		t.Fatalf("ProcessTask took %v; a stalled download must be cut off by the scan timeout", elapsed)
+	}
+
+	if syncer.syncedSubs != nil {
+		t.Errorf("a timed-out scan must not sync partial results, got %v", syncer.syncedSubs)
+	}
+	// The failure is recorded even though the scan's own deadline expired.
+	if len(syncer.scanLogs) != 1 || syncer.scanLogs[0].ScanStatus != gcpspanner.ScanStatusFailed {
+		t.Fatalf("expected 1 FAILED scan log, got %+v", syncer.scanLogs)
 	}
 }
