@@ -48,6 +48,7 @@ func TestCodeSubscriptionScanLogConversion(t *testing.T) {
 				DirectivesFound: 3,
 				ErrorMessage:    &errMsg,
 				ErrorClass:      nil,
+				RulesVersion:    nil,
 				ScannedAt:       now,
 			},
 		},
@@ -64,6 +65,24 @@ func TestCodeSubscriptionScanLogConversion(t *testing.T) {
 				DirectivesFound: 5,
 				ErrorMessage:    nil,
 				ErrorClass:      nil,
+				RulesVersion:    nil,
+				ScannedAt:       now,
+			},
+		},
+		{
+			name: "Rules version roundtrip",
+			original: CodeSubscriptionScanLog{
+				ID:              "scan-uuid-rules-version",
+				VCSProvider:     VCSProviderGitHub,
+				VCSRepositoryID: "repo-999",
+				CommitSHA:       "",
+				Branch:          "main",
+				ScanStatus:      ScanStatusTruncated,
+				FilesScanned:    100,
+				DirectivesFound: 5,
+				ErrorMessage:    nil,
+				ErrorClass:      nil,
+				RulesVersion:    new(int64(3)),
 				ScannedAt:       now,
 			},
 		},
@@ -99,6 +118,7 @@ func TestCodeSubscriptionScanLog_InvalidEnums(t *testing.T) {
 		DirectivesFound: 1,
 		ErrorMessage:    spanner.NullString{StringVal: "", Valid: false},
 		ErrorClass:      spanner.NullString{StringVal: "", Valid: false},
+		RulesVersion:    spanner.NullInt64{Int64: 0, Valid: false},
 		ScannedAt:       time.Now(),
 	}
 	_, err := invalidProvider.toCodeSubscriptionScanLog()
@@ -120,6 +140,7 @@ func TestCodeSubscriptionScanLog_InvalidEnums(t *testing.T) {
 		DirectivesFound: 1,
 		ErrorMessage:    spanner.NullString{StringVal: "", Valid: false},
 		ErrorClass:      spanner.NullString{StringVal: "", Valid: false},
+		RulesVersion:    spanner.NullInt64{Int64: 0, Valid: false},
 		ScannedAt:       time.Now(),
 	}
 	_, err = invalidStatus.toCodeSubscriptionScanLog()
@@ -159,6 +180,7 @@ func testScanLogInsertAndGet(ctx context.Context, t *testing.T) {
 		DirectivesFound: 2,
 		ErrorMessage:    &errMsg,
 		ErrorClass:      nil,
+		RulesVersion:    nil,
 		ScannedAt:       now,
 	}
 

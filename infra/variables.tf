@@ -199,6 +199,12 @@ variable "vcs_sync_region_schedules" {
   description = "Cloud Scheduler cron schedules for VCS sync ingestion, keyed by region"
 }
 
+variable "vcs_sync_skip_allowed_installations" {
+  type        = list(string)
+  default     = []
+  description = "GitHub App installation IDs for which vcs-sync skips repositories that do not need a new scan, or [\"*\"] for all installations. Empty publishes every repository on every run."
+}
+
 
 variable "firebase_api_key_location" {
   description = "Location of the firebase api key in secret manager"

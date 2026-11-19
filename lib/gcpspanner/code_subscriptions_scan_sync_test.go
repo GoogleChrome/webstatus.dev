@@ -197,6 +197,7 @@ func scanSyncRequest(
 			DirectivesFound: int64(len(subs)),
 			ErrorMessage:    nil,
 			ErrorClass:      nil,
+			RulesVersion:    nil,
 			ScannedAt:       start,
 		},
 	}
@@ -336,6 +337,7 @@ func TestScanLogErrorClassRoundTrip(t *testing.T) {
 		DirectivesFound: 0,
 		ErrorMessage:    &errMsg,
 		ErrorClass:      &class,
+		RulesVersion:    nil,
 		ScannedAt:       time.Now().UTC().Add(-1 * time.Minute),
 	}); err != nil {
 		t.Fatalf("InsertCodeSubscriptionScanLog failed: %v", err)

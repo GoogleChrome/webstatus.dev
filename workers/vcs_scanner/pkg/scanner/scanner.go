@@ -410,6 +410,7 @@ func (s *Scanner) recordFailedScanLog(
 		DirectivesFound: 0,
 		ErrorMessage:    &errMsg,
 		ErrorClass:      &class,
+		RulesVersion:    new(codescan.RulesVersion),
 		ScannedAt:       scannedAt,
 	}
 
@@ -793,6 +794,7 @@ func (s *Scanner) ProcessTask(ctx context.Context, task codescantaskv1.CodeScanT
 			DirectivesFound: directivesFound,
 			ErrorMessage:    statusMsg,
 			ErrorClass:      nil,
+			RulesVersion:    new(codescan.RulesVersion),
 			ScannedAt:       scannedAt,
 		},
 	})

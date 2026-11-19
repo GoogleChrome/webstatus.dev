@@ -82,8 +82,12 @@ func main() {
 		os.Exit(1)
 	}
 	repoLister := workflow.DefaultGitHubRepoLister{}
+	// Installations that skip repositories that do not need a new scan: comma-separated
+	// installation IDs, or "*" for all. Empty (the default) publishes every repository.
+	skipPolicy := workflow.ParseSkipPolicy(os.Getenv("VCS_SYNC_SKIP_ALLOWED_INSTALLATIONS"))
 
-	processor := workflow.NewVCSSyncProcessor(spannerClient, tokenProvider, repoLister, publisher)
+	processor := workflow.NewVCSSyncProcessor(
+		spannerClient, tokenProvider, repoLister, publisher, spannerClient, skipPolicy)
 	if err := processor.Process(ctx, workflow.NewJobArguments()); err != nil {
 		slog.ErrorContext(ctx, "scheduled VCS sync failed", "error", err)
 		os.Exit(1)

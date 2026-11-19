@@ -100,6 +100,12 @@ variable "vcs_sync_region_schedules" {
   type = map(string)
 }
 
+variable "vcs_sync_skip_allowed_installations" {
+  type        = list(string)
+  default     = []
+  description = "GitHub App installation IDs for which vcs-sync skips repositories that do not need a new scan, or [\"*\"] for all. Empty disables skipping."
+}
+
 variable "deletion_protection" {
   type = bool
 }

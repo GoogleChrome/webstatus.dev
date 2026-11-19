@@ -142,7 +142,10 @@ type CodeSubscriptionScanLog struct {
 	ErrorMessage    *string
 	// ErrorClass is only set for FAILED scans.
 	ErrorClass *ScanErrorClass
-	ScannedAt  time.Time
+	// RulesVersion is the codescan.RulesVersion of the scanner that wrote the row. It is nil for
+	// rows written before the scanner recorded it.
+	RulesVersion *int64
+	ScannedAt    time.Time
 }
 
 // spannerCodeSubscriptionScanLog is the internal struct for Spanner column mapping.
@@ -157,6 +160,7 @@ type spannerCodeSubscriptionScanLog struct {
 	DirectivesFound int64              `spanner:"DirectivesFound"`
 	ErrorMessage    spanner.NullString `spanner:"ErrorMessage"`
 	ErrorClass      spanner.NullString `spanner:"ErrorClass"`
+	RulesVersion    spanner.NullInt64  `spanner:"RulesVersion"`
 	ScannedAt       time.Time          `spanner:"ScannedAt"`
 }
 
@@ -167,7 +171,7 @@ func (m codeSubscriptionScanLogMapper) Table() string { return codeSubscriptionS
 func (m codeSubscriptionScanLogMapper) SelectOne(id string) spanner.Statement {
 	return spanner.Statement{
 		SQL: `SELECT ID, VCSProvider, VCSRepositoryID, CommitSHA, Branch, ScanStatus,
-			FilesScanned, DirectivesFound, ErrorMessage, ErrorClass, ScannedAt
+			FilesScanned, DirectivesFound, ErrorMessage, ErrorClass, RulesVersion, ScannedAt
 		FROM CodeSubscriptionScanLogs
 		WHERE ID = @id`,
 		Params: map[string]any{"id": id},
@@ -240,6 +244,11 @@ func (s *spannerCodeSubscriptionScanLog) toCodeSubscriptionScanLog() (*CodeSubsc
 		errClass = &parsed
 	}
 
+	var rulesVersion *int64
+	if s.RulesVersion.Valid {
+		rulesVersion = &s.RulesVersion.Int64
+	}
+
 	return &CodeSubscriptionScanLog{
 		ID:              s.ID,
 		VCSProvider:     provider,
@@ -251,6 +260,7 @@ func (s *spannerCodeSubscriptionScanLog) toCodeSubscriptionScanLog() (*CodeSubsc
 		DirectivesFound: s.DirectivesFound,
 		ErrorMessage:    errMsg,
 		ErrorClass:      errClass,
+		RulesVersion:    rulesVersion,
 		ScannedAt:       s.ScannedAt,
 	}, nil
 }
@@ -266,6 +276,11 @@ func fromCodeSubscriptionScanLog(log *CodeSubscriptionScanLog) *spannerCodeSubsc
 		errClass = spanner.NullString{StringVal: string(*log.ErrorClass), Valid: true}
 	}
 
+	var rulesVersion spanner.NullInt64
+	if log.RulesVersion != nil {
+		rulesVersion = spanner.NullInt64{Int64: *log.RulesVersion, Valid: true}
+	}
+
 	return &spannerCodeSubscriptionScanLog{
 		ID:              log.ID,
 		VCSProvider:     string(log.VCSProvider),
@@ -277,6 +292,7 @@ func fromCodeSubscriptionScanLog(log *CodeSubscriptionScanLog) *spannerCodeSubsc
 		DirectivesFound: log.DirectivesFound,
 		ErrorMessage:    errMsg,
 		ErrorClass:      errClass,
+		RulesVersion:    rulesVersion,
 		ScannedAt:       log.ScannedAt,
 	}
 }

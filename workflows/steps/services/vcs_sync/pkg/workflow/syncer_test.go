@@ -15,13 +15,20 @@
 package workflow
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"log/slog"
 	"net/http"
+	"slices"
+	"strings"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/codescan"
 	codescantaskv1 "github.com/GoogleChrome/webstatus.dev/lib/event/codescantask/v1"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/google/go-github/v79/github"
@@ -125,6 +132,39 @@ func (m *mockTaskPublisher) PublishCodeScanTask(_ context.Context, task codescan
 	m.published = append(m.published, task)
 
 	return nil
+}
+
+type mockScanHistoryReader struct {
+	mu      sync.Mutex
+	history map[string][]gcpspanner.RepositoryScanSummary
+	err     error
+	calls   [][]string
+}
+
+func newMockScanHistoryReader(
+	history map[string][]gcpspanner.RepositoryScanSummary,
+	err error,
+) *mockScanHistoryReader {
+	return &mockScanHistoryReader{mu: sync.Mutex{}, history: history, err: err, calls: nil}
+}
+
+func (m *mockScanHistoryReader) GetRecentRepositoryScans(
+	_ context.Context,
+	_ gcpspanner.VCSProvider,
+	repoIDs []string,
+	perRepoLimit int,
+) (map[string][]gcpspanner.RepositoryScanSummary, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.calls = append(m.calls, slices.Clone(repoIDs))
+	if perRepoLimit != scanHistoryDepth {
+		return nil, fmt.Errorf("unexpected per-repository limit %d", perRepoLimit)
+	}
+	if m.err != nil {
+		return nil, m.err
+	}
+
+	return m.history, nil
 }
 
 //nolint:exhaustruct
@@ -323,7 +363,8 @@ func TestVCSSyncProcessor_Process(t *testing.T) {
 				err:       tc.publishErr,
 			}
 
-			proc := NewVCSSyncProcessor(storer, tokenProvider, repoLister, publisher)
+			proc := NewVCSSyncProcessor(storer, tokenProvider, repoLister, publisher,
+				newMockScanHistoryReader(nil, nil), ParseSkipPolicy(""))
 			err := proc.Process(ctx, NewJobArguments())
 
 			if (err != nil) != tc.wantErr {
@@ -373,7 +414,8 @@ func TestVCSSyncProcessor_PublishFailuresFailTheRun(t *testing.T) {
 	}
 	publisher := &mockTaskPublisher{mu: sync.Mutex{}, published: nil, err: errors.New("pubsub unavailable")}
 
-	proc := NewVCSSyncProcessor(storer, &mockTokenProvider{tokenMap: nil, err: nil}, repoLister, publisher)
+	proc := NewVCSSyncProcessor(storer, &mockTokenProvider{tokenMap: nil, err: nil}, repoLister, publisher,
+		newMockScanHistoryReader(nil, nil), ParseSkipPolicy(""))
 	err := proc.Process(context.Background(), NewJobArguments())
 	if !errors.Is(err, ErrScanTaskPublishFailed) {
 		t.Fatalf("Process() error = %v, want ErrScanTaskPublishFailed so the execution is marked failed", err)
@@ -430,7 +472,8 @@ func TestVCSSyncProcessor_ReconcileAppInstallations(t *testing.T) {
 	}
 	publisher := &mockTaskPublisher{mu: sync.Mutex{}, published: nil, err: nil}
 
-	proc := NewVCSSyncProcessor(storer, tokenProvider, repoLister, publisher)
+	proc := NewVCSSyncProcessor(storer, tokenProvider, repoLister, publisher,
+		newMockScanHistoryReader(nil, nil), ParseSkipPolicy(""))
 	err := proc.reconcileGitHubAppInstallations(context.Background())
 	if err != nil {
 		t.Fatalf("reconcileGitHubAppInstallations() unexpected error: %v", err)
@@ -495,5 +538,268 @@ func TestToGitHubPermissions(t *testing.T) {
 	}
 	if result.Actions != nil {
 		t.Errorf("expected actions to be nil for unknown permission level, got %v", result.Actions)
+	}
+}
+
+//nolint:exhaustruct
+func testRepo(id int64, fullName string, pushedAt time.Time) *github.Repository {
+	repo := &github.Repository{ID: &id, FullName: &fullName, DefaultBranch: new("main")}
+	if !pushedAt.IsZero() {
+		repo.PushedAt = &github.Timestamp{Time: pushedAt}
+	}
+
+	return repo
+}
+
+func publishedRepoIDs(publisher *mockTaskPublisher) []string {
+	publisher.mu.Lock()
+	defer publisher.mu.Unlock()
+
+	ids := make([]string, 0, len(publisher.published))
+	for _, task := range publisher.published {
+		ids = append(ids, task.VCSRepositoryID)
+	}
+	slices.Sort(ids)
+
+	return ids
+}
+
+//nolint:exhaustruct
+func TestVCSSyncProcessor_SkipsRepositoriesThatDoNotNeedAScan(t *testing.T) {
+	t.Parallel()
+
+	now := time.Date(2026, 11, 19, 12, 0, 0, 0, time.UTC)
+	branchHeadScan := func(status gcpspanner.ScanStatus, scannedAt time.Time) gcpspanner.RepositoryScanSummary {
+		return gcpspanner.RepositoryScanSummary{
+			ID:           "scan",
+			ScanStatus:   status,
+			ScannedAt:    scannedAt,
+			Branch:       "main",
+			CommitSHA:    "",
+			ErrorClass:   nil,
+			RulesVersion: new(codescan.RulesVersion),
+		}
+	}
+
+	storer := &mockInstallationStorer{
+		mu: sync.Mutex{},
+		installations: []gcpspanner.VCSInstallation{
+			{VCSProvider: gcpspanner.VCSProviderGitHub, VCSInstallationID: "101", AccountLogin: "skip-enabled"},
+			{VCSProvider: gcpspanner.VCSProviderGitHub, VCSInstallationID: "202", AccountLogin: "skip-disabled"},
+		},
+	}
+	reposByToken := map[string][]*github.Repository{
+		"mock-token-101": {
+			testRepo(1, "skip-enabled/unchanged", now.Add(-2*time.Hour)),
+			testRepo(2, "skip-enabled/pushed", now.Add(-10*time.Minute)),
+			testRepo(3, "skip-enabled/never-scanned", now.Add(-time.Hour)),
+			testRepo(4, "skip-enabled/failed-recently", now.Add(-3*time.Hour)),
+		},
+		"mock-token-202": {
+			testRepo(5, "skip-disabled/unchanged", now.Add(-2*time.Hour)),
+		},
+	}
+	repoLister := &mockGitHubRepoLister{
+		listReposFunc: func(_ context.Context, token string, opts *github.ListOptions) ([]*github.Repository, error) {
+			if opts.Page > 1 {
+				return nil, nil
+			}
+
+			return reposByToken[token], nil
+		},
+	}
+	history := newMockScanHistoryReader(map[string][]gcpspanner.RepositoryScanSummary{
+		"1": {branchHeadScan(gcpspanner.ScanStatusSuccess, now.Add(-time.Hour))},
+		"2": {branchHeadScan(gcpspanner.ScanStatusSuccess, now.Add(-time.Hour))},
+		"4": {branchHeadScan(gcpspanner.ScanStatusFailed, now.Add(-2*time.Minute))},
+		"5": {branchHeadScan(gcpspanner.ScanStatusSuccess, now.Add(-time.Hour))},
+	}, nil)
+	publisher := &mockTaskPublisher{mu: sync.Mutex{}}
+
+	proc := NewVCSSyncProcessor(storer, &mockTokenProvider{}, repoLister, publisher, history, ParseSkipPolicy("101"))
+	proc.now = func() time.Time { return now }
+	if err := proc.Process(context.Background(), NewJobArguments()); err != nil {
+		t.Fatalf("Process() unexpected error: %v", err)
+	}
+
+	// 1 is unchanged and 4 is backing off; 5 is unchanged but its installation does not skip.
+	if got, want := publishedRepoIDs(publisher), []string{"2", "3", "5"}; !slices.Equal(got, want) {
+		t.Errorf("published repositories = %v, want %v", got, want)
+	}
+	wantCalls := [][]string{{"1", "2", "3", "4"}, {"5"}}
+	if !slices.EqualFunc(history.calls, wantCalls, slices.Equal[[]string]) {
+		t.Errorf("scan history lookups = %v, want %v", history.calls, wantCalls)
+	}
+}
+
+//nolint:exhaustruct
+func TestVCSSyncProcessor_ScanHistoryErrorPublishesEveryRepository(t *testing.T) {
+	t.Parallel()
+
+	now := time.Date(2026, 11, 19, 12, 0, 0, 0, time.UTC)
+	storer := &mockInstallationStorer{
+		mu: sync.Mutex{},
+		installations: []gcpspanner.VCSInstallation{
+			{VCSProvider: gcpspanner.VCSProviderGitHub, VCSInstallationID: "101", AccountLogin: "skip-enabled"},
+		},
+	}
+	repoLister := &mockGitHubRepoLister{
+		listReposFunc: func(_ context.Context, _ string, opts *github.ListOptions) ([]*github.Repository, error) {
+			if opts.Page > 1 {
+				return nil, nil
+			}
+
+			return []*github.Repository{
+				testRepo(1, "skip-enabled/a", now.Add(-2*time.Hour)),
+				testRepo(2, "skip-enabled/b", time.Time{}),
+			}, nil
+		},
+	}
+	publisher := &mockTaskPublisher{mu: sync.Mutex{}}
+
+	proc := NewVCSSyncProcessor(storer, &mockTokenProvider{}, repoLister, publisher,
+		newMockScanHistoryReader(nil, errors.New("spanner unavailable")), ParseSkipPolicy("*"))
+	proc.now = func() time.Time { return now }
+	if err := proc.Process(context.Background(), NewJobArguments()); err != nil {
+		t.Fatalf("Process() unexpected error: %v", err)
+	}
+
+	if got, want := publishedRepoIDs(publisher), []string{"1", "2"}; !slices.Equal(got, want) {
+		t.Errorf("published repositories = %v, want %v", got, want)
+	}
+}
+
+//nolint:exhaustruct
+func TestVCSSyncProcessor_LogsRepositoriesThatKeepFailing(t *testing.T) {
+	t.Parallel()
+
+	now := time.Date(2026, 11, 19, 12, 0, 0, 0, time.UTC)
+	failures := func(class gcpspanner.ScanErrorClass) []gcpspanner.RepositoryScanSummary {
+		scans := make([]gcpspanner.RepositoryScanSummary, 0, 4)
+		for i := range 4 {
+			scans = append(scans, gcpspanner.RepositoryScanSummary{
+				ID:           fmt.Sprintf("scan-%d", i),
+				ScanStatus:   gcpspanner.ScanStatusFailed,
+				ScannedAt:    now.Add(-time.Duration(i+1) * 10 * time.Minute),
+				Branch:       "main",
+				CommitSHA:    "",
+				ErrorClass:   new(class),
+				RulesVersion: new(codescan.RulesVersion),
+			})
+		}
+
+		return scans
+	}
+
+	storer := &mockInstallationStorer{
+		mu: sync.Mutex{},
+		installations: []gcpspanner.VCSInstallation{
+			{VCSProvider: gcpspanner.VCSProviderGitHub, VCSInstallationID: "101", AccountLogin: "owner"},
+		},
+	}
+	repoLister := &mockGitHubRepoLister{
+		listReposFunc: func(_ context.Context, _ string, opts *github.ListOptions) ([]*github.Repository, error) {
+			if opts.Page > 1 {
+				return nil, nil
+			}
+
+			return []*github.Repository{
+				testRepo(1, "owner/timing-out", now.Add(-5*time.Hour)),
+				testRepo(2, "owner/blocked", now.Add(-5*time.Hour)),
+			}, nil
+		},
+	}
+	history := newMockScanHistoryReader(map[string][]gcpspanner.RepositoryScanSummary{
+		"1": failures(gcpspanner.ScanErrorClassTimeout),
+		"2": failures(gcpspanner.ScanErrorClassPermanentClient),
+	}, nil)
+
+	var logs bytes.Buffer
+	proc := NewVCSSyncProcessor(storer, &mockTokenProvider{}, repoLister, &mockTaskPublisher{mu: sync.Mutex{}},
+		history, ParseSkipPolicy(""))
+	proc.now = func() time.Time { return now }
+	proc.logger = slog.New(slog.NewJSONHandler(&logs, nil))
+	if err := proc.Process(context.Background(), NewJobArguments()); err != nil {
+		t.Fatalf("Process() unexpected error: %v", err)
+	}
+
+	// The "Repository Repeatedly Failing to Scan" alert matches this exact message and reads "repo".
+	var warned []string
+	for line := range strings.SplitSeq(strings.TrimSpace(logs.String()), "\n") {
+		var entry struct {
+			Msg                 string `json:"msg"`
+			Repo                string `json:"repo"`
+			ConsecutiveFailures int    `json:"consecutive_failures"`
+			ErrorClass          string `json:"error_class"`
+		}
+		if err := json.Unmarshal([]byte(line), &entry); err != nil {
+			t.Fatalf("log line is not JSON: %q: %v", line, err)
+		}
+		if entry.Msg != "repository repeatedly failing to scan" {
+			continue
+		}
+		if entry.ConsecutiveFailures != 4 || entry.ErrorClass != "TIMEOUT" {
+			t.Errorf("warning = %+v, want 4 consecutive TIMEOUT failures", entry)
+		}
+		warned = append(warned, entry.Repo)
+	}
+	if !slices.Equal(warned, []string{"owner/timing-out"}) {
+		t.Errorf("repositories warned about = %v, want only owner/timing-out (permanent failures are excluded)", warned)
+	}
+}
+
+//nolint:exhaustruct
+func TestVCSSyncProcessor_ReadsScanHistoryPerPage(t *testing.T) {
+	t.Parallel()
+
+	now := time.Date(2026, 11, 19, 12, 0, 0, 0, time.UTC)
+	repos := make([]*github.Repository, 0, 101)
+	for id := int64(1); id <= 101; id++ {
+		repos = append(repos, testRepo(id, fmt.Sprintf("owner/repo-%d", id), now.Add(-2*time.Hour)))
+	}
+	storer := &mockInstallationStorer{
+		mu: sync.Mutex{},
+		installations: []gcpspanner.VCSInstallation{
+			{VCSProvider: gcpspanner.VCSProviderGitHub, VCSInstallationID: "101", AccountLogin: "owner"},
+		},
+	}
+	repoLister := &mockGitHubRepoLister{
+		listReposFunc: func(_ context.Context, _ string, opts *github.ListOptions) ([]*github.Repository, error) {
+			start := (opts.Page - 1) * opts.PerPage
+			if start >= len(repos) {
+				return nil, nil
+			}
+
+			return repos[start:min(start+opts.PerPage, len(repos))], nil
+		},
+	}
+	// Only the repository on the second page has an up-to-date scan.
+	history := newMockScanHistoryReader(map[string][]gcpspanner.RepositoryScanSummary{
+		"101": {{
+			ID:           "scan",
+			ScanStatus:   gcpspanner.ScanStatusSuccess,
+			ScannedAt:    now.Add(-time.Hour),
+			Branch:       "main",
+			CommitSHA:    "",
+			ErrorClass:   nil,
+			RulesVersion: new(codescan.RulesVersion),
+		}},
+	}, nil)
+	publisher := &mockTaskPublisher{mu: sync.Mutex{}}
+
+	proc := NewVCSSyncProcessor(storer, &mockTokenProvider{}, repoLister, publisher, history, ParseSkipPolicy("*"))
+	proc.now = func() time.Time { return now }
+	if err := proc.Process(context.Background(), NewJobArguments()); err != nil {
+		t.Fatalf("Process() unexpected error: %v", err)
+	}
+
+	if len(history.calls) != 2 || len(history.calls[0]) != 100 || !slices.Equal(history.calls[1], []string{"101"}) {
+		t.Errorf("scan history lookups = %d calls, want one per page (100 repositories, then [101])",
+			len(history.calls))
+	}
+	published := publishedRepoIDs(publisher)
+	if len(published) != 100 || slices.Contains(published, "101") {
+		t.Errorf("published %d repositories (contains 101: %v), want the 100 on the first page",
+			len(published), slices.Contains(published, "101"))
 	}
 }

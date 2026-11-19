@@ -21,6 +21,7 @@ import (
 	"log/slog"
 	"strconv"
 	"strings"
+	"time"
 
 	codescantaskv1 "github.com/GoogleChrome/webstatus.dev/lib/event/codescantask/v1"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
@@ -87,26 +88,41 @@ type VCSSyncProcessor struct {
 	tokenProvider      TokenProvider
 	repoLister         GitHubRepoLister
 	taskPublisher      TaskPublisher
+	scanHistory        ScanHistoryReader
+	skipPolicy         SkipPolicy
+	now                func() time.Time
+	// logger writes the logs that alerts and dashboards depend on, so tests can capture them.
+	logger *slog.Logger
 }
 
 // NewVCSSyncProcessor constructs a new scheduled VCS sync processor.
+//
+// The processor reads each repository's recent scans to decide whether it needs a new scan. It
+// only skips repositories of installations allowed by skipPolicy; for the others it logs what it
+// would have skipped and publishes every repository.
 func NewVCSSyncProcessor(
 	installationStorer InstallationStorer,
 	tokenProvider TokenProvider,
 	repoLister GitHubRepoLister,
 	taskPublisher TaskPublisher,
+	scanHistory ScanHistoryReader,
+	skipPolicy SkipPolicy,
 ) *VCSSyncProcessor {
 	return &VCSSyncProcessor{
 		installationStorer: installationStorer,
 		tokenProvider:      tokenProvider,
 		repoLister:         repoLister,
 		taskPublisher:      taskPublisher,
+		scanHistory:        scanHistory,
+		skipPolicy:         skipPolicy,
+		now:                time.Now,
+		logger:             slog.Default(),
 	}
 }
 
 // Process runs the scheduled reconciliation job across all active installations.
 func (p *VCSSyncProcessor) Process(ctx context.Context, _ JobArguments) error {
-	slog.InfoContext(ctx, "starting scheduled VCS repository sync")
+	slog.InfoContext(ctx, "starting scheduled VCS repository sync", "skip_policy", p.skipPolicy.String())
 
 	// Tier 1: Reconcile GitHub App installations (healing any missed installation webhooks)
 	if err := p.reconcileGitHubAppInstallations(ctx); err != nil {
@@ -122,13 +138,14 @@ func (p *VCSSyncProcessor) Process(ctx context.Context, _ JobArguments) error {
 
 	slog.InfoContext(ctx, "discovered active VCS installations", "count", len(installations))
 
+	stats := newSyncStats()
 	var errs []error
 	for _, inst := range installations {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
 
-		if err := p.syncInstallation(ctx, inst); err != nil {
+		if err := p.syncInstallation(ctx, inst, stats); err != nil {
 			if gh.IsClientError(err) {
 				slog.WarnContext(ctx, "client error syncing installation, skipping",
 					"provider", inst.VCSProvider,
@@ -149,6 +166,14 @@ func (p *VCSSyncProcessor) Process(ctx context.Context, _ JobArguments) error {
 			errs = append(errs, err)
 		}
 	}
+
+	p.logger.InfoContext(ctx, "scan task decisions",
+		"skip_policy", p.skipPolicy.String(),
+		"published", stats.published,
+		"skipped", stats.skipped,
+		"would_skip", stats.wouldSkip,
+		"reasons", stats.reasonCounts(),
+	)
 
 	if len(errs) > 0 {
 		return errors.Join(errs...)
@@ -260,10 +285,14 @@ func (p *VCSSyncProcessor) reconcileGitHubAppInstallations(ctx context.Context) 
 	return nil
 }
 
-func (p *VCSSyncProcessor) syncInstallation(ctx context.Context, inst gcpspanner.VCSInstallation) error {
+func (p *VCSSyncProcessor) syncInstallation(
+	ctx context.Context,
+	inst gcpspanner.VCSInstallation,
+	stats *syncStats,
+) error {
 	switch inst.VCSProvider {
 	case gcpspanner.VCSProviderGitHub:
-		return p.syncGitHubInstallation(ctx, inst)
+		return p.syncGitHubInstallation(ctx, inst, stats)
 	default:
 		slog.WarnContext(ctx, "unsupported VCS provider for sync", "provider", inst.VCSProvider)
 
@@ -271,12 +300,17 @@ func (p *VCSSyncProcessor) syncInstallation(ctx context.Context, inst gcpspanner
 	}
 }
 
-func (p *VCSSyncProcessor) syncGitHubInstallation(ctx context.Context, inst gcpspanner.VCSInstallation) error {
+func (p *VCSSyncProcessor) syncGitHubInstallation(
+	ctx context.Context,
+	inst gcpspanner.VCSInstallation,
+	stats *syncStats,
+) error {
 	token, err := p.tokenProvider.GetInstallationToken(ctx, inst.VCSInstallationID)
 	if err != nil {
 		return fmt.Errorf("failed to obtain installation token for %s: %w", inst.VCSInstallationID, err)
 	}
 
+	skipEnabled := p.skipPolicy.EnabledFor(inst.VCSInstallationID)
 	page := 1
 	var publishErrs []error
 	publishAttempts := 0
@@ -300,25 +334,17 @@ func (p *VCSSyncProcessor) syncGitHubInstallation(ctx context.Context, inst gcps
 			break
 		}
 
+		history, historyOK := p.readScanHistory(ctx, inst, repos)
+		now := p.now()
 		for _, repo := range repos {
 			if repo == nil {
 				continue
 			}
 
-			branch := repo.GetDefaultBranch()
-			if branch == "" {
-				branch = "main"
-			}
-
-			task := codescantaskv1.CodeScanTaskEvent{
-				VCSProvider:        codescantaskv1.VCSProviderGitHub,
-				VCSInstallationID:  inst.VCSInstallationID,
-				VCSRepositoryID:    strconv.FormatInt(repo.GetID(), 10),
-				RepositoryFullName: repo.GetFullName(),
-				CommitSHA:          "",
-				Branch:             branch,
-				IsDefaultBranch:    true,
-				ModifiedFiles:      nil,
+			task := newScanTask(inst, repo)
+			decision := p.decide(ctx, now, task, repo.GetPushedAt().Time, history, historyOK)
+			if !stats.record(decision, skipEnabled) {
+				continue
 			}
 
 			publishAttempts++
@@ -346,4 +372,98 @@ func (p *VCSSyncProcessor) syncGitHubInstallation(ctx context.Context, inst gcps
 	}
 
 	return nil
+}
+
+// newScanTask builds the branch-head scan task for a repository.
+func newScanTask(inst gcpspanner.VCSInstallation, repo *github.Repository) codescantaskv1.CodeScanTaskEvent {
+	branch := repo.GetDefaultBranch()
+	if branch == "" {
+		branch = "main"
+	}
+
+	return codescantaskv1.CodeScanTaskEvent{
+		VCSProvider:        codescantaskv1.VCSProviderGitHub,
+		VCSInstallationID:  inst.VCSInstallationID,
+		VCSRepositoryID:    strconv.FormatInt(repo.GetID(), 10),
+		RepositoryFullName: repo.GetFullName(),
+		CommitSHA:          "",
+		Branch:             branch,
+		IsDefaultBranch:    true,
+		ModifiedFiles:      nil,
+	}
+}
+
+// readScanHistory reads the newest scans of a page of repositories. If the read fails it returns
+// ok=false, and every repository on the page is published, which is what vcs-sync did before it
+// could skip repositories.
+func (p *VCSSyncProcessor) readScanHistory(
+	ctx context.Context,
+	inst gcpspanner.VCSInstallation,
+	repos []*github.Repository,
+) (map[string][]gcpspanner.RepositoryScanSummary, bool) {
+	repoIDs := make([]string, 0, len(repos))
+	for _, repo := range repos {
+		if repo != nil {
+			repoIDs = append(repoIDs, strconv.FormatInt(repo.GetID(), 10))
+		}
+	}
+
+	readCtx, cancel := context.WithTimeout(ctx, scanHistoryTimeout)
+	defer cancel()
+	history, err := p.scanHistory.GetRecentRepositoryScans(readCtx, gcpspanner.VCSProviderGitHub, repoIDs,
+		scanHistoryDepth)
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to read scan history, publishing every repository on this page",
+			"installation_id", inst.VCSInstallationID,
+			"account", inst.AccountLogin,
+			"error", err,
+		)
+
+		return nil, false
+	}
+
+	return history, true
+}
+
+// decide evaluates whether a repository needs a new scan, and warns about repositories whose
+// scans keep failing.
+func (p *VCSSyncProcessor) decide(
+	ctx context.Context,
+	now time.Time,
+	task codescantaskv1.CodeScanTaskEvent,
+	pushedAt time.Time,
+	history map[string][]gcpspanner.RepositoryScanSummary,
+	historyOK bool,
+) scanDecision {
+	if !historyOK {
+		return publishBecause(reasonHistoryUnavailable)
+	}
+
+	scans := history[task.VCSRepositoryID]
+	decision := decideScan(now, repoSnapshot{defaultBranch: task.Branch, pushedAt: pushedAt}, scans)
+
+	if failures, failing := repeatedFailure(scans); failing {
+		errorClass := ""
+		if scans[0].ErrorClass != nil {
+			errorClass = string(*scans[0].ErrorClass)
+		}
+		// The "Repository Repeatedly Failing to Scan" alert (infra/pubsub/alerts.tf) matches this
+		// message and reads the repo field.
+		p.logger.WarnContext(ctx, "repository repeatedly failing to scan",
+			"repo", task.RepositoryFullName,
+			"repository_id", task.VCSRepositoryID,
+			"installation_id", task.VCSInstallationID,
+			"consecutive_failures", failures,
+			"error_class", errorClass,
+			"last_scanned_at", scans[0].ScannedAt,
+		)
+	}
+
+	p.logger.DebugContext(ctx, "scan task decision",
+		"repo", task.RepositoryFullName,
+		"publish", decision.publish,
+		"reason", string(decision.reason),
+	)
+
+	return decision
 }

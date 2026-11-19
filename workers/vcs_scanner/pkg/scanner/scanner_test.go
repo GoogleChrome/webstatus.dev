@@ -30,6 +30,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/codescan"
 	"github.com/GoogleChrome/webstatus.dev/lib/event"
 	codescantaskv1 "github.com/GoogleChrome/webstatus.dev/lib/event/codescantask/v1"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
@@ -180,6 +181,9 @@ func requireSingleFailedLog(t *testing.T, syncer *mockSpannerSyncer, wantClass g
 	if got.ErrorClass == nil || *got.ErrorClass != wantClass {
 		t.Errorf("scan log error class = %v, want %v", got.ErrorClass, wantClass)
 	}
+	if got.RulesVersion == nil || *got.RulesVersion != codescan.RulesVersion {
+		t.Errorf("scan log rules version = %v, want %d", got.RulesVersion, codescan.RulesVersion)
+	}
 }
 
 func requireNotTransient(t *testing.T, err error) {
@@ -245,6 +249,10 @@ function enableSubgrid() {}
 	}
 	if log.ID == "" || log.ScannedAt.IsZero() {
 		t.Errorf("scan log must carry an ID and start time for the fence, got %+v", log)
+	}
+	if log.RulesVersion == nil || *log.RulesVersion != codescan.RulesVersion {
+		t.Errorf("log.RulesVersion = %v, want %d so vcs-sync can tell the scan is current",
+			log.RulesVersion, codescan.RulesVersion)
 	}
 	if len(syncer.scanLogs) != 0 {
 		t.Errorf("a successful scan must not write a separate scan log row, got %d", len(syncer.scanLogs))

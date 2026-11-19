@@ -147,7 +147,75 @@ resource "google_monitoring_alert_policy" "vcs_scan_failures" {
   notification_channels = var.notification_channel_ids
 
   documentation {
-    content   = "Three or more repositories have been failing to scan for a non-permanent reason (see the error_class label: TIMEOUT, STALL, STREAM, TRANSIENT_SERVER, RATE_LIMITED, SPANNER, PANIC, UNKNOWN). Check the vcs-scanner logs for \"repository scan failed\" entries. Failed repositories are retried automatically on the next vcs-sync run."
+    content   = "Three or more repositories have been failing to scan for a non-permanent reason (see the error_class label: TIMEOUT, STALL, STREAM, TRANSIENT_SERVER, RATE_LIMITED, SPANNER, PANIC, UNKNOWN). Check the vcs-scanner logs for \"repository scan failed\" entries. Failed repositories are retried automatically by vcs-sync (with backoff for installations where skipping is enabled)."
+    mime_type = "text/markdown"
+  }
+}
+
+# ==========================================
+# 4. Warning: Repository Repeatedly Failing to Scan
+# ==========================================
+# vcs-sync retries failed scans with backoff (5m, 10m, 20m, 40m, then hourly). On every run it logs
+# "repository repeatedly failing to scan" for each repository whose last 4+ scans failed for a
+# non-permanent reason. This catches a single repository that never recovers, which the
+# "Code Scans Failing" alert (3+ repositories) does not.
+
+resource "google_logging_metric" "vcs_repeated_scan_failures" {
+  project     = var.project_id
+  name        = "vcs_repeated_scan_failures_${var.env_id}"
+  description = "Repositories whose last 4+ scans failed for a non-permanent reason, logged by every vcs-sync run."
+  filter = join(" AND ", [
+    "resource.type=\"cloud_run_job\"",
+    "resource.labels.job_name=~\"^${var.env_id}-.+-vcs-sync$\"",
+    "jsonPayload.message=\"repository repeatedly failing to scan\"",
+  ])
+
+  metric_descriptor {
+    metric_kind = "DELTA"
+    value_type  = "INT64"
+    labels {
+      key        = "repo"
+      value_type = "STRING"
+    }
+  }
+
+  label_extractors = {
+    "repo" = "EXTRACT(jsonPayload.repo)"
+  }
+}
+
+resource "google_monitoring_alert_policy" "vcs_repeated_scan_failures" {
+  display_name = "Repository Repeatedly Failing to Scan (${var.env_id})"
+  combiner     = "OR"
+  severity     = "WARNING"
+
+  conditions {
+    display_name = "A repository's last 4+ scans failed, for 1 hour"
+    condition_threshold {
+      filter = join(" AND ", [
+        "resource.type=\"cloud_run_job\"",
+        "metric.type=\"logging.googleapis.com/user/${google_logging_metric.vcs_repeated_scan_failures.name}\"",
+      ])
+
+      # vcs-sync runs every 5 minutes, alternating regions. A 20 minute window still sees at least
+      # one run of a failing repository if one region's vcs-sync is down.
+      duration        = "3600s"
+      comparison      = "COMPARISON_GT"
+      threshold_value = 0
+
+      aggregations {
+        alignment_period     = "1200s"
+        per_series_aligner   = "ALIGN_SUM"
+        cross_series_reducer = "REDUCE_SUM"
+        group_by_fields      = ["metric.label.repo"]
+      }
+    }
+  }
+
+  notification_channels = var.notification_channel_ids
+
+  documentation {
+    content   = "A repository has failed its last 4 or more scans for a non-permanent reason for over an hour. Check the vcs-sync logs for \"repository repeatedly failing to scan\" (consecutive_failures, error_class) and the vcs-scanner logs for \"repository scan failed\" for that repository. vcs-sync keeps retrying it hourly."
     mime_type = "text/markdown"
   }
 }

@@ -120,6 +120,7 @@ module "ingestion" {
   developer_signals_region_schedules    = var.developer_signals_region_schedules
   web_features_mapping_region_schedules = var.web_features_mapping_region_schedules
   vcs_sync_region_schedules             = var.vcs_sync_region_schedules
+  vcs_sync_skip_allowed_installations   = var.vcs_sync_skip_allowed_installations
   notification_channel_ids              = var.notification_channel_ids
   otel_config_secret_id                 = google_secret_manager_secret.otel_config.id
   otel_project_id                       = var.projects.internal

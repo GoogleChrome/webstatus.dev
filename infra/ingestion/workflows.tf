@@ -372,6 +372,12 @@ module "vcs_sync_workflow" {
     {
       name  = "GITHUB_APP_ID"
       value = var.github_app_id
+    },
+    {
+      # Installations that skip repositories that do not need a new scan. Empty publishes every
+      # repository on every run.
+      name  = "VCS_SYNC_SKIP_ALLOWED_INSTALLATIONS"
+      value = join(",", var.vcs_sync_skip_allowed_installations)
     }
   ]
   otel_config_secret_id            = var.otel_config_secret_id
