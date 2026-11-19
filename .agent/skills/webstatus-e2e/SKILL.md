@@ -27,7 +27,7 @@ For a detailed technical guide on the local development environment (Skaffold/Mi
 - **DO** use **Wiremock** (available at `localhost:8080` via port-forward) to mock GitHub API responses, such as user profiles and email lookups during login.
 - **DO** use `waitForChartCompletion` and `waitForTabbedChartCompletion` hooks (from `utils.ts`) for Google Charts instead of naive `.waitForSelector` to avoid timeout races.
 - **DO** use `toBeAttached()` instead of `toBeVisible()` to cleanly bypass WebKit strict-mode 0px bounding box quirks for inline host elements or absolutely positioned fragments.
-- **DO** explicitly use `await` on asynchronous Playwright matchers like `toBeChecked()` to prevent tests from skipping past Lit hydration cycles synchronously.
+- **DO** explicitly use `await` on asynchronous Playwright matchers like `toBeChecked()` to prevent tests from skipping past Lit hydration cycles synchronously. This is enforced by the type-aware `@typescript-eslint/no-floating-promises` rule in `e2e/eslint.config.mjs` (type info comes from `e2e/tsconfig.json`). Route handlers must also return or `await` `route.fulfill()`/`route.continue()`.
 
 ## Configuration & Stability
 
@@ -47,6 +47,7 @@ For a detailed technical guide on the local development environment (Skaffold/Mi
   - `make playwright-ui`: Runs the tests in Playwright's interactive UI mode.
   - `make playwright-debug`: Runs the tests in debug mode.
   - `make playwright-update-snapshots`: Updates visual regression snapshots.
+  - `make node-lint`: Lints the E2E tests (`npx eslint e2e`) along with the frontend. Also part of `make lint`/`make precommit`.
 
 ## Documentation Updates
 

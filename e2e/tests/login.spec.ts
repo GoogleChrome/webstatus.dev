@@ -75,13 +75,13 @@ test.describe('Login Component States', () => {
 
   test('displays an error icon if profile sync fails', async ({page}) => {
     // Intercept the pingUser request and make it fail.
-    await page.route('**/v1/users/me/ping', route => {
+    await page.route('**/v1/users/me/ping', route =>
       route.fulfill({
         status: 500,
         contentType: 'application/json',
         body: JSON.stringify({message: 'Internal Server Error'}),
-      });
-    });
+      }),
+    );
 
     // Perform the login and wait for the 'error' state.
     await loginAsUser(page, 'test user 1', {waitFor: 'error'});

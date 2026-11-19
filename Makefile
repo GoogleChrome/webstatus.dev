@@ -239,6 +239,7 @@ go-lint: golint-version go-workspace-setup
 
 node-lint: node-install
 	npm run lint -w frontend
+	npx eslint e2e
 	npx prettier . --check
 
 # Need to clean out the .terraform directory before linting.

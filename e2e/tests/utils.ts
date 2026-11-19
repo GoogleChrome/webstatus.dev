@@ -133,7 +133,7 @@ export async function getOverviewPageFeatureCount(page: Page): Promise<number> {
   await waitForOverviewPageLoad(page);
   const regex = /(\d+) features/;
   const statsSummary = page.getByText(regex);
-  expect(statsSummary).toBeVisible();
+  await expect(statsSummary).toBeVisible();
   const text = await statsSummary.innerText();
   return parseInt(text.match(regex)![1]);
 }

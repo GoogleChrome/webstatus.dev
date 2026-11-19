@@ -1,0 +1,20 @@
+{
+  // Provides type information to ESLint for the E2E tests (see
+  // eslint.config.mjs). Playwright transpiles the tests itself and only reads
+  // `allowJs`/`paths`/`baseUrl` from tsconfig, none of which are set here, so
+  // this does not change how tests run.
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "types": ["node"],
+    "strict": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "noEmit": true
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["test-results"]
+}
