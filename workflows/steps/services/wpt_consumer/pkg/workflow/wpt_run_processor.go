@@ -19,6 +19,7 @@ import (
 	"errors"
 	"log/slog"
 	"strings"
+	"sync/atomic"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters/wptconsumertypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/webdxfeaturetypes"
@@ -135,6 +136,21 @@ func (w WPTRunProcessor) ProcessRun(
 
 var ErrConflictMigratingFeatureKey = errors.New("conflict migrating feature key")
 
+// maxLoggedMovedFeatureKeyMigrations limits how many individual feature key migrations are logged
+// per job execution. Every run is scored against the same web features data, so logging every
+// migrated test for every run repeats the same lines thousands of times. The total count is logged
+// once at the end of the job instead (see MovedFeatureKeyMigrationCount).
+const maxLoggedMovedFeatureKeyMigrations = 5
+
+// movedFeatureKeyMigrations counts the feature key migrations made during this job execution.
+var movedFeatureKeyMigrations atomic.Int64
+
+// MovedFeatureKeyMigrationCount returns the number of feature key migrations made during this job
+// execution.
+func MovedFeatureKeyMigrationCount() int64 {
+	return movedFeatureKeyMigrations.Load()
+}
+
 // migrateWebFeaturesToMovedFeatures analyzes the moved features and updates the web features data
 // to ensure that any legacy feature identifiers are migrated to their new identifiers before scoring.
 // This function modifies the data in-place.
@@ -170,10 +186,12 @@ func migrateWebFeaturesToMovedFeatures(
 
 					return ErrConflictMigratingFeatureKey
 				}
-				slog.WarnContext(ctx, "migrating feature key for test. Upstream WPT data should be updated.",
-					"test", testName,
-					"old_key", featureKey,
-					"new_key", movedFeatureData.RedirectTarget)
+				if movedFeatureKeyMigrations.Add(1) <= maxLoggedMovedFeatureKeyMigrations {
+					slog.WarnContext(ctx, "migrating feature key for test. Upstream WPT data should be updated.",
+						"test", testName,
+						"old_key", featureKey,
+						"new_key", movedFeatureData.RedirectTarget)
+				}
 
 				newFeaturesMap[movedFeatureData.RedirectTarget] = featureKeyData
 			} else {

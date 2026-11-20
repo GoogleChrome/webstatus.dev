@@ -148,6 +148,10 @@ func main() {
 
 	// Job Execution and Error Handling
 	errs := pool.Start(ctx, numWorkers, processor, jobs)
+	if count := workflow.MovedFeatureKeyMigrationCount(); count > 0 {
+		slog.WarnContext(ctx, "migrated feature keys for tests. Only the first few were logged individually. "+
+			"Upstream WPT data should be updated.", "count", count)
+	}
 	if len(errs) > 0 {
 		slog.ErrorContext(ctx, "workflow returned errors", "error", errors.Join(errs...))
 		os.Exit(1)

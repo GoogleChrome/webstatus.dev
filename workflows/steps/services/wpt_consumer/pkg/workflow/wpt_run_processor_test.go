@@ -15,10 +15,14 @@
 package workflow
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"fmt"
+	"log/slog"
 	"maps"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -591,5 +595,34 @@ func TestMigrateWebFeaturesToMovedFeatures(t *testing.T) {
 				t.Errorf("expected data %v, got %v", &dataCopy, tc.expectedData)
 			}
 		})
+	}
+}
+
+func TestMigrateWebFeaturesToMovedFeaturesLogsFirstMigrationsOnly(t *testing.T) {
+	var buf bytes.Buffer
+	previousLogger := slog.Default()
+	slog.SetDefault(slog.New(slog.NewTextHandler(&buf, nil)))
+	movedFeatureKeyMigrations.Store(0)
+	t.Cleanup(func() {
+		slog.SetDefault(previousLogger)
+		movedFeatureKeyMigrations.Store(0)
+	})
+
+	data := shared.WebFeaturesData{}
+	for i := range 7 {
+		data[fmt.Sprintf("test%d.html", i)] = map[string]any{"old-feature": nil}
+	}
+	movedFeatures := map[string]webdxfeaturetypes.FeatureMovedData{
+		"old-feature": {RedirectTarget: "new-feature", Kind: webdxfeaturetypes.Moved},
+	}
+	if err := migrateWebFeaturesToMovedFeatures(context.Background(), movedFeatures, &data); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if got := MovedFeatureKeyMigrationCount(); got != 7 {
+		t.Errorf("expected 7 migrations to be counted, got %d", got)
+	}
+	if got := strings.Count(buf.String(), "migrating feature key for test."); got != maxLoggedMovedFeatureKeyMigrations {
+		t.Errorf("expected %d migrations to be logged, got %d", maxLoggedMovedFeatureKeyMigrations, got)
 	}
 }
