@@ -29,8 +29,6 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/workers/vcs_scanner/pkg/scanner"
 )
 
-const maxConcurrentScans = 20
-
 func main() {
 	ctx := context.Background()
 
@@ -100,10 +98,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Process at most 20 scan tasks at once per instance (library default: 1000), which also caps
-	// the number of concurrent archive downloads, each on its own connection.
-	queueClient, err := gcppubsub.NewClient(ctx, projectID,
-		gcppubsub.WithMaxOutstandingMessages(maxConcurrentScans))
+	queueClient, err := gcppubsub.NewClient(ctx, projectID)
 	if err != nil {
 		slog.ErrorContext(ctx, "unable to create pub sub client", "error", err)
 		os.Exit(1)
