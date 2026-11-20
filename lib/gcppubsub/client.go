@@ -25,41 +25,17 @@ import (
 
 type Client struct {
 	client *pubsub.Client
-	// maxOutstandingMessages overrides the subscriber's concurrency limit when > 0.
-	maxOutstandingMessages int
-}
-
-// ClientOption configures optional Client behavior.
-type ClientOption func(*Client)
-
-// WithMaxOutstandingMessages caps how many messages a subscriber processes at once
-// (library default: 1000).
-func WithMaxOutstandingMessages(n int) ClientOption {
-	return func(c *Client) {
-		c.maxOutstandingMessages = n
-	}
 }
 
 // NewClient creates a new Pub/Sub client.
 // It automatically respects PUBSUB_EMULATOR_HOST env var.
-func NewClient(ctx context.Context, projectID string, opts ...ClientOption) (*Client, error) {
+func NewClient(ctx context.Context, projectID string) (*Client, error) {
 	c, err := pubsub.NewClient(ctx, projectID)
 	if err != nil {
 		return nil, errors.Join(ErrFailedToEstablishClient, err)
 	}
 
-	client := &Client{client: c, maxOutstandingMessages: 0}
-	for _, opt := range opts {
-		opt(client)
-	}
-
-	return client, nil
-}
-
-func (c *Client) applyReceiveSettings(settings *pubsub.ReceiveSettings) {
-	if c.maxOutstandingMessages > 0 {
-		settings.MaxOutstandingMessages = c.maxOutstandingMessages
-	}
+	return &Client{client: c}, nil
 }
 
 func (c *Client) Close() error {
@@ -87,7 +63,6 @@ func (c *Client) Publish(ctx context.Context, topicID string, data []byte) (stri
 func (c *Client) Subscribe(ctx context.Context, subID string,
 	handler func(ctx context.Context, msgID string, data []byte) error) error {
 	sub := c.client.Subscriber(subID)
-	c.applyReceiveSettings(&sub.ReceiveSettings)
 
 	// Receive blocks until ctx is cancelled.
 	err := sub.Receive(ctx, func(ctx context.Context, msg *pubsub.Message) {
