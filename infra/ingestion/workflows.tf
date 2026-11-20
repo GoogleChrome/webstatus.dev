@@ -339,6 +339,7 @@ module "vcs_sync_workflow" {
   deletion_protection              = var.deletion_protection
   project_id                       = var.spanner_datails.project_id
   timeout_seconds                  = 3600 # 1 hour
+  no_success_alert_window_hours    = 2    # Runs every 5 minutes across both regions, so ~24 missed runs.
   image_name                       = "vcs_sync_image"
   spanner_details                  = var.spanner_datails
   notification_channel_ids         = var.notification_channel_ids

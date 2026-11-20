@@ -149,3 +149,9 @@ variable "github_app_private_key_secret_id" {
   description = "The Secret Manager secret ID containing the GitHub App RSA private key"
   default     = ""
 }
+
+variable "no_success_alert_window_hours" {
+  type        = number
+  description = "How many hours without a successful execution in any region before the No Successful Run alert fires. Keep it longer than the interval between scheduled runs."
+  default     = 23
+}

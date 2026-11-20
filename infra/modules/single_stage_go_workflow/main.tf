@@ -116,7 +116,7 @@ resource "google_project_iam_member" "invoker" {
 }
 
 # This alert fires when no successful job execution has completed across any region
-# in the last 23 hours.
+# in the last var.no_success_alert_window_hours hours.
 # It uses a single condition_absent combining all regional instances of this workflow,
 # ensuring exactly one notification is sent and preventing false alarms when one region fails
 # but another succeeds.
@@ -124,13 +124,13 @@ resource "google_project_iam_member" "invoker" {
 resource "google_monitoring_alert_policy" "job_failed_alert" {
   count = length(var.notification_channel_ids) > 0 ? 1 : 0
 
-  display_name          = "${var.full_name} - Ingestion Stalled (No Success in 23 Hours)"
+  display_name          = "${var.full_name} - No Successful Run in ${var.no_success_alert_window_hours} Hours"
   combiner              = "OR"
   notification_channels = var.notification_channel_ids
   severity              = "ERROR"
 
   conditions {
-    display_name = "No successful job executions in any region in 23 hours"
+    display_name = "No successful job executions in any region in ${var.no_success_alert_window_hours} hours"
     condition_absent {
       filter = join(" AND ", [
         "resource.type=\"cloud_run_job\"",
@@ -143,7 +143,7 @@ resource "google_monitoring_alert_policy" "job_failed_alert" {
         count = 1
       }
       aggregations {
-        alignment_period     = "82800s" # 23 hours
+        alignment_period     = "${var.no_success_alert_window_hours * 3600}s"
         per_series_aligner   = "ALIGN_SUM"
         cross_series_reducer = "REDUCE_SUM"
         group_by_fields      = []
@@ -152,7 +152,7 @@ resource "google_monitoring_alert_policy" "job_failed_alert" {
   }
 
   documentation {
-    content   = "No successful ${var.full_name} execution has completed across any region in the last 23 hours (7-8 consecutive runs failed). Check Cloud Run job logs for errors or panics."
+    content   = "No successful ${var.full_name} execution has completed across any region in the last ${var.no_success_alert_window_hours} hours. Check Cloud Run job logs for errors or panics."
     mime_type = "text/markdown"
   }
 }
