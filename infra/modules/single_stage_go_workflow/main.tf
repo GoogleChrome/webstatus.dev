@@ -34,6 +34,7 @@ module "job" {
   full_name                        = var.full_name
   short_name                       = var.short_name
   timeout_seconds                  = var.timeout_seconds
+  max_retries                      = var.max_retries
   spanner_project_id               = var.spanner_details.project_id
   does_process_write_to_datastore  = var.does_process_write_to_datastore
   does_process_write_to_spanner    = var.does_process_write_to_spanner

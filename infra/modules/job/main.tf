@@ -20,7 +20,8 @@ resource "google_cloud_run_v2_job" "job" {
 
   template {
     template {
-      timeout = format("%ds", var.timeout_seconds)
+      timeout     = format("%ds", var.timeout_seconds)
+      max_retries = var.max_retries
       containers {
         image = var.image
         resources {
