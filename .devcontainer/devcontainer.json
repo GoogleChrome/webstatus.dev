@@ -20,7 +20,7 @@
     "ghcr.io/devcontainers/features/go:1": {
       "version": "1.27.4",
       // Reminder: bump this whenever we bump the go version.
-      "golangciLintVersion": "2.13.2"
+      "golangciLintVersion": "2.14.0"
     },
     "ghcr.io/devcontainers/features/github-cli:1": {},
     "ghcr.io/devcontainers/features/docker-in-docker:4": {
