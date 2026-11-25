@@ -77,10 +77,10 @@ func TestTokenProvider_GetInstallationToken(t *testing.T) {
 	t.Parallel()
 
 	_, privPEM := generateTestRSAPEM(t)
-	var requestCount int64
+	var requestCount atomic.Int64
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		atomic.AddInt64(&requestCount, 1)
+		requestCount.Add(1)
 
 		if r.Method != http.MethodPost {
 			t.Errorf("expected POST, got %s", r.Method)
@@ -127,7 +127,7 @@ func TestTokenProvider_GetInstallationToken(t *testing.T) {
 		t.Errorf("cached token mismatch: %s != %s", token2, token)
 	}
 
-	if count := atomic.LoadInt64(&requestCount); count != 1 {
+	if count := requestCount.Load(); count != 1 {
 		t.Errorf("expected 1 HTTP request, got %d", count)
 	}
 }
@@ -237,10 +237,10 @@ func TestTokenProvider_CacheExpiration(t *testing.T) {
 	t.Parallel()
 
 	_, privPEM := generateTestRSAPEM(t)
-	var requestCount int64
+	var requestCount atomic.Int64
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		count := atomic.AddInt64(&requestCount, 1)
+		count := requestCount.Add(1)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		_ = json.NewEncoder(w).Encode(testTokenResp{
@@ -273,7 +273,7 @@ func TestTokenProvider_CacheExpiration(t *testing.T) {
 	if token != "token-version-1" {
 		t.Errorf("expected fresh token-version-1, got: %s", token)
 	}
-	if count := atomic.LoadInt64(&requestCount); count != 1 {
+	if count := requestCount.Load(); count != 1 {
 		t.Errorf("expected 1 HTTP request, got %d", count)
 	}
 
@@ -285,7 +285,7 @@ func TestTokenProvider_CacheExpiration(t *testing.T) {
 	if token2 != "token-version-1" {
 		t.Errorf("expected cached token-version-1, got: %s", token2)
 	}
-	if count := atomic.LoadInt64(&requestCount); count != 1 {
+	if count := requestCount.Load(); count != 1 {
 		t.Errorf("expected still 1 HTTP request, got %d", count)
 	}
 }
@@ -294,10 +294,10 @@ func TestTokenProvider_SingleflightCoalescing(t *testing.T) {
 	t.Parallel()
 
 	_, privPEM := generateTestRSAPEM(t)
-	var requestCount int64
+	var requestCount atomic.Int64
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		atomic.AddInt64(&requestCount, 1)
+		requestCount.Add(1)
 		time.Sleep(30 * time.Millisecond) // slow server to ensure concurrent in-flight requests
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
@@ -342,7 +342,7 @@ func TestTokenProvider_SingleflightCoalescing(t *testing.T) {
 	}
 
 	// Concurrent requests should coalesce into exactly 1 HTTP request
-	if count := atomic.LoadInt64(&requestCount); count != 1 {
+	if count := requestCount.Load(); count != 1 {
 		t.Errorf("expected exactly 1 HTTP request due to concurrent coalescing, got %d", count)
 	}
 }
@@ -393,22 +393,22 @@ func TestTokenProvider_GetInstallationTokenForRepo(t *testing.T) {
 
 	_, privPEM := generateTestRSAPEM(t)
 
-	var installReqCount int64
-	var tokenReqCount int64
+	var installReqCount atomic.Int64
+	var tokenReqCount atomic.Int64
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 
 		switch r.URL.Path {
 		case "/repos/valid-owner/valid-repo/installation":
-			atomic.AddInt64(&installReqCount, 1)
+			installReqCount.Add(1)
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte(`{"id": 456}`))
 		case "/repos/unknown-owner/unknown-repo/installation":
 			w.WriteHeader(http.StatusNotFound)
 			_, _ = w.Write([]byte(`{"message": "Not Found"}`))
 		case "/app/installations/456/access_tokens":
-			atomic.AddInt64(&tokenReqCount, 1)
+			tokenReqCount.Add(1)
 			w.WriteHeader(http.StatusCreated)
 			_ = json.NewEncoder(w).Encode(testTokenResp{
 				Token:     mockInstToken2,
@@ -446,10 +446,10 @@ func TestTokenProvider_GetInstallationTokenForRepo(t *testing.T) {
 	if tok2 != mockInstToken2 {
 		t.Errorf("expected cached token %s, got %s", mockInstToken2, tok2)
 	}
-	if got := atomic.LoadInt64(&installReqCount); got != 1 {
+	if got := installReqCount.Load(); got != 1 {
 		t.Errorf("expected 1 install request, got %d", got)
 	}
-	if got := atomic.LoadInt64(&tokenReqCount); got != 1 {
+	if got := tokenReqCount.Load(); got != 1 {
 		t.Errorf("expected 1 token request, got %d", got)
 	}
 

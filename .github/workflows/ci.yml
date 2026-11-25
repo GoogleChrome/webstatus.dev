@@ -27,7 +27,7 @@ permissions:
   packages: read
 
 env:
-  GO_VERSION: '1.25'
+  GO_VERSION: '1.27'
   NODE_VERSION: '24'
   GO_CACHE_DEPENDENCY_PATH: '**/*.sum'
 
