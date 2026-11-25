@@ -39,13 +39,11 @@ func IsRateLimitError(err error) bool {
 		return true
 	}
 
-	var rateLimitErr *github.RateLimitError
-	if errors.As(err, &rateLimitErr) {
+	if _, ok := errors.AsType[*github.RateLimitError](err); ok {
 		return true
 	}
 
-	var abuseErr *github.AbuseRateLimitError
-	if errors.As(err, &abuseErr) {
+	if _, ok := errors.AsType[*github.AbuseRateLimitError](err); ok {
 		return true
 	}
 

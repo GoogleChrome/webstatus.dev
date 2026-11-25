@@ -18,6 +18,7 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"slices"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/auth"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
@@ -66,8 +67,8 @@ func applyPreRequestValidationMiddlewares(mux *http.ServeMux,
 	middlewares []func(http.Handler) http.Handler) http.Handler {
 	var next http.Handler
 	next = mux
-	for i := len(middlewares) - 1; i >= 0; i-- {
-		next = middlewares[i](next)
+	for _, middleware := range slices.Backward(middlewares) {
+		next = middleware(next)
 	}
 
 	return next
