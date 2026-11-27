@@ -55,6 +55,8 @@ go.work.sum
 
 # ANTLR4
 .antlr
+lib/gen/antlrv4/ts-antlrv4/*.interp
+lib/gen/antlrv4/ts-antlrv4/*.tokens
 
 .devcontainer/cache/go/go-build/*
 .devcontainer/cache/go/pkg/*
